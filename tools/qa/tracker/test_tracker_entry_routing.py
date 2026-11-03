@@ -20,5 +20,21 @@ class Routing(unittest.TestCase):
   self.assertIn('alias /mobile/assets/;',result)
  def test_unknown_entry_is_rejected(self):
   with self.assertRaises(AssertionError):module.tracker_entry_locations('location /tracker { proxy_pass http://other; }',Path('/release/a'),'cerro')
+ def test_unified_entry_reaches_jornada_in_both_environments(self):
+  original='location = /truck { return 301 /truck/; }\nlocation ^~ /truck/assets/ { alias /mobile/assets/; }\n'
+  for scope in ('dev','cerro'):
+   previous=module.tracker_entry_locations(original,Path('/release/a'),scope)
+   result=module.tracker_entry_locations(previous,Path('/release/b'),scope,Path('/entry/b'))
+   self.assertEqual(result.count('return 302 /tracker/jornada/$is_args$args;'),3)
+   self.assertIn('alias /entry/b/jornada.html;',result)
+   self.assertIn('alias /entry/b/gps.html;',result)
+   self.assertIn('alias /mobile/assets/;',result)
+   self.assertIn('/truck/$1 last;',result)
+   self.assertEqual(module.tracker_entry_locations(result,Path('/release/b'),scope,Path('/entry/b')).strip(),result.strip())
+ def test_shell_keeps_relative_mobile_assets_and_links_back(self):
+  result=module.tracker_shell('<head><title>Steps Móvil</title><script src="./assets/index.js"></script></head><body><div id="root"></div></body>','jornada')
+  self.assertIn('src="./assets/index.js"',result)
+  self.assertIn('<a href="/tracker">GPS y recorridos</a>',result)
+  self.assertIn('<a href="/tracker/jornada/" aria-current="page">Jornada y terreno</a>',result)
 
 if __name__=='__main__':unittest.main()

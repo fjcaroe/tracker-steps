@@ -79,7 +79,8 @@ def configure_frontend(source,commit,scope,backup):
         assert previous.split('location = /truck')[0]==common.replace('/var/www/web_tracker_portal',next(iter(roots))).split('location = /truck')[0],'Unreviewed Web Tracker location drift'
         (backup/('snippet-'+scope+'.conf')).write_text(previous)
     updated=previous.replace(next(iter(roots)),str(target)) if previous is not None else common.replace('/var/www/web_tracker_portal',str(target))
-    updated=tracker_entry_locations(updated,target,scope)
+    entries=prepare_tracker_entries(updated,target)
+    updated=tracker_entry_locations(updated,target,scope,entries)
     snippet.write_text(updated)
     site.write_text(original.replace(marker,new_marker))
     host='desarrollo.stepsapp.cl' if scope=='dev' else 'cerroelplomo.stepsapp.cl'
@@ -89,11 +90,19 @@ def configure_frontend(source,commit,scope,backup):
         for _ in range(20):
             try:
                 with urlopen('https://'+host+'/web_tracker/',timeout=20) as response:matched=response.read()==(source/'dist/index.html').read_bytes()
-                with urlopen('https://'+host+'/tracker',timeout=20) as response:matched=matched and response.read()==(source/'dist/index.html').read_bytes()
+                with urlopen('https://'+host+'/tracker',timeout=20) as response:matched=matched and response.read()==(entries/'gps.html').read_bytes()
+                with urlopen('https://'+host+'/tracker/jornada/',timeout=20) as response:matched=matched and response.read()==(entries/'jornada.html').read_bytes()
             except OSError:matched=False
             if matched:break
             time.sleep(.5)
         assert matched,'Served Tracker entries do not match the tested package'
+        with urlopen('https://'+host+'/truck/?compat=1',timeout=20) as response:
+            assert response.geturl().endswith('/tracker/jornada/?compat=1')
+            assert response.read()==(entries/'jornada.html').read_bytes()
+        mobile = installed_mobile_root(updated)
+        for p in (mobile/'assets').iterdir():
+            with urlopen('https://'+host+'/tracker/jornada/assets/'+p.name,timeout=20) as response:
+                assert response.read()==p.read_bytes(), 'Unexpected Jornada asset'
         for p in (source/'dist/assets').iterdir():
             with urlopen('https://'+host+'/web_tracker/assets/'+p.name,timeout=20) as response:assert hashlib.sha256(response.read()).hexdigest()==hashlib.sha256(p.read_bytes()).hexdigest()
     except Exception:
@@ -104,25 +113,85 @@ def configure_frontend(source,commit,scope,backup):
     print('GPS_FRONTEND_VERIFIED scope='+scope,flush=True)
 
 
-def tracker_entry_locations(content,target,scope):
+def tracker_shell(html, section):
+    """Keep the two tested applications and add a shared, same-origin switch."""
+    assert html.count('<body>') == 1
+    links = [('gps', '/tracker', 'GPS y recorridos'), ('jornada', '/tracker/jornada/', 'Jornada y terreno')]
+    navigation = ''.join(
+        f'<a href="{url}"' + (' aria-current="page"' if key == section else '') + f'>{label}</a>'
+        for key, url, label in links
+    )
+    style = """<style>
+    .steps-tracker-switch {display:flex;flex-wrap:wrap;gap:.35rem;justify-content:center;padding:.45rem;
+      background:#123c33;color:#fff;font:600 .875rem system-ui,sans-serif}
+    .steps-tracker-switch a {color:inherit;text-decoration:none;padding:.45rem .75rem;border-radius:.5rem}
+    .steps-tracker-switch a[aria-current] {background:#e6efd9;color:#123c33}
+    .steps-tracker-switch a:focus-visible {outline:2px solid currentColor;outline-offset:2px}
+    </style>"""
+    return html.replace('</head>',style+'</head>',1).replace(
+        '<body>', '<body><nav class="steps-tracker-switch" aria-label="Secciones de Steps Tracker">'+navigation+'</nav>',1
+    ).replace('<title>Steps Móvil</title>','<title>Steps Tracker · Jornada</title>')
+
+
+def installed_mobile_root(content):
+    mobile = re.findall(r'alias (/var/www/steps-mobile-releases/[a-f0-9]{40})/assets/;',content)
+    assert len(mobile) == 1, 'Review the installed Steps Móvil release before publishing'
+    return Path(mobile[0])
+
+
+def prepare_tracker_entries(content,target):
+    mobile = installed_mobile_root(content)
+    entries = Path('/var/www/steps-tracker-entry-releases')/(target.name+'-'+mobile.name)
+    entries.mkdir(parents=True,exist_ok=True)
+    for name, original in [('gps', target/'index.html'), ('jornada', mobile/'index.html')]:
+        page = entries/(name+'.html')
+        rendered = tracker_shell(original.read_text(encoding='utf-8'),name)
+        if page.exists():
+            assert page.read_text(encoding='utf-8') == rendered, 'Unexpected entry shell drift'
+        else:
+            page.write_text(rendered,encoding='utf-8')
+    return entries
+
+
+def tracker_entry_locations(content,target,scope,entries=None):
     """Public login shell; business data remains behind the existing Odoo BFF."""
     start='# BEGIN STEPS TRACKER ENTRY\n';end='# END STEPS TRACKER ENTRY\n'
     if start in content:
         assert content.count(start)==content.count(end)==1
         content=re.sub(re.escape(start)+r'.*?'+re.escape(end),'',content,flags=re.S)
     else:assert not re.search(r'location\s+(?:(?:=|\^~|~\*?)\s+)?/tracker(?:[/\s{])',content),'Unknown Tracker route requires review'
-    if scope=='cerro':
+    if entries is not None:
+        legacy = 'location = /truck { return 302 /tracker/jornada/$is_args$args; }'
+        content, count = re.subn(r'location = /truck \{ return (?:301 /truck/|302 /tracker(?:/jornada/)?\$is_args\$args); \}',lambda _:legacy,content)
+        assert count == 1, 'Unexpected legacy entry'
+        legacy_slash = legacy.replace('location = /truck ', 'location = /truck/ ')
+        content = re.sub(r'location = /truck/ \{ return 302 /tracker(?:/jornada/)?\$is_args\$args; \}\n?', '',content)
+        content = content.rstrip()+'\n\n'+legacy_slash+'\n'
+    elif scope=='cerro':
         content=content.replace('location = /truck { return 301 /truck/; }','location = /truck { return 302 /tracker$is_args$args; }')
         if 'location = /truck/ {' not in content:content+='\nlocation = /truck/ { return 302 /tracker$is_args$args; }\n'
+    gps = entries/'gps.html' if entries is not None else target/'index.html'
+    jornada = '' if entries is None else '''
+location = /tracker/jornada { return 302 /tracker/jornada/$is_args$args; }
+location = /tracker/jornada/ {
+    alias '''+str(entries/'jornada.html')+''';
+    default_type text/html;
+    add_header Cache-Control "no-store" always;
+}
+location ^~ /tracker/jornada/assets/ { rewrite ^/tracker/jornada/(assets/.+)$ /truck/$1 last; }
+location ~ ^/tracker/jornada/(manifest\.webmanifest|icon\.svg|sw\.js)$ {
+    rewrite ^/tracker/jornada/(.+)$ /truck/$1 last;
+}
+'''
     return content+start+'''location = /tracker {
-    alias '''+str(target)+'''/index.html;
+    alias '''+str(gps)+''';
     default_type text/html;
     add_header Cache-Control "no-store" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "same-origin" always;
 }
 location = /tracker/ { return 302 /tracker$is_args$args; }
-'''+end
+'''+jornada+end
 
 
 def main():
