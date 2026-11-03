@@ -2,7 +2,7 @@
 
 Caller must roll back the entire shell transaction after verification.
 """
-def verify_flow(root, scoped, row_varieties=False, summary_form=None):
+def verify_flow(root, scoped, row_varieties=False, summary_form=None, manual_summary=True):
     assert root.cr.dbname.startswith('MANAGEMENT_QA_')
     assert scoped.uid != 1 and not scoped.su
     setup = root['stock.picking'].with_company(scoped.company).env
@@ -14,7 +14,7 @@ def verify_flow(root, scoped, row_varieties=False, summary_form=None):
     species = (setup['step.especie'].create({'name':'QA152 especie privada', 'type_especie':'frutal', 'group_especie':'fruta_h'})
                if row_varieties else setup['step.especie'].search([], limit=1))
     group = setup['step.grupo.variedad'].create({'name':'QA152 grupo', 'especie_id':species.id}) if row_varieties else None
-    varieties = setup['step.variedad'].create([{'name': 'QA152 A', 'cod_variedad': 'QA152-A', 'especie_id': species.id, 'grupo_variedad_id': group.id}, {'name': 'QA152 B', 'cod_variedad': 'QA152-B', 'especie_id': species.id, 'grupo_variedad_id': group.id}]) if row_varieties else None
+    varieties = setup['step.variedad'].create([{'name': 'QA152 A', 'cod_variedad': 'QA152-A' if manual_summary else 'QA153-AUTO-A', 'especie_id': species.id, 'grupo_variedad_id': group.id}, {'name': 'QA152 B', 'cod_variedad': 'QA152-B' if manual_summary else 'QA153-AUTO-B', 'especie_id': species.id, 'grupo_variedad_id': group.id}]) if row_varieties else None
     kg = setup.ref('uom.product_uom_kgm')
     product = setup['product.product'].create({'name': 'QA T120 flujo kg', 'is_storable': True,
                                               'uom_id': kg.id, 'uom_po_id': kg.id})
@@ -39,7 +39,8 @@ def verify_flow(root, scoped, row_varieties=False, summary_form=None):
             with form.move_ids_without_package.edit(0) as operation:
                 operation.step_fruit_pallet_type_id = pallet.with_env(scoped)
                 operation.step_fruit_pallet_qty = 2
-                operation.step_fruit_packaging_qty = 50
+                if manual_summary:
+                    operation.step_fruit_packaging_qty = 50
                 assert operation.product_packaging_id.id == packaging.id
                 operation.quantity = measured
             for index, boxes, kilos in ((0, 20, 160), (1, 30, 241)):
@@ -51,13 +52,18 @@ def verify_flow(root, scoped, row_varieties=False, summary_form=None):
                     tag.quantity = boxes
                     tag.kilos = kilos
                 with form.move_ids_without_package.edit(0) as operation:
-                    assert operation.step_fruit_packaging_qty == 50
+                    if manual_summary:
+                        assert operation.step_fruit_packaging_qty == 50
                     assert operation.step_fruit_pallet_qty == 2
                     assert operation.product_packaging_id.id == packaging.id
                     assert operation.quantity == measured
         assert move.step_fruit_packaging_qty == 50 and move.step_fruit_pallet_qty == 2
         assert move.product_packaging_id == packaging and move.quantity == measured
-        print('T153_MANUAL_SUMMARY_FORM_OK')
+        if manual_summary:
+            print('T153_MANUAL_SUMMARY_FORM_OK')
+        else:
+            assert move.step_fruit_manual_container_qty < 0
+            print('T153_AUTOMATIC_SUMMARY_FORM_OK')
     else:
         for index, kilos in enumerate((160, 240)):
             setup['step.packing.picking.tag.line'].create({

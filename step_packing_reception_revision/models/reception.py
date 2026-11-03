@@ -14,6 +14,17 @@ class Picking(models.Model):
     step_fruit_origin_class_id = fields.Many2one(
         'step.management.fruit.class', string='Clase de fruta', check_company=True)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        if any(vals.get('fruit_tag_line_ids') for vals in vals_list):
+            self = self.with_context(step_saving_reception_tags=True)
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if vals.get('fruit_tag_line_ids'):
+            self = self.with_context(step_saving_reception_tags=True)
+        return super().write(vals)
+
     @api.depends('scheduled_date')
     @api.depends_context('tz')
     def _compute_fruit_contract_date(self):
@@ -107,6 +118,10 @@ class Move(models.Model):
             packaging.qty * count, self.product_uom, round=False)
 
     def _inverse_fruit_packaging_qty(self):
+        # The form can send a recomputed count along with edited tags. That
+        # count describes the distribution and must not replace weighed stock.
+        if self.env.context.get('step_saving_reception_tags'):
+            return
         for move in self:
             count = move.step_fruit_packaging_qty
             if (move.state in ('done', 'cancel') or move.picking_id.step_fruit_reception_kind != 'process'
