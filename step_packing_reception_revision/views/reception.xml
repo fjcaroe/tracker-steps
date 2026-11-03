@@ -38,6 +38,7 @@
         <field name="step_fruit_packaging_qty" readonly="state in ('done','cancel') or not product_packaging_id"/>
         <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom']" position="move"/>
         <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom_qty']" position="move"/>
+        <field name="step_fruit_manual_container_qty" column_invisible="True" force_save="1"/>
       </xpath>
       <xpath expr="//button[@name='action_step_container_return']" position="attributes">
         <attribute name="invisible">1</attribute>

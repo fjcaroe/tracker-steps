@@ -91,15 +91,31 @@ class Move(models.Model):
                     count = sum(rows.mapped('quantity'))
             move.step_fruit_packaging_qty = count
 
+    @api.onchange('step_fruit_packaging_qty')
+    def _onchange_fruit_packaging_qty(self):
+        for move in self.filtered(lambda row: row.picking_id.step_fruit_reception_kind == 'process'
+                                  and row.product_packaging_id and row.state not in ('done', 'cancel')):
+            count = move.step_fruit_packaging_qty
+            if count >= 0 and count != move.step_fruit_manual_container_qty:
+                move._apply_fruit_container_count(count)
+
+    def _apply_fruit_container_count(self, count):
+        self.ensure_one()
+        self.step_fruit_manual_container_qty = count
+        packaging = self.product_packaging_id
+        self.quantity = self.product_id.uom_id._compute_quantity(
+            packaging.qty * count, self.product_uom, round=False)
+
     def _inverse_fruit_packaging_qty(self):
         for move in self:
             count = move.step_fruit_packaging_qty
             if (move.state in ('done', 'cancel') or move.picking_id.step_fruit_reception_kind != 'process'
                     or count < 0 or not move.product_packaging_id):
                 raise ValidationError(_('Indique un embalaje en una recepción a proceso abierta y una cantidad de envases no negativa.'))
-            packaging = move.product_packaging_id
-            move.step_fruit_manual_container_qty = count
-            move.quantity = move.product_id.uom_id._compute_quantity(packaging.qty * count, move.product_uom, round=False)
+            # The form already applied this count before the measured kilos
+            # were entered. Do not replace those kilos again on save.
+            if count != move.step_fruit_manual_container_qty:
+                move._apply_fruit_container_count(count)
 
     @api.constrains('step_fruit_pallet_qty')
     def _check_fruit_pallet_qty(self):

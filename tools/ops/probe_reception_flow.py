@@ -28,7 +28,7 @@ def verify_flow(root, scoped, row_varieties=False, summary_form=None):
         'step_fruit_type': 'conventional', 'step_fruit_gross_kg': measured})
     move = setup['stock.move'].create({
         'name': 'QA T120 flujo', 'picking_id': picking.id, 'product_id': product.id,
-        'product_uom': kg.id, 'product_uom_qty': 400, 'product_packaging_id': packaging.id,
+        'product_uom': kg.id, 'product_uom_qty': measured, 'product_packaging_id': packaging.id,
         'location_id': picking.location_id.id, 'location_dest_id': picking.location_dest_id.id})
     move._action_confirm(merge=False); move.quantity = 400
     operator = picking.with_env(scoped)
@@ -40,7 +40,6 @@ def verify_flow(root, scoped, row_varieties=False, summary_form=None):
                 operation.step_fruit_pallet_type_id = pallet.with_env(scoped)
                 operation.step_fruit_pallet_qty = 2
                 operation.step_fruit_packaging_qty = 50
-                operation.product_uom_qty = 401
                 assert operation.product_packaging_id.id == packaging.id
                 operation.quantity = measured
             for index, boxes, kilos in ((0, 20, 160), (1, 30, 241)):
