@@ -150,7 +150,7 @@ def asset_detail(asset_id: str, ctx=Depends(identity), db: Session = Depends(get
 
 
 @router.get('/assets/{asset_id}/positions')
-def positions(asset_id: str, before: str = '', limit: int = Query(100, ge=1, le=500), current_assignment: bool = False, since: AwareDatetime | None = None, ctx=Depends(identity), db: Session = Depends(get_db)):
+def positions(asset_id: str, before: str = '', limit: int = Query(100, ge=1, le=500), current_assignment: bool = False, since: AwareDatetime | None = None, until: AwareDatetime | None = None, ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('viewer', 'operator', 'manager'))
     owned(db, Asset, asset_id, ctx)
     query = db.query(Position).filter_by(tenant_id=ctx['tenant_id'], asset_id=asset_id)
@@ -161,6 +161,8 @@ def positions(asset_id: str, before: str = '', limit: int = Query(100, ge=1, le=
         query = query.filter(Position.assignment_id == assignment.id)
     if since:
         query = query.filter(Position.recorded_at >= since)
+    if until:
+        query = query.filter(Position.recorded_at <= until)
     if before:
         anchor = query.filter_by(id=before).one_or_none()
         if not anchor:

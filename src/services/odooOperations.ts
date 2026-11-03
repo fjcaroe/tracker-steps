@@ -77,7 +77,7 @@ export async function synchronizeOdooFleet(context:FleetContext){
  return {updated,created};
 }
 export function applicationLinks(menus:Record<string,OdooMenu>){
- const categories=[['fleet.','Flota'],['hr_expense.','Gastos'],['step_cosecha.','Cosecha'],['step_management_costs.','Gestión y Costos'],['step_freight.','Fletes'],['step_movi.','Movilización']];
+ const categories=[['fleet.','Flota'],['hr_expense.','Rendiciones'],['step_cosecha.','Cosecha'],['step_management_costs.','Gestión y Costos'],['step_freight.','Fletes'],['step_movi.','Movilización']];
  const rootIds=new Set(menus.root?.children||[]),result:{label:string;href:string;id:number}[]=[];
  function action(menu:OdooMenu):{id:number;action:string}|null{
   const pending=[menu],seen=new Set<number>();

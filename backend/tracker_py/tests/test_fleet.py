@@ -101,6 +101,14 @@ def test_recent_trail_only_current_assignment_and_since(fleet):
     assert len(current['items'])==1
     assert client.get(path,headers=headers(),params={'current_assignment':True,'since':now().isoformat()}).json()['items']==[]
     assert client.get(path,headers=headers(),params={'since':'2026-01-01T00:00:00'}).status_code==422
+    historical=client.get(path,headers=headers(role='viewer'),params={
+        'since': (now()-timedelta(minutes=75)).isoformat(),
+        'until': (now()-timedelta(minutes=45)).isoformat(),
+    }).json()
+    assert len(historical['items'])==1
+    assert historical['items'][0]['id']!=current['items'][0]['id']
+    assert historical['next_cursor'] is None
+
     assert client.get('/v1/assets/a2/positions?current_assignment=true',headers=headers()).status_code==404
     with factory() as db:
         db.get(Assignment,'as-trail').valid_to=now();db.commit()
