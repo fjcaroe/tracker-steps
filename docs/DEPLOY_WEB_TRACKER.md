@@ -1,5 +1,27 @@
 # Cómo desplegar Web Tracker a producción
 
+## Entrada común con Jornada
+
+En Desarrollo y Cerro, `/tracker` abre GPS y recorridos y
+`/tracker/jornada/` abre la operación en terreno de Steps Móvil. Las dos
+entradas ofrecen un selector común. `/truck` y `/truck/` redirigen a Jornada
+con la consulta original. La navegación dentro de Jornada conserva Inicio de
+jornada, Hoy, Historial, Perfil y Supervisor según los permisos existentes.
+
+El publicador de Web Tracker genera las dos entradas sobre los paquetes
+instalados de cada ambiente y mantiene los recursos estáticos y el origen del
+navegador. La prueba y publicación `27a46101f3f4bdeacb3eacdc4c3707d8bae164d8`
+usan respaldo, bloqueo compartido y comprobación de los recursos por contenido.
+Los recibos están en `/opt/steps-validation/tracker-parity-20261031/<commit>/`.
+La comprobación en navegador de 390 px recorrió el enlace anterior, ambas
+pantallas de acceso y, con sesión administradora real en cada ambiente, GPS,
+Jornada, Perfil, Supervisor y regreso a GPS. La comprobación no registró
+jornadas ni envió órdenes físicas. Las sesiones de revisión se retiraron.
+Para una futura actualización móvil hay que regenerar la entrada Jornada junto
+con sus recursos y verificarla por la ruta nueva. El publicador móvil anterior
+todavía compara el HTML original en `/truck/` y se revertirá en estos destinos
+si se usa sin adaptar ese control.
+
 ## Cortes visibles en recorridos — 02-11-2026
 
 El explorador conserva los límites de cada discontinuidad ya detectada (más de
@@ -86,8 +108,8 @@ después de autenticar otra cuenta, sin alterar sus membresías.
 
 `configure_frontend` mantiene los alias privados móviles y la API exclusiva
 de Desarrollo. Añade únicamente la entrada `/tracker` y su variante con barra.
-En Cerro, las entradas `/truck` y `/truck/` redirigen a `/tracker`, conservando
-la consulta; Desarrollo mantiene su aplicación móvil de pruebas. Los recursos
+La primera versión redirigía las entradas de Cerro a `/tracker`. La entrada
+común descrita arriba recupera el acceso a Jornada en ambos sitios. Los recursos
 estáticos del portal conservan `/web_tracker/`, para compatibilidad de enlaces
 existentes. No reemplazar la configuración privada con el snippet común.
 
