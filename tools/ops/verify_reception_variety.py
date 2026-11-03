@@ -16,7 +16,7 @@ try:
         env.cr.execute("SELECT target.relname,c.convalidated FROM pg_constraint c JOIN pg_class source ON source.oid=c.conrelid JOIN pg_class target ON target.oid=c.confrelid JOIN pg_attribute a ON a.attrelid=source.oid AND a.attnum=ANY(c.conkey) WHERE c.contype='f' AND source.relname=%s AND a.attname=%s", (table,column))
         assert env.cr.fetchall() == [(CANONICAL, True)]
     print('MANAGEMENT_CANONICAL_FRUIT_FKS_OK')
-    is_t153 = EXPECTED.get('step_packing_reception_revision') == '18.0.1.3.1'
+    is_t153 = EXPECTED.get('step_packing_reception_revision') in ('18.0.1.3.1', '18.0.1.3.2')
     reported = env['stock.picking'].search([('name', '=', 'C&G/IN/00006'),
         ('step_fruit_reception_kind', '=', 'process')], limit=1) if is_t153 else env['stock.picking']
     scoped = scoped_business_environment(env, reported.company_id)
@@ -45,11 +45,12 @@ try:
     if clone_flow:
         from probe_reception_flow import verify_flow
         verify_flow(env, scoped, row_varieties=True)
-        if reported and reported.state == 'assigned':
+        if reported and reported.state in ('assigned', 'done'):
             receipt = reported.with_env(scoped)
             original = {line.id: (line.variety_id, line.kilos, line.quantity)
                         for line in receipt.fruit_tag_line_ids}
-            receipt.button_validate()
+            if receipt.state == 'assigned':
+                receipt.button_validate()
             assert receipt.state == 'done'
             for line in receipt.fruit_tag_line_ids:
                 assert (line.variety_id, line.kilos, line.quantity) == original[line.id]

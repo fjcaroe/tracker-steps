@@ -280,6 +280,39 @@ class SimpleReceptionCase(TransactionCase):
         self.assertEqual(sum(picking.fruit_tag_line_ids.package_id.mapped('box_count')),600)
         self.assertAlmostEqual(sum(picking.fruit_tag_line_ids.package_id.quant_ids.mapped('quantity')),1200.5)
 
+    def test_tag_entry_preserves_manual_operations_summary(self):
+        from odoo.tests import Form
+
+        picking = self.receipt((163, 239), demand=402)
+        picking.fruit_tag_line_ids.unlink()
+        move = picking.move_ids
+        pallet = self.env['stock.package.type'].create({'name': 'QA153 pallet'})
+        view = 'step_packing_reception_revision.view_process_reception_form'
+        with Form(picking, view=view) as form:
+            with form.move_ids_without_package.edit(0) as operation:
+                operation.step_fruit_pallet_type_id = pallet
+                operation.step_fruit_pallet_qty = 2
+                operation.step_fruit_packaging_qty = 50
+        with Form(picking, view=view) as form:
+            with form.move_ids_without_package.edit(0) as operation:
+                operation.quantity = 402
+        for index, (boxes, kilos) in enumerate(((20, 163), (30, 239))):
+            with Form(picking, view=view) as form:
+                with form.fruit_tag_line_ids.new() as tag:
+                    tag.tag_number = 'QA153-%s-%s' % (picking.id, index)
+                    tag.product_id = self.product
+                    tag.packaging_id = self.packaging
+                    tag.quantity = boxes
+                    tag.kilos = kilos
+            self.assertEqual(move.product_packaging_id, self.packaging)
+            self.assertEqual(move.step_fruit_packaging_qty, 50)
+            self.assertEqual(move.step_fruit_pallet_type_id, pallet)
+            self.assertEqual(move.step_fruit_pallet_qty, 2)
+            self.assertEqual(move.product_uom_qty, 402)
+            self.assertEqual(move.quantity, 402)
+        picking.button_validate()
+        self.assert_received(picking)
+
     def test_net_weight_ratio_and_safe_empty_count(self):
         row=self.env['step.packing.picking.tag.line'].new({'quantity':200,'kilos':408})
         self.assertAlmostEqual(row.step_kg_per_box,2.04)

@@ -19,6 +19,18 @@ class TagLine(models.Model):
         digits='Product Unit of Measure')
 
 
+    def _matching_reception_moves(self, moves):
+        self.ensure_one()
+        candidates = moves
+        if self.product_id:
+            candidates = candidates.filtered(lambda m: m.product_id == self.product_id)
+        if self.packaging_id:
+            candidates = candidates.filtered(lambda move: move.product_id == self.packaging_id.product_id)
+            exact = candidates.filtered(lambda move: move.product_packaging_id == self.packaging_id)
+            # Imported receipts may specify the packaging only on the tag.
+            candidates = exact or candidates.filtered(lambda move: not move.product_packaging_id)
+        return candidates
+
     def _set_process_import_boxes(self):
         self.ensure_one()
         if self.box_count <= 0 or float_compare(self.box_count, round(self.box_count), precision_digits=6):
@@ -88,14 +100,7 @@ class Picking(models.Model):
         for row, name in zip(self.fruit_tag_line_ids, names):
             if row.kilos <= 0 or row.quantity <= 0 or float_compare(row.quantity, round(row.quantity), precision_digits=6):
                 raise ValidationError(_('Cada tarja requiere kilos positivos y una cantidad entera de envases mayor a cero.'))
-            candidates = moves
-            if row.product_id:
-                candidates = candidates.filtered(lambda m: m.product_id == row.product_id)
-            if row.packaging_id:
-                candidates = candidates.filtered(lambda move: move.product_id == row.packaging_id.product_id)
-                exact = candidates.filtered(lambda move: move.product_packaging_id == row.packaging_id)
-                # Imported receipts may specify the packaging only on the tag.
-                candidates = exact or candidates.filtered(lambda move: not move.product_packaging_id)
+            candidates = row._matching_reception_moves(moves)
             if len(candidates) != 1:
                 raise ValidationError(_('La tarja %s debe identificar un producto y embalaje de una única operación.') % name)
             move = candidates
