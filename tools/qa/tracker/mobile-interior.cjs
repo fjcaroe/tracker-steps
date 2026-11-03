@@ -6,7 +6,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,timezoneId:'America/Santiago',serviceWorkers:'block',acceptDownloads:true}),page=await context.newPage();page.setDefaultTimeout(15000);
-  const ids=['00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002'];let manager=false,viewer=false,stale=false,missing=false,connected=true,safe=true,commands=[],sent=0;
+  const ids=['00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002'];let manager=false,viewer=false,stale=false,missing=false,connected=true,safe=true,commands=[],sent=0,parking=false;
   const stamp=()=>new Date().toISOString(),position=i=>({id:String(i),lat:-33.455+i*.0005,lon:-70.55+i*.0001,recorded_at:new Date(Date.now()-(12-i)*20000-(i<6?9000000:0)).toISOString(),received_at:stamp(),speed_kmh:18,quality:'gps',acc:false,external_power:true});
   const asset=i=>({asset_id:ids[i],name:i?'Segundo vehículo':'Vehículo de prueba',plate:i?'QA0002':'QA0001',type:'pickup',cost_center:null,responsible:null,created_at:stamp(),position_stale:stale,signal_state:stale?'stale':'received',motion_state:'moving',protection_state:'disarmed',last_position:missing?null:{...position(12),recorded_at:stale?new Date(Date.now()-7200000).toISOString():stamp()},device:{brand:'Coban',model:'401',firmware:null,protocol:'gps103-ascii'},capabilities:{tracking:'approved',remote_start_inhibit:'approved'}});
   await page.route('**/*',async route=>{
@@ -16,7 +16,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
    if(url.pathname.startsWith(prefix)){
     const p=url.pathname.slice(prefix.length);
     if(p==='fleet/snapshot')return route.fulfill({json:{items:manager?[asset(0),asset(1)]:[asset(0)],total:manager?2:1,next_cursor:null}});
-    if(p.endsWith('/positions'))return route.fulfill({json:{items:Array.from({length:12},(_,i)=>position(i)),next_cursor:null}});
+    if(p.endsWith('/positions'))return route.fulfill({json:{items:parking?Array.from({length:9},(_,i)=>({...position(i),recorded_at:new Date(Date.now()-(9-i)*3600000).toISOString(),lat:-33.455+(i%3)*.00002,lon:-70.55,speed_kmh:0})):Array.from({length:12},(_,i)=>position(i)),next_cursor:null}});
     if(p.endsWith('/starter-control'))return route.fulfill({json:{wiring_verified:true,connected,can_operate:!viewer,safe_to_inhibit:safe,preview:false,commands}});
     if(p.includes('/starter-control/commands/')&&p.endsWith('/confirm')){const data=JSON.parse(new URLSearchParams(route.request().postData()).get('payload'));commands[0]={...commands[0],state:'confirmed',declared_result:data.observed,confirmed_at:stamp()};return route.fulfill({json:commands[0]});}
     if(p==='configuration')return route.fulfill({json:{items:[],reminders:[],receiver:{online:true}}});
@@ -39,8 +39,18 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   const fits=async()=>assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Horizontal overflow');
   await page.goto(origin+'/tracker#live');await page.getByRole('heading',{name:'QA0001',exact:true}).waitFor();await page.locator('.gm-style').first().waitFor();await fits();await page.waitForTimeout(1400);await page.screenshot({path:path.join(out,'vehicle-mobile.png'),fullPage:true});
   await nav().getByRole('button',{name:'Recorridos',exact:true}).click();await page.getByRole('heading',{name:'Tus recorridos',exact:true}).waitFor();await page.locator('.trail-embedded .gm-style').first().waitFor();assert.equal(await page.locator('dialog[open]').count(),0);await fits();await page.waitForTimeout(1400);await page.screenshot({path:path.join(out,'history-mobile.png'),fullPage:true});
+  await page.getByRole('button',{name:'Últimos 7 días',exact:true}).click();
+  await page.locator('.trail-playback input[type="range"][max="11"]').waitFor();
   await page.getByText('Filtros y exportación',{exact:true}).click();await page.getByLabel('Duración mínima de parada').selectOption('5');const download=page.waitForEvent('download');await page.getByRole('button',{name:'Descargar GPX',exact:true}).click();const downloaded=await download;await downloaded.saveAs(path.join(out,'fixture-route.gpx'));assert(fs.readFileSync(path.join(out,'fixture-route.gpx'),'utf8').includes('<trkpt'));
   await page.getByRole('button',{name:'Reproducir',exact:true}).click();await page.getByRole('button',{name:'Pausar',exact:true}).waitFor();await page.locator('.trail-playback select').selectOption('250');await page.getByText('Reproducci\u00f3n pausada en un corte',{exact:true}).waitFor();assert.equal(await page.getByLabel('Posici\u00f3n en el recorrido',{exact:true}).inputValue(),'5');await page.locator('.trail-playback').getByRole('button',{name:'Continuar despu\u00e9s del corte',exact:true}).click();assert(Number(await page.getByLabel('Posici\u00f3n en el recorrido',{exact:true}).inputValue())>=6);
+  parking=true;await page.getByRole('button',{name:'Últimos 7 días',exact:true}).click();
+  await page.getByText('P · Reposo probable según posiciones registradas',{exact:true}).waitFor();
+  assert.equal(await page.getByRole('region',{name:'Cortes del historial'}).count(),0);
+  assert.equal(await page.locator('.trail-playback').count(),0);
+  await page.getByText('Datos GPS para diagnóstico',{exact:true}).click();
+  assert.equal(await page.locator('.trail-diagnostics div p').count(),9);
+  await page.getByText('Datos GPS para diagnóstico',{exact:true}).click();
+  await fits();await page.screenshot({path:path.join(out,'parked-mobile.png'),fullPage:true});parking=false;
   await nav().getByRole('button',{name:'Arranque',exact:true}).click();await page.getByText('Sin confirmación física',{exact:true}).waitFor();await fits();await page.screenshot({path:path.join(out,'starter-mobile.png'),fullPage:true});
   for(const name of ['Bloquear arranque','Restituir arranque']){
    await page.getByRole('button',{name,exact:true}).click();const dialog=page.locator('.starter-dialog[open]');await dialog.waitFor();await dialog.getByRole('button',{name:'Confirmar orden',exact:true}).click();assert.equal(sent,name==='Bloquear arranque'?0:1);
@@ -55,6 +65,6 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   for(const width of [320,430,1440]){await page.setViewportSize({width,height:900});await fits();}await page.screenshot({path:path.join(out,'administrator-desktop.png'),fullPage:true});
   viewer=true;manager=false;await page.goto(origin+'/tracker#protection');await page.reload();await page.getByText('Tu cuenta no tiene habilitado el control de arranque de este vehículo.').waitFor();assert(await page.getByRole('button',{name:'Bloquear arranque',exact:true}).isDisabled());
   missing=true;await page.goto(origin+'/tracker#live');await page.getByRole('heading',{name:'Esperando señal del GPS',exact:true}).waitFor();await fits();assert.equal(sent,2);
-  fs.writeFileSync(path.join(out,'proof.json'),JSON.stringify({responsive:true,embedded_history:true,gpx:true,playback:true,gap_pause:true,explicit_gap_continue:true,admin_vehicle_switch_persisted:true,read_only:true,disconnected_blocked:true,unsafe_inhibit_blocked:true,restore_without_fresh_position:true,confirmation_required:true,hardware_orders:0,browser_simulations:sent}));console.log('TRACKER_MOBILE_INTERIOR_OK physical_orders=0');
+  fs.writeFileSync(path.join(out,'proof.json'),JSON.stringify({responsive:true,embedded_history:true,gpx:true,playback:true,gap_pause:true,hourly_parking_grouped:true,raw_positions_retained:true,explicit_gap_continue:true,admin_vehicle_switch_persisted:true,read_only:true,disconnected_blocked:true,unsafe_inhibit_blocked:true,restore_without_fresh_position:true,confirmation_required:true,hardware_orders:0,browser_simulations:sent}));console.log('TRACKER_MOBILE_INTERIOR_OK physical_orders=0');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e.message);process.exitCode=1;});

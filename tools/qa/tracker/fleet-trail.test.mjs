@@ -11,6 +11,27 @@ test('stationary drift never becomes a trip, even after a long parking interval'
  const r=buildTrail(Array.from({length:90},(_,i)=>point(i,-33+(i%3)*.00001,1)),start,start+90*60000);
  assert.equal(r.distanceM,0);assert.equal(r.gapCount,0);assert.equal(r.stationary,true);assert.equal(r.stops.length,1);
 });
+test('hourly parked readings produce one probable stop and retain raw samples',()=>{
+ const rows=Array.from({length:9},(_,i)=>point(i*60,-33+(i%3)*.00004,0));
+ const r=buildTrail(rows,start,start+9*3600000);
+ assert.equal(r.onlyParking,true);
+ assert.deepEqual(r.points,rows);
+ assert.equal(r.stops.length,1);
+ assert.equal(r.stops[0].minutes,480);
+ assert.equal(r.stops[0].sparse,true);
+ assert.equal(r.distanceM,0);
+ assert.equal(r.gaps.length,0);
+ assert.equal(r.playback.length,2);
+ assert.equal(r.playback[0].lat,r.playback[1].lat);
+});
+test('a long unobserved interval stays visible even at the same parking location',()=>{
+ const rows=[0,60,120,300,360,420].map(i=>point(i,-33,0));
+ const r=buildTrail(rows,start,start+8*3600000);
+ assert.equal(r.onlyParking,false);
+ assert.equal(r.stops.length,2);
+ assert.equal(r.gaps.length,1);
+ assert.equal(nextTrailStep(r.playback,r.gaps,1).gap,r.gaps[0]);
+});
 test('does not bridge a communication gap or invent a road distance',()=>{
  const r=buildTrail([point(0),point(1),point(30,-33.04)],start,start+3600000);
  assert.equal(r.gapCount,1);assert.equal(r.segments.length,2);assert.ok(r.distanceM<200);assert.equal(r.stops.length,0);
