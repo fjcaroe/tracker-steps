@@ -47,6 +47,10 @@ class TagSplit(models.TransientModel):
     def action_split(self):
         self.ensure_one()
         self.check_access('read')
+        # The wizard's default_production_id refers to a Packing OT. Stock
+        # move lines use the same name for a manufacturing order.
+        self = self.with_context({key: value for key, value in self.env.context.items()
+                                  if not key.startswith('default_')})
         ot, source = self.production_id, self.source_id
         with self.env.cr.savepoint():
             ot._lock_process()
@@ -70,12 +74,17 @@ class TagSplit(models.TransientModel):
             if float_compare(quants.quantity, detail.quantity, precision_rounding=uom.rounding):
                 raise UserError(_('Las existencias de la tarja no coinciden con su detalle.'))
             kilos = float_round(self.process_kg, precision_digits=2)
+            if detail.boxes != round(detail.boxes):
+                raise UserError(_('La tarja original debe tener una cantidad entera de cajas.'))
             if not 0 < self.process_boxes < detail.boxes or not 0 < kilos < detail.kilos:
                 raise UserError(_('Las dos partes deben quedar con cajas y kilos positivos.'))
             # Preserve the actual stock unit. For weight products convert the
             # measured kilos. For unit products use the physical box fraction.
             kg_uom = self.env.ref('uom.product_uom_kgm')
             if uom.category_id == kg_uom.category_id:
+                if float_compare(kg_uom._compute_quantity(detail.kilos, uom, round=False),
+                                 detail.quantity, precision_rounding=uom.rounding):
+                    raise UserError(_('Los kilos originales no coinciden con la cantidad de stock.'))
                 quantity = kg_uom._compute_quantity(kilos, uom, round=False)
             else:
                 quantity = detail.quantity * self.process_boxes / detail.boxes
