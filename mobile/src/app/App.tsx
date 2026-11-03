@@ -10,6 +10,7 @@ import Profile from './screens/Profile';
 import SyncScreen from './screens/SyncScreen';
 import { Banner, NavBar, Spinner, TopBar } from '../shared/ui';
 import { runMigrations, type Journal } from '../migrations';
+import { startWatchCompanion, watchAvailable } from '../platform/watch';
 
 type Tab = 'inicio' | 'sync' | 'perfil';
 
@@ -29,6 +30,9 @@ function Shell() {
       .then(() => runtime.session.boot()).then(() => runtime.refresh());
   }, [runtime]);
   useEffect(() => { runtime.start(); return () => runtime.stop(); }, [runtime]);
+  useEffect(() => {
+    if (watchAvailable()) return startWatchCompanion(runtime, (id) => { setTab('inicio'); setOpen({ id }); });
+  }, [runtime]);
   useEffect(() => {
     const on = () => setOnline(true), off = () => setOnline(false);
     window.addEventListener('online', on); window.addEventListener('offline', off);

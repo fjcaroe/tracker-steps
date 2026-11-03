@@ -30,7 +30,7 @@ export class Runtime {
   private timer: ReturnType<typeof setInterval> | null = null;
   private teardown: (() => void) | null = null;
 
-  constructor(readonly session: SessionManager, readonly kv: KeyValueStore, readonly manifests: ModuleManifest[]) {}
+  constructor(readonly session: SessionManager, readonly kv: KeyValueStore, readonly manifests: ModuleManifest[], readonly demo = false) {}
 
   getSnapshot = () => this.snap;
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; };
