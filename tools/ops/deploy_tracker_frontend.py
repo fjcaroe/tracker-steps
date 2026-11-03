@@ -24,7 +24,7 @@ def entry_package(scope,dist):
   'nginx':hashlib.sha256(snippet.read_bytes()).hexdigest(),
   'mobile_release':mobile.name,
   'mobile_assets':files(mobile),
-  'shells':{section:hashlib.sha256(tracker_shell((root/'index.html').read_text(encoding='utf-8'),section).encode()).hexdigest()
+  'shells':{section:hashlib.sha256(tracker_shell((root/'index.html').read_text(encoding='utf-8'),section,scope).encode()).hexdigest()
             for section,root in [('gps',dist),('jornada',mobile)]},
  }
 

@@ -79,7 +79,7 @@ def configure_frontend(source,commit,scope,backup):
         assert previous.split('location = /truck')[0]==common.replace('/var/www/web_tracker_portal',next(iter(roots))).split('location = /truck')[0],'Unreviewed Web Tracker location drift'
         (backup/('snippet-'+scope+'.conf')).write_text(previous)
     updated=previous.replace(next(iter(roots)),str(target)) if previous is not None else common.replace('/var/www/web_tracker_portal',str(target))
-    entries=prepare_tracker_entries(updated,target)
+    entries=prepare_tracker_entries(updated,target,scope)
     updated=tracker_entry_locations(updated,target,scope,entries)
     snippet.write_text(updated)
     site.write_text(original.replace(marker,new_marker))
@@ -113,11 +113,27 @@ def configure_frontend(source,commit,scope,backup):
     print('GPS_FRONTEND_VERIFIED scope='+scope,flush=True)
 
 
-def jornada_session_gate(html):
+JORNADA_FLEET_CHECK = """
+async function hasMachinery() {
+  const results = await Promise.all(['machinery', 'tractor'].map(async type => {
+    const response = await fetch('/steps_tracker/api/fleet/snapshot?limit=1&type=' + type, {
+      credentials: 'same-origin', redirect: 'manual', cache: 'no-store',
+    });
+    if (!response.ok) throw new Error('Fleet unavailable');
+    const fleet = await response.json();
+    return fleet.items.some(item => item.type === type);
+  }));
+  return results.some(Boolean);
+}
+"""
+
+
+def jornada_session_gate(html, require_machinery):
     entry = re.compile(r'<script\b[^>]*\bsrc="(\./assets/[\w.-]+\.js)"[^>]*></script>')
     matches = entry.findall(html)
     assert len(matches) == 1, 'Unexpected Steps Móvil entry script'
     script = """<script type="module">
+FLEET_CHECK
 const panel = document.getElementById('steps-jornada-access');
 const accessMessage = document.getElementById('steps-jornada-message');
 try {
@@ -138,7 +154,11 @@ try {
     const context = await response.json();
     if (context.vehicle_limited || context.role === 'viewer') {
       accessMessage.textContent = 'Tu cuenta tiene acceso a GPS y recorridos. Jornada y terreno requiere un permiso adicional.';
+    } else if (REQUIRE_MACHINERY && !(await hasMachinery())) {
+      accessMessage.textContent = 'Jornada y terreno estará disponible cuando haya maquinaria o tractores registrados en la flota.';
     } else {
+      const jornadaLink = document.querySelector('[data-jornada-link]');
+      if (jornadaLink) jornadaLink.hidden = false;
       await import(ENTRY);
       panel.remove();
     }
@@ -146,7 +166,9 @@ try {
 } catch {
   accessMessage.textContent = 'Jornada no está disponible en este momento. Recarga la página para volver a intentar.';
 }
-</script>""".replace('ENTRY', json.dumps(matches[0]))
+</script>""".replace('ENTRY', json.dumps(matches[0])).replace(
+        'FLEET_CHECK', JORNADA_FLEET_CHECK if require_machinery else ''
+    ).replace('REQUIRE_MACHINERY', json.dumps(require_machinery))
     panel = ('<section id="steps-jornada-access" style="margin:2rem auto;padding:1rem;max-width:36rem">'
              '<h1>Jornada y terreno</h1><p id="steps-jornada-message" role="status">Comprobando tu sesión…</p>'
              '<a href="/tracker">Ir a GPS y recorridos</a></section>')
@@ -154,14 +176,16 @@ try {
     return entry.sub('', html).replace('<body>', '<body>'+panel, 1).replace('</body>', script+'</body>', 1)
 
 
-def tracker_shell(html, section):
+def tracker_shell(html, section, scope='dev'):
     """Keep the two tested applications and add a shared, same-origin switch."""
     assert html.count('<body>') == 1
+    require_machinery = scope == 'cerro'
     if section == 'jornada':
-        html = jornada_session_gate(html)
+        html = jornada_session_gate(html, require_machinery)
     links = [('gps', '/tracker', 'GPS y recorridos'), ('jornada', '/tracker/jornada/', 'Jornada y terreno')]
     navigation = ''.join(
-        f'<a href="{url}"' + (' aria-current="page"' if key == section else '') + f'>{label}</a>'
+        f'<a href="{url}"' + (' aria-current="page"' if key == section else '')
+        + (' data-jornada-link hidden' if key == 'jornada' and require_machinery else '') + f'>{label}</a>'
         for key, url, label in links
     )
     style = """<style>
@@ -171,6 +195,22 @@ def tracker_shell(html, section):
     .steps-tracker-switch a[aria-current] {background:#e6efd9;color:#123c33}
     .steps-tracker-switch a:focus-visible {outline:2px solid currentColor;outline-offset:2px}
     </style>"""
+    if require_machinery and section == 'gps':
+        html = html.replace('</body>', '<script type="module">'+JORNADA_FLEET_CHECK+"""
+try {
+  const response = await fetch('/steps_tracker/context', {
+    credentials: 'same-origin', redirect: 'manual', cache: 'no-store',
+  });
+  if (response.ok) {
+    const context = await response.json();
+    if (!context.vehicle_limited && ['manager', 'operator'].includes(context.role) && await hasMachinery()) {
+      document.querySelector('[data-jornada-link]').hidden = false;
+    }
+  }
+} catch {
+  // Keep GPS usable if the fleet catalogue cannot be checked.
+}
+</script>"""+'</body>', 1)
     return html.replace('</head>',style+'</head>',1).replace(
         '<body>', '<body><nav class="steps-tracker-switch" aria-label="Secciones de Steps Tracker">'+navigation+'</nav>',1
     ).replace('<title>Steps Móvil</title>','<title>Steps Tracker · Jornada</title>')
@@ -182,13 +222,13 @@ def installed_mobile_root(content):
     return Path(mobile[0])
 
 
-def prepare_tracker_entries(content,target):
+def prepare_tracker_entries(content,target,scope):
     mobile = installed_mobile_root(content)
     entries = Path('/var/www/steps-tracker-entry-releases')/(target.name+'-'+mobile.name)
     entries.mkdir(parents=True,exist_ok=True)
     for name, original in [('gps', target/'index.html'), ('jornada', mobile/'index.html')]:
         page = entries/(name+'.html')
-        rendered = tracker_shell(original.read_text(encoding='utf-8'),name)
+        rendered = tracker_shell(original.read_text(encoding='utf-8'),name,scope)
         if page.exists():
             assert page.read_text(encoding='utf-8') == rendered, 'Unexpected entry shell drift'
         else:
