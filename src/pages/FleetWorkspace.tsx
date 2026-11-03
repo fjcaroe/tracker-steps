@@ -28,7 +28,7 @@ import MyVehicle from './MyVehicle';
 import TrackerLogin from '../components/TrackerLogin';
 
 const FleetOperations = lazy(() => import('./FleetOperations'));
-type View = 'home' | 'live' | 'history' | 'fleet' | 'protection' | 'settings' | 'zones' | 'ops';
+type View = 'home' | 'live' | 'map' | 'history' | 'fleet' | 'protection' | 'settings' | 'zones' | 'ops';
 const initialPreference: ViewPreference = { schema_version: 1, columns: defaultColumns, filters: emptyFilters, sort: 'name' };
 // Enlace profundo ?asset=<id>: lo usan la ficha del vehículo en Odoo y el regreso desde Odoo para conservar la selección.
 function assetFromQuery(): string | null { const id = new URLSearchParams(window.location.search).get('asset'); return id && /^[0-9a-fA-F-]{8,64}$/.test(id) ? id : null; }
@@ -36,7 +36,7 @@ function isTrackerEntry() { return window.location.pathname.replace(/\/$/,'') ==
 function viewFromHash(): View {
   const hash = window.location.hash.slice(1);
   if (isTrackerEntry() && hash === 'history') return 'history';
-  if (['home','live','fleet','protection','settings','zones','ops'].includes(hash)) return hash as View;
+  if (['home','live','map','fleet','protection','settings','zones','ops'].includes(hash)) return hash as View;
   return isTrackerEntry() ? 'live' : 'home';
 }
 function syntheticAssets(): FleetAsset[] {
@@ -108,7 +108,13 @@ export default function FleetWorkspace() {
     else refresh();
     setSelected(id);setEditor(null);setNotice(demo?'Registro actualizado en la demostración.':'Ficha guardada. Puedes asociar su GPS desde Configuración.');setPreference(p=>({...p,filters:emptyFilters}));navigate('fleet');
   };
-  const navigate = (v: View) => { if(v==='ops')setDemo(false); window.location.hash = v; setView(v); window.scrollTo({top:0}); };
+  const navigate = (view: View) => {
+    if (view === 'ops') setDemo(false);
+    const destination = view === 'live' && isTrackerEntry() ? 'map' : view;
+    window.location.hash = destination;
+    setView(destination);
+    window.scrollTo({top:0});
+  };
   const save = async () => {
     if (!context) return;
     setSaving(true);
@@ -126,15 +132,15 @@ export default function FleetWorkspace() {
   if (!context && (needsLogin || contextError)) return <TrackerLogin accessError={contextError}/>;
   if (!context) return <main className="fleet-app tracker-login"><div className="tracker-home-card"><p role="status">Preparando tu Tracker…</p></div></main>;
   if (context.vehicle_limited || (isTrackerEntry() && ['live','history','protection'].includes(view))) return <MyVehicle context={context} assets={assets} loading={loading} error={error} refresh={refresh} onAdministration={context.role==='manager'&&!context.vehicle_limited?()=>{setSelected(assetFromQuery());navigate('fleet');}:undefined}/>;
-  const title = {home:'Tu centro de movilidad',live:'Tu flota en el mapa',history:'Recorridos',fleet:'Vehículos y equipos',protection:'Steps Protección',settings:'Configuración y ayuda',zones:'Zonas y actividad',ops:'Operación'}[view];
+  const title = {home:'Tu centro de movilidad',live:'Tu flota en el mapa',map:'Tu flota en el mapa',history:'Recorridos',fleet:'Vehículos y equipos',protection:'Steps Protección',settings:'Configuración y ayuda',zones:'Zonas y actividad',ops:'Operación'}[view];
   const detail = <FleetAssetDetail key={current?.asset_id||'empty'} asset={current} onProtect={() => navigate('protection')} onEdit={context.role === 'manager' ? () => current && setEditor(current) : undefined} onHistory={() => current && setHistory(current)} onConfigure={() => navigate('settings')} costs={!demo}/>;
   if (view === 'ops') return <Suspense fallback={<p role="status">Cargando operación…</p>}><FleetOperations key={context.tenant_key} context={context} assets={assets} selected={selected} onSelect={setSelected} onExit={() => navigate('home')} onMap={() => navigate('live')} onConfigure={() => navigate('settings')}/></Suspense>;
   return <div className="fleet-app">
     <header className="fleet-header"><a className="fleet-brand" href="#home" aria-label="Steps Tracker Inicio"><b><TrackerIcon name="live" size={25}/></b><span>Steps <strong>Tracker</strong></span></a><div className="fleet-identity"><strong>{context.company}</strong><span>{context.user}</span></div><a className="tracker-odoo-link" href="/odoo">Odoo ↗</a><a className="tracker-odoo-link" href="/web/session/logout?redirect=/tracker">Salir</a></header><TrackerCompanySelector context={context}/>
-    <nav className="fleet-nav" aria-label="Áreas Tracker">{([['home','Inicio'],['live','Mapa'],['fleet','Flota'],['zones','Zonas'],['protection','Protección'],['ops','Operación'],['settings','Configuración']] as const).map(([key,text]) => <button key={key} aria-current={view === key ? 'page' : undefined} onClick={() => navigate(key)}><TrackerIcon name={key} size={19}/><span>{text}</span></button>)}</nav>
+    <nav className="fleet-nav" aria-label="Áreas Tracker">{([['home','Inicio'],['live','Mapa'],['fleet','Flota'],['zones','Zonas'],['protection','Protección'],['ops','Operación'],['settings','Configuración']] as const).map(([key,text]) => <button key={key} aria-current={view === key || (view === 'map' && key === 'live') ? 'page' : undefined} onClick={() => navigate(key)}><TrackerIcon name={key} size={19}/><span>{text}</span></button>)}</nav>
     <main><div className="fleet-heading"><div><span className="fleet-eyebrow">{demo ? 'ESPACIO DE DEMOSTRACIÓN' : 'GPS · MOVILIDAD · PROTECCIÓN'}</span>{view === 'home' ? <p className="tracker-welcome">Hola, {context.user.split(' ')[0]}. Este es el estado de tu flota.</p> : <h1>{title}</h1>}</div>{context.tenant_key.startsWith('LAB_TAREAS:')&&<label className="fleet-demo"><input type="checkbox" checked={demo} onChange={e => {setDemo(e.target.checked);setSelected(null);setSelectedZone('');setNotice('');}}/>Explorar demo</label>}</div>
     {demo && <div className="fleet-notice"><strong>Demostración sintética</strong><span>Vehículos y acciones de ejemplo. No modifican tu flota real ni actúan sobre GPS.</span></div>}
-    {view === 'live' && zoneStore.error && <p className="fleet-error" role="alert">No se pudieron actualizar las zonas. <button onClick={zoneStore.refresh}>Reintentar</button></p>}
+    {(view === 'live' || view === 'map') && zoneStore.error && <p className="fleet-error" role="alert">No se pudieron actualizar las zonas. <button onClick={zoneStore.refresh}>Reintentar</button></p>}
     {notice && <p className="fleet-notice" role="status">{notice}<button aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></p>}
     {!demo && error && <p role="alert" className="fleet-error">{error} <button onClick={refresh}>Reintentar</button></p>}
     {view === 'home' && !demo && configuration && configuration.reminders.length > 0 && <button className="tracker-reminder-banner" onClick={() => navigate('settings')}><TrackerIcon name="signal"/><span><strong>{configuration.reminders.length} recordatorios de conectividad</strong>Revisa recargas, datos y vigencia de tus líneas.</span><TrackerIcon name="arrow"/></button>}
