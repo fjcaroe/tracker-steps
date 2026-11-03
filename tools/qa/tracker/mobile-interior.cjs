@@ -28,8 +28,18 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     const data=new URLSearchParams(route.request().postData()),payload=JSON.parse(data.get('payload'));assert.equal(data.get('password'),'browser-only');assert(payload.present&&payload.engine_off&&payload.plate_confirmation==='QA0001');assert(payload.reason.length>=5);sent++;
     const receipt={id:'browser-command-'+sent,type:payload.type,state:'sent_unconfirmed',result:'Respuesta simulada; sin envío físico.',created_at:stamp(),confirmed_at:null,declared_result:null};commands=[receipt,...commands];return route.fulfill({json:receipt});
    }
+   if(url.pathname.startsWith('/steps_tracker/costs/assets/'))return route.fulfill({status:403,json:{detail:'Sin permiso de contabilidad en la prueba'}});
    if(url.pathname.startsWith('/web/dataset/')){
-    const p=route.request().postDataJSON().params;const result=p.model==='res.users'?[{company_ids:[2]}]:p.model==='res.company'?[{id:2,name:'Compañía de prueba'}]:[];return route.fulfill({json:{jsonrpc:'2.0',result}});
+    const p=route.request().postDataJSON().params;
+    if(p.model==='step.tracker.asset.link')return route.fulfill({json:{jsonrpc:'2.0',result:[{id:1,asset_id:ids[0],vehicle_id:[3,'QA0001']}]}});
+    if(p.model==='fleet.vehicle.log.services'||p.model==='fleet.vehicle.log.contract'){
+     assert.deepEqual(p.kwargs.domain.slice(0,2),[['company_id','=',2],['vehicle_id','=',3]]);
+     const common={id:1,amount:45000,currency_id:[1,'CLP']};
+     const rows=p.model==='fleet.vehicle.log.services'?[{...common,date:'2026-11-01',service_type_id:[1,'Mantención de prueba'],state:'done',account_move_state:'posted'}]:
+      [{...common,name:'Seguro de prueba',state:'open',start_date:'2026-11-01',expiration_date:'2027-11-01',cost_frequency:'monthly',cost_generated:7000}];
+     return route.fulfill({json:{jsonrpc:'2.0',result:rows}});
+    }
+    const result=p.model==='res.users'?[{company_ids:[2]}]:p.model==='res.company'?[{id:2,name:'Compañía de prueba'}]:[];return route.fulfill({json:{jsonrpc:'2.0',result}});
    }
    if(url.pathname.startsWith('/steps_tracker/'))return route.fulfill({status:403,json:{detail:'Consulta no habilitada en este ensayo'}});
    const f=url.pathname==='/tracker'?path.join(dist,'index.html'):path.join(dist,url.pathname.replace(/^\/web_tracker\//,''));
@@ -38,6 +48,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   const nav=()=>page.getByRole('navigation',{name:'Mi Tracker',exact:true});
   const fits=async()=>assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Horizontal overflow');
   await page.goto(origin+'/tracker#live');await page.getByRole('heading',{name:'QA0001',exact:true}).waitFor();await page.locator('.gm-style').first().waitFor();await fits();await page.waitForTimeout(1400);await page.screenshot({path:path.join(out,'vehicle-mobile.png'),fullPage:true});
+  await page.getByText('Costos del vehículo',{exact:true}).click();
+  await page.getByRole('button',{name:'Ver costos y gastos',exact:true}).click();
+  await page.getByRole('link',{name:'Mantención de prueba ↗',exact:true}).waitFor();
+  await page.getByText('Contratos con cobertura en el período',{exact:true}).click();
+  await page.getByRole('link',{name:'Seguro de prueba ↗',exact:true}).waitFor();
+  assert(await page.getByText('Sin permiso de contabilidad en la prueba',{exact:true}).isVisible());
+  await page.getByText('Costos del vehículo',{exact:true}).click();
   await nav().getByRole('button',{name:'Recorridos',exact:true}).click();await page.getByRole('heading',{name:'Tus recorridos',exact:true}).waitFor();await page.locator('.trail-embedded .gm-style').first().waitFor();assert.equal(await page.locator('dialog[open]').count(),0);await fits();await page.waitForTimeout(1400);await page.screenshot({path:path.join(out,'history-mobile.png'),fullPage:true});
   await page.getByRole('button',{name:'Últimos 7 días',exact:true}).click();
   await page.locator('.trail-playback input[type="range"][max="11"]').waitFor();
@@ -51,13 +68,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   assert.equal(await page.locator('.trail-diagnostics div p').count(),9);
   await page.getByText('Datos GPS para diagnóstico',{exact:true}).click();
   await fits();await page.screenshot({path:path.join(out,'parked-mobile.png'),fullPage:true});parking=false;
-  await nav().getByRole('button',{name:'Arranque',exact:true}).click();await page.getByText('Sin confirmación física',{exact:true}).waitFor();await fits();await page.screenshot({path:path.join(out,'starter-mobile.png'),fullPage:true});
+  await nav().getByRole('button',{name:'Arranque',exact:true}).click();await page.getByText('Sin bloqueos registrados en Tracker',{exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:'Restituir arranque',exact:true}).count(),0);await fits();await page.screenshot({path:path.join(out,'starter-mobile.png'),fullPage:true});
   for(const name of ['Bloquear arranque','Restituir arranque']){
    await page.getByRole('button',{name,exact:true}).click();const dialog=page.locator('.starter-dialog[open]');await dialog.waitFor();await dialog.getByRole('button',{name:'Confirmar orden',exact:true}).click();assert.equal(sent,name==='Bloquear arranque'?0:1);
    await dialog.getByLabel('Escribe la patente para confirmar').fill('QA0001');await dialog.getByLabel('Tu contraseña de ingreso a Steps').fill('browser-only');await dialog.getByLabel('El vehículo está detenido y el motor apagado.').check();await dialog.getByLabel('Estoy junto al vehículo o coordinado en este momento con el instalador.').check();await dialog.getByLabel('Motivo / resultado comprobado').fill('Prueba del navegador sin dispositivo real');await dialog.screenshot({path:path.join(out,'confirmation-'+sent+'.png')});await dialog.getByRole('button',{name:'Confirmar orden',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.getByText('Orden pendiente de comprobación',{exact:true}).waitFor();
   }
   assert.equal(sent,2);await page.getByRole('button',{name:'Registrar comprobación de terreno'}).first().click();const observation=page.locator('.starter-dialog[open]');await observation.getByLabel('Estoy junto al vehículo o coordinado en este momento con el instalador.').check();await observation.getByLabel('Motivo / resultado comprobado').fill('Resultado ficticio del ensayo de interfaz');await observation.getByRole('button',{name:'Guardar comprobación',exact:true}).click();await observation.waitFor({state:'hidden'});await page.getByText('Arranque habilitado en la comprobación',{exact:true}).waitFor();
-  safe=false;await page.getByRole('button',{name:'Actualizar control de arranque',exact:true}).click();await page.waitForTimeout(100);assert(await page.getByRole('button',{name:'Bloquear arranque',exact:true}).isDisabled());assert(await page.getByRole('button',{name:'Restituir arranque',exact:true}).isEnabled());connected=false;await page.getByRole('button',{name:'Actualizar control de arranque',exact:true}).click();await page.getByText('GPS sin conexión activa',{exact:true}).waitFor();assert(await page.getByRole('button',{name:'Restituir arranque',exact:true}).isDisabled());
+  safe=false;await page.getByRole('button',{name:'Actualizar control de arranque',exact:true}).click();await page.waitForTimeout(100);assert(await page.getByRole('button',{name:'Bloquear arranque',exact:true}).isDisabled());assert.equal(await page.getByRole('button',{name:'Restituir arranque',exact:true}).count(),0);await page.getByText('Recuperación en terreno',{exact:true}).click();assert(await page.getByRole('button',{name:'Restituir bloqueo externo',exact:true}).isEnabled());connected=false;await page.getByRole('button',{name:'Actualizar control de arranque',exact:true}).click();await page.getByText('GPS sin conexión activa',{exact:true}).waitFor();assert(await page.getByRole('button',{name:'Restituir bloqueo externo',exact:true}).isDisabled());
   await page.locator('.my-alerts>summary').click();await page.locator('#protection-reason').waitFor();assert.equal(await page.locator('.starter-control').count(),1);await page.locator('.my-alerts>summary').click();
   stale=true;await nav().getByRole('button',{name:'Vehículo',exact:true}).click();await page.getByRole('button',{name:'Centrar y actualizar ubicación',exact:true}).click();await page.getByText('Sin señal reciente',{exact:true}).waitFor();assert.equal(await page.locator('.my-vehicle-speed>strong').innerText(),'—');
   manager=true;stale=false;await page.goto(origin+'/tracker?asset='+ids[0]+'#live');await page.reload();try{await page.getByLabel('Vehículo seleccionado').selectOption(ids[1]);}catch{await page.screenshot({path:path.join(out,'manager-failure.png'),fullPage:true});throw Error('Manager fixture failed: '+(await page.locator('body').innerText()).slice(0,900));}await page.getByRole('heading',{name:'QA0002',exact:true}).waitFor();await nav().getByRole('button',{name:'Recorridos',exact:true}).click();assert(new URL(page.url()).searchParams.get('asset')===ids[1]);await page.reload();await page.getByRole('heading',{name:'Tus recorridos',exact:true}).waitFor();assert.equal(await page.getByLabel('Vehículo seleccionado').inputValue(),ids[1]);

@@ -3,6 +3,7 @@ import { fleetRequest, type FleetContext, type FleetAsset, portalRequest } from 
 import './AssetCostsPanel.css';
 import {buildTrail} from '../services/fleetTrail';
 import {odooCall,readAssetLink} from '../services/odooOperations';
+import NativeFleetCosts, { readNativeFleetCosts, type NativeCosts } from './NativeFleetCosts';
 
 type Indicator = { label: string; unit: string; value: number | null; partial: number | null; status: 'ok' | 'incomplete' | 'unavailable'; reasons: string[] };
 type CostsData = {
@@ -37,13 +38,18 @@ export default function AssetCostsPanel({ assetId }: { assetId: string }) {
   const [loading, setLoading] = useState(false);
   const [expenses,setExpenses]=useState<{id:number;name:string;date:string;total_amount:number}[]|null>(null),[expensesError,setExpensesError]=useState(''),[expensesBusy,setExpensesBusy]=useState(false);
   const [gps,setGps]=useState<{km:number;partial:boolean;error:string}|null>(null);
+  const [native,setNative]=useState<NativeCosts|null>(null);
+  const [nativeError,setNativeError]=useState('');
   const money = (value: number | null | undefined, currency = data?.currency) => value == null || !currency
     ? 'No disponible'
     : new Intl.NumberFormat('es-CL', { style: 'currency', currency: currency.name, maximumFractionDigits: currency.decimals }).format(value);
   const number = (value: number, digits = 1) => new Intl.NumberFormat('es-CL', { maximumFractionDigits: digits }).format(value);
 
   const load = async (key = assetId) => {
-    setLoading(true); setError('');setData(null);setGps(null);setExpenses(null);setExpensesError('');
+    setLoading(true); setError('');setData(null);setGps(null);setExpenses(null);setExpensesError('');setNative(null);setNativeError('');
+    const fleet = readNativeFleetCosts(key, period).then(setNative).catch(() => {
+      setNativeError('No se pudo consultar la ficha de Flota con tu perfil.');
+    });
     try {
       const report=await portalRequest<CostsData>(`/steps_tracker/costs/assets/${encodeURIComponent(key)}?from=${period.from}&to=${period.to}&hourly=${metric}`);
       setData(report);
@@ -61,7 +67,7 @@ export default function AssetCostsPanel({ assetId }: { assetId: string }) {
         setGps({km:buildTrail(points,from,to).distanceM/1000,partial:!!cursor,error:''});
        }catch(e){setGps({km:0,partial:true,error:(e as Error).message});}
       }
-    } catch (e) { setData(null); setError((e as Error).message); } finally { setLoading(false); }
+    } catch (e) { setData(null); setError((e as Error).message); } finally { await fleet; setLoading(false); }
   };
 
   const openExpenses=async()=>{
@@ -90,11 +96,13 @@ export default function AssetCostsPanel({ assetId }: { assetId: string }) {
       <button onClick={() => void load()} disabled={loading || !period.from || !period.to || period.to<period.from}>{loading ? 'Consultando…' : data ? 'Actualizar' : 'Ver costos y gastos'}</button>
     </div>
     {error && <p role="alert" className="asset-costs-error">{error}</p>}
+    {nativeError && <p role="status" className="asset-costs-note">{nativeError}</p>}
+    {native && <NativeFleetCosts data={native} km={gps && !gps.partial && !gps.error ? gps.km : undefined}/>}
     {data && !data.linked && <p role="status" className="asset-costs-note">{data.message}</p>}
     {data?.linked && <div className="asset-costs-body" aria-live="polite">
       <p className="asset-costs-note">{data.vehicle.name} · {data.vehicle.plate || 'sin patente'} · {data.period.from} a {data.period.to}</p>
       <dl>
-        <dt>Costo real contabilizado</dt><dd>{data.real.available ? money(data.real.amount) : <em>No disponible</em>}{!data.real.available && <small> {data.real.reason}</small>}</dd>
+        <dt>Rendiciones contabilizadas</dt><dd>{data.real.available ? data.real.lines ? money(data.real.amount) : <em>Sin apuntes atribuidos en el período</em> : <em>No disponible</em>}{!data.real.available && <small> {data.real.reason}</small>}</dd>
         <dt>Gasto pendiente (no es costo real)</dt><dd>{data.pending.available ? `${money(data.pending.amount)} · ${data.pending.count} gasto(s)` : <em>No disponible con tu perfil</em>}</dd>
         {data.unattributed.available && data.unattributed.count > 0 && <><dt>Sin vehículo asignado</dt><dd>{data.unattributed.count} gasto(s) · {money(data.unattributed.amount)} <small>(no atribuidos)</small></dd></>}
         <dt>Distancia de sesiones sincronizadas</dt><dd>{number(data.quantities.km.value, 3)} km</dd>
