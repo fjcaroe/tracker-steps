@@ -54,7 +54,7 @@ def main():
         modules = ('step_auth_email_casefold',)
     if args.kind == 'packing-tag-split':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
-        modules = ('step_packing_tag_split',)
+        modules = ('step_packing_operations', 'step_packing_tag_split')
     if args.kind == 'reception-packaging-match':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         modules = ('step_packing_reception_revision',)

@@ -55,6 +55,8 @@ def main():
         assert 'STEPS_PRIVATE_REPORT_' not in subprocess.check_output(['/usr/sbin/iptables','-S','OUTPUT'],text=True)
         (a.output/'isolation.log').write_text(isolation)
         modules=('step_inventory_packing','step_packing_reception_revision','step_producer_fruit_flow','step_producer_fruit_reports','step_agro_analytics','step_packing_reception_report') if a.ticket==152 else ('step_packing_holding','step_producer_holding','step_export_receiver_profile','step_packing_overweight') if 147<=a.ticket<=151 else (module,)
+        if a.ticket==154:
+            modules=('step_packing_operations','step_packing_tag_split')
         command=['/usr/bin/python3.10',str(Path(__file__).with_name('verify_cerro_release_pair.py'))]
         for name in modules: command+=['--module',name]
         result=subprocess.run(command+['--output',str(a.output/'pair.json')],capture_output=True,text=True,check=True)

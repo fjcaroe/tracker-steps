@@ -163,7 +163,7 @@ class PackingRepack(models.Model):
             })
             picking.action_confirm()
             picking.do_unreserve()
-            allocated = defaultdict(float)
+            available = {}
             # action_confirm may merge moves for the same product. Keep one
             # move line per source/target pair so no producer's boxes vanish.
             for line in repack.line_ids:
@@ -175,7 +175,10 @@ class PackingRepack(models.Model):
                 remaining = line.quantity
                 for quant in line.source_package_id.quant_ids.filtered(lambda row:
                         row.product_id == line.product_id and row.lot_id == detail.lot_id and row.quantity > 0):
-                    qty = min(remaining, quant.quantity - quant.reserved_quantity - allocated[quant.id])
+                    # Creating each move line can reserve stock immediately.
+                    # Track the original free stock only once per quant.
+                    free = available.setdefault(quant.id, quant.quantity - quant.reserved_quantity)
+                    qty = min(remaining, free)
                     if qty <= 0:
                         continue
                     self.env['stock.move.line'].create({
@@ -185,7 +188,7 @@ class PackingRepack(models.Model):
                         'package_id': line.source_package_id.id, 'result_package_id': line.target_package_id.id,
                         'lot_id': quant.lot_id.id, 'owner_id': quant.owner_id.id})
                     remaining -= qty
-                    allocated[quant.id] += qty
+                    available[quant.id] -= qty
                 if float_compare(remaining, 0, precision_digits=2):
                     raise ValidationError(_("No se pudo trasladar íntegramente el lote de origen."))
             picking.button_validate()

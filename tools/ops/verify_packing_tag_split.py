@@ -8,10 +8,10 @@ from odoo.tools import config
 from native_business_profile import scoped_business_environment
 
 try:
-    name = 'step_packing_tag_split'
-    module = env['ir.module.module'].search([('name', '=', name)])
-    assert module.state == 'installed' and module.latest_version == EXPECTED[name]
-    assert Path(importlib.import_module('odoo.addons.' + name).__file__).resolve().parent == Path(ROOT) / name
+    for name, version in EXPECTED.items():
+        module = env['ir.module.module'].search([('name', '=', name)])
+        assert module.state == 'installed' and module.latest_version == version
+        assert Path(importlib.import_module('odoo.addons.' + name).__file__).resolve().parent == Path(ROOT) / name
     scoped = scoped_business_environment(env)
     menu = scoped.ref('step_packing_operations.menu_packing_production')
     assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()

@@ -49,6 +49,7 @@ def main():
             assert 'T141_NATIVE_PDF_OK' in (root/(target+'-flow.log')).read_text(encoding='utf-8-sig')
         assert 'T141_REPORTED_RECEIPT_PDF_OK weights_unchanged=True' in (root/'qa-cerro-flow.log').read_text(encoding='utf-8-sig')
     if tid==154:
+        assert all(pair['cerro']['step_packing_operations'][key]==pair['qa-cerro']['step_packing_operations'][key] for key in ('version','sha256'))
         assert all('T154_PARTIAL_STOCK_FLOW_OK' in (root/(target+'-flow.log')).read_text() for target in environments)
     if tid==153:
         assert 'T153_REPORTED_RECEIPT_OK' in (root/'cerro-flow.log').read_text()
