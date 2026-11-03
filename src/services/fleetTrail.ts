@@ -12,6 +12,12 @@ export function meters(a:{lat:number;lon:number},b:{lat:number;lon:number}){
  const h=Math.sin(dlat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dlon/2)**2;
  return 6371000*2*Math.atan2(Math.sqrt(h),Math.sqrt(Math.max(0,1-h)));
 }
+export function motionIntervalSeconds(before:TrailPoint,after:TrailPoint,distance=meters(before,after)){
+ const seconds=(Date.parse(after.recorded_at)-Date.parse(before.recorded_at))/1000;
+ const bothSlow=before.speed_kmh!=null&&after.speed_kmh!=null&&before.speed_kmh<=2&&after.speed_kmh<=2;
+ return seconds>0&&seconds<=600&&distance>0&&!bothSlow?seconds:0;
+}
+
 export function buildTrail(input:TrailPoint[],from:number,to:number){
  const points=[...new Map(input.filter(p=>Number.isFinite(p.lat)&&Math.abs(p.lat)<=90&&Number.isFinite(p.lon)&&Math.abs(p.lon)<=180&&Date.parse(p.recorded_at)>=from&&Date.parse(p.recorded_at)<=to).map(p=>[p.id,p])).values()].sort((a,b)=>Date.parse(a.recorded_at)-Date.parse(b.recorded_at)||a.id.localeCompare(b.id));
  const segments:TrailPoint[][]=[];const stops:Stop[]=[];const gaps:TrailGap[]=[];
@@ -77,12 +83,14 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
   if(motion.length)display.push(motion);
  }
  const distanceM=display.reduce((sum,s)=>sum+s.slice(1).reduce((d,p,i)=>d+meters(s[i],p),0),0);
+ const movingSeconds=display.reduce((sum,segment)=>sum+segment.slice(1).reduce(
+  (seconds,point,i)=>seconds+motionIntervalSeconds(segment[i],point),0),0);
  const playback=points.filter(p=>!omitted.has(p.id)).map(p=>{
   const stop=parked.get(p.id);
   return stop&&stop!==p?{...p,lat:stop.lat,lon:stop.lon}:p;
  });
  const onlyParking=stops.length===1&&parked.size===points.length;
- return {points,playback,onlyParking,segments:stationary?[[points[0]]]:display,stops,gaps,distanceM:stationary?0:distanceM,gapCount:gaps.length,stationary,maxSpeed:Math.max(0,...playback.map(p=>p.speed_kmh??0))};
+ return {points,playback,onlyParking,segments:stationary?[[points[0]]]:display,stops,gaps,distanceM:stationary?0:distanceM,movingSeconds,gapCount:gaps.length,stationary,maxSpeed:Math.max(0,...playback.map(p=>p.speed_kmh??0))};
 }
 export function routeAnchors(points:TrailPoint[]){
  if(points.length<2)return [];
