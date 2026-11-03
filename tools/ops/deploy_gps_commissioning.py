@@ -173,13 +173,15 @@ def tracker_entry_locations(content,target,scope,entries=None):
     gps = entries/'gps.html' if entries is not None else target/'index.html'
     jornada = '' if entries is None else '''
 location = /tracker/jornada { return 302 /tracker/jornada/$is_args$args; }
-location = /tracker/jornada/ {
+location = /tracker/jornada/ { rewrite ^ /tracker/jornada/index.html last; }
+location = /tracker/jornada/index.html {
+    internal;
     alias '''+str(entries/'jornada.html')+''';
     default_type text/html;
     add_header Cache-Control "no-store" always;
 }
 location ^~ /tracker/jornada/assets/ { rewrite ^/tracker/jornada/(assets/.+)$ /truck/$1 last; }
-location ~ ^/tracker/jornada/(manifest\.webmanifest|icon\.svg|sw\.js)$ {
+location ~ ^/tracker/jornada/(manifest[.]webmanifest|icon[.]svg|sw[.]js)$ {
     rewrite ^/tracker/jornada/(.+)$ /truck/$1 last;
 }
 '''
