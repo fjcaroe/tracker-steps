@@ -22,7 +22,9 @@ class Framer:
         if len(self.buffer)>16384:raise InvalidFrame('oversize')
         frames=[]
         while self.buffer:
-            self.buffer=self.buffer.lstrip(b'\r\n\x00')
+            # A heartbeat/login delimiter may arrive in a separate TCP read.
+            # Empty separators are transport boundaries, never data frames.
+            self.buffer=self.buffer.lstrip(b';\r\n\x00')
             if not self.buffer:break
             login=re.match(rb'##,imei:\d{15},A',self.buffer)
             if login:

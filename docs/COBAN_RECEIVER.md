@@ -7,6 +7,15 @@ del fabricante documenta un heartbeat de tres minutos: el límite anterior
 carecía de margen para la latencia. Un contador separado identifica los cierres
 por inactividad; no se atribuyen todos los cierres a una falla de cobertura.
 
+La captura privada de la revisión confirmó además heartbeats de 16 bytes:
+IMEI y `;`. El separador quedaba como un mensaje vacío y cerraba la conexión
+después de contestar ON; una posición agrupada en la misma lectura también
+podía quedar sin procesar. El framer omite esos separadores, incluso si llegan
+en otra lectura TCP. Las pruebas verifican heartbeat, posición y otro heartbeat
+en una única escritura, con persistencia y conexión conservadas. Esta falla
+explica reconexiones observadas, sin demostrar cuánto movimiento hubo en un
+intervalo histórico que no tiene posiciones recibidas.
+
 La sincronización `status` de diciembre de 2023 se reconoce como contacto de
 configuración sin coordenadas. No crea una posición, no renueva la fecha de la
 última ubicación ni entra en capturas crudas (incluye credenciales del aparato).

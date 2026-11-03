@@ -53,6 +53,13 @@ class ProtocolTests(unittest.TestCase):
     def test_split_position(self):
         f=Framer();self.assertEqual(f.feed(FRAME[:35]),[]);self.assertEqual(f.feed(FRAME[35:]),[FRAME])
 
+    def test_optional_heartbeat_delimiter_never_becomes_an_empty_frame(self):
+        self.assertEqual(Framer().feed(IMEI.encode()+b';'+FRAME),[IMEI.encode(),FRAME])
+
+    def test_split_heartbeat_and_login_delimiters(self):
+        f=Framer();self.assertEqual(f.feed(IMEI.encode()),[IMEI.encode()]);self.assertEqual(f.feed(b';\r\n'+FRAME),[FRAME])
+        f=Framer();login=('##,imei:'+IMEI+',A').encode();self.assertEqual(f.feed(login),[login]);self.assertEqual(f.feed(b';'+FRAME),[FRAME])
+
     def test_frame_bounds(self):
         with self.assertRaises(InvalidFrame):Framer().feed(b'x'*17000)
         with self.assertRaises(InvalidFrame):Framer().feed(b'x'*5000+b';')
@@ -92,22 +99,28 @@ class ReceiverTests(unittest.TestCase):
         self.assertEqual(identify(positioned),(IMEI,'data'));self.assertIsNotNone(decode(positioned,NOW))
 
     def test_heartbeat_has_margin_beyond_three_minute_protocol_interval(self):
+        from unittest.mock import patch
         self.assertGreaterEqual(self.receiver.idle_timeout,2*180+30)
-        async def scenario():
-            # Accelerated clock: 180 s heartbeat arrives before 600 s idle expiry.
-            self.receiver.idle_timeout=.2
-            listener=await asyncio.start_server(self.receiver.connection,'127.0.0.1',0)
-            try:
-                reader,writer=await asyncio.open_connection('127.0.0.1',listener.sockets[0].getsockname()[1])
-                writer.write(('##,imei:'+IMEI+',A').encode());await writer.drain();self.assertEqual(await reader.readexactly(4),b'LOAD')
-                for _ in range(3):
-                    await asyncio.sleep(.065);writer.write(IMEI.encode());await writer.drain();self.assertEqual(await asyncio.wait_for(reader.readexactly(2),.15),b'ON')
-                self.assertIn(IMEI,self.receiver.connections)
-                self.assertEqual(await asyncio.wait_for(reader.read(),.5),b'')
-                self.assertEqual(self.store.status()['counters']['connection_idle_timeout'],1)
-                writer.close();await writer.wait_closed()
-            finally:listener.close();await listener.wait_closed()
-        asyncio.run(scenario())
+        waits=[]
+        class Reader:
+            def __init__(inner):inner.frames=[('##,imei:'+IMEI+',A').encode(),IMEI.encode(),IMEI.encode()]
+            async def read(inner,size):
+                if inner.frames:return inner.frames.pop(0)
+                raise asyncio.TimeoutError()
+        class Writer:
+            def __init__(inner):inner.frames=[];inner.closed=False
+            def get_extra_info(inner,key):return ('127.0.0.1',1)
+            def is_closing(inner):return inner.closed
+            def write(inner,value):inner.frames.append(value)
+            async def drain(inner):pass
+            def close(inner):inner.closed=True
+            async def wait_closed(inner):pass
+        async def wait(awaitable,timeout):
+            waits.append(timeout);return await awaitable
+        writer=Writer()
+        with patch('receivers.coban.server.asyncio.wait_for',wait):asyncio.run(self.receiver.connection(Reader(),writer))
+        self.assertEqual(writer.frames,[b'LOAD',b'ON',b'ON']);self.assertTrue(writer.closed)
+        self.assertEqual(waits,[600,600,600,600]);self.assertEqual(self.store.status()['counters']['connection_idle_timeout'],1)
 
     def test_durable_restart_and_dedup(self):
         self.process();self.process()
@@ -221,6 +234,22 @@ class ReceiverTests(unittest.TestCase):
                 writer.write(b'000000000000002');await writer.drain()
                 self.assertEqual(await asyncio.wait_for(reader.read(),2),b'')
                 writer.close();await writer.wait_closed()
+            finally:listener.close();await listener.wait_closed()
+        asyncio.run(scenario())
+
+    def test_delimited_heartbeat_keeps_tcp_open_for_the_next_packet(self):
+        async def scenario():
+            listener=await asyncio.start_server(self.receiver.connection,'127.0.0.1',0)
+            try:
+                reader,writer=await asyncio.open_connection('127.0.0.1',listener.sockets[0].getsockname()[1])
+                writer.write(IMEI.encode()+b';');await writer.drain();self.assertEqual(await asyncio.wait_for(reader.readexactly(2),1),b'ON')
+                await asyncio.sleep(.03)
+                writer.write(IMEI.encode());await writer.drain();self.assertEqual(await asyncio.wait_for(reader.readexactly(2),1),b'ON')
+                writer.write(b';');await writer.drain();await asyncio.sleep(.03)
+                writer.write(IMEI.encode());await writer.drain();self.assertEqual(await asyncio.wait_for(reader.readexactly(2),1),b'ON')
+                stamp=datetime.now(timezone.utc);frame=FRAME.replace(b'261031230000',stamp.strftime('%y%m%d%H%M%S').encode()).replace(b'230000.000',stamp.strftime('%H%M%S').encode()+b'.000')
+                writer.write(IMEI.encode()+b';'+frame+IMEI.encode()+b';');await writer.drain();self.assertEqual(await asyncio.wait_for(reader.readexactly(4),3),b'ONON')
+                self.assertEqual(self.store.status()['queued'],1);self.assertNotIn('connection_rejected',self.store.status()['counters']);writer.close();await writer.wait_closed()
             finally:listener.close();await listener.wait_closed()
         asyncio.run(scenario())
 
