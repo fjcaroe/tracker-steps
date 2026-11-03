@@ -22,7 +22,13 @@ try:
         from odoo.tests import Form
     finally:config['test_enable']=previous
     slips=scoped['hr.payslip'];Form(slips.search([],limit=1) or slips)
-    if env.cr.dbname.startswith('MANAGEMENT_QA_SYS_'):
+    if EXPECTED['step_hr_contract_days'] >= '18.0.1.4.0':
+        for name, option in (('colocation', 'meal'), ('movility', 'transport')):
+            rule = env.ref('l10n_cl_simpledigital_payroll.hr_rule_' + name)
+            assert rule.amount_python_compute.startswith('if payslip.company_id.payroll_whole_days_' + option + ':')
+        company_form = env['res.company'].get_view(view_type='form')['arch']
+        assert 'payroll_whole_days_meal' in company_form and 'payroll_whole_days_transport' in company_form
+    elif env.cr.dbname.startswith('MANAGEMENT_QA_SYS_'):
         plan=json.loads((Path(PROBE_TOOLS).parents[1]/'payroll-days-replay.json').read_text())
         company=env['res.company'].browse(plan['company_id']);manager=users.filtered(lambda u:company in u.company_ids)[:1]
         assert manager

@@ -112,6 +112,11 @@ def snapshot(database):
             if TICKET_REVISION in ('sag-traceability', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency'):
                 added = sorted(set(current_columns[table]) - set(PROMOTION_COLUMNS[table]))
                 if added: row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % c for c in added)
+            if TICKET_REVISION == 'payroll-days' and table in ('res_company', 'hr_salary_rule'):
+                if table == 'res_company':
+                    row = "(to_jsonb(t)-ARRAY['payroll_whole_days_meal','payroll_whole_days_transport'])"
+                else:
+                    row = "(to_jsonb(t)-CASE WHEN id IN (SELECT res_id FROM ir_model_data WHERE module='l10n_cl_simpledigital_payroll' AND name IN ('hr_rule_colocation','hr_rule_movility')) THEN ARRAY['amount_python_compute','write_uid','write_date'] ELSE ARRAY[]::text[] END)"
             if TICKET_REVISION == 'packing-company' and table == 'stock_quant_package':
                 # Only a missing native company for an E/N fruit output may be filled.
                 # Keep non-null conflicts and every other value in the preservation hash.
@@ -588,6 +593,8 @@ def main():
                 source = next(Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists())
                 assert version, 'Payroll provider must already be installed'
                 baseline['shared_modules'][name] = {'version': version, 'sha256': tree_hash(source)}
+    if TICKET_REVISION == 'payroll-days':
+        baseline['allowance_rules'] = query(database, "SELECT md5(string_agg(to_jsonb(r)::text, '' ORDER BY r.id)) FROM hr_salary_rule r JOIN ir_model_data d ON d.res_id=r.id WHERE d.model='hr.salary.rule' AND d.module='l10n_cl_simpledigital_payroll' AND d.name IN ('hr_rule_colocation','hr_rule_movility')")
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     base = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']
     if args.kind == 'sag-traceability' and args.environment == 'cerro':
