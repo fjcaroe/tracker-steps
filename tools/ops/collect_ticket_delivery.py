@@ -25,7 +25,10 @@ def main():
         assert matches and int(matches[-1])>=(20 if a.ticket>=147 else {142:4,143:5,144:3,145:5,146:5}[a.ticket])
         count+=int(matches[-1]);flow=stage/('verify-'+qa['database']+'.log')
         assert 'MANAGEMENT_REGISTRY_OK' in flow.read_text()
-        if a.ticket==153 and target=='cerro': assert 'T153_REPORTED_RECEIPT_OK' in flow.read_text()
+        if a.ticket==153:
+            assert 'T153_MANUAL_SUMMARY_FORM_OK' in flow.read_text()
+            if target=='cerro':
+                assert 'T153_REPORTED_RECEIPT_OK' in flow.read_text()
         if a.ticket==152: assert 'T152_OPERATOR_VARIETIES_FLOW_OK' in flow.read_text()
         if a.ticket==143 and target=='sys':
             assert 'T143_REPORTED_CONFIRMED_CASE_PROTECTED no_business_changes=True' in flow.read_text()
