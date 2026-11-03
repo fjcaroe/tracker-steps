@@ -1,5 +1,25 @@
 # Cómo desplegar Web Tracker a producción
 
+## Flota nativa y presentación del control de arranque
+
+El informe consulta servicios y contratos nativos por vínculo de activo,
+compañía y período con los permisos de Odoo. Los servicios realizados muestran
+su subtotal y el indicador por km cuando la distancia GPS está completa. Los
+contratos muestran cobertura y costo recurrente sin prorratear ni sumarlos al
+neto contable. El neto de rendiciones conserva su propia fuente y distingue
+ausencia de apuntes de un saldo de cero.
+
+La acción principal de restitución requiere una comprobación de bloqueo o una
+orden pendiente. El historial conserva la fecha de la comprobación, y la
+recuperación de un bloqueo externo mantiene contraseña y comprobación en terreno.
+El cambio se limita a presentación y consultas sobre modelos nativos.
+
+Paquete `bb1406dc403a25198b3dff72ff7ac635888012da` publicado en Desarrollo y
+Cerro tras prueba en copia fresca. El navegador probó servicios y contratos con
+registros ficticios, separación de permisos y órdenes simuladas. La revisión
+real de Cerro verificó la ficha vinculada, el estado sin registros y la
+ausencia de la acción principal de restitución, sin órdenes físicas.
+
 ## Portada y mapa como destinos separados
 
 La navegación de flota vuelve a mostrar la portada en `/tracker#home`.
