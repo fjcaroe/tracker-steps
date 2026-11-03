@@ -113,9 +113,52 @@ def configure_frontend(source,commit,scope,backup):
     print('GPS_FRONTEND_VERIFIED scope='+scope,flush=True)
 
 
+def jornada_session_gate(html):
+    entry = re.compile(r'<script\b[^>]*\bsrc="(\./assets/[\w.-]+\.js)"[^>]*></script>')
+    matches = entry.findall(html)
+    assert len(matches) == 1, 'Unexpected Steps Móvil entry script'
+    script = """<script type="module">
+const panel = document.getElementById('steps-jornada-access');
+const accessMessage = document.getElementById('steps-jornada-message');
+try {
+  const response = await fetch('/steps_tracker/context', {
+    credentials: 'same-origin', redirect: 'manual', cache: 'no-store',
+    headers: { Accept: 'application/json' },
+  });
+  if (response.type === 'opaqueredirect' || [302, 303, 401].includes(response.status)) {
+    const login = new URL('/tracker', location.origin);
+    login.search = location.search;
+    login.searchParams.set('entrada', 'jornada');
+    login.hash = location.hash;
+    location.replace(login.href);
+  } else if (response.status === 403) {
+    accessMessage.textContent = 'Tu cuenta no tiene acceso a Jornada y terreno.';
+  } else {
+    if (!response.ok) throw new Error();
+    const context = await response.json();
+    if (context.vehicle_limited || context.role === 'viewer') {
+      accessMessage.textContent = 'Tu cuenta tiene acceso a GPS y recorridos. Jornada y terreno requiere un permiso adicional.';
+    } else {
+      await import(ENTRY);
+      panel.remove();
+    }
+  }
+} catch {
+  accessMessage.textContent = 'Jornada no está disponible en este momento. Recarga la página para volver a intentar.';
+}
+</script>""".replace('ENTRY', json.dumps(matches[0]))
+    panel = ('<section id="steps-jornada-access" style="margin:2rem auto;padding:1rem;max-width:36rem">'
+             '<h1>Jornada y terreno</h1><p id="steps-jornada-message" role="status">Comprobando tu sesión…</p>'
+             '<a href="/tracker">Ir a GPS y recorridos</a></section>')
+    assert html.count('</body>') == 1
+    return entry.sub('', html).replace('<body>', '<body>'+panel, 1).replace('</body>', script+'</body>', 1)
+
+
 def tracker_shell(html, section):
     """Keep the two tested applications and add a shared, same-origin switch."""
     assert html.count('<body>') == 1
+    if section == 'jornada':
+        html = jornada_session_gate(html)
     links = [('gps', '/tracker', 'GPS y recorridos'), ('jornada', '/tracker/jornada/', 'Jornada y terreno')]
     navigation = ''.join(
         f'<a href="{url}"' + (' aria-current="page"' if key == section else '') + f'>{label}</a>'

@@ -33,7 +33,9 @@ class Routing(unittest.TestCase):
    self.assertEqual(module.tracker_entry_locations(result,Path('/release/b'),scope,Path('/entry/b')).strip(),result.strip())
  def test_shell_keeps_relative_mobile_assets_and_links_back(self):
   result=module.tracker_shell('<head><title>Steps Móvil</title><script src="./assets/index.js"></script></head><body><div id="root"></div></body>','jornada')
-  self.assertIn('src="./assets/index.js"',result)
+  self.assertNotIn('src="./assets/index.js"',result)
+  self.assertIn('await import("./assets/index.js")',result)
+  self.assertIn('context.vehicle_limited',result)
   self.assertIn('<a href="/tracker">GPS y recorridos</a>',result)
   self.assertIn('<a href="/tracker/jornada/" aria-current="page">Jornada y terreno</a>',result)
 

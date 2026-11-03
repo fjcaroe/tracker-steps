@@ -5,7 +5,10 @@ import './TrackerLogin.css';
 /** Use Odoo's own CSRF-protected login, including its MFA continuation. */
 export default function TrackerLogin({accessError=''}:{accessError?:string}) {
  const [login,setLogin]=useState(''),[password,setPassword]=useState(''),[visible,setVisible]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
- const destination='/tracker'+window.location.search+window.location.hash;
+ const query=new URLSearchParams(window.location.search);
+ const jornada=query.get('entrada')==='jornada';
+ if(jornada)query.delete('entrada');
+ const destination=(jornada?'/tracker/jornada/':'/tracker')+(query.size?'?'+query.toString():'')+window.location.hash;
  const enter=()=>{setPassword('');window.history.replaceState(window.history.state,'',destination);window.location.reload();};
  const submit=async(event:FormEvent<HTMLFormElement>)=>{
   event.preventDefault();if(busy)return;setBusy(true);setError('');
@@ -22,7 +25,7 @@ export default function TrackerLogin({accessError=''}:{accessError?:string}) {
    if(url.origin!==window.location.origin)throw Error('No fue posible completar el acceso en este sitio.');
    // Preserve native two-factor authentication and any installed login challenge.
    if(url.pathname.startsWith('/web/login/')){setPassword('');window.location.assign(url.href);return;}
-   if(url.pathname==='/tracker')document.cookie='cids=; Max-Age=0; Path=/; Secure; SameSite=Lax';
+   if(url.pathname==='/tracker'||url.pathname==='/tracker/jornada/')document.cookie='cids=; Max-Age=0; Path=/; Secure; SameSite=Lax';
    const context=await fetch('/steps_tracker/context',{credentials:'same-origin',redirect:'manual',cache:'no-store',headers:{Accept:'application/json'}});
    if(context.ok&&context.headers.get('content-type')?.includes('application/json')){enter();return;}
    if(context.status===403){enter();return;}
