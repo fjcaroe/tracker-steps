@@ -28,11 +28,17 @@ import MyVehicle from './MyVehicle';
 import TrackerLogin from '../components/TrackerLogin';
 
 const FleetOperations = lazy(() => import('./FleetOperations'));
-type View = 'home' | 'live' | 'fleet' | 'protection' | 'settings' | 'zones' | 'ops';
+type View = 'home' | 'live' | 'history' | 'fleet' | 'protection' | 'settings' | 'zones' | 'ops';
 const initialPreference: ViewPreference = { schema_version: 1, columns: defaultColumns, filters: emptyFilters, sort: 'name' };
 // Enlace profundo ?asset=<id>: lo usan la ficha del vehículo en Odoo y el regreso desde Odoo para conservar la selección.
 function assetFromQuery(): string | null { const id = new URLSearchParams(window.location.search).get('asset'); return id && /^[0-9a-fA-F-]{8,64}$/.test(id) ? id : null; }
-function viewFromHash(): View { const hash = window.location.hash.slice(1); return ['live','fleet','protection','settings','zones','ops'].includes(hash) ? hash as View : 'home'; }
+function isTrackerEntry() { return window.location.pathname.replace(/\/$/,'') === '/tracker'; }
+function viewFromHash(): View {
+  const hash = window.location.hash.slice(1);
+  if (isTrackerEntry() && hash === 'history') return 'history';
+  if (['home','live','fleet','protection','settings','zones','ops'].includes(hash)) return hash as View;
+  return isTrackerEntry() ? 'live' : 'home';
+}
 function syntheticAssets(): FleetAsset[] {
   return getDemoVehicles(0).map((v, i) => ({ asset_id: v.id, name: ['Auto comercial','Camioneta de servicio','Camión de reparto','Furgón de soporte','Tractor de campo','Equipo de faena'][i%6]+' '+String(Math.floor(i/6)+1).padStart(2,'0'), plate: v.plate, type: ['car','pickup','truck','van','tractor','machinery'][i%6], cost_center: DEMO_FIELDS.find(f => f.id === v.fieldId)?.name || null, responsible: v.driver,
     created_at: '2026-01-15T12:00:00Z', signal_state: i === 1 ? 'stale' : i === 2 ? 'no_signal' : 'received', motion_state: i === 1 || i === 2 ? 'unknown' : 'moving', position_stale: i === 1 || i === 2, protection_state: 'disarmed',
@@ -119,8 +125,8 @@ export default function FleetWorkspace() {
   const markerLabels = Object.fromEntries(filtered.map(a => [a.asset_id, a.position_stale ? 'Posición antigua · '+(a.last_position ? new Date(a.last_position.recorded_at).toLocaleString('es-CL') : 'Sin dato') : a.motion_state === 'unknown' ? 'Movimiento desconocido' : `${a.last_position?.speed_kmh?.toFixed(1) ?? '—'} km/h`]));
   if (!context && (needsLogin || contextError)) return <TrackerLogin accessError={contextError}/>;
   if (!context) return <main className="fleet-app tracker-login"><div className="tracker-home-card"><p role="status">Preparando tu Tracker…</p></div></main>;
-  if (context.vehicle_limited || (window.location.pathname.replace(/\/$/,'')==='/tracker' && !['fleet','settings','zones','ops'].includes(view))) return <MyVehicle context={context} assets={assets} loading={loading} error={error} refresh={refresh} onAdministration={context.role==='manager'&&!context.vehicle_limited?()=>{setSelected(assetFromQuery());navigate('fleet');}:undefined}/>;
-  const title = {home:'Tu centro de movilidad',live:'Tu flota en el mapa',fleet:'Vehículos y equipos',protection:'Steps Protección',settings:'Configuración y ayuda',zones:'Zonas y actividad',ops:'Operación'}[view];
+  if (context.vehicle_limited || (isTrackerEntry() && ['live','history','protection'].includes(view))) return <MyVehicle context={context} assets={assets} loading={loading} error={error} refresh={refresh} onAdministration={context.role==='manager'&&!context.vehicle_limited?()=>{setSelected(assetFromQuery());navigate('fleet');}:undefined}/>;
+  const title = {home:'Tu centro de movilidad',live:'Tu flota en el mapa',history:'Recorridos',fleet:'Vehículos y equipos',protection:'Steps Protección',settings:'Configuración y ayuda',zones:'Zonas y actividad',ops:'Operación'}[view];
   const detail = <FleetAssetDetail key={current?.asset_id||'empty'} asset={current} onProtect={() => navigate('protection')} onEdit={context.role === 'manager' ? () => current && setEditor(current) : undefined} onHistory={() => current && setHistory(current)} onConfigure={() => navigate('settings')} costs={!demo}/>;
   if (view === 'ops') return <Suspense fallback={<p role="status">Cargando operación…</p>}><FleetOperations key={context.tenant_key} context={context} assets={assets} selected={selected} onSelect={setSelected} onExit={() => navigate('home')} onMap={() => navigate('live')} onConfigure={() => navigate('settings')}/></Suspense>;
   return <div className="fleet-app">
