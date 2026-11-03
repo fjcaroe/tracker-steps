@@ -17,7 +17,8 @@ class Picking(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         if any(vals.get('fruit_tag_line_ids') for vals in vals_list):
-            self = self.with_context(step_saving_reception_tags=True)
+            saving_tags = self.with_context(step_saving_reception_tags=True)
+            return super(Picking, saving_tags).create(vals_list).with_env(self.env)
         return super().create(vals_list)
 
     def write(self, vals):
