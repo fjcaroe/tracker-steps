@@ -78,6 +78,15 @@ class SimpleReceptionCase(TransactionCase):
         with self.assertRaises(UserError):
             picking.fruit_tag_line_ids[0].variety_id = b
 
+    def test_tag_packaging_can_identify_an_operation_without_packaging(self):
+        picking = self.receipt((160, 240))
+        picking.move_ids.product_packaging_id = False
+        picking.button_validate()
+        self.assert_received(picking)
+        self.assertFalse(picking.move_ids.product_packaging_id)
+        for row in picking.fruit_tag_line_ids:
+            self.assertEqual(row.package_id.step_packaging_id, self.packaging)
+
     def test_row_variety_defaults_and_species_validation(self):
         group = self.env['step.grupo.variedad'].create({'name': 'QA152 grupo', 'especie_id': self.species.id})
         variety = self.env['step.variedad'].create({'name': 'QA152 legacy', 'cod_variedad': 'QA152-LEGACY', 'especie_id': self.species.id, 'grupo_variedad_id': group.id})

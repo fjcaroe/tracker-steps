@@ -92,8 +92,10 @@ class Picking(models.Model):
             if row.product_id:
                 candidates = candidates.filtered(lambda m: m.product_id == row.product_id)
             if row.packaging_id:
-                candidates = candidates.filtered(lambda m: m.product_id == row.packaging_id.product_id
-                                                 and m.product_packaging_id == row.packaging_id)
+                candidates = candidates.filtered(lambda move: move.product_id == row.packaging_id.product_id)
+                exact = candidates.filtered(lambda move: move.product_packaging_id == row.packaging_id)
+                # Imported receipts may specify the packaging only on the tag.
+                candidates = exact or candidates.filtered(lambda move: not move.product_packaging_id)
             if len(candidates) != 1:
                 raise ValidationError(_('La tarja %s debe identificar un producto y embalaje de una única operación.') % name)
             move = candidates

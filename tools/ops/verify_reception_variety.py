@@ -42,6 +42,18 @@ try:
     if clone_flow:
         from probe_reception_flow import verify_flow
         verify_flow(env, scoped, row_varieties=True)
+        if EXPECTED.get('step_packing_reception_revision') == '18.0.1.3.1':
+            receipt = scoped['stock.picking'].search([('name', '=', 'C&G/IN/00006'),
+                ('step_fruit_reception_kind', '=', 'process'), ('state', '=', 'assigned')], limit=1)
+            if receipt:
+                original = {line.id: (line.variety_id, line.kilos, line.quantity)
+                            for line in receipt.fruit_tag_line_ids}
+                receipt.button_validate()
+                assert receipt.state == 'done'
+                for line in receipt.fruit_tag_line_ids:
+                    assert (line.variety_id, line.kilos, line.quantity) == original[line.id]
+                    assert line.package_id.variedad_id == line.variety_id
+                print('T153_REPORTED_RECEIPT_OK')
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':152, 'versions':EXPECTED,
         'existing_profile':scoped.uid, 'company_id':scoped.company.id,
         'native_menu_and_form':True, 'clone_flow':clone_flow,
