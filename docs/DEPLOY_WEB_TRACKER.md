@@ -1,5 +1,17 @@
 # Cómo desplegar Web Tracker a producción
 
+## Portada y mapa como destinos separados
+
+La navegación de flota vuelve a mostrar la portada en `/tracker#home`.
+`#live` abre el mapa del vehículo, `#history` conserva Recorridos y el
+enlace de marca del mapa vuelve a Inicio cuando la cuenta tiene acceso de
+flota. Las cuentas limitadas mantienen su vista de vehículo asignado.
+
+Paquete `276f006fd864225ee6508c0ebcf6035863116c62` publicado en Desarrollo y
+Cerro después de probar en copia fresca. La revisión con sesión administradora
+en Cerro verificó Flota → Inicio → Mapa → Inicio, con selección y recarga.
+El mismo paquete promueve el agrupamiento de reposo probado en Desarrollo.
+
 ## Reposo probable en recorridos
 
 El historial y el mapa de Operación agrupan lecturas de hasta 2 km/h dentro de
