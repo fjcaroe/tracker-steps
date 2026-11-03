@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState,type FormEvent} from 'react';
+import {useEffect,useId,useRef,useState,type FormEvent} from 'react';
 import {dateLabel,fleetRequest,type FleetAsset,type FleetContext} from '../services/fleetApi';
 import './StarterControl.css';
 import './StarterControlMobile.css';
@@ -8,7 +8,22 @@ type Receipt={id:string;type:Action;state:string;result:string;created_at:string
 type Status={wiring_verified:boolean;connected:boolean;can_operate:boolean;preview:boolean;safe_to_inhibit:boolean;commands:Receipt[]};
 const pendingStates=['sent_unconfirmed','uncertain','dispatching'];
 const states:Record<string,string>={dispatching:'Entrega sin confirmar',sent_unconfirmed:'Enviada · falta comprobación de terreno',confirmed:'Comprobación de terreno registrada',failed:'No enviada',uncertain:'Resultado sin confirmar'};
+
+function positionRequirements(position: FleetAsset['last_position'], now: number) {
+ if(!position)return 'Falta una posición del GPS.';
+ const reasons:string[]=[];
+ if(position.quality!=='gps')reasons.push('Falta una posición GPS válida.');
+ const times=[position.recorded_at,position.received_at].map(value=>Date.parse(value));
+ if(times.some(time=>!Number.isFinite(time)||now-time>60_000))reasons.push('La posición GPS es antigua o no tiene una hora válida. Espera un reporte reciente.');
+ if(position.acc===true)reasons.push('ACC encendido. Corta el contacto con el vehículo detenido.');
+ else if(position.acc==null)reasons.push('Falta confirmar que el contacto ACC está apagado.');
+ if(position.speed_kmh==null)reasons.push('Falta una lectura de velocidad.');
+ else if(position.speed_kmh>0.5)reasons.push('El GPS reporta movimiento. Espera a que el vehículo esté detenido.');
+ return reasons.length?'Última lectura disponible. '+reasons.join(' '):'Esperando que Tracker confirme una posición reciente con el vehículo detenido y ACC apagado.';
+}
+
 export default function StarterControl({asset,context}:{asset:FleetAsset;context:FleetContext}){
+ const requirementId=useId();
  const [status,setStatus]=useState<Status|null>(null),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[action,setAction]=useState<Action|null>(null),[password,setPassword]=useState(''),[plate,setPlate]=useState(''),[reason,setReason]=useState(''),[present,setPresent]=useState(false),[off,setOff]=useState(false),[nonce,setNonce]=useState(''),[observation,setObservation]=useState<Receipt|null>(null);
  const dialog=useRef<HTMLDialogElement>(null);const preview=context.control_preview===true;
  const load=async()=>{try{setStatus(await fleetRequest<Status>('assets/'+asset.asset_id+'/starter-control',context));setError('');}catch(e){setError((e as Error).message);}};
@@ -34,13 +49,24 @@ export default function StarterControl({asset,context}:{asset:FleetAsset;context
  const restored=effective?.state==='confirmed'&&effective.declared_result==='restored';
  const canRestore=!!allowed&&!busy&&(preview||!!(status?.wiring_verified&&status.connected));
  const showRestore=preview||blocked||pending;
+ let inhibitReason='';
+ if(busy)inhibitReason='Procesando la solicitud.';
+ else if(!preview){
+  if(!status)inhibitReason=error?'No se pudo consultar el estado. Pulsa Actualizar estado.':'Consultando el estado del arranque.';
+  else if(!allowed)inhibitReason='Tu cuenta no tiene habilitado el control de arranque de este vehículo.';
+  else if(blocked)inhibitReason='Ya hay un bloqueo observado en terreno.';
+  else if(pending)inhibitReason='Falta comprobar la orden anterior.';
+  else if(!status.wiring_verified)inhibitReason='Falta verificar la instalación del circuito de arranque.';
+  else if(!status.connected)inhibitReason='El GPS debe estar conectado.';
+  else if(!status.safe_to_inhibit)inhibitReason=positionRequirements(asset.last_position,Date.now());
+ }
 
  return <section className="starter-control fleet-panel" aria-labelledby="starter-heading"><div className="starter-intro"><b><TrackerIcon name="lock" size={29}/></b><div><span className="protection-kicker">CONTROL FÍSICO DEL VEHÍCULO</span><h2 id="starter-heading">Bloqueo de arranque</h2></div></div><p>Bloquear impide un nuevo arranque. Restituir permite arrancar con la llave.</p>
  <div className="starter-state" aria-live="polite"><small>Historial de arranque</small><strong>{!status?'Consultando estado…':preview?'Control en simulación':blocked?'Bloqueo observado en terreno':restored?'Arranque habilitado en la comprobación':pending?'Orden pendiente de comprobación':!effective?'Sin bloqueos registrados en Tracker':'Sin confirmación física'}</strong><span>{effective?.confirmed_at?dateLabel(effective.confirmed_at):'La conexión del GPS no confirma por sí sola el estado del relé.'}</span></div>
  {preview?<p className="starter-preview" role="status">Cuenta de prueba: los controles se simulan y no envían órdenes al vehículo.</p>:<div className="starter-readiness"><span>{!status?'Consultando instalación…':status.wiring_verified?'Circuito de arranque verificado':'Instalación pendiente de verificación'}</span><span className={status?.connected?'is-connected':''}>{!status?'Consultando conexión…':status.connected?'GPS conectado':'GPS sin conexión activa'}</span></div>}
  {error&&<p className="fleet-error" role="alert">{error}</p>}{message&&<p className="starter-message" role="status">{message}</p>}
- {!preview&&status&&!status.can_operate&&<p className="fleet-note">Tu cuenta no tiene habilitado el control de arranque de este vehículo.</p>}
- <div className="starter-actions"><button aria-label="Bloquear arranque" disabled={!allowed||busy||!preview&&(blocked||pending||!(status?.wiring_verified&&status?.connected&&status?.safe_to_inhibit))} onClick={()=>start('inhibit_next_start')}><TrackerIcon name="lock" size={23}/><strong>Bloquear arranque</strong><small>Impedir el próximo encendido</small></button>{showRestore&&<button aria-label="Restituir arranque" className="fleet-primary" disabled={!canRestore} onClick={()=>start('restore_start')}><TrackerIcon name="key" size={23}/><strong>Restituir arranque</strong><small>Volver a permitir el encendido</small></button>}</div>
+ <div className="starter-actions"><button aria-label="Bloquear arranque" aria-describedby={inhibitReason?requirementId:undefined} disabled={Boolean(inhibitReason)} onClick={()=>start('inhibit_next_start')}><TrackerIcon name="lock" size={23}/><strong>Bloquear arranque</strong><small>Impedir el próximo encendido</small></button>{showRestore&&<button aria-label="Restituir arranque" className="fleet-primary" disabled={!canRestore} onClick={()=>start('restore_start')}><TrackerIcon name="key" size={23}/><strong>Restituir arranque</strong><small>Volver a permitir el encendido</small></button>}</div>
+ <div role="status" aria-live="polite">{inhibitReason&&<p id={requirementId} className="starter-message">{inhibitReason}</p>}</div>
  <div className="starter-help"><details><summary>¿Cuándo puedo bloquear?</summary><p>El GPS debe estar conectado e informar una posición de menos de un minuto, velocidad cero y ACC apagado. Necesita alimentación aun con el vehículo apagado. Las órdenes no se guardan para ejecutarse después.</p><p>Restituir permite usar la llave. No enciende el motor a distancia.</p></details>{!showRestore&&allowed&&status?.wiring_verified&&<details><summary>Recuperación en terreno</summary><p>Usa esta opción si comprobaste que el circuito está bloqueado fuera de Tracker.</p><button disabled={!canRestore} onClick={()=>start('restore_start')}>Restituir bloqueo externo</button></details>}<button aria-label="Actualizar control de arranque" onClick={()=>void load()} disabled={busy}>Actualizar estado</button></div>
  {!!status?.commands.length&&<details className="starter-history" open={!!latest&&pendingStates.includes(latest.state)}><summary>Últimas órdenes y comprobaciones</summary><ol className="starter-receipts">{status.commands.slice(0,3).map(row=><li key={row.id}><strong>{row.type==='inhibit_next_start'?'Bloquear':'Restituir'} arranque</strong><small>{dateLabel(row.created_at)}</small><span>{states[row.state]||row.state}</span><p>{row.result}</p>{!preview&&status.can_operate&&row.id===effective?.id&&pendingStates.includes(row.state)&&<button onClick={()=>{setObservation(row);setReason('');setPresent(false);setError('');}}>Registrar comprobación de terreno</button>}</li>)}</ol></details>}
  <dialog ref={dialog} className="starter-dialog" onCancel={e=>{e.preventDefault();close();}} aria-labelledby="starter-dialog-title"><form onSubmit={observation?confirm:submit}><h2 id="starter-dialog-title">{observation?'Comprobar resultado':action==='inhibit_next_start'?'Bloquear el próximo arranque':'Restituir el arranque'}</h2><p><strong>{asset.plate}</strong> · {asset.name}</p>{observation?<p>{observation.type==='inhibit_next_start'?'Confirmo que probamos con la llave y el motor de arranque no funciona.':'Confirmo que probamos con la llave y el motor de arranque vuelve a funcionar.'}</p>:<><label>Escribe la patente para confirmar<input required value={plate} onChange={e=>setPlate(e.target.value)} autoComplete="off"/></label><label>Tu contraseña de ingreso a Steps<input type="password" required value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/></label><label className="starter-check"><input type="checkbox" required checked={off} onChange={e=>setOff(e.target.checked)}/>El vehículo está detenido y el motor apagado.</label></>}
