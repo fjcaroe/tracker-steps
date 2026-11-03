@@ -12,7 +12,7 @@ Puente entre ``step_expense_report`` (rendiciones) y Steps Tracker:
 * Vehículo por gasto (atribución explícita) y accesos «Gastos» / «Rendiciones» desde la ficha
   del vehículo.
 """,
-    'version': '18.0.1.1.0',
+    'version': '18.0.1.2.0',
     'category': 'Human Resources/Expenses',
     'author': 'Steps Consulting',
     'license': 'LGPL-3',
@@ -24,6 +24,7 @@ Puente entre ``step_expense_report`` (rendiciones) y Steps Tracker:
         'views/expense_views.xml',
         'views/fleet_vehicle_views.xml',
     ],
+    'assets': {'web.assets_backend': ['step_expense_tracker/static/src/gps_trip.js']},
     'installable': True,
     'application': False,
 }

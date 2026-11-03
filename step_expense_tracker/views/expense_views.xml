@@ -3,6 +3,10 @@
     <record id="hr_expense.menu_hr_expense_root" model="ir.ui.menu">
         <field name="name">Rendiciones</field>
     </record>
+    <record id="action_gps_trip_expense" model="ir.actions.client">
+        <field name="name">Rendir recorrido GPS</field>
+        <field name="tag">steps_expense_gps_trip</field>
+    </record>
     <!-- Rendición: pestaña de uso de vehículo -->
     <record id="view_hr_expense_sheet_form_step_tracker" model="ir.ui.view">
         <field name="name">hr.expense.sheet.form.step.tracker</field>

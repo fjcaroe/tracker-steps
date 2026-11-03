@@ -64,6 +64,38 @@ class TestExpenseTrackerImport(TrackerCase):
         with self.assertRaises(ValidationError), self.cr.savepoint():
             special.step_trip_km = 0
 
+    def test_tracker_trip_opens_an_unsaved_expense_for_the_assigned_vehicle(self):
+        if 'step.tracker.asset.link' not in self.env or not hasattr(self.employee_user, '_tracker_check_asset'):
+            self.skipTest('Tracker portal vehicle permissions are not installed')
+        asset_id = '6f4feee5-c7f8-4cda-a12d-f51a51b51e24'
+        self.employee_user.write({
+            'groups_id': [(4, self.env.ref('step_tracker_portal.group_tracker_viewer').id)],
+            'tracker_restricted': True,
+            'tracker_vehicle_ids': [(6, 0, self.vehicle.ids)],
+        })
+        self.vehicle.step_fuel_mixed_km_l = 11.5
+        self.env['step.tracker.asset.link'].sudo().with_context(step_tracker_link_sync=True).create({
+            'company_id': self.company.id, 'vehicle_id': self.vehicle.id,
+            'asset_id': asset_id, 'source': 'odoo_import',
+        })
+        Expense = self.env['hr.expense'].with_user(self.employee_user).with_company(self.company)
+        draft = {
+            'asset': asset_id, 'start': '2026-11-01T14:00:00Z', 'end': '2026-11-01T15:00:00Z',
+            'km': 23, 'origin': 'Origen QA', 'destination': 'Destino QA',
+        }
+        before = self.env['hr.expense'].search_count([])
+        action = Expense.action_prepare_tracker_trip(draft)
+        self.assertFalse(action.get('res_id'))
+        self.assertEqual(action['context']['default_step_vehicle_id'], self.vehicle.id)
+        form = Expense.with_context(**action['context']).default_get([
+            'step_trip_kind', 'step_trip_km', 'step_vehicle_id',
+        ])
+        self.assertEqual(form['step_trip_kind'], 'special_fuel')
+        self.assertEqual(form['step_trip_km'], 23)
+        self.assertEqual(self.env['hr.expense'].search_count([]), before)
+        with self.assertRaises(AccessError):
+            Expense.action_prepare_tracker_trip(dict(draft, asset='7f4feee5-c7f8-4cda-a12d-f51a51b51e24'))
+
     # ---- utilidades ------------------------------------------------------------
     def _upsert(self, items, work_orders=None):
         self.usage_sync._upsert_items(self.company, items, work_orders or {})
