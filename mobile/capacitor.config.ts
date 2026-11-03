@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'cl.stepsapp.movil',
-  appName: 'Steps Móvil',
+  appId: 'comm.stepsapp.mobile',
+  appName: 'Steps App',
   webDir: 'dist',
   server: { androidScheme: 'https' },
   android: { useLegacyBridge: true },

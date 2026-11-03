@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { scanMessage, scanOnce, scanSupported } from '../../platform/scanner';
 import { Banner, Button, Field } from '.';
 
@@ -6,15 +6,19 @@ import { Banner, Button, Field } from '.';
 export default function ScanField({ label, hint, value, onChange }: { label: string; hint?: string; value: string; onChange: (v: string) => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const abort = useRef<AbortController | null>(null);
+  const mounted = useRef(true);
   const [scanning, setScanning] = useState(false);
   const [problem, setProblem] = useState('');
   const supported = scanSupported();
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; abort.current?.abort(); }; }, []);
 
   const start = async () => {
     if (!video.current) return;
     setProblem(''); setScanning(true); abort.current = new AbortController();
     const r = await scanOnce(video.current, abort.current.signal);
+    if (!mounted.current) return;
     setScanning(false);
+    if (abort.current.signal.aborted) return;
     if (r.ok) onChange(r.value); else if (r.reason !== 'cancelled') setProblem(scanMessage(r.reason));
   };
   return (

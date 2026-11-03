@@ -28,7 +28,7 @@ export default function Welcome() {
     try {
       if (mode === 'login') await session.login(email.trim(), password);
       else if (mode === 'register') await session.register(email.trim(), password, name.trim());
-      else if (!codeSent) { await session.api.recoverRequest(email.trim()); setCodeSent(true); setInfo('Si el correo está registrado, te enviamos un código. Si tu administrador te lo entregó, escríbelo aquí.'); }
+      else if (!codeSent) { await session.api.recoverRequest(email.trim()); setCodeSent(true); setInfo('Escribe el código recibido por correo o entregado por tu administrador. Si no lo recibes, pide a tu administrador que revise la recuperación de tu cuenta.'); }
       else { await session.api.recoverConfirm({ email: email.trim(), code: code.trim(), password }); setInfo('Listo: ya puedes ingresar con tu nueva contraseña. Se cerraron las sesiones anteriores, también en teléfonos perdidos.'); setMode('login'); setCode(''); setPassword(''); setCodeSent(false); }
     } catch (err) { setError(messageFor(err, 'No se pudo completar el ingreso.')); } finally { setBusy(false); }
   };
