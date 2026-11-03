@@ -1,5 +1,35 @@
 # Receptor Coban para Cerro - 31/10/2026
 
+## Continuidad y diagnóstico — 02-11-2026
+
+El límite de inactividad TCP pasa de 180 a 600 segundos. El protocolo reciente
+del fabricante documenta un heartbeat de tres minutos: el límite anterior
+carecía de margen para la latencia. Un contador separado identifica los cierres
+por inactividad; no se atribuyen todos los cierres a una falla de cobertura.
+
+La sincronización `status` de diciembre de 2023 se reconoce como contacto de
+configuración sin coordenadas. No crea una posición, no renueva la fecha de la
+última ubicación ni entra en capturas crudas (incluye credenciales del aparato).
+Un mensaje `status` con formato de posición sigue pasando al decodificador GPS.
+Referencia primaria del fabricante, secciones 2 y 5.13.1:
+https://www.scribd.com/document/998077724/GpsTracker-Terminal-and-Monitoring-Center-Communication-Protocol-Alphabet-Edition-Edition-3rd-Version-20231227
+
+`upgrade_coban_continuity.py` ensaya el mismo receptor con TCP y copia fresca
+del API/base destino, conserva las posiciones previas y comprueba el control
+de arranque en fixtures Linux. La publicación exige fuentes/configuración sin
+cambios concurrentes, cola drenada y una ventana sin clientes TCP observados.
+Usa bloqueo compartido, dump y copia consistente de SQLite, paquete inmutable
+y retorno al enlace anterior ante fallo. No cambia API, Odoo, configuración
+privada, permisos, IMEI, firmware ni puertos; los controles físicos conservan
+sus propias comprobaciones de frescura. El reinicio breve se registra.
+
+La cola durable del receptor ya guarda primero en SQLite WAL/FULL y reintenta
+ante fallo de API. Esto protege mensajes recibidos por el servidor. Conservar
+posiciones mientras el equipo está sin cobertura requiere memoria y reenvío
+del propio hardware; el manual de la revisión 401 inspeccionada no documenta
+una garantía de almacenamiento/recuperación de recorridos. No inferir esa
+capacidad de otros modelos Coban ni reconstruir calles como datos observados.
+
 Solicitud explícita del usuario: preparar y habilitar hoy el receptor para
 Cerro El Plomo productivo; los cuatro IMEI, números SIM y manual llegarán aparte.
 

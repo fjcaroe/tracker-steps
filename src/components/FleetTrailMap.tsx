@@ -1,12 +1,12 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {GoogleMap,MarkerF,PolylineF,useJsApiLoader} from '@react-google-maps/api';
 import {MAPS_LIBRARIES,MAPS_LOADER_ID} from '../mapsConfig';
-import {meters,routeAnchors,type TrailPoint,type Stop} from '../services/fleetTrail';
+import {meters,routeAnchors,type TrailPoint,type Stop,type TrailGap} from '../services/fleetTrail';
 type XY={lat:number;lng:number};
 type RouteAPI={Route:{computeRoutes:(r:{origin:XY;destination:XY;intermediates:{location:XY}[];travelMode:string;fields:string[]})=>Promise<{routes?:{path?:XY[]}[]}>}};
 const xy=(p:{lat:number;lon:number}):XY=>({lat:p.lat,lng:p.lon});
 const center={lat:-33.45,lng:-70.65};
-export default function FleetTrailMap({points,segments,stops,cursor,follow=false}:{points:TrailPoint[];segments:TrailPoint[][];stops:Stop[];cursor:TrailPoint|undefined;follow?:boolean}){
+export default function FleetTrailMap({points,segments,stops,gaps=[],cursor,follow=false}:{points:TrailPoint[];segments:TrailPoint[][];stops:Stop[];gaps?:TrailGap[];cursor:TrailPoint|undefined;follow?:boolean}){
  const {isLoaded,loadError}=useJsApiLoader({id:MAPS_LOADER_ID,libraries:MAPS_LIBRARIES,googleMapsApiKey:import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string});
  const [map,setMap]=useState<google.maps.Map|null>(null),[satellite,setSatellite]=useState(false),[estimate,setEstimate]=useState<XY[][]>([]),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const generation=useRef(0);
@@ -46,6 +46,7 @@ export default function FleetTrailMap({points,segments,stops,cursor,follow=false
  {estimate.map((path,i)=><PolylineF key={i} path={path} options={{strokeColor:'#2563eb',strokeWeight:5,strokeOpacity:0,icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:1,scale:3},offset:'0',repeat:'15px'}]}}/>)}
  {points[0]&&<MarkerF position={xy(points[0])} label="A" title="Inicio de los datos del período"/>}{points.length>1&&<MarkerF position={xy(points[points.length-1])} label="B" title="Fin de los datos del período"/>}
  {stops.map((s,i)=><MarkerF key={i} position={xy(s.point)} label="P" title={'Parada probable · '+Math.round(s.minutes)+' min'}/>)}
+ {gaps.slice(0,20).flatMap((g,i)=>[<MarkerF key={'gap-before-'+i} position={xy(g.before)} label="!" title="Última posición antes del corte" icon={{path:google.maps.SymbolPath.CIRCLE,fillColor:'#f5d8a1',fillOpacity:1,strokeColor:'#956322',strokeWeight:2,scale:12}}/>,<MarkerF key={'gap-after-'+i} position={xy(g.after)} title="Primera posición después del corte" icon={{path:google.maps.SymbolPath.CIRCLE,fillColor:'#fff4df',fillOpacity:1,strokeColor:'#956322',strokeWeight:2,scale:7}}/>])}
  {cursor&&<MarkerF position={xy(cursor)} title="Posición en la reproducción" icon={{path:google.maps.SymbolPath.CIRCLE,fillColor:'#d8ff62',fillOpacity:1,strokeColor:'#123c33',strokeWeight:3,scale:9}}/>}
  </GoogleMap>}</div><p className="trail-map-legend"><span>● Traza GPS · unión de muestras filtradas</span><span> A Inicio · B Fin · P Parada probable</span>{estimate.length>0&&<strong>Azul: estimación por calles, no recorrido comprobado.</strong>}</p></div>;
 }

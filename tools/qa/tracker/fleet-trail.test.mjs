@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildTrail,routeAnchors} from '../../../src/services/fleetTrail.ts';
+import {buildTrail,routeAnchors,nextTrailStep} from '../../../src/services/fleetTrail.ts';
 const start=Date.parse('2026-01-01T00:00:00Z');
 const point=(i,lat=-33-i*.001,speed=30)=>({id:String(i),recorded_at:new Date(start+i*60000).toISOString(),received_at:new Date(start+i*60000).toISOString(),lat,lon:-70,speed_kmh:speed,quality:'gps',acc:null,external_power:null});
 test('sorts, deduplicates and filters invalid/out-of-period samples',()=>{
@@ -42,4 +42,21 @@ test('parking wander is excluded even when followed by a real drive',()=>{
 test('two consistent moving readings can establish a short low-speed trip',()=>{
  const r=buildTrail([point(0,-33,10),point(1,-33.0003,10)],start,start+60000);
  assert.equal(r.stationary,false);assert.ok(r.distanceM>30&&r.distanceM<40);
+});
+
+test('playback stops before a long gap and preserves its exact bounding observations',()=>{
+ const rows=[point(0),point(1),point(151),point(152)];
+ const r=buildTrail(rows,start,start+180*60000);
+ assert.equal(r.gaps.length,1);assert.equal(r.gaps[0].seconds,9000);assert.equal(r.gaps[0].reason,'time_gap');
+ assert.equal(r.gaps[0].before.id,'1');assert.equal(r.gaps[0].after.id,'151');
+ assert.equal(nextTrailStep(r.points,r.gaps,0).index,1);
+ const paused=nextTrailStep(r.points,r.gaps,1);assert.equal(paused.index,1);assert.equal(paused.gap,r.gaps[0]);assert.equal(paused.ended,false);
+ assert.equal(nextTrailStep(r.points,r.gaps,2).index,3);assert.equal(nextTrailStep(r.points,r.gaps,3).ended,true);
+ assert.ok(r.distanceM<250);assert.equal(r.points.length,4);
+});
+
+test('backfilled real observations remove a time gap without interpolation',()=>{
+ const partial=buildTrail([point(0),point(1),point(31)],start,start+40*60000);assert.equal(partial.gaps.length,1);
+ const complete=buildTrail(Array.from({length:32},(_,i)=>point(i)),start,start+40*60000);
+ assert.equal(complete.gaps.length,0);assert.equal(nextTrailStep(complete.points,complete.gaps,1).index,2);
 });

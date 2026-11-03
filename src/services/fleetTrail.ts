@@ -1,6 +1,12 @@
 import type {FleetAsset} from './fleetApi';
 export type TrailPoint=NonNullable<FleetAsset['last_position']>;
 export type Stop={point:TrailPoint;start:string;end:string;minutes:number};
+export type TrailGap={before:TrailPoint;after:TrailPoint;seconds:number;reason:'time_gap'|'position_jump'|'timestamp_conflict'|'implausible_speed'};
+export function nextTrailStep(points:TrailPoint[],gaps:TrailGap[],index:number){
+ if(index>=points.length-1)return {index,gap:null,ended:true};
+ const gap=gaps.find(g=>g.after.id===points[index+1].id)||null;
+ return {index:gap?index:index+1,gap,ended:false};
+}
 export function meters(a:{lat:number;lon:number},b:{lat:number;lon:number}){
  const rad=Math.PI/180,dlat=(b.lat-a.lat)*rad,dlon=(b.lon-a.lon)*rad;
  const h=Math.sin(dlat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dlon/2)**2;
@@ -8,7 +14,7 @@ export function meters(a:{lat:number;lon:number},b:{lat:number;lon:number}){
 }
 export function buildTrail(input:TrailPoint[],from:number,to:number){
  const points=[...new Map(input.filter(p=>Number.isFinite(p.lat)&&Math.abs(p.lat)<=90&&Number.isFinite(p.lon)&&Math.abs(p.lon)<=180&&Date.parse(p.recorded_at)>=from&&Date.parse(p.recorded_at)<=to).map(p=>[p.id,p])).values()].sort((a,b)=>Date.parse(a.recorded_at)-Date.parse(b.recorded_at)||a.id.localeCompare(b.id));
- const segments:TrailPoint[][]=[];const stops:Stop[]=[];let gapCount=0,distanceM=0;
+ const segments:TrailPoint[][]=[];const stops:Stop[]=[];const gaps:TrailGap[]=[];let gapCount=0,distanceM=0;
  let run:TrailPoint[]=[];
  const saveStop=()=>{if(run.length<2)return;const start=run[0],end=run[run.length-1],minutes=(Date.parse(end.recorded_at)-Date.parse(start.recorded_at))/60000;if(minutes>=3)stops.push({point:start,start:start.recorded_at,end:end.recorded_at,minutes});};
  for(const p of points){
@@ -23,7 +29,7 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
   const segment=segments[segments.length-1],previous=segment?.[segment.length-1];
   if(!previous){segments.push([p]);continue;}
   const seconds=(Date.parse(p.recorded_at)-Date.parse(rawBefore!.recorded_at))/1000,d=meters(previous,p),rawDistance=meters(rawBefore!,p);
-  if(seconds>600||rawDistance>5000||seconds<=0||(rawDistance/seconds)*3.6>220){gapCount++;segments.push([p]);continue;}
+  if(seconds>600||rawDistance>5000||seconds<=0||(rawDistance/seconds)*3.6>220){gapCount++;gaps.push({before:rawBefore!,after:p,seconds,reason:seconds>600?'time_gap':seconds<=0?'timestamp_conflict':rawDistance>5000?'position_jump':'implausible_speed'});segments.push([p]);continue;}
   // Keep raw readings intact; suppress short low-speed wander in the displayed path.
   if(d<25&&(p.speed_kmh??0)<5&&(previous.speed_kmh??0)<5)continue;
   segment.push(p);distanceM+=d;
@@ -48,7 +54,7 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
   if(motion.length)display.push(motion);
  }
  distanceM=display.reduce((sum,s)=>sum+s.slice(1).reduce((d,p,i)=>d+meters(s[i],p),0),0);
- return {points,segments:stationary?[[points[0]]]:display,stops,distanceM:stationary?0:distanceM,gapCount,stationary,maxSpeed:Math.max(0,...points.map(p=>p.speed_kmh??0))};
+ return {points,segments:stationary?[[points[0]]]:display,stops,gaps,distanceM:stationary?0:distanceM,gapCount,stationary,maxSpeed:Math.max(0,...points.map(p=>p.speed_kmh??0))};
 }
 export function routeAnchors(points:TrailPoint[]){
  if(points.length<2)return [];

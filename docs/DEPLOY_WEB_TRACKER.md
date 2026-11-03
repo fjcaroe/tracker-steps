@@ -1,5 +1,22 @@
 # Cómo desplegar Web Tracker a producción
 
+## Cortes visibles en recorridos — 02-11-2026
+
+El explorador conserva los límites de cada discontinuidad ya detectada (más de
+diez minutos, salto mayor a cinco km, velocidad implausible o conflicto de hora).
+Muestra las fechas y duración, agrega eventos y marcas en el mapa y pausa antes
+de atravesar el corte. Continuar después del corte es una decisión explícita;
+el deslizador permite explorar las muestras. La gráfica de velocidad también
+se interrumpe. No se agregan posiciones ni distancias entre sus límites, ni se
+afirma que la ventana del historial sea tiempo conducido.
+
+19 casos de métricas/recorridos; `mobile-interior.cjs` comprueba una pausa de
+2,5 horas y continuación explícita con fixtures privados del navegador.
+Publicar el frontend con copia fresca, Desarrollo y Cerro, mismo dist y respaldo.
+La revisión de datos reales conserva fuera de Git la copia consistente de la
+cola, muestras y conclusiones. Un mensaje de estado no contiene una ubicación;
+su presencia no demuestra que el vehículo haya estado estacionado o circulando.
+
 ## Interior de Tracker para teléfonos — 02-11-2026
 
 La entrada `/tracker` ofrece Vehículo, Recorridos y Arranque, con la paleta del

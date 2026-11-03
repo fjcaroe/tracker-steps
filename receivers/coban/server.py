@@ -26,8 +26,9 @@ def mapping(path):
 
 
 class Receiver:
-    def __init__(self,store,mapping_path):
-        self.store=store;self.mapping_path=mapping_path;self.active=0;self.per_ip={};self.connections={};self.points={}
+    def __init__(self,store,mapping_path,idle_timeout=600):
+        # Modern Coban heartbeat can be 180 s: allow jitter and missed packets.
+        self.store=store;self.mapping_path=mapping_path;self.idle_timeout=idle_timeout;self.active=0;self.per_ip={};self.connections={};self.points={}
 
     def process(self,frame):
         imei,kind=identify(frame)
@@ -38,6 +39,7 @@ class Receiver:
         self.store.observe(imei)
         if kind=='login':return b'LOAD'
         if kind=='heartbeat':return b'ON'
+        if kind=='status':return None
         try:point=decode(frame)
         except InvalidFrame:
             self.store.observe(imei,error='decode_rejected')
@@ -65,7 +67,7 @@ class Receiver:
         window=time.monotonic();messages=0;bound=None
         try:
             while True:
-                data=await asyncio.wait_for(reader.read(4096),timeout=180)
+                data=await asyncio.wait_for(reader.read(4096),timeout=self.idle_timeout)
                 if not data:break
                 for frame in framer.feed(data):
                     if time.monotonic()-window>60:window=time.monotonic();messages=0
@@ -77,7 +79,10 @@ class Receiver:
                     response=self.process(frame)
                     self.connections[imei]=writer
                     if response:writer.write(response);await writer.drain()
-        except (TimeoutError,asyncio.TimeoutError,ConnectionError,InvalidFrame,UnicodeError,ValueError,OSError,RuntimeError):
+        except (TimeoutError,asyncio.TimeoutError):
+            self.store.count('connection_idle_timeout')
+            self.store.count('connection_rejected')
+        except (ConnectionError,InvalidFrame,UnicodeError,ValueError,OSError,RuntimeError):
             self.store.count('connection_rejected')
         finally:
             if bound and self.connections.get(bound) is writer:self.connections.pop(bound,None)

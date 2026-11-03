@@ -43,7 +43,11 @@ def identify(frame):
     if re.fullmatch(r'\d{15}',text):return text,'heartbeat'
     found=re.match(r'(##,)?imei:(\d{15}),',text)
     if not found:raise InvalidFrame('identity')
-    return found[2], 'login' if found[1] and text.endswith(',A') else 'data'
+    if found[1] and text.endswith(',A'):return found[2],'login'
+    # December 2023 status synchronization contains configuration, including
+    # credentials, but no GPS coordinates. Never persist it as a raw capture.
+    if len(text.split(','))>=21 and re.match('imei:'+found[2]+r',status,[012],\d{1,6},\d{1,6},',text):return found[2],'status'
+    return found[2],'data'
 
 
 def number(text):

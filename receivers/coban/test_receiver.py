@@ -82,6 +82,33 @@ class ReceiverTests(unittest.TestCase):
         with self.assertRaises(InvalidFrame):self.receiver.process(b'000000000000002')
         self.assertEqual(self.store.status()['private_captures'],0)
 
+    def test_status_is_contact_without_coordinates_or_credential_capture(self):
+        private=('imei:'+IMEI+',status,0,10,3600,0,0,0.00,0,0,0,0,0,1,5,60,654321,,15,0,2;').encode()
+        self.assertEqual(identify(private),(IMEI,'status'));self.assertIsNone(self.receiver.process(private))
+        state=self.store.status();self.assertEqual(state['queued'],0);self.assertEqual(state['private_captures'],0)
+        self.assertEqual(state['counters']['known_status'],1);self.assertNotIn('decode_rejected',state['counters'])
+        self.assertNotIn('fix_at',self.store.observations([IMEI])[0]);self.assertEqual(self.receiver.points,{})
+        positioned=FRAME.replace(b',tracker,',b',status,')
+        self.assertEqual(identify(positioned),(IMEI,'data'));self.assertIsNotNone(decode(positioned,NOW))
+
+    def test_heartbeat_has_margin_beyond_three_minute_protocol_interval(self):
+        self.assertGreaterEqual(self.receiver.idle_timeout,2*180+30)
+        async def scenario():
+            # Accelerated clock: 180 s heartbeat arrives before 600 s idle expiry.
+            self.receiver.idle_timeout=.2
+            listener=await asyncio.start_server(self.receiver.connection,'127.0.0.1',0)
+            try:
+                reader,writer=await asyncio.open_connection('127.0.0.1',listener.sockets[0].getsockname()[1])
+                writer.write(('##,imei:'+IMEI+',A').encode());await writer.drain();self.assertEqual(await reader.readexactly(4),b'LOAD')
+                for _ in range(3):
+                    await asyncio.sleep(.065);writer.write(IMEI.encode());await writer.drain();self.assertEqual(await asyncio.wait_for(reader.readexactly(2),.15),b'ON')
+                self.assertIn(IMEI,self.receiver.connections)
+                self.assertEqual(await asyncio.wait_for(reader.read(),.5),b'')
+                self.assertEqual(self.store.status()['counters']['connection_idle_timeout'],1)
+                writer.close();await writer.wait_closed()
+            finally:listener.close();await listener.wait_closed()
+        asyncio.run(scenario())
+
     def test_durable_restart_and_dedup(self):
         self.process();self.process()
         restored=Store(self.root/'inbox.sqlite');self.assertEqual(restored.status()['queued'],1)
