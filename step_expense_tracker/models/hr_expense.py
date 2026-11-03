@@ -1,6 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from math import isfinite
 from uuid import UUID
+
+from dateutil.parser import isoparse
 
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, ValidationError
@@ -42,8 +44,8 @@ class HrExpense(models.Model):
             raise AccessError(_('La conexión de Tracker con Rendiciones no está disponible en esta compañía.'))
         try:
             asset = str(UUID(draft['asset']))
-            start = datetime.fromisoformat(draft['start'])
-            end = datetime.fromisoformat(draft['end'])
+            start = isoparse(draft['start'])
+            end = isoparse(draft['end'])
             if start.tzinfo is None or end.tzinfo is None:
                 raise ValueError('Missing timezone')
             start, end = (stamp.astimezone(timezone.utc) for stamp in (start, end))
