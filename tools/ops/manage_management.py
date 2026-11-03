@@ -314,6 +314,8 @@ def main():
     parser.add_argument('--pdf-review', type=Path, help='T141 native PDF visual review for this exact destination proof')
     parser.add_argument('--approval-dir', type=Path)
     parser.add_argument('--development-proof', type=Path)
+    parser.add_argument('--resume-packing-split', action='store_true',
+                        help='Reuse the verified Cerro overlay from the interrupted T154 deployment')
     args = parser.parse_args()
     assert args.environment != 'demo-sys' or args.kind == 'payroll-days', 'Demo-SYS only for the scoped T138 payroll correction'
     settings_lease = None
@@ -756,11 +758,20 @@ def main():
                 for index, arg in enumerate(argv):
                     if Path(arg).name in ('odoo-bin','run_sag_cerro_upgrade.py','run_canonical_fruit_upgrade.py'):
                         assert not any(option in ('-u', '-i', '--update', '--init') or option.startswith(('--update=', '--init=')) for option in argv[index + 1:]), 'Concurrent upgrade PID ' + command.parent.name
-            assert not release_root.exists(), 'Release already exists'
-            release_root.mkdir(parents=True)
-            extract(args.release, release_root)
-            for path in [release_root, *release_root.rglob('*')]:
-                os.chown(path, identity.pw_uid, identity.pw_gid)
+            if args.resume_packing_split:
+                assert args.kind == 'packing-tag-split' and args.environment == 'cerro'
+                assert opts['addons_path'].split(',')[0] == str(release_root)
+                assert installed == {'step_packing_operations': proof['versions']['step_packing_operations']}
+                assert install == ['step_packing_tag_split']
+                assert json.loads((release_root / 'release.json').read_text()) == proof
+                for name, expected in proof['files'].items():
+                    assert digest(release_root / name) == expected, name
+            else:
+                assert not release_root.exists(), 'Release already exists'
+                release_root.mkdir(parents=True)
+                extract(args.release, release_root)
+                for path in [release_root, *release_root.rglob('*')]:
+                    os.chown(path, identity.pw_uid, identity.pw_gid)
             backup = Path('/opt/steps_backups') / ('management_' + args.environment + '_' + stamp)
             backup.mkdir(mode=0o700)
             shutil.copy2(conf, backup / 'odoo.conf')
@@ -780,7 +791,9 @@ def main():
                     run('sudo','-u','postgres','/usr/bin/python3.10',str(BPA_SOURCE/'migrate_schema.py'),'prepare',database)
                 if args.kind == 'agriculture-records':
                     agriculture_migrate('prepare', database, release_root / 'step_agriculture_records')
-                new_paths = str(release_root) + ',' + opts['addons_path']
+                if args.resume_packing_split:
+                    assert query(database, "SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()").strip() == '0', 'Concurrent Cerro database sessions'
+                new_paths = opts['addons_path'] if args.resume_packing_split else str(release_root) + ',' + opts['addons_path']
                 changed, count = re.subn(r'(?m)^\s*addons_path\s*=.*$', 'addons_path = ' + new_paths, conf.read_text())
                 assert count == 1
                 conf.write_text(changed)
