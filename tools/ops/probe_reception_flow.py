@@ -19,12 +19,13 @@ def verify_flow(root, scoped, row_varieties=False, summary_form=None):
     product = setup['product.product'].create({'name': 'QA T120 flujo kg', 'is_storable': True,
                                               'uom_id': kg.id, 'uom_po_id': kg.id})
     packaging = setup['product.packaging'].create({'name': 'QA T120 8kg', 'product_id': product.id, 'qty': 8})
+    measured = 401 if summary_form else 400
     picking = setup['stock.picking'].create({
         'partner_id': producer.id, 'picking_type_id': warehouse.in_type_id.id,
         'location_id': warehouse.in_type_id.default_location_src_id.id,
         'location_dest_id': warehouse.lot_stock_id.id, 'step_fruit_reception_kind': 'process',
         'fruit_fundo_id': fundo.id, 'fruit_species_id': species.id,
-        'step_fruit_type': 'conventional', 'step_fruit_gross_kg': 400})
+        'step_fruit_type': 'conventional', 'step_fruit_gross_kg': measured})
     move = setup['stock.move'].create({
         'name': 'QA T120 flujo', 'picking_id': picking.id, 'product_id': product.id,
         'product_uom': kg.id, 'product_uom_qty': 400, 'product_packaging_id': packaging.id,
@@ -41,8 +42,8 @@ def verify_flow(root, scoped, row_varieties=False, summary_form=None):
                 operation.step_fruit_packaging_qty = 50
                 operation.product_uom_qty = 401
                 assert operation.product_packaging_id.id == packaging.id
-                operation.product_uom_qty = 400
-            for index, boxes, kilos in ((0, 20, 160), (1, 30, 240)):
+                operation.quantity = measured
+            for index, boxes, kilos in ((0, 20, 160), (1, 30, 241)):
                 with form.fruit_tag_line_ids.new() as tag:
                     tag.tag_number = 'QA153-FLOW-%s-%s' % (picking.id, index)
                     tag.product_id = product.with_env(scoped)
@@ -54,9 +55,9 @@ def verify_flow(root, scoped, row_varieties=False, summary_form=None):
                     assert operation.step_fruit_packaging_qty == 50
                     assert operation.step_fruit_pallet_qty == 2
                     assert operation.product_packaging_id.id == packaging.id
-                    assert operation.quantity == 400
+                    assert operation.quantity == measured
         assert move.step_fruit_packaging_qty == 50 and move.step_fruit_pallet_qty == 2
-        assert move.product_packaging_id == packaging and move.quantity == 400
+        assert move.product_packaging_id == packaging and move.quantity == measured
         print('T153_MANUAL_SUMMARY_FORM_OK')
     else:
         for index, kilos in enumerate((160, 240)):
@@ -68,11 +69,11 @@ def verify_flow(root, scoped, row_varieties=False, summary_form=None):
     assert move.step_fruit_packaging_qty==50
     move.quantity=401
     assert move.step_fruit_packaging_qty==50
-    move.quantity=400
+    move.quantity=measured
     print('T132_WEIGHT_CORRECTION_PRESERVES_CONTAINERS_OK')
     operator.button_validate()
     assert operator.state == 'done'
-    assert sum(operator.move_line_ids.mapped('quantity')) == 400
+    assert sum(operator.move_line_ids.mapped('quantity')) == measured
     assert operator.move_line_ids.owner_id == producer.with_env(scoped)
     assert len(operator.fruit_tag_line_ids.package_id) == 2
     assert all(tag.step_tag_state == 'validated' for tag in operator.fruit_tag_line_ids.package_id)
