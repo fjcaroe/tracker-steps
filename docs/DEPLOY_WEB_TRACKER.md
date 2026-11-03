@@ -1,5 +1,20 @@
 # Cómo desplegar Web Tracker a producción
 
+## Reposo probable en recorridos
+
+El historial y el mapa de Operación agrupan lecturas de hasta 2 km/h dentro de
+35 metros de su primera muestra. Los intervalos de 10 a 75 minutos requieren
+al menos tres lecturas cercanas y se presentan como reposo probable estimado.
+Un intervalo más largo o un cambio de ubicación fuera del grupo sigue
+marcado como corte. El mapa usa un punto para un período completo de reposo
+y omite la reproducción en ese caso. Diagnóstico conserva las lecturas GPS.
+
+Paquete `cfa8916a2f37fc5d075e6f61cb405469cce0242a` publicado en Desarrollo.
+Pasaron 21 pruebas de recorridos y métricas, el ensayo de navegador con nueve
+lecturas horarias y la copia fresca del destino. El navegador verificó un
+reposo de ocho horas con un pin, sin reproducción y con las nueve lecturas
+en diagnóstico. Recibos en `/opt/steps-validation/tracker-parity-20261031/<commit>/`.
+
 ## Entrada común con Jornada
 
 En Desarrollo y Cerro, `/tracker` abre GPS y recorridos y
