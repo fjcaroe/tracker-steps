@@ -1,4 +1,7 @@
+from math import isfinite
+
 from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class FleetVehicle(models.Model):
@@ -6,6 +9,18 @@ class FleetVehicle(models.Model):
 
     step_expense_count = fields.Integer(string='Gastos', compute='_compute_step_expense_count')
     step_expense_sheet_count = fields.Integer(string='Rendiciones', compute='_compute_step_expense_count')
+    step_fuel_city_km_l = fields.Float(string='Ciudad (km/L)', digits=(8, 2))
+    step_fuel_highway_km_l = fields.Float(string='Carretera (km/L)', digits=(8, 2))
+    step_fuel_mixed_km_l = fields.Float(string='Mixto (km/L)', digits=(8, 2))
+    step_fuel_yield_source = fields.Char(string='Fuente del rendimiento')
+
+    @api.constrains('step_fuel_city_km_l', 'step_fuel_highway_km_l', 'step_fuel_mixed_km_l')
+    def _check_step_fuel_yield(self):
+        for vehicle in self:
+            if any(not isfinite(value) or value < 0 for value in (
+                vehicle.step_fuel_city_km_l, vehicle.step_fuel_highway_km_l, vehicle.step_fuel_mixed_km_l,
+            )):
+                raise ValidationError(_('El rendimiento debe ser un número no negativo.'))
 
     @api.depends('company_id')
     def _compute_step_expense_count(self):

@@ -1,5 +1,5 @@
 {
-    'name': 'Steps Gastos · Traer recorridos desde Tracker',
+    'name': 'Steps Rendiciones · Viajes y recorridos',
     'summary': 'Importa el uso de vehículos de Tracker a las rendiciones de gastos y enlaza el vehículo con sus gastos',
     'description': """
 Puente entre ``step_expense_report`` (rendiciones) y Steps Tracker:
@@ -12,7 +12,7 @@ Puente entre ``step_expense_report`` (rendiciones) y Steps Tracker:
 * Vehículo por gasto (atribución explícita) y accesos «Gastos» / «Rendiciones» desde la ficha
   del vehículo.
 """,
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.1.0',
     'category': 'Human Resources/Expenses',
     'author': 'Steps Consulting',
     'license': 'LGPL-3',

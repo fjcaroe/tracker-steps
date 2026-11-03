@@ -39,6 +39,31 @@ class TestExpenseTrackerImport(TrackerCase):
             'name': 'Viaje QA', 'employee_id': employee.id, 'company_id': company.id,
             'expense_line_ids': [(6, 0, expense.ids)]})
 
+    def test_special_trip_keeps_receipt_amount_and_vehicle_attribution(self):
+        self.vehicle.step_fuel_highway_km_l = 13.6
+        regular = self.sheet.expense_line_ids
+        self.assertEqual(regular.step_trip_kind, 'regular')
+        self.assertEqual(regular.step_trip_liters, 0)
+        special = regular.copy({
+            'sheet_id': False,
+            'step_vehicle_id': self.vehicle.id,
+            'step_trip_kind': 'special_fuel',
+            'step_trip_origin': 'Origen QA',
+            'step_trip_destination': 'Destino QA',
+            'step_trip_cycle': 'highway',
+            'step_trip_km': 136,
+            'total_amount_currency': 50000,
+        })
+        self.assertEqual(special.step_trip_liters, 10)
+        self.assertEqual(special.total_amount_currency, 50000)
+        self.assertIn(special.id, self.env['hr.expense'].search([
+            ('step_vehicle_id', '=', self.vehicle.id),
+        ]).ids)
+        self.vehicle.step_fuel_highway_km_l = 12
+        self.assertEqual(special.step_trip_yield_km_l, 13.6)
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            special.step_trip_km = 0
+
     # ---- utilidades ------------------------------------------------------------
     def _upsert(self, items, work_orders=None):
         self.usage_sync._upsert_items(self.company, items, work_orders or {})

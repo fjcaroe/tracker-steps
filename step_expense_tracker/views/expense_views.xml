@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="hr_expense.menu_hr_expense_root" model="ir.ui.menu">
+        <field name="name">Rendiciones</field>
+    </record>
     <!-- Rendición: pestaña de uso de vehículo -->
     <record id="view_hr_expense_sheet_form_step_tracker" model="ir.ui.view">
         <field name="name">hr.expense.sheet.form.step.tracker</field>
@@ -39,7 +42,17 @@
         <field name="inherit_id" ref="step_expense_report.hr_expense_view_form_step"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='step_doc_number']" position="after">
-                <field name="step_vehicle_id" readonly="not is_editable" options="{'no_create': True}"/>
+                <field name="step_vehicle_id" required="step_trip_kind == 'special_fuel'" readonly="not is_editable" options="{'no_create': True}"/>
+                <field name="step_trip_kind" readonly="not is_editable"/>
+                <field name="step_trip_origin" invisible="step_trip_kind != 'special_fuel'"
+                       required="step_trip_kind == 'special_fuel'" readonly="not is_editable"/>
+                <field name="step_trip_destination" invisible="step_trip_kind != 'special_fuel'"
+                       required="step_trip_kind == 'special_fuel'" readonly="not is_editable"/>
+                <field name="step_trip_km" invisible="step_trip_kind != 'special_fuel'" readonly="not is_editable"/>
+                <field name="step_trip_cycle" invisible="step_trip_kind != 'special_fuel'"
+                       required="step_trip_kind == 'special_fuel'" readonly="not is_editable"/>
+                <field name="step_trip_yield_km_l" invisible="step_trip_kind != 'special_fuel'"/>
+                <field name="step_trip_liters" invisible="step_trip_kind != 'special_fuel'"/>
             </xpath>
         </field>
     </record>
@@ -51,6 +64,7 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='step_doc_number']" position="after">
                 <field name="step_vehicle_id" optional="show"/>
+                <field name="step_trip_kind" optional="show"/>
             </xpath>
         </field>
     </record>

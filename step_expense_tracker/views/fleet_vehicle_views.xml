@@ -5,6 +5,16 @@
         <field name="model">fleet.vehicle</field>
         <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page name="step_fuel_yield" string="Rendimiento de combustible">
+                    <group>
+                        <field name="step_fuel_city_km_l"/>
+                        <field name="step_fuel_highway_km_l"/>
+                        <field name="step_fuel_mixed_km_l"/>
+                        <field name="step_fuel_yield_source" widget="url"/>
+                    </group>
+                </page>
+            </xpath>
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_open_step_expenses" type="object" class="oe_stat_button" icon="fa-money"
                         groups="base.group_user">
