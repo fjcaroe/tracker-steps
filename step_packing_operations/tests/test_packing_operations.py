@@ -629,6 +629,10 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(production.purchase_bill_id.state, 'draft')
         self.assertEqual(production.purchase_bill_id.amount_untaxed, 32)
         self.assertEqual(wizard.action_prepare_bills()['domain'], action['domain'])
+        customer = self.env['stock.location'].create({
+            'name': 'Cliente de devolución QA', 'usage': 'customer', 'company_id': self.company.id,
+        })
+        self.producer.with_company(self.company).property_stock_customer = customer
         production.action_return_national_fruit()
         self.assertEqual(production.return_picking_id.state, 'done')
         self.assertEqual(national.step_tag_state, 'dispatched')
