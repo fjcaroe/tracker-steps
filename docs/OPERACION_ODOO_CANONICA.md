@@ -1,6 +1,11 @@
 # Operación y publicación de Odoo
 
-Las respuestas 10078 de T158, 10086 de T159 y 10076 de T160 autorizan `packing-document-corrections`
+T161 autoriza `packing-material-consumption` en Desarrollo, Cerro y QA-Cerro.
+Preparar materiales solo para tarjas E de exportación, sin alterar el producto
+ni los kilos históricos. Copias frescas, mismo paquete, respaldo y bloqueo.
+
+Las respuestas 10078 de T158, 10086 de T159 y 10076 de T160 autorizan
+`packing-document-corrections`
 para Desarrollo, Cerro y QA-Cerro. Actualizar únicamente los documentos de
 Packing, con copias frescas, mismo paquete, respaldo y bloqueo compartido.
 
