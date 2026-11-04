@@ -23,7 +23,7 @@
                 <tbody>
                     <tr t-foreach="section[2]" t-as="values" style="page-break-inside:avoid;">
                         <td t-foreach="values" t-as="value"
-                            t-att-class="'text-end' if value_index &gt;= len(values) - 2 or section[0] == 'Cuadratura' and value_index else ''"
+                            t-att-style="'text-align:right' if value_index &gt;= len(values) - 2 or section[0] == 'Cuadratura' and value_index else ''"
                             t-out="doc._packing_report_display(value, values[0] == '% de kilos')"/>
                     </tr>
                     <tr t-if="section[3]" style="font-weight:bold; page-break-inside:avoid;">
@@ -77,12 +77,10 @@
                 </t>
             </div>
         </xpath>
-        <xpath expr="//t[@t-call='web.html_container']" position="inside">
-            <div class="article" t-att-data-oe-model="docs._name if len(docs) == 1 else None"
-                 t-att-data-oe-id="docs.id if len(docs) == 1 else None">
-                <xpath expr="//t[@t-call='web.html_container']/div[@class='page']" position="move"/>
-                <xpath expr="//t[@t-call='web.html_container']/t[@t-foreach='docs']" position="move"/>
-            </div>
+        <!-- This report has no external header. The native PDF renderer uses
+             the contents of main directly in that case. -->
+        <xpath expr="//t[@t-call='web.html_container']/*[1]" position="before">
+            <meta charset="utf-8"/>
         </xpath>
     </template>
 
