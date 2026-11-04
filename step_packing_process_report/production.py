@@ -69,13 +69,14 @@ class PackingProduction(models.Model):
                         tag.step_packaging_id.display_name)
                 raw.append((line.product_id.display_name, *dims, line.boxes, line.kilos))
                 inputs.append((tag.name, pallet_date, *dims, line.boxes, line.kilos))
-        for tag in self.step_packing_output_tag_ids.filtered(lambda tag: tag.step_tag_kind in packed):
+        for tag in self.step_packing_output_tag_ids:
             for line in tag.step_tag_line_ids:
                 fruit = (tag.variedad_id.display_name, line.producer_id.display_name,
                          tag.step_packaging_id.display_name, tag.fruit_caliber_id.display_name,
                          tag.fruit_category_id.display_name, line.boxes, line.kilos)
-                packed[tag.step_tag_kind].append((line.product_id.display_name, *fruit))
-                detail[tag.step_tag_kind].append((tag.name, *fruit))
+                if tag.step_tag_kind in packed:
+                    packed[tag.step_tag_kind].append((line.product_id.display_name, *fruit))
+                detail['E' if tag.step_tag_kind == 'E' else 'N'].append((tag.name, *fruit))
         kg = tuple(self[f'step_packing_{key}_kg'] for key in CONCEPTS)
         percentages = tuple(value / kg[0] if kg[0] else 0.0 for value in kg)
         inspections = self.env['step.packing.inspection'].search([
