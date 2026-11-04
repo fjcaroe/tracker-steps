@@ -81,6 +81,7 @@
                     <group string="Movimientos de Inventario" invisible="state == 'created'">
                         <field name="input_picking_id" readonly="1"/>
                         <field name="material_picking_id" readonly="1"/>
+                        <field name="step_close_reversal_ids" widget="many2many_tags" readonly="1"/>
                         <field name="output_picking_id" readonly="1"/>
                     </group>
                 </sheet>

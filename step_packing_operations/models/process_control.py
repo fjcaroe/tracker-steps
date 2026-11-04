@@ -260,6 +260,8 @@ class PackingProduction(models.Model):
         reversals = self.env['stock.picking']
         for picking in pickings:
             reversals |= order._reverse_close_picking(picking)
+        if reversals.move_ids.sudo().account_move_ids:
+            raise UserError(_('La reversión generaría asientos de inventario. Revise el cierre con Contabilidad.'))
         inputs.write({'step_tag_state': 'validated'})
         output.write({'step_tag_state': 'created'})
         order.write({
