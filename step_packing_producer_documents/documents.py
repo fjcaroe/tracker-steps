@@ -54,7 +54,10 @@ class DocumentMixin(models.AbstractModel):
             total_number = book.add_format({'bold': True, 'num_format': '#,##0.00', 'align': 'right'})
             total_percent = book.add_format({'bold': True, 'num_format': '0.00%', 'align': 'right'})
             percent = book.add_format({'num_format': '0.00%'})
-            calendar = book.add_format({'num_format': 'dd/mm/yyyy'})
+            date_format = {'num_format': 'dd/mm/yyyy'}
+            if document.get('left_column_titles'):
+                date_format['align'] = 'left'
+            calendar = book.add_format(date_format)
             logo = self.company_id.logo_web
             first_column = 0
             if logo:
