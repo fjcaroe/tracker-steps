@@ -451,6 +451,46 @@ class TestPackingOperations(TransactionCase):
             "step_packing_operations.report_packing_process", production.ids)
         self.assertRegex(html.lower(), rb"<h2[^>]*>informe de proceso (?:de )?packing</h2>")
 
+    def test_reverse_packing_close_restores_stock_and_allows_reclose(self):
+        order = self._order()
+        order.action_validate()
+        bom = self.env['mrp.bom'].create({
+            'product_tmpl_id': self.finished.product_tmpl_id.id,
+            'product_qty': 1, 'bom_line_ids': [(0, 0, {
+                'product_id': self.carton.id, 'product_qty': 1,
+            })],
+        })
+        incoming = self._tag('T163-C', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        outgoing = self._tag('T163-E', 'E', self.finished, 80, 16, 'export')
+        self._stock(self.raw, 100, incoming)
+        self._stock(self.carton, 16)
+        production = self._production(order, incoming, outgoing, bom)
+        production.action_step_packing_validate()
+        production.action_prepare_materials()
+        production.action_approve_materials()
+        production.action_step_packing_close()
+        originals = production.input_picking_id | production.material_picking_id | production.output_picking_id
+
+        production.action_reopen_close()
+        self.assertEqual(production.state, 'validated')
+        self.assertEqual(production.step_close_reversal_ids.return_id, originals)
+        self.assertEqual(incoming.step_tag_state, 'validated')
+        self.assertEqual(outgoing.step_tag_state, 'created')
+        self.assertEqual(sum(incoming.quant_ids.mapped('quantity')), 100)
+        self.assertEqual(sum(outgoing.quant_ids.mapped('quantity')), 0)
+        self.assertEqual(self.env['stock.quant']._get_available_quantity(self.carton, self.location), 16)
+        with self.assertRaises(UserError):
+            production.action_reopen_close()
+        production.action_reopen_quadrature()
+        self.assertEqual(production.state, 'created')
+        production.action_step_packing_validate()
+        production.action_approve_materials()
+        production.action_step_packing_close()
+        self.assertEqual(production.state, 'closed')
+        self.assertEqual(sum(outgoing.quant_ids.mapped('quantity')), 16)
+        self.assertEqual(set(originals.mapped('state')), {'done'})
+
     def test_packing_close_without_stock_fails(self):
         order = self._order()
         order.action_validate()

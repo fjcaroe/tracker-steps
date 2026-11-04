@@ -54,7 +54,7 @@ def main():
         modules = ('step_auth_email_casefold',)
     if args.kind == 'packing-tag-folio':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
-        modules = ('step_packing_tag_folio',)
+        modules = ('step_packing_operations', 'step_packing_tag_folio')
     if args.kind == 'packing-material-consumption':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         modules = ('step_packing_operations',)

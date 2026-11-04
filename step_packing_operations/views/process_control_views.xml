@@ -14,7 +14,10 @@
         <field name="inherit_id" ref="view_packing_production_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
-                <button name="action_reopen_quadrature" type="object" string="Corregir cuadratura"
+                <button name="action_reopen_close" type="object" string="Revertir cierre"
+                        groups="stock.group_stock_manager" invisible="state != 'closed'"
+                        confirm="Se revertirán los movimientos originales del cierre. ¿Continuar?"/>
+                    <button name="action_reopen_quadrature" type="object" string="Corregir cuadratura"
                         invisible="state != 'validated' or material_review_state == 'approved'"/>
                 <button name="action_return_national_fruit" type="object" string="Devolver fruta nacional"
                         invisible="state != 'closed' or return_picking_id"/>

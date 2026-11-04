@@ -67,6 +67,10 @@ class PackingProduction(models.Model):
     input_picking_id = fields.Many2one("stock.picking", string="Consumo MP", readonly=True, copy=False)
     output_picking_id = fields.Many2one("stock.picking", string="Salida producto", readonly=True, copy=False)
     material_picking_id = fields.Many2one("stock.picking", string="Consumo materiales", readonly=True, copy=False)
+    step_close_reversal_ids = fields.Many2many(
+        "stock.picking", "step_packing_close_reversal_rel", string="Reversiones de cierre",
+        readonly=True, copy=False,
+    )
     step_packing_input_kg = fields.Float(compute="_compute_packing_balance", store=True, string="Kilos a proceso", digits="Stock Weight")
     step_packing_export_kg = fields.Float(compute="_compute_packing_balance", store=True, string="Kilos exportación", digits="Stock Weight")
     step_packing_commercial_kg = fields.Float(compute="_compute_packing_balance", store=True, string="Kilos comercial", digits="Stock Weight")
@@ -118,8 +122,10 @@ class PackingProduction(models.Model):
             # Validating the tag locks its definition; it does not receive stock.
             # Never produce a second time into an existing/previously moved tag.
             if any(q.quantity or q.reserved_quantity for q in outputs.sudo().quant_ids) or self.env['stock.move.line'].sudo().search_count([
-                    ('state', '!=', 'cancel'), '|', ('package_id', 'in', outputs.ids),
-                    ('result_package_id', 'in', outputs.ids)], limit=1):
+                    ('state', '!=', 'cancel'),
+                    ('picking_id', 'not in', (production.step_close_reversal_ids |
+                                             production.step_close_reversal_ids.return_id).ids),
+                    '|', ('package_id', 'in', outputs.ids), ('result_package_id', 'in', outputs.ids)], limit=1):
                 raise ValidationError(_("Una tarja de salida ya tiene existencias, reservas o movimientos. Use una tarja nueva para evitar duplicar stock."))
             if any(not tag.step_tag_line_ids or not tag.step_packing_result for tag in outputs):
                 raise ValidationError(_("Cada tarja de salida requiere detalle y clasificación de resultado."))
@@ -237,6 +243,10 @@ class PackingProduction(models.Model):
         return picking
 
     def _packing_move_extra_values(self, product, qty, source, dest, lines):
+        reversal = self.env.context.get('_packing_close_reversal')
+        from .process_control import _REVERSAL
+        if reversal and reversal[0] is _REVERSAL:
+            return {'origin_returned_move_id': reversal[1][product.id]}
         return {}
 
     def _consume_packaging_materials(self, warehouse, location, production_location):

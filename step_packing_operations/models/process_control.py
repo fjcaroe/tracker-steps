@@ -4,11 +4,12 @@ import hashlib
 import json
 from markupsafe import escape
 
-from odoo import api, fields, models, _
+from odoo import Command, api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare
 
 _INTERNAL = object()
+_REVERSAL = object()
 
 
 class PackingProduction(models.Model):
@@ -210,6 +211,95 @@ class PackingProduction(models.Model):
         self.with_context(_packing_control=_INTERNAL).write({'state': 'created'})
         return True
 
+    def action_reopen_close(self):
+        if not self.env.user.has_group('stock.group_stock_manager'):
+            raise UserError(_('Solo un administrador de Inventario puede revertir el cierre.'))
+        self._lock_process()
+        with self.env.cr.savepoint():
+            for order in self:
+                order._reverse_packing_close()
+        return True
+
+    def _reverse_packing_close(self):
+        self.ensure_one()
+        if self.state != 'closed' or self.cost_ids or self.purchase_bill_id or self.landed_cost_id or self.return_picking_id:
+            raise UserError(_('La OT debe estar cerrada y sin costeo, factura, capitalización ni devolución.'))
+        pickings = self.output_picking_id | self.material_picking_id | self.input_picking_id
+        if not self.output_picking_id or not self.input_picking_id or any(
+                picking.state != 'done' or picking.company_id != self.company_id for picking in pickings):
+            raise UserError(_('No se encontraron todos los movimientos originales de cierre de esta OT.'))
+        moves = pickings.move_ids.filtered(lambda move: move.state != 'cancel')
+        if (moves.sudo().account_move_ids.filtered(lambda entry: entry.state != 'cancel')
+                or moves.returned_move_ids.filtered(lambda move: move.state != 'cancel')
+                or moves.move_dest_ids.filtered(lambda move: move.state != 'cancel')):
+            raise UserError(_('Los movimientos de cierre tienen asientos, devoluciones o movimientos posteriores.'))
+        output = self.step_packing_output_tag_ids
+        inputs = self.step_packing_input_tag_ids
+        if (not output or not inputs or any(tag.step_tag_state != 'validated' for tag in output)
+                or any(tag.step_tag_state != 'processed' for tag in inputs)):
+            raise UserError(_('Las tarjas ya no conservan el estado generado por este cierre.'))
+        history = self.env['stock.move.line'].sudo().search_count([
+            ('state', '!=', 'cancel'), ('id', '>', max(self.output_picking_id.move_line_ids.ids, default=0)),
+            '|', ('package_id', 'in', output.ids), ('result_package_id', 'in', output.ids),
+        ], limit=1)
+        if (history or output.sudo().step_export_shipment_ids or output.sudo().step_reserved_ids
+                or self.env['step.packing.inspection'].sudo().search_count([('production_id', '=', self.id)], limit=1)):
+            raise UserError(_('Las tarjas tienen movimientos posteriores, embarques, reservas o inspecciones.'))
+        if any(quant.quantity or quant.reserved_quantity for quant in inputs.quant_ids):
+            raise UserError(_('Una tarja de entrada ya tiene existencias o reservas.'))
+        if (self.output_picking_id.move_line_ids.result_package_id != output
+                or self.input_picking_id.move_line_ids.package_id != inputs
+                or self.material_picking_id.move_line_ids.package_id
+                or self.material_picking_id.move_line_ids.result_package_id):
+            raise UserError(_('Los movimientos originales no coinciden con las tarjas de la OT.'))
+        self._check_close_output_stock(output)
+
+        from .contract_valuation import _VALUATION
+        order = self.with_context(_packing_control=_INTERNAL, _packing_valuation=_VALUATION)
+        order.write({'valuation_snapshot': False})
+        reversals = self.env['stock.picking']
+        for picking in pickings:
+            reversals |= order._reverse_close_picking(picking)
+        inputs.write({'step_tag_state': 'validated'})
+        output.write({'step_tag_state': 'created'})
+        order.write({
+            'state': 'validated', 'input_picking_id': False, 'output_picking_id': False,
+            'material_picking_id': False, 'material_review_state': 'review',
+            'material_approved_by': False, 'material_approved_at': False,
+            'step_close_reversal_ids': [Command.link(picking.id) for picking in reversals],
+        })
+
+    def _check_close_output_stock(self, output):
+        expected = defaultdict(float)
+        actual = defaultdict(float)
+        for line in self.output_picking_id.move_line_ids:
+            key = (line.result_package_id, line.product_id, line.location_dest_id, line.lot_id, line.owner_id)
+            expected[key] += line.product_uom_id._compute_quantity(line.quantity, line.product_id.uom_id)
+        for quant in output.quant_ids:
+            if quant.reserved_quantity:
+                raise UserError(_('Libere las reservas antes de revertir el cierre.'))
+            key = (quant.package_id, quant.product_id, quant.location_id, quant.lot_id, quant.owner_id)
+            actual[key] += quant.quantity
+        for key in expected.keys() | actual.keys():
+            if float_compare(actual[key], expected[key], precision_rounding=key[1].uom_id.rounding):
+                raise UserError(_('Las existencias de salida deben coincidir con el movimiento de cierre.'))
+
+    def _reverse_close_picking(self, picking):
+        moves = picking.move_ids.filtered(lambda move: move.state == 'done')
+        origins = {move.product_id.id: move.id for move in moves}
+        lines = picking.move_line_ids.filtered(lambda line: line.move_id in moves and line.quantity > 0)
+        if (not lines or len(origins) != len(moves)
+                or any(line.location_id != picking.location_id or line.location_dest_id != picking.location_dest_id
+                       for line in lines)):
+            raise UserError(_('El traslado original no tiene una estructura de cierre reversible.'))
+        items = [(line.product_id, line.product_uom_id._compute_quantity(line.quantity, line.product_id.uom_id),
+                  line.result_package_id, line.package_id, line.lot_id, line.owner_id) for line in lines]
+        warehouse = picking.picking_type_id.warehouse_id
+        reversal = self.with_context(_packing_close_reversal=(_REVERSAL, origins))._create_packing_move(
+            warehouse, picking.location_dest_id, picking.location_id, items)
+        reversal.write({'return_id': picking.id})
+        return reversal
+
     def _consume_packaging_materials(self, warehouse, location, production_location):
         self.ensure_one()
         grouped = defaultdict(float)
@@ -306,7 +396,7 @@ class PackingProduction(models.Model):
     def write(self, vals):
         self._lock_process()
         internal = self.env.context.get('_packing_control') is _INTERNAL
-        if not internal and {'state', 'input_picking_id', 'output_picking_id', 'material_picking_id', 'return_picking_id'} & vals.keys():
+        if not internal and {'state', 'input_picking_id', 'output_picking_id', 'material_picking_id', 'return_picking_id', 'step_close_reversal_ids'} & vals.keys():
             raise UserError(_('Use las acciones de validación y cierre para mover inventario.'))
         if not internal and {'material_review_state', 'material_approved_by', 'material_approved_at', 'material_signature'} & vals.keys():
             raise UserError(_('Use los botones de revisión y aprobación de materiales.'))

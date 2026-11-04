@@ -1,8 +1,12 @@
 # Operación y publicación de Odoo
 
-T162 autoriza `packing-tag-folio` en Desarrollo, Cerro y QA-Cerro.
+T162 y T163 autorizan `packing-tag-folio` en Desarrollo, Cerro y QA-Cerro.
 Conservar los registros históricos y omitir del informe únicamente duplicados
 de borrador desvinculados, sin stock, movimientos ni uso documental.
+Revertir el cierre de la OT mediante movimientos nativos con referencia a los
+originales. Solo Inventario, con stock íntegro y sin asientos, movimientos
+posteriores, reservas, embarques, inspecciones ni documentos de costeo.
+Validar reapertura y segundo cierre en copia. No revertir una OT real al publicar.
 
 T161 autoriza `packing-material-consumption` en Desarrollo, Cerro y QA-Cerro.
 Preparar materiales solo para tarjas E de exportación, sin alterar el producto
