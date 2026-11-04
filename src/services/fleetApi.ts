@@ -1,6 +1,8 @@
 export type FleetAsset = {
   asset_id: string; name: string; plate: string | null; type: string; cost_center: string | null; linked_to_odoo?: boolean;
   responsible: string | null; created_at: string; position_stale: boolean;
+  device_recent?: boolean;
+  device_last_seen_at?: string | null;
   signal_state: 'received' | 'stale' | 'no_signal'; motion_state: 'moving' | 'stationary' | 'unknown';
   protection_state: 'armed' | 'disarmed' | 'incident_open';
   last_position: null | { id: string; recorded_at: string; received_at: string; lat: number; lon: number; speed_kmh: number | null; quality: string; acc: boolean | null; external_power: boolean | null };
@@ -49,4 +51,9 @@ export const label = (s: string) => labels[s] || auditLabels[s] || s;
 export const dateLabel = (s?: string | null) => s ? new Date(s).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin dato';
 export function filterFleet(rows: FleetAsset[], f: FleetFilters) {
   return rows.filter(a => (!f.q || `${a.name} ${a.plate || ''}`.toLocaleLowerCase().includes(f.q.toLocaleLowerCase())) && (!f.type || a.type === f.type) && (!f.cost_center || a.cost_center === f.cost_center) && (!f.motion || a.motion_state === f.motion) && (!f.signal || a.signal_state === f.signal) && (!f.protection || a.protection_state === f.protection) && (!f.gps || a.device?.model === f.gps));
+}
+
+export function assetSignalLabel(asset: FleetAsset) {
+  if (!asset.position_stale) return 'Ubicación GPS reciente';
+  return asset.device_recent ? 'Equipo conectado · sin ubicación GPS reciente' : 'Sin ubicación GPS reciente';
 }
