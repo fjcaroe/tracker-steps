@@ -81,3 +81,47 @@ class PackingDocumentCase(TransactionCase):
         mail = self.env['mail.mail'].search([('email_to', '=', 'packing@example.invalid')])
         self.assertEqual(mail.state, 'outgoing')
         self.assertEqual(len(mail.attachment_ids), 2)
+
+    def test_reception_period_uses_scheduled_local_date(self):
+        company = self.env.company
+        producer = self.env['res.partner'].create({'name': 'QA T159', 'is_productor': True})
+        fundo = self.env['step.fundo'].create({
+            'name': 'QA T159 Fundo', 'partner_id': producer.id, 'company_id': company.id,
+        })
+        warehouse = self.env['stock.warehouse'].search([('company_id', '=', company.id)], limit=1)
+        picking_type = warehouse.in_type_id
+        product = self.env['product.product'].create({'name': 'QA T159 Fruta'})
+        picking = self.env['stock.picking'].create({
+            'picking_type_id': picking_type.id, 'partner_id': producer.id,
+            'location_id': picking_type.default_location_src_id.id,
+            'location_dest_id': picking_type.default_location_dest_id.id,
+            'step_fruit_reception_kind': 'process', 'fruit_fundo_id': fundo.id,
+        })
+        self.env['step.packing.picking.tag.line'].create({
+            'picking_id': picking.id, 'product_id': product.id, 'tag_number': 'QA159-DATE',
+            'quantity': 10, 'kilos': 95, 'gross_kg': 100, 'tare_kg': 5,
+        })
+        # Historical fixture without inventory movements. UTC November 1 at
+        # 02:00 still belongs to October 31 in Santiago.
+        fields_to_set = ['state', 'scheduled_date', 'date_done']
+        picking.flush_recordset(fields_to_set)
+        self.env.cr.execute(
+            "UPDATE stock_picking SET state='done', scheduled_date=%s, date_done=%s WHERE id=%s",
+            ['2026-11-01 02:00:00', '2026-11-03 12:00:00', picking.id],
+        )
+        picking.invalidate_recordset(fields_to_set, flush=False)
+        wizard = self.env['step.packing.producer.document'].with_context(tz='America/Santiago').create({
+            'kind': 'reception', 'producer_id': producer.id,
+            'date_from': '2026-10-31', 'date_to': '2026-10-31',
+        })
+        document = wizard._document_data()
+        rows = document['sections'][0][2]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][0], date(2026, 10, 31))
+        self.assertEqual(rows[0][-4:], (10, 100, 95, 9.5))
+        report = self.env.ref('step_packing_producer_documents.action_producer_pdf')
+        html, _ = report._render_qweb_html(report.report_name, wizard.ids)
+        self.assertIn(b'31/10/2026', html)
+        self.assertIn(b'font-weight:bold', html)
+        wizard.write({'date_from': '2026-11-03', 'date_to': '2026-11-03'})
+        self.assertFalse(wizard._document_data()['sections'][0][2])

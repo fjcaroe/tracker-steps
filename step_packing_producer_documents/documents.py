@@ -8,7 +8,6 @@ from PIL import Image
 
 from odoo import Command, api, fields, models
 from odoo.exceptions import UserError, ValidationError
-from odoo.osv.expression import AND, OR
 from odoo.tools import email_normalize, html2plaintext
 
 
@@ -187,9 +186,10 @@ class ProducerDocument(models.TransientModel):
                  packing if self.kind == 'process' else ''),
             ],
             'sections': [section],
-            'spaced_header': self.kind == 'process',
-            'emphasize_totals': self.kind == 'process',
-            'right_aligned_columns': (5, 7, 8, 9, 10, 11, 12) if self.kind == 'process' else (),
+            'spaced_header': True,
+            'emphasize_totals': True,
+            'left_column_titles': self.kind == 'reception',
+            'right_aligned_columns': (5, 7, 8, 9, 10, 11, 12) if self.kind == 'process' else (5, 6, 7, 8),
         }
 
     def _weeks(self):
@@ -199,24 +199,19 @@ class ProducerDocument(models.TransientModel):
         return ', '.join(f'{year}-S{week:02}' for year, week in weeks)
 
     def _receipt_day(self, receipt):
-        if receipt.date_done:
-            return fields.Datetime.context_timestamp(self, receipt.date_done).date()
-        return receipt.step_fruit_guide_date
+        return fields.Datetime.context_timestamp(self, receipt.scheduled_date).date()
 
     def _reception_data(self):
         zone = pytz.timezone(self.env.context.get('tz') or self.env.user.tz or 'UTC')
         start = zone.localize(datetime.combine(self.date_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
         end = zone.localize(datetime.combine(self.date_to + timedelta(days=1), time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
-        domain = AND([[
+        receipts = self.env['stock.picking'].search([
             ('company_id', '=', self.company_id.id), ('state', '=', 'done'),
+            ('picking_type_code', '=', 'incoming'),
             ('step_fruit_reception_kind', 'in', ['process', 'packed']),
             ('fruit_fundo_id.partner_id', '=', self.producer_id.id),
-        ], OR([
-            [('date_done', '>=', start), ('date_done', '<', end)],
-            [('date_done', '=', False), ('step_fruit_guide_date', '>=', self.date_from),
-             ('step_fruit_guide_date', '<=', self.date_to)],
-        ])])
-        receipts = self.env['stock.picking'].search(domain)
+            ('scheduled_date', '>=', start), ('scheduled_date', '<', end),
+        ])
         rows = []
         for receipt in receipts.sorted(lambda row: (self._receipt_day(row), row.id)):
             for pallet in receipt.fruit_tag_line_ids:
