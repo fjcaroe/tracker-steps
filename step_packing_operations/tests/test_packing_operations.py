@@ -449,7 +449,7 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(quant._get_available_quantity(self.carton, self.location), 0)
         html, _ = self.env["ir.actions.report"]._render_qweb_html(
             "step_packing_operations.report_packing_process", production.ids)
-        self.assertIn(b"Informe de proceso de Packing", html)
+        self.assertRegex(html.lower(), rb"<h2[^>]*>informe de proceso (?:de )?packing</h2>")
 
     def test_packing_close_without_stock_fails(self):
         order = self._order()
