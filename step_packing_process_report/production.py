@@ -1,8 +1,10 @@
+import base64
 from collections import defaultdict
 from datetime import date
 from io import BytesIO
 
 import xlsxwriter
+from PIL import Image
 
 from odoo import models
 from odoo.tools import format_date, formatLang
@@ -140,7 +142,19 @@ class PackingProduction(models.Model):
                 sheet.set_landscape()
                 sheet.set_paper(9)
                 sheet.fit_to_pages(1, 0)
-                sheet.merge_range('A1:H1', heading, title)
+                logo = self.company_id.logo_web
+                if logo:
+                    image = BytesIO(base64.b64decode(logo))
+                    with Image.open(image) as picture:
+                        scale = min(150 / picture.width, 30 / picture.height, 1)
+                    sheet.set_row(0, 26)
+                    sheet.insert_image('A1', 'logo.png', {
+                        'image_data': image, 'x_scale': scale, 'y_scale': scale,
+                        'x_offset': 4, 'y_offset': 2,
+                    })
+                    sheet.merge_range('B1:H1', heading, title)
+                else:
+                    sheet.merge_range('A1:H1', heading, title)
                 sheet.merge_range('A2:H2', self.company_id.name, label)
                 for row, (left, first, right, second) in enumerate(data['header'], start=2):
                     sheet.write(row, 0, left, label)
