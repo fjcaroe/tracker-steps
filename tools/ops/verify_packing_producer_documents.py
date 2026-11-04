@@ -33,7 +33,9 @@ try:
         editor = scoped(user=editors[:1], su=False)
         bom_menu = editor.ref('step_packing_packaging_master.menu_packing_fruit_bom')
         assert bom_menu.id in editor['ir.ui.menu']._visible_menu_ids()
-        view_id = next(view_id for view_id, mode in bom_menu.action.views if mode == 'form')
+        # The web action loader reads action metadata with elevated access.
+        # Resolve the view ID the same way, then render it as the BOM editor.
+        view_id = next(view_id for view_id, mode in bom_menu.sudo().action.views if mode == 'form')
         form = etree.fromstring(editor['mrp.bom'].get_view(view_id=view_id, view_type='form')['arch'])
         assert form.xpath("//group/field[@name='company_id']")
         assert form.xpath("//group/field[@name='step_applicable_company_ids']")
