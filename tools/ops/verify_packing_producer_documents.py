@@ -25,21 +25,44 @@ try:
     bom_view = scoped.ref('mrp.mrp_bom_form_view')
     assert b'step_applicable_company_ids' in etree.tostring(bom_view._get_combined_arch())
     assert 'step_applicable_company_ids' in repr(scoped['ir.rule']._compute_domain('mrp.bom'))
-    order = order_model.search([], limit=1)
+    order = order_model.search([('line_ids', '!=', False)], limit=1) or order_model.search([], limit=1)
     assert order
     assert order._document_xlsx().startswith(b'PK')
     reports = [(scoped.ref(prefix + 'action_order_pdf'), order, 'op')]
     if env.cr.dbname.startswith('MANAGEMENT_QA_'):
-        producer = scoped['res.partner'].search([('is_company', '=', True)], limit=1)
-        assert producer
         for kind in ('reception', 'process'):
-            wizard = scoped['step.packing.producer.document'].create({
-                'kind': kind, 'producer_id': producer.id,
-                'date_from': order.week_start - timedelta(days=7), 'date_to': order.week_end,
+            if kind == 'reception':
+                source = env['stock.picking'].search([
+                    ('picking_type_code', '=', 'incoming'), ('state', '=', 'done'),
+                    ('step_fruit_reception_kind', 'in', ['process', 'packed']),
+                    ('fruit_fundo_id.partner_id', '!=', False), ('fruit_tag_line_ids', '!=', False),
+                ], order='id desc', limit=1)
+                partner = source.fruit_fundo_id.partner_id
+            else:
+                candidates = env['step.packing.production'].search([
+                    ('state', 'in', ['validated', 'closed', 'costed', 'accounted']),
+                    ('fruit_grower_id', '!=', False), ('step_packing_input_tag_ids', '!=', False),
+                ], order='step_packing_input_kg desc', limit=30)
+                source = candidates.filtered(lambda ot: not (
+                    (ot.step_packing_input_tag_ids | ot.step_packing_output_tag_ids).step_tag_line_ids.producer_id
+                    - ot.fruit_grower_id))[:1]
+                partner = source.fruit_grower_id
+            operator = scoped_business_environment(env, company=source.company_id if source else None)
+            wizard_model = operator['step.packing.producer.document']
+            if source and kind == 'reception':
+                day = wizard_model._receipt_day(source.with_env(operator))
+            else:
+                day = source.date if source else order.week_start
+            partner = partner or scoped['res.partner'].search([('is_company', '=', True)], limit=1)
+            assert partner and day
+            wizard = wizard_model.create({
+                'kind': kind, 'producer_id': partner.id, 'date_from': day, 'date_to': day,
             })
-            reports.append((scoped.ref(prefix + 'action_producer_pdf'), wizard, kind))
+            if source:
+                assert wizard._document_data()['sections'][0][2], f'No data for the selected {kind} record'
+            reports.append((operator.ref(prefix + 'action_producer_pdf'), wizard, kind))
         for report, record, key in reports:
-            pdf, extension = scoped['ir.actions.report']._render_qweb_pdf(report.report_name, record.ids)
+            pdf, extension = record.env['ir.actions.report']._render_qweb_pdf(report.report_name, record.ids)
             assert extension == 'pdf' and pdf.startswith(b'%PDF') and len(pdf) > 5000
             (Path(OUTPUT) / 'data' / f'{key}.pdf').write_bytes(pdf)
             (Path(OUTPUT) / 'data' / f'{key}.xlsx').write_bytes(record._document_xlsx())
