@@ -15,7 +15,14 @@ try:
         module = env['ir.module.module'].search([('name', '=', name)])
         assert module.state == 'installed' and module.latest_version == version
         assert Path(importlib.import_module('odoo.addons.' + name).__file__).resolve().parent == Path(ROOT) / name
-    scoped = scoped_business_environment(env)
+    is_cerro = env.cr.dbname in ('CERRO_EL_PLOMO', 'QA-CERROELPLOMO') or env.cr.dbname.startswith(
+        ('MANAGEMENT_QA_CERRO_', 'MANAGEMENT_QA_QA-CERRO_'))
+    # The example OT belongs to a branch. Identify its company, then use an
+    # existing business user authorized in that company for all report reads.
+    sample = env['step.packing.production'].search([('name', '=', 'OT/2026/00019')]) if is_cerro else None
+    if is_cerro:
+        assert len(sample) == 1, 'The T156 reference OT must identify its company unambiguously'
+    scoped = scoped_business_environment(env, company=sample.company_id if sample else None)
     model = scoped['step.packing.production']
     menu = scoped.ref('step_packing_operations.menu_packing_production')
     assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
@@ -25,8 +32,10 @@ try:
     action = scoped.ref('step_packing_operations.action_report_packing_process')
     assert action.report_type == 'qweb-pdf' and action.binding_model_id.model == model._name
     domain = [('step_packing_input_tag_ids', '!=', False), ('step_packing_output_tag_ids', '!=', False)]
-    record = model.search(domain, order='step_packing_input_kg desc, id desc', limit=1) or model.search([], limit=1)
-    assert record
+    if sample:
+        domain.append(('id', '=', sample.id))
+    record = model.search(domain, order='step_packing_input_kg desc, id desc', limit=1)
+    assert record, 'The existing business profile must be able to open an OT with input and output pallets'
     assert record.action_packing_process_xlsx()['url'] == f'/packing/process/{record.id}/xlsx'
     data = record._packing_report_data()
     assert data['summary'][1][2][0][3] == record.step_packing_overweight_kg
@@ -50,7 +59,7 @@ try:
         (Path(OUTPUT) / 'data' / 'packing.pdf').write_bytes(pdf)
         (Path(OUTPUT) / 'data' / 'packing.xlsx').write_bytes(xlsx)
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({
-        'ticket': 156, 'versions': EXPECTED, 'pdf_and_xlsx': True,
+        'ticket': 156, 'versions': EXPECTED, 'pdf_and_xlsx': True, 'folio': record.name,
         'input_rows': len(data['detail'][0][2]), 'output_rows': sum(len(s[2]) for s in data['detail'][1:]),
     }))
 finally:
