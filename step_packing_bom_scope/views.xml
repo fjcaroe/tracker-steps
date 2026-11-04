@@ -1,0 +1,13 @@
+<odoo>
+    <record id="view_mrp_bom_scope" model="ir.ui.view">
+        <field name="name">mrp.bom.form.applicable.companies</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="mrp.mrp_bom_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='company_id'][@groups='base.group_multi_company']" position="after">
+                <field name="step_applicable_company_ids" widget="many2many_tags"
+                       groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

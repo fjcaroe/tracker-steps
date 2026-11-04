@@ -1,5 +1,11 @@
 # Operación y publicación de Odoo
 
+T157–T160 autorizan `packing-producer-documents` en Desarrollo, Cerro y QA-Cerro.
+Aplicar alcance explícito a listas de materiales nativas y agregar PDF y Excel
+de OP, recepciones y proceso por productor. El correo se encola al confirmar
+desde el asistente; las pruebas no envían correo real. Mismo paquete, copias
+frescas, respaldo, bloqueo y paridad.
+
 T156 autoriza `packing-process-report` en Desarrollo, Cerro y QA-Cerro.
 Conservar la acción PDF de la OT y agregar Excel con resumen y anexo de tarjas.
 Probar el mismo paquete en copias frescas, revisar ambos formatos y publicar
