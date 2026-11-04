@@ -3,6 +3,7 @@ from unittest.mock import patch
 from zipfile import ZipFile
 
 from odoo import Command
+from odoo.addons.step_packing_operations.models.process_control import _INTERNAL
 from odoo.tests import TransactionCase, tagged
 
 
@@ -53,7 +54,7 @@ class PackingDocumentCase(TransactionCase):
             'step_packing_input_tag_ids': [Command.set(input_tag.ids)],
             'step_packing_overweight_kg': -2,
         })
-        production.state = 'validated'
+        production.with_context(_packing_control=_INTERNAL).state = 'validated'
         wizard = self.env['step.packing.producer.document'].create({
             'kind': 'process', 'producer_id': producer.id,
             'date_from': '2026-11-02', 'date_to': '2026-11-08',
