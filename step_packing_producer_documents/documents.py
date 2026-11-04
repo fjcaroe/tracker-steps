@@ -1,11 +1,14 @@
 import base64
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from io import BytesIO
 
+import pytz
 import xlsxwriter
+from PIL import Image
 
 from odoo import Command, api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from odoo.osv.expression import AND, OR
 from odoo.tools import email_normalize, html2plaintext
 
 
@@ -50,7 +53,18 @@ class DocumentMixin(models.AbstractModel):
             numeric = book.add_format({'num_format': '#,##0.00'})
             percent = book.add_format({'num_format': '0.00%'})
             calendar = book.add_format({'num_format': 'dd/mm/yyyy'})
-            sheet.merge_range(0, 0, 0, width - 1, document['title'], heading)
+            logo = self.company_id.logo_web
+            first_column = 0
+            if logo:
+                image = BytesIO(base64.b64decode(logo))
+                with Image.open(image) as picture:
+                    scale = min(145 / picture.width, 30 / picture.height, 1)
+                sheet.set_row(0, 25)
+                sheet.insert_image(0, 0, 'logo.png', {
+                    'image_data': image, 'x_scale': scale, 'y_scale': scale,
+                })
+                first_column = 1
+            sheet.merge_range(0, first_column, 0, width - 1, document['title'], heading)
             sheet.merge_range(1, 0, 1, width - 1, self.company_id.name, header)
             row = 3
             for left, value, right, second in document['header']:
@@ -106,9 +120,8 @@ class PackingOrder(models.Model):
         instructions = self.instruction_ids.filtered(lambda row: row.state == 'approved')
         rows = [(line.product_id.display_name, line.variety_id.display_name, line.packaging_id.display_name,
                  line.bom_id.display_name, line.caliber_id.display_name, line.boxes, line.kilos) for line in lines]
-        materials = [(need.product_id.display_name, need.product_id.uom_id.display_name,
-                      need.required_qty, need.available_qty,
-                      max(need.required_qty - need.available_qty, 0)) for need in self.material_need_ids]
+        materials = [(need.product_id.display_name, need.uom_id.display_name,
+                      need.required_qty, need.available_qty, need.shortage_qty) for need in self.material_need_ids]
         return {
             'title': 'ORDEN DE PROCESO PACKING',
             'header': [
@@ -171,18 +184,30 @@ class ProducerDocument(models.TransientModel):
                  for offset in range((self.date_to - monday).days // 7 + 1)]
         return ', '.join(f'{year}-S{week:02}' for year, week in weeks)
 
+    def _receipt_day(self, receipt):
+        if receipt.date_done:
+            return fields.Datetime.context_timestamp(self, receipt.date_done).date()
+        return receipt.step_fruit_guide_date
+
     def _reception_data(self):
-        receipts = self.env['stock.picking'].search([
+        zone = pytz.timezone(self.env.context.get('tz') or self.env.user.tz or 'UTC')
+        start = zone.localize(datetime.combine(self.date_from, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+        end = zone.localize(datetime.combine(self.date_to + timedelta(days=1), time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+        domain = AND([[
             ('company_id', '=', self.company_id.id), ('state', '=', 'done'),
             ('step_fruit_reception_kind', 'in', ['process', 'packed']),
             ('fruit_fundo_id.partner_id', '=', self.producer_id.id),
-            ('step_fruit_guide_date', '>=', self.date_from), ('step_fruit_guide_date', '<=', self.date_to),
-        ], order='step_fruit_guide_date, id')
+        ], OR([
+            [('date_done', '>=', start), ('date_done', '<', end)],
+            [('date_done', '=', False), ('step_fruit_guide_date', '>=', self.date_from),
+             ('step_fruit_guide_date', '<=', self.date_to)],
+        ])])
+        receipts = self.env['stock.picking'].search(domain)
         rows = []
-        for receipt in receipts:
+        for receipt in receipts.sorted(lambda row: (self._receipt_day(row), row.id)):
             for pallet in receipt.fruit_tag_line_ids:
                 boxes, net = pallet.quantity, pallet.kilos
-                rows.append((receipt.step_fruit_guide_date, receipt.fruit_guide_number or '',
+                rows.append((self._receipt_day(receipt), receipt.fruit_guide_number or '',
                              pallet.package_id.name or pallet.tag_number or '', pallet.variety_id.display_name,
                              pallet.packaging_id.display_name, boxes, pallet.gross_kg, net, net / boxes if boxes else 0))
         headers = ('Fecha recepción', 'Guía', 'Folio tarja', 'Variedad', 'Embalaje',
@@ -207,7 +232,7 @@ class ProducerDocument(models.TransientModel):
             receptions = raw.step_reception_tag_line_ids.filtered(lambda line: line.picking_id.state == 'done')
             input_kg = order.step_packing_input_kg
             export_kg = order.step_packing_export_kg
-            dates = sorted(set(filter(None, receptions.picking_id.mapped('step_fruit_guide_date'))))
+            dates = sorted({day for receipt in receptions.picking_id if (day := self._receipt_day(receipt))})
             lots = receptions.stock_lot_id | order.input_picking_id.move_line_ids.lot_id
             rows.append((', '.join(day.strftime('%d/%m/%Y') for day in dates), label(lots), order.name,
                          ', '.join(raw.mapped('name')), label(raw.variedad_id) or order.fruit_variety_id.display_name,

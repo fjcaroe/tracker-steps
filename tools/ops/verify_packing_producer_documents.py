@@ -24,7 +24,7 @@ try:
     assert arch.xpath("//button[@name='action_document_xlsx']")
     bom_view = scoped.ref('mrp.mrp_bom_form_view')
     assert b'step_applicable_company_ids' in etree.tostring(bom_view._get_combined_arch())
-    assert 'step_applicable_company_ids' in scoped.ref('mrp.mrp_bom_rule').domain_force
+    assert 'step_applicable_company_ids' in repr(scoped['ir.rule']._compute_domain('mrp.bom'))
     order = order_model.search([], limit=1)
     assert order
     assert order._document_xlsx().startswith(b'PK')

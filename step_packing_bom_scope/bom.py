@@ -1,6 +1,31 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
-from odoo.osv.expression import AND
+from odoo.osv.expression import AND, OR
+
+
+BOM_SCOPE_FIELDS = {
+    'mrp.bom': 'step_applicable_company_ids',
+    'mrp.bom.line': 'bom_id.step_applicable_company_ids',
+    'mrp.bom.byproduct': 'bom_id.step_applicable_company_ids',
+    'mrp.routing.workcenter': 'bom_id.step_applicable_company_ids',
+}
+
+
+class Rule(models.Model):
+    _inherit = 'ir.rule'
+
+    @api.model
+    def _compute_domain(self, model_name, mode='read'):
+        domain = super()._compute_domain(model_name, mode)
+        field = BOM_SCOPE_FIELDS.get(model_name)
+        if not field or self.env.su:
+            return domain
+        active = self.env.companies.ids
+        if mode == 'read':
+            scope = OR([[(field, '=', False)], [(field, 'in', active)]])
+        else:
+            scope = [(field, 'not any', [('id', 'not in', active)])]
+        return AND([domain, scope])
 
 
 class BillOfMaterials(models.Model):
@@ -31,6 +56,22 @@ class BillOfMaterials(models.Model):
             if ((bom.company_id and bom.company_id != company)
                     or (bom.step_applicable_company_ids and company not in bom.step_applicable_company_ids)):
                 raise ValidationError('La lista de materiales no aplica a la compañía de la orden.')
+
+
+class PackingOrder(models.Model):
+    _inherit = 'step.packing.order'
+
+    @api.constrains('company_id')
+    def _check_step_order_bom_scope(self):
+        self.line_ids._check_step_bom_scope()
+
+    def action_validate(self):
+        self.line_ids._check_step_bom_scope()
+        return super().action_validate()
+
+    def action_refresh_materials(self):
+        self.line_ids._check_step_bom_scope()
+        return super().action_refresh_materials()
 
 
 class PackingOrderLine(models.Model):
