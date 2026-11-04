@@ -98,6 +98,10 @@ def asset_out(db, a, at):
     p = db.query(Position).filter_by(tenant_id=a.tenant_id, asset_id=a.id, assignment_id=assignment.id).order_by(Position.recorded_at.desc(), Position.id.desc()).first() if assignment else None
     fresh = bool(p and (at-utc(p.received_at)).total_seconds() <= device.freshness_seconds)
     recent_fix = bool(p and (at-utc(p.recorded_at)).total_seconds() <= device.freshness_seconds and p.quality == 'gps')
+    seen = utc(registration.receiver_seen_at) if registration and registration.receiver_seen_at else None
+    device_recent = bool(seen and registration.receiver_mode == 'forward'
+                         and utc(assignment.valid_from) <= seen
+                         and 0 <= (at-seen).total_seconds() <= device.freshness_seconds)
     policy = db.get(Policy, a.id)
     incident = db.query(Incident).filter_by(tenant_id=a.tenant_id, asset_id=a.id).filter(Incident.state != 'closed').first()
     return {**{k: getattr(a, k) for k in ('name', 'plate', 'type', 'cost_center', 'responsible', 'created_at')},
@@ -105,6 +109,8 @@ def asset_out(db, a, at):
             'signal_state': 'received' if fresh else 'stale' if p else 'no_signal',
             'motion_state': ('moving' if p.speed_kmh > 2 else 'stationary') if fresh and recent_fix and p.speed_kmh is not None else 'unknown',
             'position_stale': not recent_fix,
+            'device_recent': device_recent,
+            'device_last_seen_at': seen if device_recent else None,
             'protection_state': 'incident_open' if incident else 'armed' if policy and policy.armed else 'disarmed',
             'device': {'model': device.model, 'brand': device.brand, 'firmware': device.firmware, 'protocol': device.protocol} if device else None,
             'capabilities': {'tracking': 'approved' if device and device.tracking_approved else 'not_approved',
