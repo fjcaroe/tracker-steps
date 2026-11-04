@@ -144,15 +144,27 @@ class PackingProduction(models.Model):
             if record.state not in ('created', 'validated') or record.material_review_state == 'approved':
                 raise UserError(_('Solo se preparan materiales de una OT abierta sin aprobación.'))
             record.material_line_ids.with_context(_packing_control=_INTERNAL).unlink()
-            for tag in record.step_packing_output_tag_ids.filtered(lambda row: row.step_packing_result == 'export'):
+            export_tags = record.step_packing_output_tag_ids.filtered(
+                lambda tag: tag.step_tag_kind == 'E' and tag.step_packing_result == 'export')
+            raw_products = record.raw_product_id | record.step_packing_input_tag_ids.step_tag_line_ids.product_id
+            export_products = export_tags.step_tag_line_ids.product_id - raw_products
+            planned_product = record.product_id - raw_products
+            for tag in export_tags:
+                total_boxes = sum(tag.step_tag_line_ids.mapped('boxes'))
                 for detail in tag.step_tag_line_ids:
-                    bom = (record.bom_id if record.bom_id.product_tmpl_id == detail.product_id.product_tmpl_id
-                           else self.env['mrp.bom']._bom_find(detail.product_id, company_id=record.company_id.id).get(detail.product_id))
+                    product, quantity = detail.product_id, detail.quantity
+                    if product in raw_products:
+                        product = (tag.step_packaging_id.product_id - raw_products) or planned_product or export_products
+                        if len(product) != 1 or detail.boxes <= 0:
+                            raise UserError(_('Identifique el producto terminado y las cajas de la tarja %s para preparar sus materiales.') % tag.name)
+                        quantity = detail.boxes
+                    bom = (record.bom_id if record.bom_id.product_tmpl_id == product.product_tmpl_id
+                           and (not record.bom_id.product_id or record.bom_id.product_id == product)
+                           else self.env['mrp.bom']._bom_find(product, company_id=record.company_id.id).get(product))
                     if not bom:
-                        raise UserError(_('Configure una lista de materiales para %s.') % detail.product_id.display_name)
-                    factor = detail.product_id.uom_id._compute_quantity(detail.quantity, bom.product_uom_id) / bom.product_qty
+                        raise UserError(_('Configure una lista de materiales para %s.') % product.display_name)
+                    factor = product.uom_id._compute_quantity(quantity, bom.product_uom_id) / bom.product_qty
                     for component in bom.bom_line_ids:
-                        total_boxes = sum(tag.step_tag_line_ids.mapped('boxes'))
                         pallet_share = detail.boxes / total_boxes if total_boxes else 0
                         qty = component.product_uom_id._compute_quantity(
                             component.product_qty * factor + component.step_export_qty_per_pallet * pallet_share,

@@ -385,6 +385,27 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(reservation.step_picking_id.state, "cancel")
         self.assertEqual(quant._get_available_quantity(self.finished, self.location, package_id=package, strict=True), 10)
 
+    def test_materials_include_legacy_export_with_raw_product(self):
+        self.env['mrp.bom'].create({
+            'company_id': self.company.id, 'product_tmpl_id': self.finished.product_tmpl_id.id,
+            'product_qty': 1, 'bom_line_ids': [(0, 0, {
+                'product_id': self.carton.id, 'product_qty': 1,
+            })],
+        })
+        incoming = self._tag('T161 C', 'C', self.raw, 120, 100)
+        export = self._tag('T161 E', 'E', self.finished, 80, 16, 'export')
+        legacy = self._tag('T161 E legado', 'E', self.raw, 13, 3, 'export')
+        national = self._tag('T161 N', 'N', self.national, 9, 2, 'commercial')
+        ot = self.env['step.packing.production'].create({
+            'raw_product_id': self.raw.id,
+            'step_packing_input_tag_ids': [(6, 0, incoming.ids)],
+            'step_packing_output_tag_ids': [(6, 0, (export | legacy | national).ids)],
+        })
+        ot.action_prepare_materials()
+        quantities = {line.package_id: line.quantity for line in ot.material_line_ids}
+        self.assertEqual(quantities, {export: 16, legacy: 3})
+        self.assertEqual(legacy.step_tag_line_ids.product_id, self.raw)
+
     def test_packing_close_moves_real_stock_without_manufacturing(self):
         """El cierre de la OT traslada stock real (MP -> Producción -> PT) con
         traslados de Inventario comunes; en ningún momento se crea ni se exige
