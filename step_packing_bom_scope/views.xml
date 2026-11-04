@@ -10,4 +10,17 @@
             </xpath>
         </field>
     </record>
+    <record id="view_fruit_bom_scope" model="ir.ui.view">
+        <field name="name">mrp.bom.export.fruit.form.applicable.companies</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="step_export.view_export_fruit_bom_form"/>
+        <field name="arch" type="xml">
+            <field name="step_export_boxes_per_pallet" position="after">
+                <field name="company_id" string="Compañía propietaria" groups="base.group_multi_company"
+                       options="{'no_create': True, 'no_open': True}"/>
+                <field name="step_applicable_company_ids" widget="many2many_tags"
+                       groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+            </field>
+        </field>
+    </record>
 </odoo>

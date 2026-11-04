@@ -1,3 +1,5 @@
+from lxml import etree
+
 from odoo import Command
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import TransactionCase, tagged
@@ -21,7 +23,7 @@ class BillOfMaterialsScopeCase(TransactionCase):
         self.assertFalse(model._bom_find(product, company_id=excluded.id)[product])
         with self.assertRaises(ValidationError):
             bom._check_step_bom_company(excluded)
-        editor = new_test_user(self.env, login='qa_t157', groups='mrp.group_mrp_manager',
+        editor = new_test_user(self.env, login='qa_t157', groups='mrp.group_mrp_manager,base.group_multi_company',
                                company_id=first.id, company_ids=[Command.set((first | second | excluded).ids)])
         first_only = bom.with_user(editor).with_context(allowed_company_ids=first.ids)
         self.assertTrue(first_only.has_access('read'))
@@ -29,5 +31,12 @@ class BillOfMaterialsScopeCase(TransactionCase):
         self.assertFalse(first_only.with_context(allowed_company_ids=excluded.ids).has_access('read'))
         both = first_only.with_context(allowed_company_ids=(first | second).ids)
         self.assertTrue(both.has_access('write'))
+        action = self.env.ref('step_export.action_export_fruit_bom')
+        view_id = next(view_id for view_id, mode in action.views if mode == 'form')
+        arch = etree.fromstring(both.get_view(view_id=view_id, view_type='form')['arch'])
+        for field in ('company_id', 'step_applicable_company_ids'):
+            self.assertTrue(arch.xpath(f'//group/field[@name="{field}"]'))
+        both.write({'step_applicable_company_ids': [Command.set(second.ids)]})
+        self.assertFalse(first_only.has_access('read'))
         with self.assertRaises(AccessError), self.cr.savepoint():
             first_only.write({'code': 'T157 unauthorized'})

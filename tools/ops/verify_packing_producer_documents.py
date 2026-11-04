@@ -24,6 +24,13 @@ try:
     assert arch.xpath("//button[@name='action_document_xlsx']")
     bom_view = scoped.ref('mrp.mrp_bom_form_view')
     assert b'step_applicable_company_ids' in etree.tostring(bom_view._get_combined_arch())
+    if 'step_packing_bom_scope' in EXPECTED:
+        bom_menu = scoped.ref('step_packing_packaging_master.menu_packing_fruit_bom')
+        assert bom_menu.id in scoped['ir.ui.menu']._visible_menu_ids()
+        view_id = next(view_id for view_id, mode in bom_menu.action.views if mode == 'form')
+        form = etree.fromstring(scoped['mrp.bom'].get_view(view_id=view_id, view_type='form')['arch'])
+        assert form.xpath("//group/field[@name='company_id']")
+        assert form.xpath("//group/field[@name='step_applicable_company_ids']")
     assert 'step_applicable_company_ids' in repr(scoped['ir.rule']._compute_domain('mrp.bom'))
     order = order_model.search([('line_ids', '!=', False)], limit=1) or order_model.search([], limit=1)
     assert order
