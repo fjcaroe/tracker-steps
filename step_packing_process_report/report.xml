@@ -1,0 +1,78 @@
+<odoo>
+    <template id="packing_report_sections">
+        <t t-foreach="sections" t-as="section">
+            <h4 t-out="section[0]" style="page-break-after: avoid; margin-top: 14px;"/>
+            <table class="table table-sm table-bordered" style="width:100%; font-size:11px;">
+                <thead style="display:table-header-group; background-color:#e5eee8;">
+                    <tr><th t-foreach="section[1]" t-as="column" t-out="column"/></tr>
+                </thead>
+                <tbody>
+                    <tr t-foreach="section[2]" t-as="values" style="page-break-inside:avoid;">
+                        <td t-foreach="values" t-as="value"
+                            t-att-class="'text-end' if value_index &gt;= len(values) - 2 or section[0] == 'Cuadratura' and value_index else ''"
+                            t-out="doc._packing_report_display(value, values[0] == '% de kilos')"/>
+                    </tr>
+                    <tr t-if="section[3]" style="font-weight:bold; page-break-inside:avoid;">
+                        <td t-foreach="section[3]" t-as="value" t-out="doc._packing_report_display(value)"/>
+                    </tr>
+                </tbody>
+            </table>
+        </t>
+    </template>
+
+    <template id="packing_report_heading">
+        <div style="margin-bottom:12px;">
+            <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)"
+                style="max-width:130px; max-height:58px;" alt="Logo"/>
+            <strong t-else="" t-out="doc.company_id.name"/>
+        </div>
+        <h2 t-out="heading" class="text-center"/>
+        <table class="table table-sm" style="font-size:12px;">
+            <tbody>
+                <tr t-foreach="payload['header']" t-as="item">
+                    <th style="width:19%;" t-out="item[0]"/>
+                    <td style="width:31%;" t-out="doc._packing_report_display(item[1])"/>
+                    <th style="width:19%;" t-out="item[2]"/>
+                    <td style="width:31%;" t-out="item[3] or ''"/>
+                </tr>
+            </tbody>
+        </table>
+    </template>
+
+    <template id="packing_report" inherit_id="step_packing_operations.report_packing_process" priority="99">
+        <xpath expr="//t[@t-foreach='docs']/div[@class='page']" position="replace">
+            <t t-set="payload" t-value="doc._packing_report_data()"/>
+            <div class="page">
+                <t t-call="step_packing_process_report.packing_report_heading">
+                    <t t-set="heading" t-value="'INFORME DE PROCESO PACKING'"/>
+                </t>
+                <t t-call="step_packing_process_report.packing_report_sections">
+                    <t t-set="sections" t-value="payload['summary']"/>
+                </t>
+                <p t-foreach="payload['notes']" t-as="note">
+                    <strong t-out="note[0]"/>
+                    <span style="white-space:pre-line;" t-out="note[1]"/>
+                </p>
+            </div>
+            <div class="page" style="page-break-before:always;">
+                <t t-call="step_packing_process_report.packing_report_heading">
+                    <t t-set="heading" t-value="'INFORME DE PROCESO PACKING - DETALLE TARJAS'"/>
+                </t>
+                <t t-call="step_packing_process_report.packing_report_sections">
+                    <t t-set="sections" t-value="payload['detail']"/>
+                </t>
+            </div>
+        </xpath>
+    </template>
+
+    <record id="packing_production_form" model="ir.ui.view">
+        <field name="name">step.packing.production.form.process.report</field>
+        <field name="model">step.packing.production</field>
+        <field name="inherit_id" ref="step_packing_operations.view_packing_production_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button type="object" name="action_packing_process_xlsx" string="Informe Excel"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

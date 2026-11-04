@@ -1,5 +1,10 @@
 # Operación y publicación de Odoo
 
+T156 autoriza `packing-process-report` en Desarrollo, Cerro y QA-Cerro.
+Conservar la acción PDF de la OT y agregar Excel con resumen y anexo de tarjas.
+Probar el mismo paquete en copias frescas, revisar ambos formatos y publicar
+con respaldo y bloqueo compartido. Mantener la paridad de Cerro y QA-Cerro.
+
 T152 autoriza `reception-variety` en Cerro, Desarrollo y QA-Cerro. La instrucción
 expresa del usuario del 02-11-2026 cambia únicamente el orden de publicación:
 primero Cerro producción y luego homologar Desarrollo y QA-Cerro. Antes de Cerro
