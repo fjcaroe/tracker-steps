@@ -684,6 +684,17 @@ def main():
                 test_modules = [name for name in test_modules if name == 'step_agriculture_records'
                     or name in install or tree_hash(staged / name) != baseline['modules'][name]['sha256']]
             tags = ','.join('/' + name for name in test_modules)
+            if args.kind == 'packing-material-consumption' and args.action == 'compatibility':
+                # Development runs the full suite. Destination copies exercise
+                # preparation, stock consumption and the independent order probe.
+                material_cases = (
+                    'test_materials_include_legacy_export_with_raw_product',
+                    'test_material_review_detects_changed_pallet_and_requires_reason',
+                    'test_packing_close_moves_real_stock_without_manufacturing',
+                    'test_packing_close_without_stock_fails',
+                )
+                tags = ','.join('/step_packing_operations:TestPackingOperations.' + name
+                                for name in material_cases)
             if args.kind == 'agriculture-holding':
                 tags += ',/step_agro_analytics:ProducerCase,/step_packing_stock_flow:PackingStockFlowCase'
             print('MANAGEMENT_TEST_SCOPE ' + json.dumps(test_modules), flush=True)
