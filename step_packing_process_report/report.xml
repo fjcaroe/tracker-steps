@@ -1,4 +1,18 @@
 <odoo>
+    <record id="packing_report_paperformat" model="report.paperformat">
+        <field name="name">Informe de proceso Packing A4</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">14</field>
+        <field name="margin_bottom">14</field>
+        <field name="margin_left">12</field>
+        <field name="margin_right">12</field>
+        <field name="header_spacing">0</field>
+    </record>
+    <record id="step_packing_operations.action_report_packing_process" model="ir.actions.report">
+        <field name="paperformat_id" ref="packing_report_paperformat"/>
+    </record>
+
     <template id="packing_report_sections">
         <t t-foreach="sections" t-as="section">
             <h4 t-out="section[0]" style="page-break-after: avoid; margin-top: 14px;"/>
@@ -61,6 +75,13 @@
                 <t t-call="step_packing_process_report.packing_report_sections">
                     <t t-set="sections" t-value="payload['detail']"/>
                 </t>
+            </div>
+        </xpath>
+        <xpath expr="//t[@t-call='web.html_container']" position="inside">
+            <div class="article" t-att-data-oe-model="docs._name if len(docs) == 1 else None"
+                 t-att-data-oe-id="docs.id if len(docs) == 1 else None">
+                <xpath expr="//t[@t-call='web.html_container']/div[@class='page']" position="move"/>
+                <xpath expr="//t[@t-call='web.html_container']/t[@t-foreach='docs']" position="move"/>
             </div>
         </xpath>
     </template>
