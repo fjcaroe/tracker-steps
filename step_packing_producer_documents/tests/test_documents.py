@@ -1,3 +1,4 @@
+from datetime import date
 from io import BytesIO
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -25,6 +26,8 @@ class PackingDocumentCase(TransactionCase):
         report = self.env.ref('step_packing_producer_documents.action_order_pdf')
         html, _ = report._render_qweb_html(report.report_name, order.ids)
         self.assertIn(b'ORDEN DE PROCESO PACKING', html)
+        self.assertIn(b'padding-left: 20mm', html)
+        self.assertEqual(html.count(b'text-align:left'), 12)
 
     def test_producer_period_crosses_iso_year_and_filters_other_producers(self):
         producer = self.env['res.partner'].create({'name': 'Productor T159'})
@@ -42,6 +45,7 @@ class PackingDocumentCase(TransactionCase):
     def test_process_rows_and_explicit_mail_queue(self):
         producer = self.env['res.partner'].create({'name': 'QA Productor', 'email': 'packing@example.invalid'})
         product = self.env['product.product'].create({'name': 'QA Fruta'})
+        packing = self.env['res.partner'].create({'name': 'Packing T160'})
         input_tag = self.env['stock.quant.package'].create({
             'name': 'QA-T160-C', 'is_fruit_tag': True, 'step_tag_kind': 'C',
             'step_producer_id': producer.id, 'step_tag_line_ids': [Command.create({
@@ -50,7 +54,7 @@ class PackingDocumentCase(TransactionCase):
             })],
         })
         production = self.env['step.packing.production'].create({
-            'date': '2026-11-02', 'fruit_grower_id': producer.id,
+            'date': '2026-11-02', 'fruit_grower_id': producer.id, 'packing_partner_id': packing.id,
             'step_packing_input_tag_ids': [Command.set(input_tag.ids)],
             'step_packing_overweight_kg': -2,
         })
@@ -59,7 +63,15 @@ class PackingDocumentCase(TransactionCase):
             'kind': 'process', 'producer_id': producer.id,
             'date_from': '2026-11-02', 'date_to': '2026-11-08',
         })
-        section = wizard._document_data()['sections'][0]
+        document = wizard._document_data()
+        self.assertEqual(document['header'][-1][2:], ('Packing', 'Packing T160'))
+        section = document['sections'][0]
+        self.assertEqual(section[1][0], 'Fecha de proceso')
+        self.assertEqual(section[2][0][0], date(2026, 11, 2))
+        report = self.env.ref('step_packing_producer_documents.action_producer_pdf')
+        html, _ = report._render_qweb_html(report.report_name, wizard.ids)
+        self.assertIn(b'font-weight:bold', html)
+        self.assertIn(b'text-align:right', html)
         self.assertEqual(section[2][0][2], production.name)
         self.assertEqual(section[3][5], 100)
         self.assertEqual(section[3][9], -2)

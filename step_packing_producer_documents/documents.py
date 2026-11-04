@@ -50,7 +50,10 @@ class DocumentMixin(models.AbstractModel):
             heading = book.add_format({'bold': True, 'font_size': 16})
             header = book.add_format({'bold': True, 'bg_color': '#E5EEE8', 'text_wrap': True})
             body = book.add_format({'text_wrap': True})
-            numeric = book.add_format({'num_format': '#,##0.00'})
+            numeric = book.add_format({'num_format': '#,##0.00', 'align': 'right'})
+            total_text = book.add_format({'bold': True})
+            total_number = book.add_format({'bold': True, 'num_format': '#,##0.00', 'align': 'right'})
+            total_percent = book.add_format({'bold': True, 'num_format': '0.00%', 'align': 'right'})
             percent = book.add_format({'num_format': '0.00%'})
             calendar = book.add_format({'num_format': 'dd/mm/yyyy'})
             logo = self.company_id.logo_web
@@ -67,14 +70,15 @@ class DocumentMixin(models.AbstractModel):
             sheet.merge_range(0, first_column, 0, width - 1, document['title'], heading)
             sheet.merge_range(1, 0, 1, width - 1, self.company_id.name, header)
             row = 3
+            right_column = 4 if document.get('spaced_header') else 3
             for left, value, right, second in document['header']:
                 sheet.write(row, 0, left, header)
                 if isinstance(value, date):
                     sheet.write_datetime(row, 1, value, calendar)
                 else:
                     sheet.merge_range(row, 1, row, 2, value or '', body)
-                sheet.write(row, 3, right, header)
-                sheet.merge_range(row, 4, row, width - 1, second or '', body)
+                sheet.write(row, right_column, right, header)
+                sheet.merge_range(row, right_column + 1, row, width - 1, second or '', body)
                 row += 1
             row += 1
             for caption, columns, rows, footer in document['sections']:
@@ -82,14 +86,18 @@ class DocumentMixin(models.AbstractModel):
                 sheet.write_row(row + 1, 0, columns, header)
                 row += 2
                 for values in rows + ([footer] if footer else []):
+                    is_total = values is footer and document.get('emphasize_totals')
                     for index, value in enumerate(values):
                         if isinstance(value, date):
                             sheet.write_datetime(row, index, value, calendar)
                         elif isinstance(value, (float, int)) and not isinstance(value, bool):
-                            style = percent if columns[index].startswith('%') else numeric
+                            if columns[index].startswith('%'):
+                                style = total_percent if is_total else percent
+                            else:
+                                style = total_number if is_total else numeric
                             sheet.write_number(row, index, value, style)
                         else:
-                            sheet.write_string(row, index, value or '', body)
+                            sheet.write_string(row, index, value or '', total_text if is_total else body)
                     row += 1
                 row += 2
         return stream.getvalue()
@@ -124,6 +132,8 @@ class PackingOrder(models.Model):
                       need.required_qty, need.available_qty, need.shortage_qty) for need in self.material_need_ids]
         return {
             'title': 'ORDEN DE PROCESO PACKING',
+            'spaced_header': True,
+            'left_column_titles': True,
             'header': [
                 ('Número OP', self.name, 'Packing', self.packing_partner_id.display_name),
                 ('Fecha OP', self.week_start, 'Programa de venta', self.sales_program_id.display_name),
@@ -165,7 +175,7 @@ class ProducerDocument(models.TransientModel):
         if self.kind == 'reception':
             title, fund, species, weeks, section = self._reception_data()
         else:
-            title, fund, species, weeks, section = self._process_data()
+            title, fund, species, weeks, section, packing = self._process_data()
         return {
             'title': title,
             'header': [
@@ -173,9 +183,13 @@ class ProducerDocument(models.TransientModel):
                 ('Dirección', self.producer_id.contact_address, 'Periodo',
                  f'{self.date_from:%d/%m/%Y} al {self.date_to:%d/%m/%Y}'),
                 ('Número semana', weeks, 'Especie', species),
-                ('Responsable', self.env.user.display_name, '', ''),
+                ('Responsable', self.env.user.display_name, 'Packing' if self.kind == 'process' else '',
+                 packing if self.kind == 'process' else ''),
             ],
             'sections': [section],
+            'spaced_header': self.kind == 'process',
+            'emphasize_totals': self.kind == 'process',
+            'right_aligned_columns': (5, 7, 8, 9, 10, 11, 12) if self.kind == 'process' else (),
         }
 
     def _weeks(self):
@@ -232,18 +246,17 @@ class ProducerDocument(models.TransientModel):
             receptions = raw.step_reception_tag_line_ids.filtered(lambda line: line.picking_id.state == 'done')
             input_kg = order.step_packing_input_kg
             export_kg = order.step_packing_export_kg
-            dates = sorted({day for receipt in receptions.picking_id if (day := self._receipt_day(receipt))})
             lots = receptions.stock_lot_id | order.input_picking_id.move_line_ids.lot_id
-            rows.append((', '.join(day.strftime('%d/%m/%Y') for day in dates), label(lots), order.name,
+            rows.append((order.date, label(lots), order.name,
                          ', '.join(raw.mapped('name')), label(raw.variedad_id) or order.fruit_variety_id.display_name,
                          input_kg, label(output.step_packaging_id), sum(output.mapped('step_actual_boxes')),
                          export_kg, order.step_packing_overweight_kg, order.step_packing_commercial_kg,
                          order.step_packing_loss_kg, export_kg / input_kg if input_kg else 0))
-        headers = ('Fecha recepción', 'Lote', 'OT Packing', 'Folios tarjas', 'Variedad', 'Kilos a proceso',
+        headers = ('Fecha de proceso', 'Lote', 'OT Packing', 'Folios tarjas', 'Variedad', 'Kilos a proceso',
                    'Embalaje', 'Cajas terminadas', 'Kg exportación', 'Sobrepeso', 'Comercial IQF', 'Merma', '% exportación')
         section = ('Procesos', headers, rows, total_row(rows, 13, (5, 7, 8, 9, 10, 11), (12, 8, 5)))
         return ('INFORME DE PROCESO', label(orders.fruit_fundo_id), label(orders.fruit_species_id),
-                self._weeks(), section)
+                self._weeks(), section, label(orders.packing_partner_id))
 
     def action_document_pdf(self):
         self._document_data()
