@@ -385,7 +385,7 @@ class PackingProduction(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if vals.get('state', 'created') != 'created' or vals.get('material_review_state', 'pending') != 'pending' or vals.get('material_approved_by') or vals.get('material_approved_at'):
+            if vals.get('state', 'created') != 'created' or vals.get('material_review_state', 'pending') != 'pending' or vals.get('material_approved_by') or vals.get('material_approved_at') or vals.get('step_close_reversal_ids'):
                 raise UserError(_('Las OT se crean pendientes de validación y revisión.'))
         return super().create(vals_list)
 
