@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from lxml import etree
+from odoo.exceptions import UserError
 
 from native_business_profile import scoped_business_environment
 
@@ -33,8 +34,20 @@ try:
             if order.material_review_state == 'approved':
                 order.action_reopen_materials()
             before = order.step_packing_output_tag_ids.step_tag_line_ids.read(['product_id', 'boxes', 'quantity'])
-            order.action_prepare_materials()
-            assert order.material_line_ids.package_id == export
+            try:
+                order.action_prepare_materials()
+            except UserError as error:
+                # QA-Cerro training data can use a different finished SKU.
+                assert env.cr.dbname.startswith('MANAGEMENT_QA_QA-CERRO_')
+                raw = order.raw_product_id | order.step_packing_input_tag_ids.step_tag_line_ids.product_id
+                finished = export.step_tag_line_ids.product_id - raw
+                missing = finished.filtered(lambda product: not scoped['mrp.bom']._bom_find(
+                    product, company_id=order.company_id.id).get(product))
+                assert 'Configure una lista de materiales para' in str(error)
+                assert any(product.display_name in str(error) for product in missing)
+                summary['missing_finished_bom'] = missing.mapped('default_code')
+            else:
+                assert order.material_line_ids.package_id == export
             assert order.step_packing_output_tag_ids.step_tag_line_ids.read(['product_id', 'boxes', 'quantity']) == before
             summary.update(folio=order.name, export_tags=len(export), material_lines=len(order.material_line_ids))
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps(summary))
