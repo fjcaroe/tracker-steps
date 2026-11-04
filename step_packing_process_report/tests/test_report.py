@@ -32,12 +32,13 @@ class TestPackingProcessReport(TransactionCase):
             'step_packing_overweight_kg': -2.5,
         })
         payload = production._packing_report_data()
-        raw, balance, packed = payload['summary']
+        raw, balance, packed_export, packed_national = payload['summary']
         self.assertEqual(len(raw[2]), 1)
         self.assertEqual(raw[2][0][-2:], (10, 100))
         self.assertEqual(balance[2][0], ('Kilos', 100, 80, -2.5, 10, 0, 0, 12.5))
         self.assertEqual(balance[2][1][3], -0.025)
-        self.assertEqual(sum(row[-1] for row in packed[2]), 90)
+        self.assertEqual(packed_export[3][-2:], (8, 80))
+        self.assertEqual(packed_national[3][-2:], (1, 10))
         self.assertEqual([section[3][-2:] for section in payload['detail']], [(10, 100), (8, 80), (1, 10)])
 
         with ZipFile(BytesIO(production._packing_process_xlsx())) as book:

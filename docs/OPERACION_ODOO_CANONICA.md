@@ -18,7 +18,7 @@ de OP, recepciones y proceso por productor. El correo se encola al confirmar
 desde el asistente; las pruebas no envían correo real. Mismo paquete, copias
 frescas, respaldo, bloqueo y paridad.
 
-T156 autoriza `packing-process-report` en Desarrollo, Cerro y QA-Cerro.
+T156 y su respuesta 10102 autorizan `packing-process-report` en Desarrollo, Cerro y QA-Cerro.
 Conservar la acción PDF de la OT y agregar Excel con resumen y anexo de tarjas.
 Probar el mismo paquete en copias frescas, revisar ambos formatos y publicar
 con respaldo y bloqueo compartido. Mantener la paridad de Cerro y QA-Cerro.

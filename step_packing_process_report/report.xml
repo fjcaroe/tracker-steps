@@ -15,7 +15,7 @@
 
     <template id="packing_report_sections">
         <t t-foreach="sections" t-as="section">
-            <h4 t-out="section[0]" style="page-break-after: avoid; margin-top: 14px;"/>
+            <h4 t-out="section[0]" t-att-style="'page-break-after:avoid;margin-top:36px;' if summary_spacing and section_index in (1, 2) else 'page-break-after:avoid;margin-top:14px;'"/>
             <table class="table table-sm table-bordered" style="width:100%; font-size:11px;">
                 <thead style="display:table-header-group; background-color:#e5eee8;">
                     <tr><th t-foreach="section[1]" t-as="column" t-out="column"/></tr>
@@ -44,9 +44,9 @@
         <table class="table table-sm" style="font-size:12px;">
             <tbody>
                 <tr t-foreach="payload['header']" t-as="item">
-                    <th style="width:19%;" t-out="item[0]"/>
+                    <th t-att-style="'width:19%;text-align:left;' if payload.get('left_header') else 'width:19%;'" t-out="item[0]"/>
                     <td style="width:31%;" t-out="doc._packing_report_display(item[1])"/>
-                    <th style="width:19%;" t-out="item[2]"/>
+                    <th t-att-style="'width:19%;text-align:left;' if payload.get('left_header') else 'width:19%;'" t-out="item[2]"/>
                     <td style="width:31%;" t-out="item[3] or ''"/>
                 </tr>
             </tbody>
@@ -62,6 +62,7 @@
                 </t>
                 <t t-call="step_packing_process_report.packing_report_sections">
                     <t t-set="sections" t-value="payload['summary']"/>
+                    <t t-set="summary_spacing" t-value="True"/>
                 </t>
                 <p t-foreach="payload['notes']" t-as="note">
                     <strong t-out="note[0]"/>
