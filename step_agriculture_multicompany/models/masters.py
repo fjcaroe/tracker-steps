@@ -135,7 +135,14 @@ def check_document_masters(records):
             if field.type == 'many2one' and field.comodel_name in targets:
                 master = record[name]
                 if master and company not in master.sudo().company_ids:
-                    raise ValidationError(_('El maestro seleccionado no está asignado a la empresa de la operación.'))
+                    raise ValidationError(_(
+                        'En %(document)s, el maestro «%(master)s» del campo «%(field)s» no está asignado a '
+                        'la empresa «%(company)s». Revise «Empresas y sucursales» en ese maestro.',
+                        document=record.display_name,
+                        master=master.sudo().display_name,
+                        field=record.fields_get([name], ['string'])[name]['string'],
+                        company=company.display_name,
+                    ))
 
 
 class Package(models.Model):

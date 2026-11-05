@@ -118,8 +118,11 @@ class TestMasters(TransactionCase):
         production = model.create({'company_id': self.b.id, 'fruit_grower_id': producer.id, 'fruit_fundo_id': farm.id})
         self.assertEqual(production.fruit_fundo_id, farm)
         foreign = self.make('step.fundo', company_id=self.c.id, partner_id=producer.id)
-        with self.assertRaises(ValidationError), self.cr.savepoint():
+        with self.assertRaises(ValidationError) as failure, self.cr.savepoint():
             production.write({'fruit_fundo_id': foreign.id})
+        for detail in (production.display_name, foreign.display_name, self.b.display_name,
+                       production.fields_get(['fruit_fundo_id'], ['string'])['fruit_fundo_id']['string']):
+            self.assertIn(detail, str(failure.exception))
 
     def test_native_shipment_quality_consistency(self):
         quality = self.make('step.management.fruit.quality', company_ids=[Command.set((self.a | self.b).ids)])
