@@ -777,7 +777,7 @@ class TestPackingOperations(TransactionCase):
             'contract_id': contract.id})
         row._check_contract_holding()
         self.assertIn(self.company, row._contract_companies())
-        contract.company_id = unrelated
+        row.company_id = unrelated
         with self.assertRaises(ValidationError):
             row._check_contract_holding()
 

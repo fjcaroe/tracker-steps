@@ -55,7 +55,7 @@ class PackingProduction(models.Model):
         for record in self.filtered('contract_id'):
             record.contract_id.check_access('read')
             if (record.contract_id.company_id not in record._contract_companies()
-                    or record.contract_id.partner_id != record.fruit_grower_id):
+                    or record.fruit_grower_id and record.contract_id.partner_id != record.fruit_grower_id):
                 raise ValidationError(_('Seleccione un contrato del productor, de la sucursal o de una matriz autorizada.'))
 
     def _contract_prices(self, contract=None):
