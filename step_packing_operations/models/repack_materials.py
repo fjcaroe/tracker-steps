@@ -183,11 +183,13 @@ class RepackLine(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        self.env['step.packing.repack'].browse([v['repack_id'] for v in vals_list])._lock_material_repack()
+        self.env['step.packing.repack'].browse([v['repack_id'] for v in vals_list if v.get('repack_id')])._lock_material_repack()
         return super().create(vals_list)
 
     def write(self, vals):
         self.repack_id._lock_material_repack()
+        if 'repack_id' in vals and any(line.repack_id.id != vals['repack_id'] for line in self):
+            raise UserError(_('La distribución conserva su repaletizado de origen.'))
         return super().write(vals)
 
     def unlink(self):
