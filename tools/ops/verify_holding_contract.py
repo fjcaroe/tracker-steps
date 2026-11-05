@@ -24,6 +24,11 @@ try:
         row = sample.with_context(allowed_company_ids=companies.ids)
         assert sample.company_id in row._contract_companies()
     if sample and env.cr.dbname.startswith(('MANAGEMENT_QA_CERRO_', 'MANAGEMENT_QA_QA-CERRO_')):
+        # Customer QA has no closed operations. Represent a legacy closed
+        # record only inside this rollback-only copy fixture.
+        if sample.state not in ('closed', 'costed', 'accounted'):
+            from odoo.addons.step_packing_operations.models.process_control import _INTERNAL
+            sample.with_context(_packing_control=_INTERNAL).write({'state': 'closed'})
         branch = sample.company_id
         parent = branch.parent_id or branch
         account = env['account.account'].search([
