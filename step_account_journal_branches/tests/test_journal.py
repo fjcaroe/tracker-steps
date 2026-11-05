@@ -30,6 +30,8 @@ class JournalBranchesCase(TransactionCase):
             'context': {'allowed_company_ids': journal.step_branch_scope_ids},
             'fields': {'display_name': {}}}})[0]['step_available_branch_ids']
         self.assertEqual({row['display_name'] for row in payload}, {self.branch.name, self.nested.name})
+        self.user.write({'groups_id': [Command.unlink(self.env.ref('base.group_multi_company').id)]})
+        self.assertFalse(self.user.has_group('base.group_multi_company'))
         for kind, view in [('form', 'account.view_account_journal_form'), ('list', 'account.view_account_journal_tree')]:
             arch = etree.fromstring(journal.get_view(view_id=self.env.ref(view).id, view_type=kind)['arch'])
             self.assertTrue(arch.xpath("//field[@name='step_available_branch_ids']"))
