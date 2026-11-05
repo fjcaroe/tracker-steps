@@ -1,4 +1,17 @@
 <odoo>
+    <record id="view_packing_production_output_lot" model="ir.ui.view">
+        <field name="name">packing.production.output.lot</field>
+        <field name="model">step.packing.production</field>
+        <field name="inherit_id" ref="view_packing_production_form"/>
+        <field name="priority">110</field>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook[@name='fruit_details']" position="before">
+                <group name="packing_output_lot">
+                    <field name="step_output_lot_name" readonly="state not in ('created','validated')"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
     <record id="view_fruit_tag_output_lot" model="ir.ui.view">
         <field name="name">fruit.tag.packing.lot</field><field name="model">stock.quant.package</field>
         <field name="inherit_id" ref="step_inventory_packing.view_quant_package_form_steps_fruit"/>
