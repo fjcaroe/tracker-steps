@@ -23,7 +23,7 @@ try:
         companies = sample.company_id.sudo().search([('id', 'parent_of', sample.company_id.id)])
         row = sample.with_context(allowed_company_ids=companies.ids)
         assert sample.company_id in row._contract_companies()
-    if sample and env.cr.dbname.startswith('MANAGEMENT_QA_'):
+    if sample and env.cr.dbname.startswith(('MANAGEMENT_QA_CERRO_', 'MANAGEMENT_QA_QA-CERRO_')):
         branch = sample.company_id
         parent = branch.parent_id or branch
         account = env['account.account'].search([
