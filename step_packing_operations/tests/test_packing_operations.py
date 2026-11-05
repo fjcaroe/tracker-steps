@@ -618,7 +618,13 @@ class TestPackingOperations(TransactionCase):
         with self.assertRaises(UserError):
             production.with_user(operator).action_approve_materials()
         production.action_approve_materials()
-        output.step_tag_line_ids.quantity = 15
+        with self.assertRaises(UserError):
+            output.step_tag_line_ids.quantity = 15
+        # A legacy/imported change must still invalidate the approved signature.
+        output.step_tag_line_ids.flush_recordset(['quantity'])
+        self.cr.execute('UPDATE step_fruit_package_line SET quantity=15 WHERE id=%s',
+                        [output.step_tag_line_ids.id])
+        output.step_tag_line_ids.invalidate_recordset(['quantity'], flush=False)
         production.action_step_packing_validate()
         with self.assertRaises(UserError):
             production.action_step_packing_close()
