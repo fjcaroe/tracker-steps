@@ -783,6 +783,11 @@ class TestPackingOperations(TransactionCase):
             'contract_id': contract.id})
         self.assertNotIn(self.company, denied._contract_companies())
         with self.assertRaises(ValidationError):
+            # assertRaises flushes Odoo's cache before entering its savepoint.
+            # Build the unsaved form inside it so the draft values stay live.
+            denied = scope['step.packing.production'].new({
+                'company_id': unrelated.id, 'fruit_grower_id': self.producer.id,
+                'contract_id': contract.id})
             denied._check_contract_holding()
 
     def test_costing_capitalizes_only_owned_export_and_is_idempotent(self):
