@@ -61,6 +61,20 @@ class ReceptionImport(models.TransientModel):
 class Picking(models.Model):
     _inherit = 'stock.picking'
 
+    def _process_receipt_lot(self, product):
+        self.ensure_one()
+        name = (self.fruit_lot or '').strip()
+        if not name:
+            return self.env['stock.lot']
+        self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',
+                            [f'steps-reception-lot:{self.company_id.id}:{product.id}:{name}'])
+        lots = self.env['stock.lot'].search([
+            ('name', '=', name), ('product_id', '=', product.id), ('company_id', '=', self.company_id.id)])
+        if len(lots) > 1:
+            raise ValidationError(_('El lote de recepción debe identificar un único lote del producto y empresa.'))
+        return lots or self.env['stock.lot'].create({
+            'name': name, 'product_id': product.id, 'company_id': self.company_id.id})
+
     def button_validate(self):
         # Also covers the native backorder wizard's second validation call.
         with self.env.cr.savepoint():
@@ -82,6 +96,10 @@ class Picking(models.Model):
         moves = self.move_ids.filtered(lambda m: m.state not in ('done', 'cancel'))
         if not moves:
             raise ValidationError(_('Registre el producto y la cantidad recibida en Operaciones.'))
+        if (self.fruit_lot or '').strip():
+            for move in moves:
+                lot = self._process_receipt_lot(move.product_id)
+                move.move_line_ids.write({'lot_id': lot.id, 'lot_name': False})
         # Resume the old Excel wizard's pending rows without confusing its
         # stock "Cantidad" with the reception form's count of containers.
         for row in self.fruit_tag_line_ids:
@@ -122,7 +140,7 @@ class Picking(models.Model):
             if any(line.location_id != move.location_id or line.location_dest_id != move.location_dest_id for line in stock_lines):
                 raise ValidationError(_('Revise las ubicaciones detalladas: difieren de la operación de la recepción.'))
             lots = stock_lines.lot_id
-            lot = row.stock_lot_id
+            lot = self._process_receipt_lot(move.product_id) or row.stock_lot_id
             if not lot and len(lots) == 1:
                 lot = lots
             if lot and lots and lot not in lots:
@@ -218,9 +236,9 @@ class Picking(models.Model):
                 package = packages.create(values)
             self.env['step.fruit.package.line'].create({
                 'package_id': package.id, 'producer_id': producer.id, 'product_id': move.product_id.id,
-                'quantity': base_quantity, 'kilos': row.kilos, 'boxes': row.quantity})
+                'quantity': base_quantity, 'kilos': row.kilos, 'boxes': row.quantity, 'lot_id': lot.id})
             row.write({'tag_number': name, 'package_id': package.id, 'product_id': move.product_id.id,
-                       'box_count': row.quantity})
+                       'box_count': row.quantity, 'stock_lot_id': lot.id})
             packages |= package
         if any(line.result_package_id and line.result_package_id not in packages for line in moves.move_line_ids):
             raise ValidationError(_('Las operaciones contienen paquetes que no figuran en la distribución de tarjas.'))

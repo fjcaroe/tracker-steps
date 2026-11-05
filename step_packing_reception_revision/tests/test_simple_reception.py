@@ -188,6 +188,50 @@ class SimpleReceptionCase(TransactionCase):
         self.assert_received(picking)
         self.assertEqual(picking.move_line_ids.lot_id, lot)
 
+    def test_receipt_header_lot_reaches_stock_tag_and_order(self):
+        picking = self.receipt((160, 240))
+        picking.fruit_lot = 'QA165-50'
+        old = self.env['stock.lot'].create({
+            'name': 'QA165-old', 'product_id': self.product.id, 'company_id': self.env.company.id})
+        picking.fruit_tag_line_ids.product_id = self.product
+        picking.fruit_tag_line_ids.stock_lot_id = old
+        picking.move_line_ids.lot_id = old
+        picking._prepare_process_tags()
+        lot = picking.move_line_ids.lot_id
+        self.assertEqual(lot.name, 'QA165-50')
+        picking._prepare_process_tags()
+        picking.button_validate()
+        self.assert_received(picking)
+        self.assertEqual(picking.fruit_tag_line_ids.stock_lot_id, lot)
+        self.assertEqual(picking.fruit_tag_line_ids.package_id.quant_ids.lot_id, lot)
+        self.assertEqual(picking.fruit_tag_line_ids.package_id.step_tag_line_ids.lot_id, lot)
+        order = self.env['step.packing.production'].create({
+            'step_packing_input_tag_ids': [(6, 0, picking.fruit_tag_line_ids.package_id.ids)]})
+        self.assertEqual(order.step_packing_input_tag_ids.step_tag_line_ids.lot_id, lot)
+        next_receipt = self.receipt()
+        next_receipt.fruit_lot = 'QA165-50'
+        next_receipt.button_validate()
+        self.assertEqual(next_receipt.move_line_ids.lot_id, lot)
+        self.assertEqual(self.env['stock.lot'].search_count([
+            ('name', '=', lot.name), ('product_id', '=', self.product.id),
+            ('company_id', '=', self.env.company.id)]), 1)
+
+    def test_header_lot_is_scoped_to_product_and_company(self):
+        foreign = self.env['res.company'].create({'name': 'QA165 other company'})
+        self.env['stock.lot'].create({'name': 'QA165-shared-name', 'product_id': self.product.id,
+                                     'company_id': foreign.id})
+        other = self.env['product.product'].create({
+            'name': 'QA165 other fruit', 'is_storable': True,
+            'uom_id': self.product.uom_id.id, 'uom_po_id': self.product.uom_id.id})
+        first = self.receipt()
+        second = self.receipt(product=other, packaging=self.env['product.packaging'].create({
+            'name': 'QA165 packaging', 'product_id': other.id, 'qty': 8}))
+        for picking in first | second:
+            picking.fruit_lot = 'QA165-shared-name'
+            picking.button_validate()
+        self.assertNotEqual(first.move_line_ids.lot_id, second.move_line_ids.lot_id)
+        self.assertEqual((first | second).move_line_ids.lot_id.company_id, self.env.company)
+
     def test_native_backorder_keeps_remaining_demand_without_old_tags(self):
         picking = self.receipt((160,), demand=400)
         action = picking.button_validate()

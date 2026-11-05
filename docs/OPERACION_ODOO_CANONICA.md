@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+T165 autoriza `reception-lots` en Desarrollo, Cerro y QA-Cerro. El lote de la
+hoja Fruta crea o reutiliza stock.lot por producto y empresa y se conserva en
+las tarjas C, sus existencias y el detalle consultado desde la OT.
+El plan privado del adjunto 3516 autoriza reparar seis recepciones reales de
+Cool & Go únicamente en Cerro, incluidos sus vínculos de división de tarjas.
+Probar ese mismo plan y herramienta en copia fresca. Comparar cantidades,
+reservas, propietarios, ubicaciones, estados, registros y contabilidad antes
+y después. Publicar con respaldo y bloqueo, preservando datos de capacitación.
+
 T162 y T163 autorizan `packing-tag-folio` en Desarrollo, Cerro y QA-Cerro.
 Conservar los registros históricos y omitir del informe únicamente duplicados
 de borrador desvinculados, sin stock, movimientos ni uso documental.
