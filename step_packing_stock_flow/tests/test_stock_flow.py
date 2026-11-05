@@ -42,6 +42,8 @@ class PackingStockFlowCase(TransactionCase):
         self.env['stock.quant']._update_available_quantity(self.raw, self.source_wh.lot_stock_id, 100,
                                                           package_id=incoming, owner_id=self.producer)
         finished = self.tag('E', self.finished, 16, 80, 'export')
+        finished.write({'box_count': 16, 'package_type_id': self.env['stock.package.type'].create({
+            'name': 'QA121 pallet completo', 'step_export_boxes_per_pallet': 16}).id})
         national = self.tag('N', self.national, 15, 15, 'commercial')
         if material_qty:
             self.env['stock.quant']._update_available_quantity(self.material, self.wh.lot_stock_id, material_qty)
@@ -80,6 +82,7 @@ class PackingStockFlowCase(TransactionCase):
             ot.action_step_packing_close()
 
     def test_shortage_in_configured_source_does_not_use_other_warehouse(self):
+        self.company.step_packing_allow_material_shortage = False
         ot = self.ot(material_qty=1)
         self.env['stock.quant']._update_available_quantity(self.material, self.source_wh.lot_stock_id, 500)
         ot.action_step_packing_validate(); self.approve(ot)

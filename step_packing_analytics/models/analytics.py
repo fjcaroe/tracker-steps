@@ -191,6 +191,12 @@ class Move(models.Model):
     step_analytic_repack_id=fields.Many2one('step.packing.repack',copy=False,readonly=True,check_company=True,index=True)
     step_packing_consumption=fields.Boolean(copy=False,readonly=True)
 
+    @api.constrains('step_analytic_production_id', 'step_analytic_repack_id')
+    def _check_packing_origin(self):
+        for move in self:
+            if move.step_analytic_production_id and move.step_analytic_repack_id:
+                raise ValidationError(_('El consumo debe corresponder a una sola OT de Packing o repaletizado.'))
+
     @api.model_create_multi
     def create(self,values):
         if not self.env.su and self.env.context.get('_packing_analytic_origin') is not _ORIGIN and any((row.get('step_analytic_production_id') or row.get('step_analytic_repack_id')) for row in values):

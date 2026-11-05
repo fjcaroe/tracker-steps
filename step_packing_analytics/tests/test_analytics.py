@@ -9,6 +9,9 @@ class PackingAnalyticsCase(TransactionCase):
         super().setUpClass()
         cls.env=cls.env(context=dict(cls.env.context,tracking_disable=True,mail_notrack=True,mail_notify_force_send=False,mail_create_nosubscribe=True))
         cls.company=cls.env.company
+        # Private transactional fixtures must not inherit the destination's
+        # existing per-origin rules. This is rolled back with the test suite.
+        cls.env['step.packing.analytic.rule'].search([('company_id','=',cls.company.id)]).write({'apply':False})
         cls.company.step_packing_require_contract=False
         cls.wh=cls.env['stock.warehouse'].search([('company_id','=',cls.company.id)],limit=1)
         cls.producer=cls.env['res.partner'].create({'name':'QA122 productor'})
