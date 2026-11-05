@@ -27,7 +27,7 @@ try:
         branch = sample.company_id
         parent = branch.parent_id or branch
         account = env['account.account'].search([
-            ('company_ids', 'in', branch.id), ('account_type', '=', 'expense')], limit=1)
+            ('company_ids', 'in', (parent | branch).ids), ('account_type', '=', 'expense')], limit=1)
         assert account
         source = sample.step_packing_output_tag_ids.filtered(
             lambda tag: tag.step_packing_result == 'export')
