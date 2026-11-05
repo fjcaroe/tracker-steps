@@ -438,3 +438,12 @@ el adjunto, exige costo positivo y no habilita déficit de fruta ni apropiación
 de stock de terceros. No se validan operaciones reales al publicar ni se
 reescriben aprobaciones existentes: deben reabrirse y prepararse con la nueva
 regla. Copias frescas, mismo paquete, respaldo, bloqueo y paridad de destinos.
+
+
+T169 (mensaje 10150, adjunto 3520 y confirmación del solicitante en este chat)
+autoriza journal-branches en Desarrollo, Cerro y QA-Cerro: mantener disponibilidad
+automática nativa de diarios de matriz en todas las sucursales y mostrarla en
+formulario y lista. La columna solo calcula descendientes activos con membresía
+del usuario existente; no cambia permisos, relaciones legales, diarios, cuentas,
+asientos ni configuración fiscal. Probar asiento nativo de sucursal en diario
+matriz y rechazo de compañía ajena exclusivamente en copia privada del destino.

@@ -1,0 +1,23 @@
+<odoo>
+  <record id="journal_branch_form" model="ir.ui.view">
+    <field name="name">account.journal.branch.availability.form</field>
+    <field name="model">account.journal</field>
+    <field name="inherit_id" ref="account.view_account_journal_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='company_id']" position="after">
+        <field name="step_available_branch_ids" widget="many2many_tags" readonly="1"
+          groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
+      </xpath>
+    </field>
+  </record>
+  <record id="journal_branch_list" model="ir.ui.view">
+    <field name="name">account.journal.branch.availability.list</field>
+    <field name="model">account.journal</field>
+    <field name="inherit_id" ref="account.view_account_journal_tree"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='company_id']" position="after">
+        <field name="step_available_branch_ids" widget="many2many_tags" optional="show" groups="base.group_multi_company"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>
