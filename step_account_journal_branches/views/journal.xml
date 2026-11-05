@@ -5,7 +5,9 @@
     <field name="inherit_id" ref="account.view_account_journal_form"/>
     <field name="arch" type="xml">
       <xpath expr="//field[@name='company_id']" position="after">
+        <field name="step_branch_scope_ids" invisible="1" groups="base.group_multi_company"/>
         <field name="step_available_branch_ids" widget="many2many_tags" readonly="1"
+          context="{'allowed_company_ids': step_branch_scope_ids}"
           groups="base.group_multi_company" options="{'no_create': True, 'no_open': True}"/>
       </xpath>
     </field>
@@ -16,7 +18,9 @@
     <field name="inherit_id" ref="account.view_account_journal_tree"/>
     <field name="arch" type="xml">
       <xpath expr="//field[@name='company_id']" position="after">
-        <field name="step_available_branch_ids" widget="many2many_tags" optional="show" groups="base.group_multi_company"/>
+        <field name="step_branch_scope_ids" column_invisible="True" groups="base.group_multi_company"/>
+        <field name="step_available_branch_ids" widget="many2many_tags" optional="show" groups="base.group_multi_company"
+          context="{'allowed_company_ids': step_branch_scope_ids}"/>
       </xpath>
     </field>
   </record>

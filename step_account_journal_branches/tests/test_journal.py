@@ -26,6 +26,10 @@ class JournalBranchesCase(TransactionCase):
     def test_visibility_native_hierarchy_membership_and_forms(self):
         journal = self.journal.with_user(self.user).with_company(self.branch)
         self.assertEqual(set(journal.step_available_branch_ids.ids), set((self.branch | self.nested).ids))
+        payload = journal.web_read({'step_available_branch_ids': {
+            'context': {'allowed_company_ids': journal.step_branch_scope_ids},
+            'fields': {'display_name': {}}}})[0]['step_available_branch_ids']
+        self.assertEqual({row['display_name'] for row in payload}, {self.branch.name, self.nested.name})
         for kind, view in [('form', 'account.view_account_journal_form'), ('list', 'account.view_account_journal_tree')]:
             arch = etree.fromstring(journal.get_view(view_id=self.env.ref(view).id, view_type=kind)['arch'])
             self.assertTrue(arch.xpath("//field[@name='step_available_branch_ids']"))
