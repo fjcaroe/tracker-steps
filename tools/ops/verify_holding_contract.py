@@ -31,6 +31,11 @@ try:
             sample.with_context(_packing_control=_INTERNAL).write({'state': 'closed'})
         branch = sample.company_id
         parent = branch.parent_id or branch
+        if not branch.step_packing_purchase_journal_id:
+            journal = env['account.journal'].search([
+                ('company_id', '=', branch.id), ('type', '=', 'purchase')], limit=1)
+            assert journal, 'The copy fixture requires an existing purchase journal'
+            branch.step_packing_purchase_journal_id = journal
         account = env['account.account'].search([
             ('company_ids', 'in', (parent | branch).ids), ('account_type', '=', 'expense')], limit=1)
         assert account
