@@ -427,3 +427,14 @@ existentes de sustancias activas y aptitudes plaguicidas y plantillas Excel
 para el importador nativo. Conservar IDs, relaciones, maestros y permisos.
 No cargar datos ficticios en destinos reales. Copias frescas y mismo paquete,
 respaldo, bloqueo, paridad y aislamiento sin refrescar datos de capacitación.
+
+
+T168 (mensaje 10146, adjunto 3519) autoriza packing-material-rules en Desarrollo,
+Cerro y QA-Cerro: E completa consume caja y pallet; E parcial solo caja.
+Repaletizado incorpora consumo de pallet preparado, editable y atómico junto
+al movimiento nativo de fruta, valoración y gasto con analítica de su OT.
+El parámetro por empresa permite materiales sin stock por defecto, como solicita
+el adjunto, exige costo positivo y no habilita déficit de fruta ni apropiación
+de stock de terceros. No se validan operaciones reales al publicar ni se
+reescriben aprobaciones existentes: deben reabrirse y prepararse con la nueva
+regla. Copias frescas, mismo paquete, respaldo, bloqueo y paridad de destinos.

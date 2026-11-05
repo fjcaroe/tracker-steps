@@ -1,4 +1,9 @@
 <odoo>
+    <record id="rule_repack_material_company" model="ir.rule">
+        <field name="name">Materiales de repaletizado por empresa</field>
+        <field name="model_id" ref="model_step_packing_repack_material"/>
+        <field name="domain_force">[('company_id','in',company_ids)]</field>
+    </record>
     <record id="rule_inspection_company" model="ir.rule"><field name="name">Inspecciones por empresa</field>
         <field name="model_id" ref="model_step_packing_inspection"/><field name="domain_force">[('company_id','in',company_ids)]</field></record>
     <record id="rule_instruction_company" model="ir.rule"><field name="name">Instructivos por empresa</field>

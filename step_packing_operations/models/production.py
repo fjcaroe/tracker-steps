@@ -9,6 +9,7 @@ exportación, igual que hace `step_export` con sus programas de embalaje.
 """
 
 from odoo import api, fields, models, _
+from .material_tools import create_stock_transfer
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_is_zero
 
@@ -199,48 +200,7 @@ class PackingProduction(models.Model):
         return locations
 
     def _create_packing_move(self, warehouse, source, dest, lines):
-        """lines: list of (product, qty, source_package_or_False, result_package_or_False)."""
-        self.ensure_one()
-        grouped = {}
-        for line in lines:
-            product, qty, src_pkg, dst_pkg = line[:4]
-            grouped.setdefault(product, 0.0)
-            grouped[product] += qty
-        picking = self.env["stock.picking"].create({
-            "picking_type_id": warehouse.int_type_id.id,
-            "company_id": self.company_id.id,
-            "origin": self.name,
-            "location_id": source.id,
-            "location_dest_id": dest.id,
-            "move_ids": [(0, 0, {
-                "name": product.display_name, "product_id": product.id,
-                "product_uom_qty": qty, "product_uom": product.uom_id.id,
-                "location_id": source.id, "location_dest_id": dest.id,
-                **self._packing_move_extra_values(product, qty, source, dest, lines),
-            }) for product, qty in grouped.items()],
-        })
-        picking.action_confirm()
-        # Remove any generic allocation before assigning the exact packages.
-        picking.do_unreserve()
-        for line in lines:
-            product, qty, src_pkg, dst_pkg = line[:4]
-            lot, owner = line[4:] if len(line) == 6 else (False, False)
-            move = picking.move_ids.filtered(lambda row: row.product_id == product)
-            if len(move) != 1:
-                raise ValidationError(_("No se encontró un movimiento único para %s.") % product.display_name)
-            self.env["stock.move.line"].create({
-                "move_id": move.id, "picking_id": picking.id,
-                "product_id": product.id, "product_uom_id": product.uom_id.id,
-                "quantity": qty, "location_id": source.id, "location_dest_id": dest.id,
-                "package_id": src_pkg.id if src_pkg else False,
-                "result_package_id": dst_pkg.id if dst_pkg else False,
-                "lot_id": lot.id if lot else False,
-                "owner_id": owner.id if owner else False,
-            })
-        picking.button_validate()
-        if picking.state != "done":
-            raise UserError(_("No se pudo completar el movimiento de Packing en Inventario."))
-        return picking
+        return create_stock_transfer(self, warehouse, source, dest, lines)
 
     def _packing_move_extra_values(self, product, qty, source, dest, lines):
         reversal = self.env.context.get('_packing_close_reversal')

@@ -135,7 +135,7 @@ class TestPackingOperations(TransactionCase):
         self._stock(self.carton, 18)
         ot.action_step_packing_validate()
         ot.action_prepare_materials()
-        self.assertEqual(ot.material_line_ids.quantity, 18)
+        self.assertEqual(ot.material_line_ids.quantity, 16)
         ot.action_approve_materials()
         ot.action_step_packing_close()
         self.assertFalse(ot.product_id)
@@ -814,3 +814,41 @@ class TestPackingOperations(TransactionCase):
             production.action_reopen_costs()
         with self.assertRaises(UserError):
             landed.account_move_id.button_draft()
+
+    def test_t168_complete_partial_box_and_pallet_materials(self):
+        package_type = self.env['stock.package.type'].create({'name': 'T168 pallet', 'step_export_boxes_per_pallet': 10})
+        tag = self._tag('T168 partial', 'E', self.finished, 25, 5, 'export')
+        tag.package_type_id = package_type
+        self.env['mrp.bom'].create({'product_tmpl_id': self.finished.product_tmpl_id.id,
+            'product_qty': 1, 'bom_line_ids': [(0, 0, {'product_id': self.carton.id,
+                'product_qty': 1, 'step_export_qty_per_pallet': 2})]})
+        ot = self.env['step.packing.production'].create({'step_packing_output_tag_ids': [(6, 0, tag.ids)]})
+        self.assertEqual(tag.step_filling, 'partial')
+        ot.action_prepare_materials()
+        self.assertEqual(ot.material_line_ids.quantity, 5)
+        old_signature = ot.material_signature
+        tag.box_count = 10
+        self.assertEqual(tag.step_filling, 'complete')
+        self.assertNotEqual(ot._material_signature(), old_signature)
+        with self.assertRaises(UserError):
+            ot.action_approve_materials()
+        ot.action_prepare_materials()
+        self.assertEqual(ot.material_line_ids.quantity, 7)
+
+    def test_t168_shortage_scope_cost_and_consigned_stock(self):
+        from ..models.material_tools import allocate_stock
+        ot = self.env['step.packing.production'].create({})
+        self.env['stock.quant']._update_available_quantity(self.carton, self.location, 10, owner_id=self.producer)
+        self.carton.standard_price = 3
+        lines = [(self.carton, 4, False, False)]
+        with self.assertRaises(UserError):
+            allocate_stock(ot, self.location, lines)
+        allocated = allocate_stock(ot, self.location, lines, allow_shortage=True)
+        self.assertEqual(sum(row[1] for row in allocated), 4)
+        self.assertTrue(all(not row[5] for row in allocated))
+        self.carton.standard_price = 0
+        with self.assertRaises(UserError):
+            allocate_stock(ot, self.location, lines, allow_shortage=True)
+        tag = self._tag('T168 no fruit deficit', 'C', self.raw, 5, 5)
+        with self.assertRaises(UserError):
+            allocate_stock(ot, self.location, [(self.raw, 5, tag, False)], allow_shortage=True)

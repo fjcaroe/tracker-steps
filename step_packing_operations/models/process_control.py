@@ -5,10 +5,12 @@ import json
 from markupsafe import escape
 
 from odoo import Command, api, fields, models, _
+from .material_tools import allocate_stock, material_recipe, component_quantities
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare
 
 _INTERNAL = object()
+_MATERIAL_CONSUMPTION = object()
 _REVERSAL = object()
 
 
@@ -84,7 +86,7 @@ class PackingProduction(models.Model):
         self.ensure_one()
         values = []
         for tag in self.step_packing_output_tag_ids.sorted('id'):
-            values.append((tag.id, tag.step_packing_result, [
+            values.append((tag.id, tag.step_packing_result, tag.step_filling, [
                 (line.product_id.id, line.quantity, line.boxes) for line in tag.step_tag_line_ids.sorted('id')]))
         return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
 
@@ -147,31 +149,15 @@ class PackingProduction(models.Model):
             record.material_line_ids.with_context(_packing_control=_INTERNAL).unlink()
             export_tags = record.step_packing_output_tag_ids.filtered(
                 lambda tag: tag.step_tag_kind == 'E' and tag.step_packing_result == 'export')
-            raw_products = record.raw_product_id | record.step_packing_input_tag_ids.step_tag_line_ids.product_id
-            export_products = export_tags.step_tag_line_ids.product_id - raw_products
-            planned_product = record.product_id - raw_products
             for tag in export_tags:
                 total_boxes = sum(tag.step_tag_line_ids.mapped('boxes'))
                 for detail in tag.step_tag_line_ids:
-                    product, quantity = detail.product_id, detail.quantity
-                    if product in raw_products:
-                        product = (tag.step_packaging_id.product_id - raw_products) or planned_product or export_products
-                        if len(product) != 1 or detail.boxes <= 0:
-                            raise UserError(_('Identifique el producto terminado y las cajas de la tarja %s para preparar sus materiales.') % tag.name)
-                        quantity = detail.boxes
-                    bom = (record.bom_id if record.bom_id.product_tmpl_id == product.product_tmpl_id
-                           and (not record.bom_id.product_id or record.bom_id.product_id == product)
-                           else self.env['mrp.bom']._bom_find(product, company_id=record.company_id.id).get(product))
-                    if not bom:
-                        raise UserError(_('Configure una lista de materiales para %s.') % product.display_name)
-                    factor = product.uom_id._compute_quantity(quantity, bom.product_uom_id) / bom.product_qty
-                    for component in bom.bom_line_ids:
-                        pallet_share = detail.boxes / total_boxes if total_boxes else 0
-                        qty = component.product_uom_id._compute_quantity(
-                            component.product_qty * factor + component.step_export_qty_per_pallet * pallet_share,
-                            component.product_id.uom_id)
+                    bom, product, quantity = material_recipe(tag, detail, record.company_id, record)
+                    share = detail.boxes / total_boxes if total_boxes else 0
+                    for component, qty in component_quantities(
+                            bom, product, quantity, share, include_pallet=tag.step_filling == 'complete'):
                         self.env['step.packing.material.consumption'].with_context(_packing_control=_INTERNAL).create({
-                            'production_id': record.id, 'package_id': tag.id, 'product_id': component.product_id.id,
+                            'production_id': record.id, 'package_id': tag.id, 'product_id': component.id,
                             'planned_qty': qty, 'quantity': qty,
                         })
             record.with_context(_packing_control=_INTERNAL).write({
@@ -307,46 +293,15 @@ class PackingProduction(models.Model):
         grouped = defaultdict(float)
         for line in self.material_line_ids:
             grouped[line.product_id] += line.quantity
-        return (self._create_packing_move(warehouse, location, production_location,
+        return (self.with_context(_packing_material_consumption=_MATERIAL_CONSUMPTION)._create_packing_move(warehouse, location, production_location,
                 [(product, qty, False, False) for product, qty in grouped.items() if qty > 0])
                 if grouped else self.env['stock.picking'])
 
     def _create_packing_move(self, warehouse, source, dest, lines):
-        if source.usage == 'internal':
-            allocated = defaultdict(float)
-            exact = []
-            for line in lines:
-                product, qty, package, result = line[:4]
-                domain = [('product_id', '=', product.id), ('location_id', '=', source.id),
-                          ('package_id', '=', package.id if package else False), ('quantity', '>', 0),
-                          ('company_id', '=', self.company_id.id)]
-                if len(line) == 6:
-                    domain += [('lot_id', '=', line[4].id if line[4] else False),
-                               ('owner_id', '=', line[5].id if line[5] else False)]
-                elif not package:
-                    domain.append(('owner_id', '=', False))
-                quants = self.env['stock.quant'].search(domain, order='in_date, id')
-                if quants:
-                    self.env.cr.execute('SELECT id FROM stock_quant WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(quants.ids))])
-                    quants.invalidate_recordset()
-                remaining = qty
-                for quant in quants:
-                    take = min(remaining, max(0, quant.quantity - quant.reserved_quantity - allocated[quant.id]))
-                    if take <= 0:
-                        continue
-                    allocated[quant.id] += take
-                    exact.append((product, take, package, result, quant.lot_id, quant.owner_id))
-                    remaining -= take
-                    if float_compare(remaining, 0, precision_rounding=product.uom_id.rounding) <= 0:
-                        break
-                if float_compare(remaining, 0, precision_rounding=product.uom_id.rounding) > 0:
-                    raise UserError(_('Stock libre insuficiente de %(product)s en %(location)s. '
-                                      'Cantidad requerida: %(required)s %(unit)s; faltante: %(missing)s. '
-                                      'Revise el stock de esta ubicación y sus reservas.') % {
-                                          'product': product.display_name, 'location': source.display_name,
-                                          'required': qty, 'missing': remaining, 'unit': product.uom_id.display_name})
-            lines = exact
-        return super()._create_packing_move(warehouse, source, dest, lines)
+        allow = (self.env.context.get('_packing_material_consumption') is _MATERIAL_CONSUMPTION
+                 and self.company_id.step_packing_allow_material_shortage
+                 and dest.usage == 'production' and all(not line[2] and not line[3] for line in lines))
+        return super()._create_packing_move(warehouse, source, dest, allocate_stock(self, source, lines, allow))
 
     def action_step_packing_close(self):
         self._lock_process()

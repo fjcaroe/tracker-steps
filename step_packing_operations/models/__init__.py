@@ -9,3 +9,5 @@ from . import inspection
 from . import costing
 from . import revision
 from . import output_lots
+
+from . import repack_materials

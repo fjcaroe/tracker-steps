@@ -25,4 +25,11 @@
    <attribute name="groups">stock.group_stock_manager</attribute>
   </xpath></field>
  </record>
+ <record id="repack_analytics" model="ir.ui.view">
+  <field name="name">packing.repack.analytic.season</field><field name="model">step.packing.repack</field>
+  <field name="inherit_id" ref="step_packing_operations.view_packing_repack_form"/>
+  <field name="arch" type="xml"><xpath expr="//field[@name='consume_pallet_materials']" position="after">
+   <field name="step_analytic_season_id" readonly="state == 'done'" invisible="not consume_pallet_materials" options="{'no_create': True}"/>
+  </xpath></field>
+ </record>
 </odoo>

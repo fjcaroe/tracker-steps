@@ -171,3 +171,81 @@ class PackingAnalyticsCase(TransactionCase):
         self.assertEqual(entry.line_ids.filtered('debit').account_id,self.asset)
         self.assertEqual(entry.line_ids.filtered('credit').account_id,self.expense)
         self.assertEqual(entry.line_ids.filtered('credit').analytic_distribution,distribution)
+
+    def repack(self):
+        self.env['mrp.bom'].search([('product_tmpl_id','=',self.finished.product_tmpl_id.id)]).bom_line_ids.write({
+            'product_qty':1, 'step_export_qty_per_pallet':2})
+        source = self.env['stock.quant.package'].create({'is_fruit_tag':True,'step_tag_kind':'E',
+            'step_packing_result':'export','especie_id':self.species.id,'variedad_id':self.variety.id,
+            'step_producer_id':self.producer.id,'step_export_season_id':self.season.id,
+            'step_tag_line_ids':[(0,0,{'producer_id':self.producer.id,'product_id':self.finished.id,
+                'quantity':5,'boxes':5,'kilos':25})]})
+        source.action_step_validate_tag()
+        self.env['stock.quant']._update_available_quantity(self.finished,self.wh.lot_stock_id,5,
+            package_id=source,owner_id=self.producer)
+        record = self.env['step.packing.repack'].create({'consume_pallet_materials':True,
+            'selected_source_ids':[(6,0,source.ids)]})
+        record.action_prepare_distribution()
+        record.action_prepare_materials()
+        self.assertEqual(record.material_line_ids.planned_qty,2)
+        return record
+
+    def check_repack_entry(self, record, amount):
+        self.assertEqual(record.state,'done')
+        move=record.material_picking_id.move_ids
+        self.assertEqual(move.step_analytic_repack_id,record)
+        entry=move.stock_valuation_layer_ids.account_move_id
+        self.assertEqual(len(entry),1)
+        self.assertEqual(entry.state,'posted')
+        debit=entry.line_ids.filtered('debit');credit=entry.line_ids.filtered('credit')
+        self.assertEqual(debit.account_id,self.expense)
+        self.assertEqual(credit.account_id,self.asset)
+        self.assertEqual(debit.debit,amount)
+        self.assertEqual(credit.credit,amount)
+        self.assertTrue(debit.analytic_line_ids)
+        accounts=self.env['account.analytic.account'].search([('step_packing_repack_id','=',record.id)])
+        self.assertEqual(len(accounts),1)
+        ids={int(i) for key in debit.analytic_distribution for i in key.split(',')}
+        self.assertIn(accounts.id,ids)
+        with self.assertRaises(UserError):record.action_validate()
+        with self.assertRaises(UserError):record.material_line_ids.quantity=20
+
+    def test_t168_repack_negative_stock_native_accounting(self):
+        record=self.repack()
+        record.material_line_ids.quantity=3
+        record.action_validate()
+        self.check_repack_entry(record,6)
+        location=self.company.step_packing_material_location_id or self.wh.lot_stock_id
+        quant=self.env['stock.quant'].search([('product_id','=',self.material.id),('location_id','=',location.id),('owner_id','=',False)])
+        self.assertEqual(sum(quant.mapped('quantity')),-3)
+        self.assertEqual(record.line_ids.target_package_id.quant_ids.owner_id,self.producer)
+
+    def test_t168_repack_manual_valuation_accounting(self):
+        self.category.property_valuation='manual_periodic'
+        record=self.repack()
+        record.action_validate()
+        self.check_repack_entry(record,4)
+
+    def test_t168_shortage_and_cost_failure_roll_back_entire_repack(self):
+        record=self.repack()
+        self.company.step_packing_allow_material_shortage=False
+        before=self.env['account.move'].search_count([])
+        with self.assertRaises(UserError):record.action_validate()
+        self.assertEqual(record.state,'draft')
+        self.assertFalse(record.picking_id)
+        self.assertFalse(record.line_ids.target_package_id.step_tag_line_ids)
+        self.company.step_packing_allow_material_shortage=True
+        self.material.standard_price=0
+        with self.assertRaises(UserError):record.action_validate()
+        self.assertEqual(record.state,'draft')
+        self.assertEqual(self.env['account.move'].search_count([]),before)
+
+    def test_t168_unprepared_signature_and_unchecked_repack(self):
+        record=self.repack()
+        record.line_ids.boxes=4
+        with self.assertRaises(UserError):record.action_validate()
+        record.line_ids.boxes=5
+        record.consume_pallet_materials=False
+        record.action_validate()
+        self.assertEqual(record.state,'done')
+        self.assertFalse(record.material_picking_id)

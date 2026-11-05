@@ -10,6 +10,57 @@ def root_plan(plan):
     return plan
 
 
+def packing_distribution(record, create=False, existing=None):
+    record.ensure_one()
+    rules=record.env['step.packing.analytic.rule'].sudo().search([('company_id','=',record.company_id.id),('apply','=',True)])
+    if not rules:return existing or {}
+    chosen={}
+    # Both concurrent consumptions and native accounting preparation reuse
+    # one account per source, company and plan, without changing masters.
+    if create:
+        table = 'step_packing_repack' if record._name == 'step.packing.repack' else 'step_packing_production'
+        record.env.cr.execute('SELECT id FROM '+table+' WHERE id=%s FOR UPDATE',[record.id])
+    for rule in rules.sorted('id'):
+        tags = record.source_tag_ids if record._name == 'step.packing.repack' else record.step_packing_input_tag_ids
+        species=record.fruit_species_id or (tags.especie_id if len(tags.especie_id)==1 else record.env['step.especie'])
+        source=record if rule.origin=='ot' else record.step_effective_season_id if rule.origin=='season' else species
+        if not source:
+            raise UserError(_('Falta %(origin)s para el plan %(plan)s de Packing.') % {'origin':dict(rule._fields['origin'].selection)[rule.origin],'plan':rule.plan_id.display_name})
+        if rule.origin=='season' and source.company_ids and record.company_id not in source.company_ids:
+            raise UserError(_('La temporada no está habilitada para la empresa de la OT.'))
+        linked_field={'ot':('step_packing_repack_id' if record._name == 'step.packing.repack' else 'step_packing_production_id'),'species':'step_packing_species_id','season':'step_packing_season_id'}[rule.origin]
+        accounts=record.env['account.analytic.account'].sudo().with_company(record.company_id).with_context(active_test=False)
+        preferred=source.sudo().cost_id if rule.origin!='ot' else accounts.browse()
+        if preferred and preferred.company_id in (record.company_id,record.env['res.company']) and root_plan(preferred.plan_id)==rule.plan_id:
+            account=preferred
+        else:
+            if create:
+                record.env.cr.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',[
+                    'packing-analytic:%s:%s:%s:%s'%(record.company_id.id,rule.plan_id.id,rule.origin,source.id)])
+            account=accounts.search([('company_id','=',record.company_id.id),('plan_id','=',rule.plan_id.id),(linked_field,'=',source.id)])
+            if not account and rule.origin!='ot':
+                account=accounts.search([('company_id','in',[False,record.company_id.id]),('plan_id','=',rule.plan_id.id),('name','=',source.name)])
+            if len(account)>1:raise UserError(_('Hay cuentas analíticas ambiguas para %s; revise el maestro.')%source.display_name)
+            if not account and create:
+                account=accounts.create({'name':source.name,'plan_id':rule.plan_id.id,'company_id':record.company_id.id,linked_field:source.id})
+        if account and not account.active:
+            raise UserError(_('La cuenta analítica %s está archivada; reactive el registro existente.')%account.display_name)
+        if account:chosen[rule.plan_id.id]=account.id
+    if not chosen:return existing or {}
+    result={}
+    for key,percent in (existing or {'':100.0}).items():
+        ids={int(value) for value in key.split(',') if value}
+        for account in record.env['account.analytic.account'].sudo().browse(list(ids)).exists():
+            plan=root_plan(account.plan_id)
+            if account.company_id and account.company_id!=record.company_id:
+                raise UserError(_('La distribución contiene una cuenta de otra empresa.'))
+            if plan.id in chosen and account.id!=chosen[plan.id]:
+                raise UserError(_('La distribución existente contradice el origen automático del plan %s.')%plan.display_name)
+        ids.update(chosen.values()); combined=','.join(map(str,sorted(ids)))
+        result[combined]=result.get(combined,0)+percent
+    return result
+
+
 class Rule(models.Model):
     _name = 'step.packing.analytic.rule'
     _description = 'Aplicación de planes analíticos a Packing'
@@ -50,9 +101,11 @@ class Rule(models.Model):
 class AnalyticAccount(models.Model):
     _inherit = 'account.analytic.account'
     step_packing_production_id = fields.Many2one('step.packing.production', copy=False, readonly=True, ondelete='restrict')
+    step_packing_repack_id = fields.Many2one('step.packing.repack', copy=False, readonly=True, ondelete='restrict')
     step_packing_species_id = fields.Many2one('step.especie', copy=False, readonly=True, ondelete='restrict')
     step_packing_season_id = fields.Many2one('step.temporada', copy=False, readonly=True, ondelete='restrict')
     _sql_constraints = [
+        ('packing_repack_plan_unique','unique(company_id,plan_id,step_packing_repack_id)','El repaletizado ya tiene cuenta en este plan.'),
         ('packing_ot_plan_unique','unique(company_id,plan_id,step_packing_production_id)','La OT ya tiene cuenta en este plan.'),
         ('packing_species_plan_unique','unique(company_id,plan_id,step_packing_species_id)','La especie ya tiene cuenta en este plan.'),
         ('packing_season_plan_unique','unique(company_id,plan_id,step_packing_season_id)','La temporada ya tiene cuenta en este plan.')]
@@ -86,51 +139,7 @@ class Production(models.Model):
                 ot.step_analytic_distribution=False; ot.step_analytic_summary=False; ot.step_analytic_message=str(exc)
 
     def _packing_distribution(self, create=False, existing=None):
-        self.ensure_one()
-        rules=self.env['step.packing.analytic.rule'].sudo().search([('company_id','=',self.company_id.id),('apply','=',True)])
-        if not rules:return existing or {}
-        chosen={}
-        # Both concurrent consumptions and native accounting preparation reuse
-        # one account per source, company and plan, without changing masters.
-        if create:self.env.cr.execute('SELECT id FROM step_packing_production WHERE id=%s FOR UPDATE',[self.id])
-        for rule in rules.sorted('id'):
-            species=self.fruit_species_id or (self.step_packing_input_tag_ids.especie_id if len(self.step_packing_input_tag_ids.especie_id)==1 else self.env['step.especie'])
-            source=self if rule.origin=='ot' else self.step_effective_season_id if rule.origin=='season' else species
-            if not source:
-                raise UserError(_('Falta %(origin)s para el plan %(plan)s de Packing.') % {'origin':dict(rule._fields['origin'].selection)[rule.origin],'plan':rule.plan_id.display_name})
-            if rule.origin=='season' and source.company_ids and self.company_id not in source.company_ids:
-                raise UserError(_('La temporada no está habilitada para la empresa de la OT.'))
-            linked_field={'ot':'step_packing_production_id','species':'step_packing_species_id','season':'step_packing_season_id'}[rule.origin]
-            accounts=self.env['account.analytic.account'].sudo().with_company(self.company_id).with_context(active_test=False)
-            preferred=source.sudo().cost_id if rule.origin!='ot' else accounts.browse()
-            if preferred and preferred.company_id in (self.company_id,self.env['res.company']) and root_plan(preferred.plan_id)==rule.plan_id:
-                account=preferred
-            else:
-                if create:
-                    self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',[
-                        'packing-analytic:%s:%s:%s:%s'%(self.company_id.id,rule.plan_id.id,rule.origin,source.id)])
-                account=accounts.search([('company_id','=',self.company_id.id),('plan_id','=',rule.plan_id.id),(linked_field,'=',source.id)])
-                if not account and rule.origin!='ot':
-                    account=accounts.search([('company_id','in',[False,self.company_id.id]),('plan_id','=',rule.plan_id.id),('name','=',source.name)])
-                if len(account)>1:raise UserError(_('Hay cuentas analíticas ambiguas para %s; revise el maestro.')%source.display_name)
-                if not account and create:
-                    account=accounts.create({'name':source.name,'plan_id':rule.plan_id.id,'company_id':self.company_id.id,linked_field:source.id})
-            if account and not account.active:
-                raise UserError(_('La cuenta analítica %s está archivada; reactive el registro existente.')%account.display_name)
-            if account:chosen[rule.plan_id.id]=account.id
-        if not chosen:return existing or {}
-        result={}
-        for key,percent in (existing or {'':100.0}).items():
-            ids={int(value) for value in key.split(',') if value}
-            for account in self.env['account.analytic.account'].sudo().browse(list(ids)).exists():
-                plan=root_plan(account.plan_id)
-                if account.company_id and account.company_id!=self.company_id:
-                    raise UserError(_('La distribución contiene una cuenta de otra empresa.'))
-                if plan.id in chosen and account.id!=chosen[plan.id]:
-                    raise UserError(_('La distribución existente contradice el origen automático del plan %s.')%plan.display_name)
-            ids.update(chosen.values()); combined=','.join(map(str,sorted(ids)))
-            result[combined]=result.get(combined,0)+percent
-        return result
+        return packing_distribution(self, create, existing)
 
     def _packing_move_extra_values(self, product, qty, source, dest, lines):
         values=super()._packing_move_extra_values(product,qty,source,dest,lines)
@@ -179,21 +188,22 @@ class Production(models.Model):
 class Move(models.Model):
     _inherit='stock.move'
     step_analytic_production_id=fields.Many2one('step.packing.production',copy=False,readonly=True,check_company=True,index=True)
+    step_analytic_repack_id=fields.Many2one('step.packing.repack',copy=False,readonly=True,check_company=True,index=True)
     step_packing_consumption=fields.Boolean(copy=False,readonly=True)
 
     @api.model_create_multi
     def create(self,values):
-        if not self.env.su and self.env.context.get('_packing_analytic_origin') is not _ORIGIN and any(row.get('step_analytic_production_id') for row in values):
+        if not self.env.su and self.env.context.get('_packing_analytic_origin') is not _ORIGIN and any((row.get('step_analytic_production_id') or row.get('step_analytic_repack_id')) for row in values):
             raise AccessError(_('El vínculo contable con la OT se genera desde el flujo de Packing.'))
         return super().create(values)
 
     def write(self,values):
-        if not self.env.su and self.env.context.get('_packing_analytic_origin') is not _ORIGIN and {'step_analytic_production_id','step_packing_consumption'}&values.keys():
+        if not self.env.su and self.env.context.get('_packing_analytic_origin') is not _ORIGIN and {'step_analytic_production_id','step_analytic_repack_id','step_packing_consumption'}&values.keys():
             raise AccessError(_('El vínculo contable con la OT se genera desde el flujo de Packing.'))
         return super().write(values)
 
     def _get_dest_account(self, accounts_data):
-        if self.step_analytic_production_id and self.step_packing_consumption:
+        if (self.step_analytic_production_id or self.step_analytic_repack_id) and self.step_packing_consumption:
             expense=accounts_data.get('expense')
             if not expense:raise UserError(_('Configure la cuenta de gasto del producto o categoría: %s.')%self.product_id.display_name)
             return expense.id
@@ -202,7 +212,7 @@ class Move(models.Model):
     def _packing_return_expense_lines(self):
         self.ensure_one()
         original=self.origin_returned_move_id
-        if not original.step_analytic_production_id or not original.step_packing_consumption:
+        if not (original.step_analytic_production_id or original.step_analytic_repack_id) or not original.step_packing_consumption:
             return self.env['account.move.line']
         if original.company_id!=self.company_id:
             raise UserError(_('La devolución y el consumo original pertenecen a empresas distintas.'))
@@ -221,11 +231,11 @@ class Move(models.Model):
         values=super()._prepare_account_move_vals(credit_account_id,debit_account_id,journal_id,qty,description,svl_id,cost)
         # Complete native journal commands after optional stock extensions have
         # prepared them. No stock-wide analytic validation is installed here.
-        if self.step_analytic_production_id and self.step_packing_consumption:
+        if (self.step_analytic_production_id or self.step_analytic_repack_id) and self.step_packing_consumption:
             for command in values['line_ids']:
                 line=command[2]
                 if line.get('account_id')==debit_account_id:
-                    line['analytic_distribution']=self.step_analytic_production_id._packing_distribution(
+                    line['analytic_distribution']=(self.step_analytic_production_id or self.step_analytic_repack_id)._packing_distribution(
                         create=True,existing=line.get('analytic_distribution'))
         elif self.location_id.usage=='production' and self.location_dest_id.usage=='internal':
             original=self._packing_return_expense_lines()
