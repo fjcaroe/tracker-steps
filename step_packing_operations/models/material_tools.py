@@ -85,6 +85,10 @@ def allocate_stock(record, source, lines, allow_shortage=False):
                     break
             if float_compare(remaining, 0, precision_rounding=product.uom_id.rounding) > 0:
                 if allow_shortage and not package and not result and product not in fruit_products:
+                    # Native forced negative moves free other pickings'
+                    # reservations. Never use the shortage exception to do so.
+                    if any(quant.reserved_quantity > 0 for quant in quants):
+                        raise UserError(_('El material %s tiene stock reservado. Revise sus reservas antes de consumir sin stock.') % product.display_name)
                     if product.with_company(record.company_id).standard_price <= 0:
                         raise UserError(_('Ingrese un costo mayor a cero para consumir sin stock: %s.') % product.display_name)
                     if not product.is_storable or product.tracking != 'none':

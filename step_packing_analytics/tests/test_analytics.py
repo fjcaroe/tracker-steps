@@ -215,12 +215,17 @@ class PackingAnalyticsCase(TransactionCase):
 
     def test_t168_repack_negative_stock_native_accounting(self):
         record=self.repack()
+        location=self.company.step_packing_material_location_id or self.wh.lot_stock_id
+        self.env['stock.quant']._update_available_quantity(self.material, location, 10, owner_id=self.producer)
         record.material_line_ids.quantity=3
         record.action_validate()
         self.check_repack_entry(record,6)
         location=self.company.step_packing_material_location_id or self.wh.lot_stock_id
         quant=self.env['stock.quant'].search([('product_id','=',self.material.id),('location_id','=',location.id),('owner_id','=',False)])
         self.assertEqual(sum(quant.mapped('quantity')),-3)
+        consigned=self.env['stock.quant'].search([('product_id','=',self.material.id),
+            ('location_id','=',location.id),('owner_id','=',self.producer.id)])
+        self.assertEqual(sum(consigned.mapped('quantity')),10)
         self.assertEqual(record.line_ids.target_package_id.quant_ids.owner_id,self.producer)
 
     def test_t168_repack_manual_valuation_accounting(self):

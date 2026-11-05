@@ -846,6 +846,14 @@ class TestPackingOperations(TransactionCase):
         allocated = allocate_stock(ot, self.location, lines, allow_shortage=True)
         self.assertEqual(sum(row[1] for row in allocated), 4)
         self.assertTrue(all(not row[5] for row in allocated))
+        self.env['stock.quant']._update_available_quantity(self.carton, self.location, 2)
+        quant = self.env['stock.quant'].search([('product_id', '=', self.carton.id),
+            ('location_id', '=', self.location.id), ('owner_id', '=', False)])
+        quant.reserved_quantity = 2
+        with self.assertRaises(UserError):
+            allocate_stock(ot, self.location, lines, allow_shortage=True)
+        self.assertEqual(quant.reserved_quantity, 2)
+        quant.reserved_quantity = 0
         self.carton.standard_price = 0
         with self.assertRaises(UserError):
             allocate_stock(ot, self.location, lines, allow_shortage=True)
