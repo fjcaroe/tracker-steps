@@ -30,7 +30,9 @@ class Repack(models.Model):
 
     def _create_repack_material_move(self):
         picking = super(Repack, self.with_context(_packing_analytic_origin=_ORIGIN))._create_repack_material_move()
-        for move in picking.move_ids:
+        # Stock users validate the operation; the native valuation boundary
+        # reads and posts the resulting accounting with controlled privileges.
+        for move in picking.move_ids.sudo():
             if move.account_move_ids.filtered(lambda entry: entry.state != 'cancel'):
                 continue
             accounts = move.with_company(self.company_id).product_id.product_tmpl_id.get_product_accounts()
