@@ -740,9 +740,10 @@ class TestPackingOperations(TransactionCase):
         # A legacy closed OT can be billed with a deliberate contract choice.
         # Its existing stock valuation is independent of this bill preparation.
         from odoo.addons.step_packing_operations.models.contract_valuation import _VALUATION
+        from odoo.addons.step_packing_operations.models.process_control import _INTERNAL
         valuation = sum(production.output_picking_id.move_ids.stock_valuation_layer_ids.mapped('value'))
         with self.assertRaisesRegex(RuntimeError, 'rollback legacy bill'), self.cr.savepoint():
-            production.with_context(_packing_valuation=_VALUATION).write({
+            production.with_context(_packing_valuation=_VALUATION, _packing_control=_INTERNAL).write({
                 'purchase_bill_id': False, 'valuation_snapshot': False})
             wizard.contract_id = contract
             legacy_action = wizard.action_prepare_bills()
@@ -766,7 +767,7 @@ class TestPackingOperations(TransactionCase):
     def test_contract_holding_scope(self):
         branch = self.env['res.company'].create({
             'name': 'Packing branch contract QA', 'parent_id': self.company.id})
-        unrelated = self.env['res.company'].create({'name': 'Unrelated contract QA'})
+        unrelated = self.env['res.company'].create({'name': 'Unrelated contract QA', 'parent_id': False})
         self.env.user.company_ids |= branch | unrelated
         scope = self.env(context=dict(self.env.context,
             allowed_company_ids=(self.company | branch | unrelated).ids))
@@ -777,9 +778,12 @@ class TestPackingOperations(TransactionCase):
             'contract_id': contract.id})
         row._check_contract_holding()
         self.assertIn(self.company, row._contract_companies())
-        row.company_id = unrelated
+        denied = scope['step.packing.production'].new({
+            'company_id': unrelated.id, 'fruit_grower_id': self.producer.id,
+            'contract_id': contract.id})
+        self.assertNotIn(self.company, denied._contract_companies())
         with self.assertRaises(ValidationError):
-            row._check_contract_holding()
+            denied._check_contract_holding()
 
     def test_costing_capitalizes_only_owned_export_and_is_idempotent(self):
         expense = self.env['account.account'].search([('company_ids', 'in', self.company.id), ('account_type', '=', 'expense')], limit=1)
