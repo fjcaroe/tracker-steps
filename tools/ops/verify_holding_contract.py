@@ -47,20 +47,22 @@ try:
         seen = set()
         for tag in source:
             for detail in tag.step_tag_line_ids:
-                key = (detail.product_id.id, tag.especie_id.id)
+                base = detail.product_id.product_tmpl_id.step_export_base_product_id
+                priced = base.product_variant_ids if base else detail.product_id
+                key = (priced.id, tag.especie_id.id)
                 if key in seen:
                     continue
                 seen.add(key)
                 line = env['step.producer.purchase.contract.product'].create({
-                    'contract_id': contract.id, 'product_id': detail.product_id.id,
+                    'contract_id': contract.id, 'product_id': priced.id,
                     'species_id': tag.especie_id.id, 'quantity': 1,
-                    'uom_id': detail.product_id.uom_id.id, 'price_unit': 2,
+                    'uom_id': priced.uom_id.id, 'price_unit': 2,
                     'debit_account_id': account.id})
                 env['step.producer.purchase.contract.installment'].create({
                     'contract_id': contract.id, 'product_line_id': line.id,
                     'quantity': 1, 'date_due': sample.date})
         contract.action_confirm()
-        company_scope = (parent | branch).ids
+        company_scope = branch.ids
         business = scoped_business_environment(env, company=branch)
         business = business(context=dict(business.context, allowed_company_ids=company_scope))
         wizard = business['step.packing.monthly.fruit.bill'].create({
@@ -68,13 +70,15 @@ try:
             'date_end': sample.date, 'producer_ids': [(6, 0, sample.fruit_grower_id.ids)],
             'contract_id': contract.id})
         before = sample.read(['valuation_snapshot', 'state', 'contract_id'])[0]
+        assert wizard.env.companies == branch
+        contract.with_env(business).check_access('read')
         first = wizard.action_prepare_bills()
         bill = sample.purchase_bill_id
         assert bill and bill.state == 'draft' and bill.company_id == branch
         assert sample.read(['valuation_snapshot', 'state', 'contract_id'])[0] == before
         assert wizard.action_prepare_bills()['domain'] == first['domain']
         assert bill.invoice_line_ids and all(line.company_id == branch for line in bill.line_ids)
-        print('T170_BRANCH_MONTHLY_FLOW_OK')
+        print('T170_BRANCH_MONTHLY_FLOW_OK BRANCH_ONLY_BASE_PRODUCT')
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({
         'ticket': 170, 'versions': EXPECTED, 'existing_profile': scoped.uid,
         'native_monthly_form': True, 'writes': False}))

@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.tests.common import new_test_user
 
@@ -745,9 +745,27 @@ class TestPackingOperations(TransactionCase):
         with self.assertRaisesRegex(RuntimeError, 'rollback legacy bill'), self.cr.savepoint():
             production.with_context(_packing_valuation=_VALUATION, _packing_control=_INTERNAL).write({
                 'purchase_bill_id': False, 'valuation_snapshot': False})
-            wizard.contract_id = contract
+            base = self.env['product.product'].create({
+                'name': 'Base export kg QA', 'step_export_enabled': True,
+                'uom_id': self.env.ref('uom.product_uom_kgm').id,
+                'uom_po_id': self.env.ref('uom.product_uom_kgm').id})
+            self.finished.product_tmpl_id.step_export_base_product_id = base.product_tmpl_id
+            legacy_contract = self.env['step.producer.purchase.contract'].create({'partner_id': self.producer.id})
+            base_line = self.env['step.producer.purchase.contract.product'].create({
+                'contract_id': legacy_contract.id, 'product_id': base.id, 'species_id': self.species.id,
+                'quantity': 80, 'uom_id': base.uom_id.id, 'price_unit': 2, 'debit_account_id': account.id})
+            self.env['step.producer.purchase.contract.installment'].create({
+                'contract_id': legacy_contract.id, 'product_line_id': base_line.id,
+                'quantity': 80, 'date_due': '2026-11-30'})
+            legacy_contract.action_confirm()
+            with self.assertRaisesRegex(UserError, 'T41-EXPORT'):
+                production._contract_prices(contract, for_billing=True)
+            wizard.contract_id = legacy_contract
             legacy_action = wizard.action_prepare_bills()
-            self.assertEqual(production.purchase_bill_id.amount_untaxed, 32)
+            self.assertEqual(production.purchase_bill_id.amount_untaxed, 160)
+            self.assertEqual(production.purchase_bill_id.invoice_line_ids.product_id, base)
+            self.assertEqual(production.purchase_bill_id.invoice_line_ids.quantity, 80)
+            self.assertEqual(production.purchase_bill_id.invoice_line_ids.product_uom_id, base.uom_id)
             self.assertFalse(production.valuation_snapshot)
             self.assertEqual(wizard.action_prepare_bills()['domain'], legacy_action['domain'])
             self.assertEqual(sum(production.output_picking_id.move_ids.stock_valuation_layer_ids.mapped('value')), valuation)
@@ -778,6 +796,23 @@ class TestPackingOperations(TransactionCase):
             'contract_id': contract.id})
         row._check_contract_holding()
         self.assertIn(self.company, row._contract_companies())
+        operator = new_test_user(self.env, login='holding_contract_branch_qa',
+            groups='base.group_user', company_id=branch.id,
+            company_ids=[(6, 0, (self.company | branch | unrelated).ids)])
+        branch_scope = scope(user=operator, su=False, context=dict(scope.context, allowed_company_ids=branch.ids))
+        selected = branch_scope['step.producer.purchase.contract'].search([('id', '=', contract.id)])
+        self.assertEqual(selected.id, contract.id)
+        selected.check_access('read')
+        with self.assertRaises(AccessError):
+            selected.check_access('write')
+        only_branch = new_test_user(self.env, login='holding_contract_unassigned_qa',
+            groups='base.group_user', company_id=branch.id, company_ids=[(6, 0, branch.ids)])
+        self.assertFalse(branch_scope['step.producer.purchase.contract'].with_user(only_branch).search([('id', '=', contract.id)]))
+        unrelated_scope = branch_scope(context=dict(branch_scope.context, allowed_company_ids=unrelated.ids))
+        self.assertFalse(unrelated_scope['step.producer.purchase.contract'].search([('id', '=', contract.id)]))
+        branch_row = branch_scope['step.packing.production'].new({
+            'company_id': branch.id, 'fruit_grower_id': self.producer.id, 'contract_id': contract.id})
+        branch_row._check_contract_holding()
         denied = scope['step.packing.production'].new({
             'company_id': unrelated.id, 'fruit_grower_id': self.producer.id,
             'contract_id': contract.id})

@@ -48,7 +48,7 @@ class PackingProduction(models.Model):
 
     def _contract_companies(self):
         self.ensure_one()
-        return self.env['res.company'].sudo().search([('id', 'parent_of', self.company_id.id)]) & self.env.companies
+        return self.env['res.company'].sudo().search([('id', 'parent_of', self.company_id.id)]) & self.env.user.company_ids
 
     @api.constrains('contract_id', 'company_id', 'fruit_grower_id')
     def _check_contract_holding(self):
@@ -76,22 +76,42 @@ class PackingProduction(models.Model):
         result = []
         for tag in tags:
             for detail in tag.step_tag_line_ids:
-                candidates = contract.product_line_ids.filtered(lambda row: row.product_id == detail.product_id and row.species_id == tag.especie_id)
+                product = detail.product_id.with_company(self.company_id)
+                base = product.product_tmpl_id.step_export_base_product_id
+                if base and len(base.product_variant_ids) != 1:
+                    raise UserError(_('El producto base %s debe identificar una única variante para buscar el precio.') % base.display_name)
+                priced_product = base.product_variant_ids if base else product
+                candidates = contract.product_line_ids.filtered(lambda row: row.product_id == priced_product and row.species_id == tag.especie_id)
                 category = tag.fruit_category_id.step_contract_category_id
                 caliber = tag.fruit_caliber_id.step_contract_caliber_id
                 if (tag.fruit_category_id and not category and any(row.category_id for row in candidates) or
                     tag.fruit_caliber_id and not caliber and any(row.caliber_id for row in candidates)):
                     raise UserError(_('Vincule la categoría y el calibre de Inventario con sus equivalentes en contratos.'))
-                price = self.env['step.producer.purchase.contract.product'].resolve_variant_price(
-                    contract, detail.product_id, tag.especie_id, tag.variedad_id, category, caliber)
-                product = detail.product_id.with_company(self.company_id)
+                try:
+                    price = self.env['step.producer.purchase.contract.product'].resolve_variant_price(
+                        contract, priced_product, tag.especie_id, tag.variedad_id, category, caliber)
+                except UserError as error:
+                    raise UserError(_(
+                        '%(reason)s\nOT: %(ot)s; tarja: %(tag)s; contrato: %(contract)s.\n'
+                        'Producto: %(product)s; producto de precio: %(base)s.\n'
+                        'Especie: %(species)s; variedad: %(variety)s; categoría: %(category)s; calibre: %(caliber)s.',
+                        reason=str(error), ot=self.name, tag=tag.display_name, contract=contract.display_name,
+                        product=product.display_name, base=priced_product.display_name,
+                        species=tag.especie_id.display_name or '-', variety=tag.variedad_id.display_name or '-',
+                        category=tag.fruit_category_id.display_name or '-', caliber=tag.fruit_caliber_id.display_name or '-')) from error
                 if product.cost_method == 'standard' and not for_billing:
                     raise UserError(_('La valorización contractual requiere costo promedio o FIFO para %s.') % product.display_name)
-                quantity = product.uom_id._compute_quantity(detail.quantity, price.uom_id)
+                if base:
+                    kilos = self.env.ref('uom.product_uom_kgm')
+                    if price.uom_id.category_id != kilos.category_id or detail.kilos <= 0:
+                        raise UserError(_('OT %s, tarja %s: el precio del producto base requiere unidad de peso y kilos netos positivos.') % (self.name, tag.display_name))
+                    quantity = kilos._compute_quantity(detail.kilos, price.uom_id, round=False)
+                else:
+                    quantity = product.uom_id._compute_quantity(detail.quantity, price.uom_id)
                 amount = quantity * price.price_unit
                 company_amount = contract.currency_id._convert(amount, self.company_id.currency_id, self.company_id, self.date, round=False)
                 result.append({'tag_id': tag.id, 'product_id': product.id, 'contract_line_id': price.id,
-                    'quantity': quantity, 'uom_id': price.uom_id.id, 'price_unit': price.price_unit,
+                    'bill_product_id': priced_product.id, 'quantity': quantity, 'uom_id': price.uom_id.id, 'price_unit': price.price_unit,
                     'amount': amount, 'stock_quantity': detail.quantity, 'company_amount': company_amount})
         return result
 
@@ -193,7 +213,7 @@ class MonthlyFruitBill(models.TransientModel):
                             raise UserError(_('Configure la cuenta de cargo en cada producto del contrato.'))
                         taxes = source.product_id.supplier_taxes_id.filtered(lambda tax: tax.company_id == self.company_id)
                         lines.append((0, 0, {'name': '%s / tarja %s / %s' % (record.name, row['tag_id'], contracts[record.id].name),
-                            'product_id': row['product_id'], 'product_uom_id': row['uom_id'], 'quantity': row['quantity'],
+                            'product_id': row.get('bill_product_id', row['product_id']), 'product_uom_id': row['uom_id'], 'quantity': row['quantity'],
                             'price_unit': row['price_unit'], 'account_id': source.debit_account_id.id,
                             'analytic_distribution': source.analytic_distribution, 'tax_ids': [(6, 0, taxes.ids)]}))
                 bill = self.env['account.move'].with_company(self.company_id).create({
