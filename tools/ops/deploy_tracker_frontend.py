@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parent))
@@ -30,19 +31,28 @@ def entry_package(scope,dist):
 
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','development','production']);p.add_argument('source',type=Path);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','development','production']);p.add_argument('source',type=Path)
+ p.add_argument('--runtime-api-manifest',type=Path,help='Reviewed hash manifest of the unchanged installed API for a frontend-only release')
+ a=p.parse_args()
  assert os.geteuid()==0;source=a.source.resolve()
  commit=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
  assert not subprocess.check_output(['git','-C',str(source),'status','--porcelain','--untracked-files=no'],text=True).strip()
- expected=tree(source/'backend/tracker_py/app');assert expected==tree(API/'app'),'Refuse API drift or frontend package against another API'
+ expected=json.loads(a.runtime_api_manifest.read_text()) if a.runtime_api_manifest else tree(source/'backend/tracker_py/app')
+ assert expected==tree(API/'app'),'Refuse unreviewed installed API drift'
  stage=BASE/commit;stage.mkdir(parents=True,exist_ok=True);stage.chmod(0o755)
  private=stage/'private';private.mkdir(exist_ok=True,mode=0o700);private.chmod(0o700)
  assets=files(source/'dist');assert 'index.html' in assets
  with open('/run/lock/steps-environments.lock','a') as lease:
   fcntl.flock(lease,fcntl.LOCK_EX)
+  assert expected==tree(API/'app'),'Concurrent API change'
   if a.action=='qa':
    assert not (stage/'qa.json').exists()
    entries={scope:entry_package(scope,source/'dist') for scope in ('dev','cerro')}
+   reference=source/'backend/tracker_py'
+   if a.runtime_api_manifest:
+    reference=stage/'api-reference'
+    shutil.copytree(API/'app',reference/'app',ignore=shutil.ignore_patterns('__pycache__'))
+    assert tree(reference/'app')==expected
    run(sys.executable,source/'tools/qa/tracker/test_tracker_entry_routing.py')
    stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ');db='COBAN_QA_'+stamp
    dump=private/'tracker_steps.dump'
@@ -50,7 +60,7 @@ def main():
    run('pg_restore','--file=/dev/null',dump);run('sudo','-u','postgres','createdb',db)
    try:
     with dump.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','-d',db,stdin=inp)
-    with (private/'functional.log').open('w') as log:run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+db,'JWT_SECRET=test-only-copy-qa','PYTHONPATH='+str(source)+':'+str(source/'backend/tracker_py'),API/'.venv/bin/python',source/'tools/qa/tracker/rehearse_tracker_integration.py',cwd=source,stdout=log,stderr=subprocess.STDOUT)
+    with (private/'functional.log').open('w') as log:run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+db,'JWT_SECRET=test-only-copy-qa','PYTHONPATH='+str(source)+':'+str(reference),API/'.venv/bin/python',source/'tools/qa/tracker/rehearse_tracker_integration.py',cwd=source,stdout=log,stderr=subprocess.STDOUT)
     assert 'TRACKER_INTEGRATION_COPY_OK' in (private/'functional.log').read_text()
     assert expected==tree(API/'app')
     (stage/'qa.json').write_text(json.dumps({'commit':commit,'api_source':expected,'dist':assets,'entries':entries,'fresh_target_copy':True,'gps_and_classic_session_flow':True,'database':db},indent=2))

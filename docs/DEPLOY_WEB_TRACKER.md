@@ -17,6 +17,13 @@ El modo real consulta la comparación con una sesión efímera y bloquea las
 escrituras de negocio y las órdenes físicas. Publicar el mismo dist primero
 en Desarrollo y después en Cerro con `deploy_tracker_frontend.py`.
 
+Si la rama contiene cambios de API todavía no instalados, una entrega de
+interfaz puede usar `--runtime-api-manifest` con el manifiesto privado revisado
+del servicio vigente. El publicador verifica esos hashes bajo bloqueo, copia
+ese código para ensayarlo sobre una base fresca y exige los mismos hashes al
+publicar en ambos destinos. La comparación de vehículos usa el contrato vigente
+de posiciones, con filtro por fecha inicial y paginación.
+
 ## Flota nativa y presentación del control de arranque
 
 El informe consulta servicios y contratos nativos por vínculo de activo,
