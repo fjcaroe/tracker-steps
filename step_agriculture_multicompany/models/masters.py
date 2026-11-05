@@ -126,11 +126,11 @@ class Color(models.Model):
     company_ids = fields.Many2many('res.company', 'step_fruit_color_company_rel', 'master_id', 'company_id', string='Empresas y sucursales', required=True, default=lambda self: self.env.company)
 
 
-def check_document_masters(records):
+def check_document_masters(records, package_companies=None):
     targets = {'step.fundo', 'step.management.fruit.category', 'step.management.fruit.class',
                'step.management.fruit.quality', 'step.fruit.color'}
     for record in records:
-        company = record.company_id or record.env.company
+        company = record.company_id or (package_companies or {}).get(record.id) or record.env.company
         for name, field in record._fields.items():
             if field.type == 'many2one' and field.comodel_name in targets:
                 master = record[name]
@@ -150,7 +150,22 @@ class Package(models.Model):
 
     @api.constrains('company_id', 'fundo_id', 'fruit_category_id', 'fruit_class_id', 'fruit_quality_id')
     def _check_agricultural_masters(self):
-        check_document_masters(self)
+        # Inventory clears the package company when its final stock is consumed.
+        # Keep validating against the OT or the last completed stock movement.
+        empty_tags = self.filtered(lambda tag: tag.is_fruit_tag and not tag.company_id)
+        companies = {tag.id: tag.step_packing_production_id.sudo().company_id
+                     for tag in empty_tags if tag.step_packing_production_id}
+        historical = set(empty_tags.ids) - companies.keys()
+        if historical:
+            moves = self.env['stock.move.line'].sudo().search([
+                ('state', '=', 'done'), '|', ('package_id', 'in', list(historical)),
+                ('result_package_id', 'in', list(historical)),
+            ], order='date desc, id desc')
+            for line in moves:
+                for tag in line.package_id | line.result_package_id:
+                    if tag.id in historical:
+                        companies.setdefault(tag.id, line.company_id)
+        check_document_masters(self, companies)
 
 
 class Production(models.Model):

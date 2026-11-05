@@ -134,6 +134,22 @@ class TestMasters(TransactionCase):
         with self.assertRaises(ValidationError):
             line._check_quality_company()
 
+    def test_empty_fruit_tag_keeps_stock_company_for_master_validation(self):
+        farm = self.make('step.fundo', company_id=self.b.id)
+        product = self.env['product.product'].create({'name': 'QA T164 fruit', 'is_storable': True})
+        tag = self.env['stock.quant.package'].with_company(self.b).create({
+            'name': 'QA T164', 'is_fruit_tag': True, 'step_tag_kind': 'C', 'fundo_id': farm.id,
+        })
+        warehouse = self.env['stock.warehouse'].search([('company_id', '=', self.b.id)], limit=1)
+        order = self.env['step.packing.production'].with_company(self.b).create({'company_id': self.b.id})
+        order._create_packing_move(warehouse, self.env.ref('stock.stock_location_suppliers'),
+                                   warehouse.lot_stock_id, [(product, 1, False, tag)])
+        self.assertEqual(tag.company_id, self.b)
+        order._create_packing_move(warehouse, warehouse.lot_stock_id, order._production_location(),
+                                   [(product, 1, tag, False)])
+        self.assertFalse(tag.company_id)
+        tag.with_company(self.a)._check_agricultural_masters()
+
     def test_native_web_read_scope_editor(self):
         record = self.make('step.fruit.color', company_ids=[Command.set((self.a | self.b).ids)])
         scoped = record.with_user(self.user).with_context(allowed_company_ids=self.b.ids)
