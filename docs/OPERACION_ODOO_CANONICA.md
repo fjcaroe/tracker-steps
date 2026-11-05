@@ -1,5 +1,13 @@
 # Operación y publicación de Odoo
 
+T166 autoriza `packing-output-lots` en Desarrollo, Cerro y QA-Cerro.
+Agregar LOTE a la OT, con el número de OT por defecto y valor editable antes
+del cierre. Propagar el nombre a stock.lot por producto y empresa en las
+tarjas resultantes E/N. El plan privado del adjunto 3517 autoriza reemplazar
+los lotes de las siete OT indicadas de Cool & Go en Cerro. Probar el plan en
+copia fresca, conservar estados, cantidades, materiales, movimientos, permisos
+y registros previos. Publicar el mismo paquete con respaldo, bloqueo y paridad.
+
 T165 autoriza `reception-lots` en Desarrollo, Cerro y QA-Cerro. El lote de la
 hoja Fruta crea o reutiliza stock.lot por producto y empresa y se conserva en
 las tarjas C, sus existencias y el detalle consultado desde la OT.

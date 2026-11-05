@@ -3,7 +3,7 @@ from odoo.tools import SQL
 from odoo.tools.float_utils import float_compare
 
 
-def preserved_rows(env):
+def preserved_rows(env, extra_excluded=None):
     result = {}
     tables = {
         'stock_picking': [], 'stock_move': [], 'stock_quant_package': [],
@@ -14,7 +14,7 @@ def preserved_rows(env):
         'stock_valuation_layer': [], 'stock_lot': [],
     }
     for table, excluded in tables.items():
-        excluded += ['write_date', 'write_uid']
+        excluded += ['write_date', 'write_uid'] + (extra_excluded or {}).get(table, [])
         env.cr.execute(SQL(
             "SELECT id, md5((to_jsonb(t) - %s::text[])::text) FROM %s t ORDER BY id",
             excluded, SQL.identifier(table)))

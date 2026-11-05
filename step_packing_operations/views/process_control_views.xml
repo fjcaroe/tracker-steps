@@ -3,7 +3,9 @@
         <field name="name">fruit.tag.packing.lot</field><field name="model">stock.quant.package</field>
         <field name="inherit_id" ref="step_inventory_packing.view_quant_package_form_steps_fruit"/>
         <field name="arch" type="xml"><xpath expr="//field[@name='step_tag_line_ids']/list/field[@name='product_id']" position="after">
-            <field name="lot_id" domain="[('product_id','=',product_id)]" optional="hide"/>
+            <field name="lot_id" domain="[('product_id','=',product_id)]" optional="show"
+                   readonly="parent.step_packing_production_id"
+                   help="Para las tarjas resultantes de una OT se usa el campo LOTE de esa OT."/>
         </xpath><xpath expr="//field[@name='step_actual_kg']" position="after">
             <field name="harvest_date"/><field name="received_at"/>
         </xpath></field>

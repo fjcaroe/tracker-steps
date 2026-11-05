@@ -407,6 +407,7 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(legacy.step_tag_line_ids.product_id, self.raw)
 
     def test_packing_close_moves_real_stock_without_manufacturing(self):
+        self.finished.tracking = 'lot'
         """El cierre de la OT traslada stock real (MP -> Producción -> PT) con
         traslados de Inventario comunes; en ningún momento se crea ni se exige
         una mrp.production para completar el proceso."""
@@ -444,12 +445,73 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(production.output_picking_id.state, "done")
         self.assertEqual(production.material_picking_id.state, "done")
         quant = self.env["stock.quant"]
-        self.assertEqual(quant._get_available_quantity(self.finished, self.location, package_id=output, strict=True), 16)
+        self.assertEqual(output.step_tag_line_ids.lot_id.name, production.step_output_lot_name)
+        self.assertEqual(production.output_picking_id.move_line_ids.lot_id, output.step_tag_line_ids.lot_id)
+        self.assertEqual(quant._get_available_quantity(self.finished, self.location,
+                         package_id=output, lot_id=output.step_tag_line_ids.lot_id, strict=True), 16)
         self.assertEqual(quant._get_available_quantity(self.raw, self.location, package_id=incoming, strict=True), 0)
         self.assertEqual(quant._get_available_quantity(self.carton, self.location), 0)
         html, _ = self.env["ir.actions.report"]._render_qweb_html(
             "step_packing_operations.report_packing_process", production.ids)
         self.assertRegex(html.lower(), rb"<h2[^>]*>informe de proceso (?:de )?packing</h2>")
+
+    def test_ot_lot_defaults_and_changes_validated_export_and_national_tags(self):
+        self.finished.tracking = 'lot'
+        self.national.tracking = 'lot'
+        bom = self.env['mrp.bom'].create({
+            'product_tmpl_id': self.finished.product_tmpl_id.id, 'product_qty': 1,
+            'bom_line_ids': [(0, 0, {'product_id': self.carton.id, 'product_qty': 1})]})
+        order = self._order()
+        order.action_validate()
+        incoming = self._tag('T166-C', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        outgoing = self._tag('T166-E', 'E', self.finished, 80, 16, 'export')
+        national = self._tag('T166-N', 'N', self.national, 10, 10, 'commercial')
+        production = self._production(order, incoming, outgoing, bom)
+        production.step_packing_output_tag_ids = [(4, national.id)]
+        self.assertEqual(production.step_output_lot_name, production.name)
+        detail = (outgoing | national).step_tag_line_ids
+        self.assertEqual(detail.lot_id.mapped('name'), [production.name, production.name])
+        production.action_step_packing_validate()
+        production.step_output_lot_name = 'QA166-CUSTOM'
+        self.assertEqual(set(detail.lot_id.mapped('name')), {'QA166-CUSTOM'})
+        self.assertEqual(detail.lot_id.company_id, self.company)
+        self.assertEqual(len(detail.lot_id), 2)
+        with self.assertRaises(UserError):
+            detail[:1].quantity = 123
+        production.step_output_lot_name = False
+        self.assertEqual(set(detail.lot_id.mapped('name')), {production.name})
+        self._stock(self.raw, 100, incoming)
+        self._stock(self.carton, 16)
+        production.action_prepare_materials()
+        production.action_approve_materials()
+        production.action_step_packing_close()
+        self.assertEqual(production.state, 'closed')
+        self.assertEqual(set(production.output_picking_id.move_line_ids.lot_id.mapped('name')), {production.name})
+        self.assertEqual(outgoing.quant_ids.lot_id, outgoing.step_tag_line_ids.lot_id)
+        self.assertEqual(national.quant_ids.lot_id, national.step_tag_line_ids.lot_id)
+        self.assertEqual(national.quant_ids.owner_id, self.producer)
+        with self.assertRaises(UserError):
+            production.step_output_lot_name = 'QA166-FORBIDDEN'
+
+    def test_ot_lot_fills_new_detail_and_is_scoped_to_product_company(self):
+        production = self.env['step.packing.production'].create({'step_output_lot_name': 'QA166-CREATE'})
+        tag = self._tag('T166-NEW', 'E', self.finished, 50, 10, 'export')
+        tag.step_packing_production_id = production
+        line = tag.step_tag_line_ids
+        self.assertEqual(line.lot_id.name, 'QA166-CREATE')
+        other = self.env['stock.lot'].create({
+            'name': 'QA166-CREATE', 'product_id': self.finished.id,
+            'company_id': self.env['res.company'].create({'name': 'QA166 other company'}).id})
+        line.product_id = self.national
+        self.assertEqual(line.lot_id.product_id, self.national)
+        self.assertEqual(line.lot_id.company_id, self.company)
+        self.assertNotEqual(line.lot_id, other)
+        fresh = self.env['step.fruit.package.line'].create({
+            'package_id': tag.id, 'producer_id': self.producer.id, 'product_id': self.finished.id,
+            'quantity': 1, 'kilos': 1, 'boxes': 1})
+        self.assertEqual(fresh.lot_id.name, 'QA166-CREATE')
+        self.assertEqual(fresh.lot_id.company_id, self.company)
 
     def test_reverse_packing_close_restores_stock_and_allows_reclose(self):
         order = self._order()
