@@ -51,6 +51,11 @@ def create_stock_transfer(record, warehouse, source, dest, lines):
 
 
 def allocate_stock(record, source, lines, allow_shortage=False):
+    if record._name == 'step.packing.production':
+        fruit_products = (record.raw_product_id | record.step_packing_input_tag_ids.step_tag_line_ids.product_id
+                          | record.step_packing_output_tag_ids.step_tag_line_ids.product_id)
+    else:
+        fruit_products = record.line_ids.product_id
     if source.usage == 'internal':
         allocated = defaultdict(float)
         exact = []
@@ -79,7 +84,7 @@ def allocate_stock(record, source, lines, allow_shortage=False):
                 if float_compare(remaining, 0, precision_rounding=product.uom_id.rounding) <= 0:
                     break
             if float_compare(remaining, 0, precision_rounding=product.uom_id.rounding) > 0:
-                if allow_shortage and not package and not result:
+                if allow_shortage and not package and not result and product not in fruit_products:
                     if product.with_company(record.company_id).standard_price <= 0:
                         raise UserError(_('Ingrese un costo mayor a cero para consumir sin stock: %s.') % product.display_name)
                     if not product.is_storable or product.tracking != 'none':
@@ -101,7 +106,9 @@ def material_recipe(tag, detail, company, order=None):
         raw = order.raw_product_id | order.step_packing_input_tag_ids.step_tag_line_ids.product_id
         if product in raw:
             product = ((tag.step_packaging_id.product_id - raw) or (order.product_id - raw) or
-                       (order.step_packing_output_tag_ids.step_tag_line_ids.product_id - raw))
+                       (order.step_packing_output_tag_ids.filtered(
+                           lambda row: row.step_tag_kind == 'E' and row.step_packing_result == 'export'
+                       ).step_tag_line_ids.product_id - raw))
             if len(product) != 1 or detail.boxes <= 0:
                 raise UserError(_('Identifique el producto terminado y las cajas de la tarja %s.') % tag.name)
             quantity = detail.boxes

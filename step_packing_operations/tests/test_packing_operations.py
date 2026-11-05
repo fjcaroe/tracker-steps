@@ -837,7 +837,7 @@ class TestPackingOperations(TransactionCase):
 
     def test_t168_shortage_scope_cost_and_consigned_stock(self):
         from ..models.material_tools import allocate_stock
-        ot = self.env['step.packing.production'].create({})
+        ot = self.env['step.packing.production'].create({'raw_product_id': self.raw.id})
         self.env['stock.quant']._update_available_quantity(self.carton, self.location, 10, owner_id=self.producer)
         self.carton.standard_price = 3
         lines = [(self.carton, 4, False, False)]
@@ -850,5 +850,8 @@ class TestPackingOperations(TransactionCase):
         with self.assertRaises(UserError):
             allocate_stock(ot, self.location, lines, allow_shortage=True)
         tag = self._tag('T168 no fruit deficit', 'C', self.raw, 5, 5)
+        self.raw.standard_price = 3
+        with self.assertRaises(UserError):
+            allocate_stock(ot, self.location, [(self.raw, 5, False, False)], allow_shortage=True)
         with self.assertRaises(UserError):
             allocate_stock(ot, self.location, [(self.raw, 5, tag, False)], allow_shortage=True)
