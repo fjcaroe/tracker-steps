@@ -54,7 +54,7 @@ def main():
         modules = ('step_auth_email_casefold',)
     if args.kind == 'packing-holding-contract':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
-        modules = ('step_producers', 'step_packing_operations')
+        modules = ('step_packing_operations', 'step_packing_holding_contract')
     if args.kind == 'journal-branches':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         modules = ('step_account_journal_branches',)

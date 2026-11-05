@@ -47,7 +47,7 @@ def main():
                    {'fields': ['res_id']})[0]['res_id']
     body = ('T170 revisión 2, adjunto 3522 y comentario 10159: publicado en Desarrollo, Cerro '
         'El Plomo producción y QA-Cerro. Versiones step_packing_operations 18.0.2.11.1 y '
-        'step_producers 18.0.1.9.1. El precio se busca mediante el Producto base registrado '
+        'step_packing_holding_contract 18.0.1.0.0. El precio se busca mediante el Producto base registrado '
         '(AR151 → AR00), usando los kilos netos de cada detalle para precios por peso. '
         'Se conserva el producto y la cantidad de stock de las tarjas; la factura usa el producto '
         'base y la unidad del contrato. Los contratos de matrices autorizadas se leen con solo '
