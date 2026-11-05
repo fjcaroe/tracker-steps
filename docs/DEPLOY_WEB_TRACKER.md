@@ -1,5 +1,22 @@
 # Cómo desplegar Web Tracker a producción
 
+## Comparación de vehículos en Operación
+
+La pestaña Comparar vehículos permite seleccionar una o varias unidades con
+casillas, consultar un mismo período GPS y ver los indicadores individuales y
+el total disponible al pie. La gráfica diaria conserva un color por vehículo
+y deja vacíos los días sin muestras. El CSV incluye detalle, total y series
+diarias. Cada recorrido se calcula por separado con el filtrado GPS existente.
+Los errores y el historial parcial se indican por unidad y permiten reintentar
+o continuar la carga. La selección utiliza exclusivamente la flota autorizada
+de la compañía activa. El tiempo sumado corresponde a minutos por vehículo.
+
+`fleet-comparison.cjs` verifica sumas, colores, selección vacía, ausencia de
+muestras, paginación, permisos, cambio de compañía, CSV y adaptación móvil.
+El modo real consulta la comparación con una sesión efímera y bloquea las
+escrituras de negocio y las órdenes físicas. Publicar el mismo dist primero
+en Desarrollo y después en Cerro con `deploy_tracker_frontend.py`.
+
 ## Flota nativa y presentación del control de arranque
 
 El informe consulta servicios y contratos nativos por vínculo de activo,

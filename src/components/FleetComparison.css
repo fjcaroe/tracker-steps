@@ -1,0 +1,27 @@
+.fleet-comparison > header { justify-content: space-between; }
+.fleet-comparison-select { border: 1px solid #d5e0cd; border-radius: 14px; margin: 18px 0; padding: 16px; }
+.fleet-comparison-select legend { padding: 0 8px; font-weight: 700; font-size: 13px; }
+.fleet-comparison-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.fleet-comparison-actions span { font-size: 12px; color: #53654e; }
+.fleet-comparison-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.fleet-comparison-options label { display: flex; flex-direction: row; text-align: left; align-items: center; gap: 10px; padding: 12px; border: 1px solid #dfe7da; border-radius: 10px; cursor: pointer; }
+.fleet-comparison-options label:has(input:checked) { background: #f1f7e9; border-color: #749b5d; }
+.fleet-comparison-options input { width: 18px; height: 18px; accent-color: #315e42; flex-shrink: 0; }
+.fleet-comparison-options small, .fleet-comparison-table th small { display: block; margin-top: 5px; color: #687961; font-weight: normal; }
+.fleet-comparison-options span { min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+.fleet-comparison i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.fleet-comparison-table { width: 100%; font-size: 12px; border-collapse: collapse; margin: 18px 0; }
+.fleet-comparison-table th { text-align: left; }
+.fleet-comparison-table th i { margin-right: 7px; }
+.fleet-comparison-table td:not(:last-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.fleet-comparison-table tfoot { background: #eff5e7; font-weight: 750; }
+.fleet-comparison-table td:last-child { max-width: 250px; white-space: normal; }
+.fleet-comparison-chart { width: 100%; min-width: 0; height: 320px; }
+.fleet-comparison-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
+.fleet-comparison-legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+@media (max-width: 580px) {
+  .fleet-comparison-select { padding: 10px; }
+  .fleet-comparison-options { grid-template-columns: 1fr; }
+  .fleet-comparison-actions button { flex: 1; font-size: 11px; }
+  .fleet-comparison > header > button { width: 100%; }
+}
