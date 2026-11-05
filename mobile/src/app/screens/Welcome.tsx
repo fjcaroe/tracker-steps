@@ -40,7 +40,7 @@ export default function Welcome() {
 
   return (
     <main className="ui-welcome">
-      <div className="ui-welcome__hero"><span className="brand brand--big"><b>S</b>Steps</span><p>Tus tareas de campo en un solo lugar: colaciones, movilización y jornadas de maquinaria.</p></div>
+      <div className="ui-welcome__hero"><span className="brand brand--big"><b>S</b>Steps</span><h1>Tu día en terreno, organizado.</h1><p>Tus tareas de campo en un solo lugar: colaciones, movilización y jornadas de maquinaria.</p></div>
       <form className="ui-welcome__panel" onSubmit={submit}>
         {notice && <Banner tone="warn">{notice}</Banner>}
         <div className="ui-seg" role="group" aria-label="Acceso">
