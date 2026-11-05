@@ -1,5 +1,6 @@
 from odoo.tests import TransactionCase, tagged, Form
 from odoo.exceptions import UserError, ValidationError
+from odoo.tests.common import new_test_user
 
 
 @tagged('post_install','-at_install')
@@ -232,6 +233,15 @@ class PackingAnalyticsCase(TransactionCase):
         self.category.property_valuation='manual_periodic'
         record=self.repack()
         record.action_validate()
+        self.check_repack_entry(record,4)
+
+    def test_t168_stock_operator_posts_only_the_native_material_charge(self):
+        self.category.property_valuation='manual_periodic'
+        record=self.repack()
+        user=new_test_user(self.env,login='qa168-repack-stock',groups='stock.group_stock_user',
+            company_id=self.company.id,company_ids=[(6,0,self.company.ids)])
+        self.assertFalse(user.has_group('account.group_account_user'))
+        record.with_user(user).action_validate()
         self.check_repack_entry(record,4)
 
     def test_t168_shortage_and_cost_failure_roll_back_entire_repack(self):
