@@ -58,7 +58,7 @@ class PackingProduction(models.Model):
                     or record.fruit_grower_id and record.contract_id.partner_id != record.fruit_grower_id):
                 raise ValidationError(_('Seleccione un contrato del productor, de la sucursal o de una matriz autorizada.'))
 
-    def _contract_prices(self, contract=None):
+    def _contract_prices(self, contract=None, *, for_billing=False):
         self.ensure_one()
         tags = self.step_packing_output_tag_ids.filtered(lambda tag: tag.step_packing_result == 'export')
         if not tags:
@@ -85,7 +85,7 @@ class PackingProduction(models.Model):
                 price = self.env['step.producer.purchase.contract.product'].resolve_variant_price(
                     contract, detail.product_id, tag.especie_id, tag.variedad_id, category, caliber)
                 product = detail.product_id.with_company(self.company_id)
-                if product.cost_method == 'standard':
+                if product.cost_method == 'standard' and not for_billing:
                     raise UserError(_('La valorización contractual requiere costo promedio o FIFO para %s.') % product.display_name)
                 quantity = product.uom_id._compute_quantity(detail.quantity, price.uom_id)
                 amount = quantity * price.price_unit
@@ -179,7 +179,7 @@ class MonthlyFruitBill(models.TransientModel):
             contract = record.contract_id if record.valuation_snapshot else self.contract_id
             if not contract:
                 continue
-            prices[record.id] = record.valuation_snapshot or record._contract_prices(contract)
+            prices[record.id] = record.valuation_snapshot or record._contract_prices(contract, for_billing=True)
             contracts[record.id] = contract
             if prices[record.id]:
                 grouped[record.fruit_grower_id.id, contract.currency_id.id] |= record
