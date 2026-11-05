@@ -96,6 +96,15 @@ class PackingProduction(models.Model):
 class PackageLine(models.Model):
     _inherit = 'step.fruit.package.line'
 
+    def _check_open_ot(self):
+        orders = self.env['step.packing.production']
+        for tag in self.package_id:
+            orders |= output_order(tag)
+        orders._lock_process()
+        if any(order.state != 'created' or order.material_review_state == 'approved' for order in orders):
+            raise UserError(_('Reabra cuadratura y materiales antes de cambiar el detalle de salida.'))
+        return super()._check_open_ot()
+
     @api.model_create_multi
     def create(self, vals_list):
         with self.env.cr.savepoint():
@@ -106,6 +115,8 @@ class PackageLine(models.Model):
                 order = output_order(tag)
                 if order and vals.get('product_id'):
                     order._lock_process()
+                    if order.state != 'created' or order.material_review_state == 'approved':
+                        raise UserError(_('No agregue detalle a una OT validada o con materiales aprobados.'))
                     vals['lot_id'] = order._lot_for_output_product(self.env['product.product'].browse(vals['product_id'])).id
                 values.append(vals)
             return super().create(values)
