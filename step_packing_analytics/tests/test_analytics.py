@@ -252,3 +252,6 @@ class PackingAnalyticsCase(TransactionCase):
         record.action_validate()
         self.assertEqual(record.state,'done')
         self.assertFalse(record.material_picking_id)
+        other = self.repack()
+        with self.assertRaises(UserError):
+            other.line_ids.write({'repack_id': record.id})
