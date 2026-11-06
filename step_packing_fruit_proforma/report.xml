@@ -36,7 +36,7 @@
         </div>
         <div t-attf-class="footer o_company_#{company.id}_layout" style="font-size: 9px;">
             <div class="row" style="border-top: 1px solid #536c65; padding-top: 5px;">
-                <div class="col-8">Proforma <span t-field="doc.name"/> · Documento sin emisión fiscal</div>
+                <div class="col-8">Proforma mensual de fruta · Documento sin emisión fiscal</div>
                 <div class="col-4 text-end">Página <span class="page"/> / <span class="topage"/></div>
             </div>
         </div>
