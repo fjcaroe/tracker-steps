@@ -38,7 +38,7 @@ def prepare(source,target,stage):
         shutil.copy2(source/'backend/tracker_py/app'/name,dest)
     shutil.copy2(source/'backend/tracker_py/scripts/refresh_gps_analytics.py',root/'refresh_gps_analytics.py')
     (root/'scripts').mkdir()
-    shutil.copy2(live/'scripts/check_gps_signal.py',root/'scripts/check_gps_signal.py')
+    shutil.copy2(source/'backend/tracker_py/scripts/check_gps_signal.py',root/'scripts/check_gps_signal.py')
     for path in [root,*root.rglob('*')]:path.chmod(0o755 if path.is_dir() else 0o644)
     after=tree(root/'app')
     assert {k:v for k,v in before.items() if k not in FILES}=={k:v for k,v in after.items() if k not in FILES}
