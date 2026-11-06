@@ -1,5 +1,17 @@
 # Operación y publicación de Odoo
 
+T171 revisión 1 (mensaje 10199, adjunto 3535) autoriza `packing-proforma-policy`
+en Desarrollo, Cerro y QA-Cerro. Actualizar explícitamente los impuestos de
+proformas en borrador tras cambiar la política de su especie; el asistente
+mensual también actualiza los borradores que reutiliza. Impedir aprobar un
+borrador fiscalmente desactualizado. Conservar netos, cantidades, precios,
+tarjas, OT y referencias anteriores si cambia la numeración interna 33/46.
+Las proformas aprobadas o facturadas conservan su configuración aprobada.
+El plan privado identifica el único borrador reportado y sus impuestos ya
+configurados por el cliente; comprobarlo en copia fresca antes de actualizarlo
+en Cerro. No aprobarlo, facturarlo ni modificar maestros o tasas al publicar.
+Mismo paquete, respaldo, bloqueo, PDF revisado y paridad Cerro/QA-Cerro.
+
 T174 (mensaje 10192, adjunto 3531) autoriza `previred-movement-dates` en
 Desarrollo y SyS. Contratación a plazo indefinido (1) y cambio a indefinido (8)
 admiten fecha Hasta vacía. Corregir únicamente el requisito falso de cierre

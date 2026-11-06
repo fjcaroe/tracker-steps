@@ -3,6 +3,15 @@ from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 
+def purchase_taxes(product, company, subject, retention):
+    """Use the same native company tax selection for new and refreshed drafts."""
+    taxes = product.with_company(company).supplier_taxes_id
+    taxes = taxes.filtered_domain(taxes._check_company_domain(company))._filter_taxes_by_company(company)
+    taxes = taxes.flatten_taxes_hierarchy().filtered(
+        lambda tax: not (tax.amount_type == 'percent' and tax.amount < 0))
+    return taxes | retention if subject else taxes
+
+
 class Species(models.Model):
     _inherit = 'step.especie'
 

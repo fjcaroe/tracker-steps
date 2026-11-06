@@ -1,11 +1,12 @@
 """Native purchase orders used as immutable, non-stock fruit proformas."""
-from odoo import api, fields, models, _
+from odoo import api, Command, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_round
 from odoo.addons.step_packing_operations.models.contract_valuation import _VALUATION
 from odoo.addons.step_packing_operations.models.process_control import _INTERNAL
 
 from .guards import _FRUIT
+from .species import purchase_taxes
 
 
 def _internal(record):
@@ -45,6 +46,9 @@ class PurchaseOrder(models.Model):
     step_fruit_production_ids = fields.Many2many('step.packing.production',
         'step_fruit_proforma_production_rel', 'order_id', 'production_id', string='Órdenes de trabajo', readonly=True)
     step_fruit_withholding_tax_id = fields.Many2one('account.tax', string='Retención', readonly=True, check_company=True)
+    step_fruit_previous_references = fields.Text(
+        'Referencias anteriores', readonly=True, copy=False,
+        help='Numeración interna conservada cuando se actualiza el documento previsto de un borrador.')
     step_fruit_guide_refs = fields.Text('Guías de recepción', readonly=True)
     step_fruit_supplier_invoice_received = fields.Boolean('Factura recibida del proveedor', copy=False)
     step_fruit_supplier_document_number = fields.Char(related='partner_ref',
@@ -68,6 +72,7 @@ class PurchaseOrder(models.Model):
         'step_fruit_period_start', 'step_fruit_period_end', 'step_fruit_contract_ids',
         'step_fruit_tag_ids', 'step_fruit_production_ids', 'step_fruit_withholding_tax_id',
         'step_fruit_guide_refs', 'step_fruit_generated_move_ids', 'step_fruit_legacy_move_ids',
+        'step_fruit_previous_references',
         'step_fruit_approved_untaxed', 'step_fruit_approved_tax', 'step_fruit_approved_total',
     }
 
@@ -179,12 +184,67 @@ class PurchaseOrder(models.Model):
                 continue
             if order.step_fruit_state != 'draft':
                 raise UserError(_('Solo se aprueban proformas en borrador.'))
+            if order._fruit_tax_policy_updates():
+                raise UserError(_('La configuración de impuestos de la especie cambió. Use Actualizar impuestos y revise el documento previsto y los importes antes de aprobar.'))
             _controlled(order).write({'state': 'purchase', 'date_approve': fields.Datetime.now(),
                 'step_fruit_state': 'approved',
                 'step_fruit_approved_untaxed': order.currency_id.round(order.amount_untaxed),
                 'step_fruit_approved_tax': order.currency_id.round(order.amount_tax),
                 'step_fruit_approved_total': order.currency_id.round(order.amount_total)})
         return True
+
+    def _fruit_tax_policy_updates(self):
+        """Prepare a draft-only fiscal refresh without changing source prices."""
+        self.ensure_one()
+        subject, retention = self.step_fruit_species_id._fruit_vat_policy_for(
+            self.company_id, validate=True)
+        code = '46' if subject else '33'
+        updates = {}
+        if self.step_fruit_dte_code != code:
+            updates['step_fruit_dte_code'] = code
+        if self.step_fruit_withholding_tax_id != retention:
+            updates['step_fruit_withholding_tax_id'] = retention.id or False
+        commands = []
+        for line in self.order_line.filtered(lambda row: not row.display_type):
+            taxes = purchase_taxes(line.product_id, self.company_id, subject, retention)
+            mapped = self.fiscal_position_id.map_tax(taxes) if self.fiscal_position_id else taxes
+            source_rows = [dict(row, tax_ids=taxes.ids) for row in (line.step_fruit_source_rows or [])]
+            if line.taxes_id != mapped or line.step_fruit_source_rows != source_rows:
+                commands.append(Command.update(line.id, {
+                    'taxes_id': [Command.set(mapped.ids)],
+                    'step_fruit_source_rows': source_rows}))
+        if commands:
+            updates['order_line'] = commands
+        return updates
+
+    def action_fruit_refresh_taxes(self):
+        """Explicitly refresh unapproved drafts, preserving IDs and old numbers."""
+        if not self.env.user.has_group('account.group_account_user'):
+            raise UserError(_('La actualización de impuestos requiere permisos de Contabilidad.'))
+        if any(not order.step_fruit_proforma for order in self):
+            raise UserError(_('Esta acción corresponde únicamente a proformas de fruta.'))
+        with self.env.cr.savepoint():
+            for order in self._fruit_lock():
+                if (not order.step_fruit_proforma or order.step_fruit_state != 'draft'
+                        or order.state != 'draft' or order.invoice_ids):
+                    raise UserError(_('Solo se actualizan impuestos de proformas en borrador, sin aprobación ni facturas.'))
+                order._fruit_check_sources()
+                updates = order._fruit_tax_policy_updates()
+                if not updates:
+                    continue
+                if 'step_fruit_dte_code' in updates:
+                    references = (order.step_fruit_previous_references or '').splitlines()
+                    if order.name not in references:
+                        references.append(order.name)
+                    updates.update({
+                        'name': order.with_company(order.company_id).env['ir.sequence'].next_by_code(
+                            'step.packing.fruit.proforma.' + updates['step_fruit_dte_code']),
+                        'step_fruit_previous_references': '\n'.join(references)})
+                before = order.amount_untaxed
+                _controlled(order).write(updates)
+                if order.currency_id.compare_amounts(order.amount_untaxed, before):
+                    raise ValidationError(_('Actualizar impuestos no puede cambiar el neto de la proforma. Revise la configuración de impuestos incluidos en el precio.'))
+        return self._fruit_action() if self else True
 
     def button_confirm(self):
         fruit = self.filtered('step_fruit_proforma')

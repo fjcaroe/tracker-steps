@@ -342,6 +342,91 @@ class TestMonthlyFruitProforma(TransactionCase):
         self._approve(order)
         self.assertEqual(self._convert(order).amount_total, 111.5)
 
+    def test_reprepare_draft_uses_policy_saved_after_its_creation(self):
+        production, tag, source = self._case()
+        order = self._prepare(production)
+        original_id, original_name = order.id, order.name
+        before_stock = self._stock_counts()
+        self.species.with_company(self.branch).write({
+            'step_change_subject_vat': True, 'step_withholding_tax_id': self.retention.id})
+        refreshed = self._prepare(production)
+        self.assertEqual(refreshed.id, original_id)
+        self.assertEqual(refreshed.step_fruit_dte_code, '46')
+        self.assertTrue(refreshed.name.startswith('PF46/'))
+        self.assertIn(original_name, refreshed.step_fruit_previous_references.splitlines())
+        self.assertEqual(refreshed.order_line.taxes_id, self.vat | self.retention)
+        self.assertEqual(refreshed.amount_untaxed, 100)
+        self.assertEqual(refreshed.amount_total, 105)
+        self.assertEqual(tag.step_fruit_proforma_id, refreshed)
+        self.assertEqual(self._stock_counts(), before_stock)
+        self.assertFalse(refreshed.invoice_ids)
+        self._approve(refreshed)
+        self.assertEqual(self._convert(refreshed).l10n_latam_document_type_id.code, '46')
+
+    def test_stale_draft_cannot_be_approved_without_reviewing_updated_taxes(self):
+        production, tag, source = self._case()
+        order = self._prepare(production)
+        self.species.with_company(self.branch).write({
+            'step_change_subject_vat': True, 'step_withholding_tax_id': self.retention.id})
+        with self.assertRaisesRegex(UserError, 'Actualizar impuestos'):
+            self._approve(order)
+        self.assertEqual(order.step_fruit_state, 'draft')
+        self.assertEqual(order.step_fruit_dte_code, '33')
+        order.action_fruit_refresh_taxes()
+        self._approve(order)
+        self.assertEqual(order.step_fruit_state, 'approved')
+
+    def test_tax_refresh_is_idempotent_and_preserves_sources(self):
+        production, tag, source = self._case()
+        order = self._prepare(production)
+        original_lines = order.order_line.ids
+        original_quantities = order.order_line.mapped('product_qty')
+        original_prices = order.order_line.mapped('price_unit')
+        self.species.with_company(self.branch).write({
+            'step_change_subject_vat': True, 'step_withholding_tax_id': self.retention.id})
+        order.action_fruit_refresh_taxes()
+        number, references = order.name, order.step_fruit_previous_references
+        order.action_fruit_refresh_taxes()
+        self.assertEqual((order.name, order.step_fruit_previous_references), (number, references))
+        self.assertEqual(order.order_line.ids, original_lines)
+        self.assertEqual(order.order_line.mapped('product_qty'), original_quantities)
+        self.assertEqual(order.order_line.mapped('price_unit'), original_prices)
+        self.assertEqual(order.step_fruit_tag_ids, tag)
+
+    def test_changed_retention_refreshes_draft_without_renumbering_same_dte(self):
+        production, tag, source = self._case(species=self.retained_species)
+        order = self._prepare(production)
+        name = order.name
+        self.retained_species.with_company(self.root).step_withholding_tax_id = self.other_retention
+        order.action_fruit_refresh_taxes()
+        self.assertEqual(order.name, name)
+        self.assertFalse(order.step_fruit_previous_references)
+        self.assertEqual(order.step_fruit_withholding_tax_id, self.other_retention)
+        self.assertEqual(order.amount_total, 111.5)
+
+    def test_approved_proforma_cannot_refresh_its_snapshot(self):
+        production, tag, source = self._case(species=self.retained_species)
+        order = self._prepare(production)
+        self._approve(order)
+        self.retained_species.with_company(self.root).step_withholding_tax_id = self.other_retention
+        with self.assertRaises(UserError):
+            order.action_fruit_refresh_taxes()
+        self.assertEqual(order.step_fruit_withholding_tax_id, self.retention)
+        self.assertEqual(order.amount_total, 105)
+
+    def test_explicit_branch_standard_policy_is_not_overridden_by_holding_retention(self):
+        self.retained_species.with_company(self.branch).step_change_subject_vat = False
+        production, tag, source = self._case(species=self.retained_species)
+        order = self._prepare(production)
+        order.action_fruit_refresh_taxes()
+        self.assertEqual(order.step_fruit_dte_code, '33')
+        self.assertFalse(order.step_fruit_withholding_tax_id)
+
+    def test_ordinary_purchase_cannot_use_fruit_tax_refresh(self):
+        order = self.env['purchase.order'].create(self._ordinary_values())
+        with self.assertRaises(UserError):
+            self._as_accountant(order).action_fruit_refresh_taxes()
+
     def test_two_species_keep_separate_proformas_and_bills_in_batch_conversion(self):
         ordinary, tag33, source33 = self._case()
         retained, tag46, source46 = self._case(species=self.retained_species)

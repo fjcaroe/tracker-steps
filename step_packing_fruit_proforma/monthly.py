@@ -6,6 +6,7 @@ from odoo.exceptions import UserError, ValidationError
 
 from .guards import _FRUIT
 from .purchase import PurchaseOrder
+from .species import purchase_taxes
 
 
 class Production(models.Model):
@@ -93,11 +94,7 @@ class MonthlyFruitProforma(models.TransientModel):
         return receipts
 
     def _fruit_tax_ids(self, product, subject, retention):
-        taxes = product.with_company(self.company_id).supplier_taxes_id
-        taxes = taxes.filtered_domain(taxes._check_company_domain(self.company_id))._filter_taxes_by_company(self.company_id)
-        taxes = taxes.flatten_taxes_hierarchy().filtered(
-            lambda tax: not (tax.amount_type == 'percent' and tax.amount < 0))
-        return taxes | retention if subject else taxes
+        return purchase_taxes(product, self.company_id, subject, retention)
 
     def action_prepare_bills(self):
         return self._fruit_prepare()
@@ -130,6 +127,7 @@ class MonthlyFruitProforma(models.TransientModel):
             self.env.cr.execute('SELECT id FROM stock_quant_package WHERE id=ANY(%s) ORDER BY id FOR UPDATE', [tags.ids])
             tags.invalidate_recordset(['step_fruit_proforma_id'])
         existing = tags.step_fruit_proforma_id.filtered(lambda quote: quote.step_fruit_state != 'cancel')
+        existing.filtered(lambda quote: quote.step_fruit_state == 'draft').action_fruit_refresh_taxes()
         groups = defaultdict(list)
         for production in orders.filtered(lambda row: not row.purchase_bill_id or row.purchase_bill_id.state == 'cancel'):
             contract = production.contract_id if production.valuation_snapshot else (self.contract_id or production.contract_id)

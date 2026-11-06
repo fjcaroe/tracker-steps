@@ -32,6 +32,9 @@
                     <button name="action_fruit_convert" type="object" string="Preparar factura"
                             class="btn-primary" groups="account.group_account_user"
                             invisible="step_fruit_state != 'approved'"/>
+                    <button name="action_fruit_refresh_taxes" type="object" string="Actualizar impuestos"
+                            groups="account.group_account_user"
+                            invisible="step_fruit_state != 'draft'"/>
                     <button name="%(action_report_fruit_proforma_preview)d" type="action" string="Vista previa"/>
                     <button name="%(action_report_fruit_proforma)d" type="action" string="Imprimir proforma"/>
                     <button name="button_cancel" type="object" string="Cancelar"
@@ -54,6 +57,7 @@
                     <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
                     <div class="alert alert-info" role="status" invisible="step_fruit_state != 'draft'">
                         Proforma para revisión. Apruébela antes de preparar la factura de proveedor.
+                        Si cambió el cambio de sujeto o la retención de la especie, actualice los impuestos y revise los importes.
                     </div>
                     <group>
                         <group>
@@ -66,6 +70,8 @@
                             <field name="step_fruit_period_start" readonly="1"/>
                             <field name="step_fruit_period_end" readonly="1"/>
                             <field name="step_fruit_dte_code" readonly="1"/>
+                            <field name="step_fruit_previous_references" readonly="1"
+                                   invisible="not step_fruit_previous_references"/>
                             <field name="step_fruit_withholding_tax_id" readonly="1" invisible="step_fruit_dte_code != '46'"/>
                             <field name="currency_id" readonly="1"/>
                             <field name="step_fruit_approval_reference" readonly="step_fruit_state != 'draft'"/>
