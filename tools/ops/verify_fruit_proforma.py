@@ -66,6 +66,7 @@ def verify_copy_cycle(admin, output):
     from odoo.tests.common import new_test_user
     from odoo.addons.step_packing_operations.models.process_control import _INTERNAL
     from odoo.addons.step_packing_operations.models.contract_valuation import _VALUATION
+    from odoo.addons.step_packing_fruit_proforma.guards import _FRUIT
 
     admin = admin(context=dict(admin.context, tracking_disable=True,
         mail_notrack=True, mail_create_nosubscribe=True, mail_notify_force_send=False))
@@ -216,6 +217,40 @@ def verify_copy_cycle(admin, output):
     assert filetype == 'pdf' and pdf.startswith(b'%PDF') and len(pdf) > 5000
     (output / 't171-smoke-proformas.pdf').write_bytes(pdf)
 
+    class LargeAnnexRendered(Exception):
+        """Roll back only the synthetic layout rows, preserving the real fixture."""
+
+    original_rows = ordinary.order_line.step_fruit_source_rows
+    assert len(original_rows) == 2
+    try:
+        with admin.cr.savepoint():
+            # Layout stress uses the real report and immutable snapshot schema.
+            # No extra tags, stock or fiscal documents are created. Keep the
+            # summary quantity/net exact and discard these display rows before
+            # approval so the subsequent native accounting test uses its sources.
+            large_rows = [dict(original_rows[0], tag_name='QA%04d' % number,
+                quantity=ordinary.order_line.product_qty / 1000,
+                price_unit=ordinary.order_line.price_unit,
+                amount=ordinary.amount_untaxed / 1000)
+                for number in range(1, 1001)]
+            ordinary.order_line.with_context(_fruit_proforma=_FRUIT).write({
+                'step_fruit_source_rows': large_rows})
+            large_html, _ = report._render_qweb_html(report_ref, ordinary.ids)
+            large_tree = etree.HTML(large_html)
+            annex_rows = large_tree.xpath("//table[contains(concat(' ', normalize-space(@class), ' '), ' annex ')]/tbody/tr")
+            assert len(annex_rows) == 1000
+            assert annex_rows[0].xpath('normalize-space(td[1])') == 'QA0001'
+            assert annex_rows[-1].xpath('normalize-space(td[1])') == 'QA1000'
+            (output / 't171-large-proforma.html').write_bytes(large_html)
+            large_pdf, large_type = report._render_qweb_pdf(report_ref, ordinary.ids)
+            assert large_type == 'pdf' and large_pdf.startswith(b'%PDF') and len(large_pdf) > 20000
+            (output / 't171-large-proforma.pdf').write_bytes(large_pdf)
+            raise LargeAnnexRendered()
+    except LargeAnnexRendered:
+        pass
+    assert ordinary.order_line.step_fruit_source_rows == original_rows
+    assert not orders.invoice_ids and not productions.purchase_bill_id
+
     orders.write({'step_fruit_approval_reference': 'QA171 rollback-only approval'})
     orders.action_fruit_approve()
     assert set(orders.mapped('step_fruit_state')) == {'approved'}
@@ -239,6 +274,7 @@ def verify_copy_cycle(admin, output):
     assert set(orders.order_line.mapped('qty_received')) == {0}
     return {'accountant_without_purchase_role': True, 'outside_accounting_before_approval': True,
             'weighted_price': 2.004, 'summary_lines': 2, 'annex_rows': 3,
+            'large_pdf_annex_rows': 1000,
             'draft_documents': ['33', '46'], 'selected_retention': True,
             'no_official_folio': True, 'retry_same_documents': True,
             'stock_preserved': True, 'html_pdf': True}
