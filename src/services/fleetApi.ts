@@ -24,9 +24,9 @@ export class FleetApiError extends Error {
   constructor(message: string, status: number) { super(message); this.name = 'FleetApiError'; this.status = status; }
 }
 
-export async function portalRequest<T>(path: string, context?: FleetContext, method = 'GET', payload?: unknown): Promise<T> {
+export async function portalRequest<T>(path: string, context?: FleetContext, method = 'GET', payload?: unknown, signal?:AbortSignal): Promise<T> {
   const body = method === 'GET' ? undefined : new URLSearchParams({ csrf_token: context?.csrf_token || '', method, payload: JSON.stringify(payload ?? {}) });
-  const response = await fetch(path, { method: method === 'GET' ? 'GET' : 'POST', body, credentials: 'same-origin', headers: { Accept: 'application/json' } });
+  const response = await fetch(path, { method: method === 'GET' ? 'GET' : 'POST', body, signal, credentials: 'same-origin', headers: { Accept: 'application/json' } });
   if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
     let detail = '';
     try { const data = await response.json(); detail = typeof data.detail === 'string' ? data.detail : Array.isArray(data.detail) ? 'Revisa los datos del formulario y completa los campos obligatorios.' : ''; } catch { /* login HTML / unavailable gateway */ }
@@ -34,8 +34,8 @@ export async function portalRequest<T>(path: string, context?: FleetContext, met
   }
   return response.json() as Promise<T>;
 }
-export function fleetRequest<T>(path: string, context: FleetContext, method = 'GET', body?: unknown) {
-  return portalRequest<T>(`/steps_tracker/api/${path}`, context, method, body);
+export function fleetRequest<T>(path: string, context: FleetContext, method = 'GET', body?: unknown, signal?:AbortSignal) {
+  return portalRequest<T>(`/steps_tracker/api/${path}`, context, method, body,signal);
 }
 export async function allPages<T>(path: string, context: FleetContext): Promise<T[]> {
   const items: T[] = []; let cursor: string | null = '';

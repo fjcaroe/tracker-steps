@@ -6,10 +6,10 @@ from uuid import uuid4
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from jose import jwt, JWTError
 from pydantic import BaseModel, Field, ConfigDict, AwareDatetime
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 from app.core.security import oauth2_scheme, create_access_token, hash_password, get_user_cost_centers
 from app.models.users import User
@@ -31,7 +31,7 @@ def utc(value):
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 
 
-def identity(token=Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def identity(request: Request, token=Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         issuer = jwt.get_unverified_claims(token).get('iss')
         key = bridge_keys().get(issuer)
@@ -43,7 +43,10 @@ def identity(token=Depends(oauth2_scheme), db: Session = Depends(get_db)):
             raise ValueError('Invalid lifetime')
         # Serialize this tenant's commits with its change-feed readers. A cursor
         # cannot advance past an older, still-uncommitted audit event.
-        tenant = db.query(Tenant).filter_by(issuer=issuer, company_id=int(claims['company_id'])).with_for_update().one_or_none()
+        tenant_query = db.query(Tenant).filter_by(issuer=issuer, company_id=int(claims['company_id']))
+        if request.method != 'GET' or request.url.path.endswith('/sync/changes'):
+            tenant_query = tenant_query.with_for_update()
+        tenant = tenant_query.one_or_none()
         if not tenant or claims.get('role') not in ('viewer', 'operator', 'manager', 'ingestor'):
             raise ValueError('Unmapped identity')
         scope = claims.get('asset_ids')
@@ -90,20 +93,38 @@ def position_out(p):
     return None if p is None else {k: getattr(p, k) for k in ('id', 'recorded_at', 'received_at', 'lat', 'lon', 'speed_kmh', 'quality', 'acc', 'external_power')}
 
 
-def asset_out(db, a, at):
-    assignment = db.query(Assignment).filter_by(asset_id=a.id, tenant_id=a.tenant_id, valid_to=None).first()
-    device = db.get(Device, assignment.device_id) if assignment else None
-    registration = db.query(DeviceRegistration).filter_by(tenant_id=a.tenant_id, device_id=device.id).one_or_none() if device else None
+def fleet_state(db, tenant_id):
+    assignments = db.query(Assignment).filter_by(tenant_id=tenant_id, valid_to=None).all()
+    ids = [a.device_id for a in assignments]
+    devices = {d.id:d for d in db.query(Device).filter(Device.id.in_(ids))}
+    registrations = {r.device_id:r for r in db.query(DeviceRegistration).filter(DeviceRegistration.tenant_id==tenant_id,DeviceRegistration.device_id.in_(ids))}
+    if db.get_bind().dialect.name == 'postgresql':
+        points = db.query(Position).from_statement(text('''SELECT p.* FROM gps_assignments a
+            JOIN LATERAL (SELECT * FROM gps_positions p WHERE p.tenant_id=a.tenant_id AND p.asset_id=a.asset_id
+              AND p.assignment_id=a.id ORDER BY p.recorded_at DESC,p.id DESC LIMIT 1) p ON true
+            WHERE a.tenant_id=:tenant AND a.valid_to IS NULL''')).params(tenant=tenant_id).all()
+    else:
+        points = db.query(Position).filter_by(tenant_id=tenant_id).order_by(Position.recorded_at,Position.id).all()
+    return dict(assignments={a.asset_id:a for a in assignments},devices=devices,registrations=registrations,
+        points={p.assignment_id:p for p in points},
+        policies={p.asset_id:p for p in db.query(Policy).filter_by(tenant_id=tenant_id)},
+        incidents={i.asset_id:i for i in db.query(Incident).filter(Incident.tenant_id==tenant_id,Incident.state!='closed').order_by(Incident.id.desc())})
+
+
+def asset_out(db, a, at, state=None):
+    assignment = state['assignments'].get(a.id) if state is not None else db.query(Assignment).filter_by(asset_id=a.id, tenant_id=a.tenant_id, valid_to=None).first()
+    device = (state['devices'].get(assignment.device_id) if state is not None else db.get(Device, assignment.device_id)) if assignment else None
+    registration = (state['registrations'].get(device.id) if state is not None else db.query(DeviceRegistration).filter_by(tenant_id=a.tenant_id, device_id=device.id).one_or_none()) if device else None
     # The old device's last point stays in history, never becomes a new assignment's current state.
-    p = db.query(Position).filter_by(tenant_id=a.tenant_id, asset_id=a.id, assignment_id=assignment.id).order_by(Position.recorded_at.desc(), Position.id.desc()).first() if assignment else None
+    p = (state['points'].get(assignment.id) if state is not None else db.query(Position).filter_by(tenant_id=a.tenant_id, asset_id=a.id, assignment_id=assignment.id).order_by(Position.recorded_at.desc(), Position.id.desc()).first()) if assignment else None
     fresh = bool(p and (at-utc(p.received_at)).total_seconds() <= device.freshness_seconds)
     recent_fix = bool(p and (at-utc(p.recorded_at)).total_seconds() <= device.freshness_seconds and p.quality == 'gps')
     seen = utc(registration.receiver_seen_at) if registration and registration.receiver_seen_at else None
     device_recent = bool(seen and registration.receiver_mode == 'forward'
                          and utc(assignment.valid_from) <= seen
                          and 0 <= (at-seen).total_seconds() <= device.freshness_seconds)
-    policy = db.get(Policy, a.id)
-    incident = db.query(Incident).filter_by(tenant_id=a.tenant_id, asset_id=a.id).filter(Incident.state != 'closed').first()
+    policy = state['policies'].get(a.id) if state is not None else db.get(Policy, a.id)
+    incident = state['incidents'].get(a.id) if state is not None else db.query(Incident).filter_by(tenant_id=a.tenant_id, asset_id=a.id).filter(Incident.state != 'closed').first()
     return {**{k: getattr(a, k) for k in ('name', 'plate', 'type', 'cost_center', 'responsible', 'created_at')},
             'asset_id': a.id, 'linked_to_odoo': a.source_id.startswith('odoo:'), 'last_position': position_out(p),
             'signal_state': 'received' if fresh else 'stale' if p else 'no_signal',
@@ -121,7 +142,9 @@ def asset_out(db, a, at):
 def snapshot(q: str = '', type: str = '', cost_center: str = '', motion: str = '', signal: str = '', protection: str = '', gps: str = '',
              after: str = '', limit: int = Query(200, ge=1, le=500), ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('viewer', 'operator', 'manager'))
-    rows = [asset_out(db, a, now()) for a in scoped(db.query(Asset).filter_by(tenant_id=ctx['tenant_id']), Asset.id, ctx).order_by(Asset.id)]
+    state = fleet_state(db, ctx['tenant_id'])
+    at = now()
+    rows = [asset_out(db, a, at, state) for a in scoped(db.query(Asset).filter_by(tenant_id=ctx['tenant_id']), Asset.id, ctx).order_by(Asset.id)]
     rows = [r for r in rows if (not q or q.casefold() in (r['name']+' '+(r['plate'] or '')).casefold())
             and (not type or r['type'] == type) and (not cost_center or r['cost_center'] == cost_center)
             and (not motion or r['motion_state'] == motion) and (not signal or r['signal_state'] == signal)

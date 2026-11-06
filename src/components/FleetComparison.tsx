@@ -1,17 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { fleetRequest, type FleetAsset, type FleetContext } from "../services/fleetApi";
-import { operationsCsv, operationsMetrics } from "../services/operationsMetrics";
-import type { TrailPoint } from "../services/fleetTrail";
+import { type FleetAsset, type FleetContext } from "../services/fleetApi";
+import { operationsCsv } from "../services/operationsMetrics";
+import {useGpsAnalytics,emptyGpsMetric} from "../services/gpsAnalytics";
 import "./FleetComparison.css";
 
-type LoadResult = {
-  rows: TrailPoint[];
-  cursor: string | null;
-  error: string;
-  loading: boolean;
-  round: number;
-};
 type Period = { from: number; to: number };
 const format = (value: number, digits = 1) => value.toLocaleString("es-CL", { maximumFractionDigits: digits });
 const palette = ["#2563eb", "#b45309", "#7c3aed", "#0f766e", "#be185d", "#15803d", "#c2410c", "#475569"];
@@ -23,72 +16,21 @@ export default function FleetComparison({ assets, context, period, initialAssetI
   initialAssetId: string;
 }) {
   const [selectedIds, setSelectedIds] = useState([initialAssetId]);
-  const [round, setRound] = useState(0);
-  const scope = [context.tenant_key, context.company_id, context.user_id, period.from, period.to].join(":");
-  const cache = useRef<{ scope: string; items: Record<string, LoadResult> }>({ scope, items: {} });
-  const [data, setData] = useState<{ scope: string; items: Record<string, LoadResult> }>({ scope, items: {} });
   const selected = assets.filter(asset => selectedIds.includes(asset.asset_id));
-  const selectionKey = JSON.stringify(selected.map(asset => asset.asset_id).sort());
   const colorIds = assets.map(asset => asset.asset_id).sort();
-
-  useEffect(() => {
-    let active = true;
-    if (cache.current.scope !== scope) cache.current = { scope, items: {} };
-    const publish = () => {
-      if (active) setData({ scope, items: { ...cache.current.items } });
-    };
-    const pending = (JSON.parse(selectionKey) as string[]).filter(id => {
-      const result = cache.current.items[id];
-      return !result || result.loading || (result.round < round && (!!result.cursor || !!result.error));
-    });
-    publish();
-    async function worker() {
-      while (pending.length && active) {
-        const id = pending.shift()!;
-        const previous = cache.current.items[id];
-        const rows = [...(previous?.rows || [])];
-        let cursor = previous?.cursor || null;
-        cache.current.items[id] = { rows: [...rows], cursor, loading: true, error: "", round };
-        publish();
-        try {
-          for (let page = 0; page < 20; page++) {
-            const result = await fleetRequest<{ items: TrailPoint[]; next_cursor: string | null }>(
-              `assets/${id}/positions?limit=500&since=${encodeURIComponent(new Date(period.from).toISOString())}${cursor ? "&before=" + encodeURIComponent(cursor) : ""}`, context);
-            if (!active) return;
-            rows.push(...result.items);
-            cursor = result.next_cursor;
-            if (!cursor) break;
-          }
-          cache.current.items[id] = { rows, cursor, loading: false, error: "", round };
-        } catch (error) {
-          if (!active) return;
-          cache.current.items[id] = {
-            rows: previous?.rows || [], cursor: previous?.cursor || null,
-            loading: false, error: (error as Error).message, round,
-          };
-        }
-        publish();
-      }
-    }
-    void Promise.all(Array.from({ length: Math.min(3, pending.length) }, () => worker()));
-    return () => { active = false; };
-  }, [scope, selectionKey, round, context, period.from]);
-
+  const stats=useGpsAnalytics(context,selected.map(a=>a.asset_id),period);
+  const scope=[context.tenant_key,period.from,period.to].join(':');
   const items = useMemo(() => assets.filter(asset => selectedIds.includes(asset.asset_id)).map(asset => {
-    const result = data.scope === scope ? data.items[asset.asset_id] : undefined;
-    const metrics = operationsMetrics(result && !result.error ? result.rows : [], period.from, period.to);
-    return { asset, result, metrics };
-  }), [assets, selectedIds, data, scope, period]);
-  const loading = items.some(({ result }) => !result || result.loading ||
-    (result.round < round && (!!result.cursor || !!result.error)));
-  const incomplete = items.some(item => item.result?.cursor || item.result?.error || item.metrics.points.length < 2);
-  const usable = items.filter(item => !item.result?.error && item.metrics.points.length > 1);
-  const total = {
-    distanceKm: usable.reduce((sum, item) => sum + item.metrics.distanceM / 1000, 0),
-    movingMinutes: usable.reduce((sum, item) => sum + item.metrics.movingSeconds / 60, 0),
-    points: items.reduce((sum, item) => sum + item.metrics.points.length, 0),
-    stops: items.reduce((sum, item) => sum + item.metrics.stops.length, 0),
-  };
+    const summary=stats.items[asset.asset_id],m=summary?.metrics||emptyGpsMetric;
+    const result={error:stats.error,cursor:summary&&!summary.complete?'pending':null,loading:stats.loading||!summary&&!stats.error};
+    const metrics={pointCount:m.point_count,distanceM:m.distance_m,movingSeconds:m.moving_seconds,stopCount:m.stop_count,
+      daily:(summary?.daily||[]).map(r=>({day:r.day,km:r.distance_m/1000,movingMinutes:r.moving_seconds/60}))};
+    return {asset,result,metrics};
+  }),[assets,selectedIds,stats.items,stats.error,stats.loading,scope]);
+  const loading=stats.loading||items.some(i=>i.result.loading);
+  const incomplete=items.some(i=>i.result.cursor||i.result.error||i.metrics.pointCount<2);
+  const usable=items.filter(i=>!i.result.error&&!i.result.cursor&&i.metrics.pointCount>1);
+  const total={distanceKm:usable.reduce((s,i)=>s+i.metrics.distanceM/1000,0),movingMinutes:usable.reduce((s,i)=>s+i.metrics.movingSeconds/60,0),points:usable.reduce((s,i)=>s+i.metrics.pointCount,0),stops:usable.reduce((s,i)=>s+i.metrics.stopCount,0)};
   const colorFor = (id: string) => {
     const index = colorIds.indexOf(id);
     return palette[index] || `hsl(${(index * 137.508) % 360} 65% 36%)`;
@@ -102,7 +44,7 @@ export default function FleetComparison({ assets, context, period, initialAssetI
       const day = new Date(time).toISOString().slice(0, 10);
       const row: Record<string, string | number | null> = { day };
       for (const item of items) {
-        row[item.asset.asset_id] = item.metrics.points.length > 1 ?
+        row[item.asset.asset_id] = item.metrics.pointCount > 1 ?
           item.metrics.daily.find(value => value.day === day)?.km ?? null : null;
       }
       rows.push(row);
@@ -116,9 +58,9 @@ export default function FleetComparison({ assets, context, period, initialAssetI
         "Intervalos con desplazamiento min", "Muestras", "Paradas probables", "Estado"],
       ...items.map(({ asset, result, metrics }) => [
         asset.name, asset.plate, new Date(period.from).toISOString(), new Date(period.to).toISOString(),
-        metrics.points.length > 1 ? metrics.distanceM / 1000 : "",
-        metrics.points.length > 1 ? metrics.movingSeconds / 60 : "", metrics.points.length, metrics.stops.length,
-        result?.error || (result?.cursor ? "Historial parcial" : metrics.points.length < 2 ? "Muestras insuficientes" : "Consultado"),
+        metrics.pointCount > 1 ? metrics.distanceM / 1000 : "",
+        metrics.pointCount > 1 ? metrics.movingSeconds / 60 : "", metrics.pointCount, metrics.stopCount,
+        result?.error || (result?.cursor ? "Estadísticas actualizándose" : metrics.pointCount < 2 ? "Muestras insuficientes" : "Consultado"),
       ]),
       ["TOTAL DISPONIBLE", "", "", "", usable.length ? total.distanceKm : "",
         usable.length ? total.movingMinutes : "", total.points, total.stops, incomplete ? "Cobertura incompleta" : "Consultado"],
@@ -156,19 +98,19 @@ export default function FleetComparison({ assets, context, period, initialAssetI
     {!selected.length ? <p role="status">Selecciona uno o más vehículos para calcular sus estadísticas.</p> : <>
       {loading && <p role="status">Calculando estadísticas de los vehículos seleccionados…</p>}
       {!loading && incomplete && <p className="fleet-notice" role="status">
-        Cobertura incompleta. El total disponible suma las muestras consultadas. Revisa los vehículos sin datos, con error o con historial parcial.
+        Cobertura incompleta. El total incluye solo vehículos con estadísticas completas. Las posiciones nuevas o atrasadas se actualizan en segundo plano.
       </p>}
       {items.some(item => item.result?.cursor || item.result?.error) &&
-        <button disabled={loading} onClick={() => setRound(value => value + 1)}>Cargar pendientes o reintentar</button>}
+        <button disabled={loading} onClick={stats.retry}>Actualizar pendientes o reintentar</button>}
       <div className="real-ops-table-scroll"><table className="fleet-comparison-table">
         <thead><tr><th>Vehículo</th><th>Distancia GPS</th><th>Desplazamiento</th><th>Muestras</th><th>Paradas probables</th><th>Estado</th></tr></thead>
         <tbody>{items.map(({ asset, result, metrics }) => <tr key={asset.asset_id}>
           <th scope="row"><i style={{ background: colorFor(asset.asset_id) }} />{asset.plate || asset.name}<small>{asset.name}</small></th>
-          <td>{metrics.points.length > 1 ? format(metrics.distanceM / 1000, 3) + " km" : "—"}</td>
-          <td>{metrics.points.length > 1 ? format(metrics.movingSeconds / 60) + " min" : "—"}</td>
-          <td>{format(metrics.points.length, 0)}</td><td>{metrics.points.length ? metrics.stops.length : "—"}</td>
+          <td>{metrics.pointCount > 1 ? format(metrics.distanceM / 1000, 3) + " km" : "—"}</td>
+          <td>{metrics.pointCount > 1 ? format(metrics.movingSeconds / 60) + " min" : "—"}</td>
+          <td>{format(metrics.pointCount, 0)}</td><td>{metrics.pointCount ? metrics.stopCount : "—"}</td>
           <td>{!result || result.loading ? "Cargando…" : result.error ? <span role="alert">{result.error}</span> :
-            result.cursor ? "Historial parcial" : metrics.points.length < 2 ? "Muestras insuficientes" : "Consultado"}</td>
+            result.cursor ? "Estadísticas actualizándose" : metrics.pointCount < 2 ? "Muestras insuficientes" : "Consultado"}</td>
         </tr>)}</tbody>
         <tfoot><tr><th scope="row">Total disponible · {selected.length} vehículos</th>
           <td>{!loading && usable.length ? format(total.distanceKm, 3) + " km" : "—"}</td>
@@ -178,7 +120,7 @@ export default function FleetComparison({ assets, context, period, initialAssetI
         </tr></tfoot>
       </table></div>
       <p className="fleet-note">Distancia aproximada y tiempos sumados por vehículo en el período GPS elegido.
-        Los minutos de vehículos que trabajan simultáneamente se suman. Los días sin muestras quedan sin valor en el gráfico.</p>
+        Los minutos de vehículos que trabajan simultáneamente se suman. Los días sin muestras quedan sin valor en el gráfico. Los cortes o cambios de GPS no se unen como un viaje.</p>
       <h3>Distancia GPS por día y vehículo</h3>
       <p className="fleet-note">Días en hora de Chile · kilómetros aproximados</p>
       {!loading && daily.length > 0 ? <>

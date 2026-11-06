@@ -25,6 +25,8 @@ from app.routers.varieties import router as varieties_router
 
 app = FastAPI(title="Tracker Steps API")
 
+from app.routers.gps_analytics import router as gps_analytics_router
+app.include_router(gps_analytics_router)
 from app.routers.fleet import router as fleet_router
 app.include_router(fleet_router)
 from app.routers.starter_control import router as starter_control_router
