@@ -50,6 +50,21 @@ class TestFamilyRetroactive(PreviredCase):
         self.env['step.previred.extractor']._enrich_official_fields(record, slip, dataset)
         self.assertEqual(record.principal[22], '0')
 
+    def test_imported_zero_is_preserved_instead_of_recomputed(self):
+        slip, line, record, dataset, _ = self.prepare(amount=1000)
+        self.env.cr.execute('UPDATE hr_payslip_line SET total=0 WHERE id=%s', (line.id,))
+        line.invalidate_recordset()
+        self.env['step.previred.extractor']._enrich_official_fields(record, slip, dataset)
+        self.assertEqual(record.principal[22], '0')
+
+    def test_multiple_classified_lines_are_summed_and_rounded_once(self):
+        slip, line, record, dataset, _ = self.prepare(amount=300.25)
+        second = line.copy({'amount': 294.25})
+        self.env.flush_all()
+        self.env['step.previred.extractor']._enrich_official_fields(record, slip, dataset)
+        self.assertEqual(record.principal[22], '595')
+        self.assertEqual(second.slip_id, slip)
+
     def test_no_ccaf_blocks_export(self):
         slip, _, record, dataset, _ = self.prepare(ccaf='00')
         self.env['step.previred.extractor']._enrich_official_fields(record, slip, dataset)
