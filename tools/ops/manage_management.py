@@ -467,7 +467,7 @@ def main():
             MODULES = ('step_hr_previred',)
         if args.kind == 'previred-simpledigital':
             assert args.environment in ('development', 'sys', 'demo-sys')
-            MODULES = ('step_hr_previred_simpledigital',)
+            MODULES = ('step_hr_previred_corrections',)
         registry = json.loads((HERE / 'environments.json').read_text())
         target_db = registry['environments'][args.environment]['database']
         BUSINESS = tuple(query(target_db, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','ir_config_parameter')) ORDER BY tablename").splitlines())
@@ -602,7 +602,7 @@ def main():
     install = ['step_agriculture_catalogs'] if args.kind == 'management' else ['step_producers_integrations'] if PRODUCERS and 'step_producers_integrations' not in installed else []
     if args.kind in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-fruit-proforma', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         install = [name for name in MODULES if name not in installed]
-    if args.kind in ('payroll-attendance','payroll-review','payroll-rounding'):
+    if args.kind in ('payroll-attendance','payroll-review','payroll-rounding','previred-simpledigital'):
         install = [name for name in MODULES if name not in installed]
     if args.kind == 'agriculture-records' and args.environment == 'cerro':
         # Preserve Cerro's installed scope: no inventory bridge or budget app
@@ -727,9 +727,6 @@ def main():
                 test_modules = [name for name in test_modules if name == 'step_agriculture_records'
                     or name in install or tree_hash(staged / name) != baseline['modules'][name]['sha256']]
             tags = ','.join('/' + name for name in test_modules)
-            if args.kind == 'previred-simpledigital':
-                # Community-only contracts require the separate OCA rehearsal.
-                tags += ',-/step_hr_previred_simpledigital:CommunityBridgeContracts'
             if args.kind == 'packing-output-lots' and args.action == 'compatibility':
                 cases = (
                     'test_ot_lot_defaults_and_changes_validated_export_and_national_tags',

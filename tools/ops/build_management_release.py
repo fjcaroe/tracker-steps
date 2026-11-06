@@ -227,7 +227,7 @@ def main():
         modules = ('step_hr_previred',)
     if args.kind == 'previred-simpledigital':
         assert args.environment in ('development', 'sys', 'demo-sys')
-        modules = ('step_hr_previred_simpledigital',)
+        modules = ('step_hr_previred_corrections',)
     if args.kind == 'tarja':
         modules = ('step_inventory_packing', 'step_packing_operations')
     if args.kind == 'cerro-stack':
