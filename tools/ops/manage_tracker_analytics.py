@@ -50,6 +50,10 @@ def main():
     assert os.geteuid()==0;source=a.source.resolve()
     commit=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
     assert not subprocess.check_output(['git','-C',str(source),'status','--porcelain','--untracked-files=no'],text=True).strip()
+    for label,(default,service,database,port) in list(TARGETS.items()):
+        current=Path(subprocess.check_output(['systemctl','show',service,'-p','WorkingDirectory','--value'],text=True).strip()).resolve()
+        assert current==default.resolve() or current.is_relative_to(Path('/opt/steps-tracker-analytics/releases')/label), 'Unrecognized API source'
+        TARGETS[label]=(current,service,database,port)
     stage=BASE/commit;stage.mkdir(parents=True,exist_ok=True);stage.chmod(0o755)
     private=stage/'private';private.mkdir(exist_ok=True,mode=0o700)
     migration=source/'backend/tracker_py/migrations/20261106_gps_analytics.up.sql'
@@ -95,7 +99,11 @@ def main():
         run('sudo','-u','postgres','psql','-v','ON_ERROR_STOP=1','-d',database,'-f',migration,stdout=subprocess.DEVNULL)
         dropdir=Path('/etc/systemd/system')/(service+'.service.d');dropdir.mkdir(exist_ok=True)
         override=dropdir/'70-analytics.conf'
-        assert not override.exists(),'Review existing analytics override before upgrading'
+        previous_override=override.read_text() if override.exists() else None
+        if previous_override is not None:
+            assert previous_override=='[Service]\nWorkingDirectory='+str(live)+'\n'
+            (backup/'api-override.conf').write_text(previous_override)
+        receiver_pid=subprocess.check_output(['systemctl','show','steps-coban','-p','MainPID','--value'],text=True).strip()
         override.write_text('[Service]\nWorkingDirectory='+str(release)+'\n')
         user=subprocess.check_output(['systemctl','show',service,'-p','User','--value'],text=True).strip();assert user
         worker='steps-tracker-analytics-'+target
@@ -106,7 +114,10 @@ def main():
             run('systemctl','daemon-reload');run('systemctl','restart',service);ready(port)
             run('systemctl','enable','--now',worker+'.timer');run('systemctl','start',worker+'.service')
         except Exception:
-            override.unlink(missing_ok=True);run('systemctl','daemon-reload');run('systemctl','restart',service)
+            run('systemctl','stop',worker+'.timer',worker+'.service')
+            if previous_override is None:override.unlink(missing_ok=True)
+            else:override.write_text(previous_override)
+            run('systemctl','daemon-reload');run('systemctl','restart',service)
             raise
         assert tree(release/'app')==proof['targets'][target]['after']
         # Pin all historical buckets before publishing the summary-dependent UI.
@@ -115,7 +126,8 @@ def main():
             if pending==0:break
             run('systemctl','start',worker+'.service')
         assert pending==0,'Backfill incomplete; keep previous frontend'
-        result={'commit':commit,'source':str(release),'backup':str(backup),'api':proof['targets'][target]['after'],'database':database,'rollups_ready':True}
+        assert subprocess.check_output(['systemctl','show','steps-coban','-p','MainPID','--value'],text=True).strip()==receiver_pid,'Receiver unexpectedly restarted'
+        result={'receiver_not_restarted':True,'commit':commit,'source':str(release),'backup':str(backup),'api':proof['targets'][target]['after'],'database':database,'rollups_ready':True}
         (stage/(target+'.json')).write_text(json.dumps(result,indent=2))
         print('TRACKER_ANALYTICS_PUBLISHED '+target,flush=True)
 

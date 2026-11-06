@@ -80,7 +80,7 @@ export default function FleetComparison({ assets, context, period, initialAssetI
 
   return <section className="real-ops-panel fleet-comparison">
     <header><div><span className="fleet-eyebrow">Analítica de la selección</span><h2>Comparar vehículos</h2></div>
-      <button disabled={loading || !total.points} onClick={exportComparison}>Exportar comparación CSV</button></header>
+      <button disabled={loading || !total.points || items.some(i=>i.result.cursor)} onClick={exportComparison}>Exportar comparación CSV</button></header>
     <fieldset className="fleet-comparison-select">
       <legend>Vehículos a comparar</legend>
       <div className="fleet-comparison-actions">
@@ -97,6 +97,7 @@ export default function FleetComparison({ assets, context, period, initialAssetI
     </fieldset>
     {!selected.length ? <p role="status">Selecciona uno o más vehículos para calcular sus estadísticas.</p> : <>
       {loading && <p role="status">Calculando estadísticas de los vehículos seleccionados…</p>}
+      {stats.error&&<p role="alert" className="fleet-error">{stats.error}</p>}
       {!loading && incomplete && <p className="fleet-notice" role="status">
         Cobertura incompleta. El total incluye solo vehículos con estadísticas completas. Las posiciones nuevas o atrasadas se actualizan en segundo plano.
       </p>}
@@ -109,7 +110,7 @@ export default function FleetComparison({ assets, context, period, initialAssetI
           <td>{metrics.pointCount > 1 ? format(metrics.distanceM / 1000, 3) + " km" : "—"}</td>
           <td>{metrics.pointCount > 1 ? format(metrics.movingSeconds / 60) + " min" : "—"}</td>
           <td>{format(metrics.pointCount, 0)}</td><td>{metrics.pointCount ? metrics.stopCount : "—"}</td>
-          <td>{!result || result.loading ? "Cargando…" : result.error ? <span role="alert">{result.error}</span> :
+          <td>{!result || result.loading ? "Cargando…" : result.error ? "Consulta no disponible" :
             result.cursor ? "Estadísticas actualizándose" : metrics.pointCount < 2 ? "Muestras insuficientes" : "Consultado"}</td>
         </tr>)}</tbody>
         <tfoot><tr><th scope="row">Total disponible · {selected.length} vehículos</th>

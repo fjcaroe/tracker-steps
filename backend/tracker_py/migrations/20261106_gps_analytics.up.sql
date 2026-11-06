@@ -32,6 +32,19 @@ CREATE TRIGGER gps_positions_analytics_dirty AFTER INSERT OR UPDATE OR DELETE ON
 FOR EACH ROW EXECUTE FUNCTION gps_mark_analytics_dirty();
 CREATE INDEX IF NOT EXISTS gps_analytics_dirty_order ON gps_analytics_dirty(bucket,tenant_id,asset_id);
 CREATE INDEX IF NOT EXISTS gps_positions_current_assignment ON gps_positions(tenant_id,asset_id,assignment_id,recorded_at DESC,id DESC);
+-- Preserve the existing DB role boundary. API readers read aggregates; the
+-- existing ingest role maintains only these derived tables and their sequence.
+DO $$ DECLARE r record; BEGIN
+ FOR r IN SELECT grantee,bool_or(privilege_type='INSERT') writer FROM information_schema.role_table_grants
+          WHERE table_schema='public' AND table_name='gps_positions' AND privilege_type IN ('SELECT','INSERT')
+            AND grantee<>'PUBLIC' GROUP BY grantee LOOP
+   EXECUTE format('GRANT SELECT ON gps_analytics_hourly,gps_analytics_dirty TO %I',r.grantee);
+   IF r.writer THEN
+     EXECUTE format('GRANT INSERT,UPDATE,DELETE ON gps_analytics_hourly,gps_analytics_dirty TO %I',r.grantee);
+     EXECUTE format('GRANT USAGE,SELECT ON SEQUENCE gps_analytics_revision TO %I',r.grantee);
+   END IF;
+ END LOOP;
+END $$;
 -- Idempotent backfill queue, including neighbours for cross-hour intervals.
 INSERT INTO gps_analytics_dirty(tenant_id,asset_id,bucket)
 SELECT DISTINCT tenant_id,asset_id,(date_trunc('hour',recorded_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')+delta*interval '1 hour'

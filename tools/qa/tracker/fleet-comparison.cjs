@@ -1,5 +1,6 @@
 /* Comparison fixtures live only in browser responses. Real mode permits read requests only. */
 const {chromium}=require('playwright');
+let summarizeFixture;
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const output=process.env.GPS_UI_OUTPUT,dist=process.env.GPS_OPERATIONS_DIST;
 const proof=process.env.GPS_BROWSER_PROOF?JSON.parse(fs.readFileSync(process.env.GPS_BROWSER_PROOF,'utf8').replace(/^\uFEFF/,'')):null;
@@ -16,6 +17,7 @@ const identity={user_id:100,user:'QA comparación',company_id:2,company:'Empresa
 let denied=false,partial=false,restricted=false;
 const unexpected=[],errors=[];
 (async()=>{
+ summarizeFixture=(await import('../../../src/services/operationsMetrics.ts')).operationsMetrics;
  fs.mkdirSync(output,{recursive:true});
  const browser=await chromium.launch({headless:true,channel:'msedge'});
  const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true});
@@ -45,6 +47,19 @@ const unexpected=[],errors=[];
    if(endpoint==='zones')return json([]);
    if(endpoint==='configuration')return json({items:[],reminders:[],today:'2026-11-05'});
    if(endpoint==='view-preferences/fleet')return json(null);
+   if(endpoint==='assets/analytics'){
+    const requested=url.searchParams.get('asset_ids').split(',');
+    assert.ok(requested.length<=50);
+    if(denied&&requested.includes(ids[1]))return json({detail:'Acceso revocado al vehículo QA-002'},403);
+    const pending=partial;partial=false;
+    return json({items:requested.map(id=>{
+     const index=ids.indexOf(id);assert.ok(index>=0&&(!restricted||index===0));
+     const m=summarizeFixture(index===2?[]:points(index+1,4),Date.parse(url.searchParams.get('since')),Date.parse(url.searchParams.get('until')));
+     return {asset_id:id,complete:!(pending&&index===1),pending_hours:pending&&index===1?1:0,
+      metrics:{point_count:m.points.length,distance_m:m.distanceM,moving_seconds:m.movingSeconds,stop_count:m.stops.length,gap_count:m.gapCount,max_speed:m.maxReportedSpeed,first_at:m.points[0]?.recorded_at,last_at:m.points.at(-1)?.recorded_at},
+      daily:m.daily.map(d=>({day:d.day,point_count:2,distance_m:d.km*1000,moving_seconds:d.movingMinutes*60,stop_count:0,gap_count:0}))};
+    })});
+   }
    if(endpoint.endsWith('/positions')){
     const id=endpoint.split('/')[1],index=ids.indexOf(id);
     assert.ok(index>=0&&(!restricted||index===0));
@@ -103,13 +118,13 @@ const unexpected=[],errors=[];
    const file=path.join(output,'comparison.csv');await(await download).saveAs(file);
    assert.ok(fs.readFileSync(file,'utf8').includes('TOTAL DISPONIBLE'));
    partial=true;await page.getByLabel('Período GPS',{exact:true}).selectOption('168');await settle();
-   assert.ok((await table.locator('tbody tr').nth(1).innerText()).includes('Historial parcial'));
-   await page.getByRole('button',{name:'Cargar pendientes o reintentar',exact:true}).click();await settle();
+   assert.ok((await table.locator('tbody tr').nth(1).innerText()).includes('Estadísticas actualizándose'));
+   await page.getByRole('button',{name:'Actualizar pendientes o reintentar',exact:true}).click();await settle();
    assert.ok((await table.locator('tbody tr').nth(1).innerText()).includes('Consultado'));
    partial=false;denied=true;await page.getByRole('button',{name:'Actualizar datos',exact:true}).click();await settle();
    await page.getByRole('alert').filter({hasText:'Acceso revocado'}).waitFor();
    assert.ok((await table.locator('tbody tr').nth(1).innerText()).includes('—'));
-   denied=false;await page.getByRole('button',{name:'Cargar pendientes o reintentar',exact:true}).click();await settle();
+   denied=false;await page.getByRole('button',{name:'Actualizar pendientes o reintentar',exact:true}).click();await settle();
    await page.getByRole('button',{name:'Limpiar selección',exact:true}).click();
    await page.getByText('Selecciona uno o más vehículos para calcular sus estadísticas.',{exact:true}).waitFor();
    assert.equal(await table.count(),0);

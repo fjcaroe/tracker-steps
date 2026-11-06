@@ -1,5 +1,72 @@
 # Cómo desplegar Web Tracker a producción
 
+
+## Analítica escalable y recuperación GPS — 06-11-2026
+
+La comparación, Resumen y Analítica consultan `/v1/assets/analytics` en lotes
+máximos de 50 activos autorizados. El historial detallado se carga solo al abrir
+Recorridos. Las respuestas antiguas se cancelan al cambiar de compañía/período.
+Los totales excluyen vehículos con horas pendientes: no representan falta de
+muestras como un cero definitivo. Se conservan CSV, colores y días sin muestras.
+
+`gps_analytics_hourly` almacena métricas derivadas versionadas; PostgreSQL suma
+por día de America/Santiago. Los extremos horarios se calculan con un contexto
+acotado de 20 minutos. Rangos semiabiertos [desde,hasta), UTC, máximo 31 días.
+El algoritmo 2 mide intervalos GPS consistentes, no odómetro ni horas de motor:
+rechaza saltos, tiempos incompatibles, deriva, cambios de asignación y pausas
+mayores a diez minutos. Las paradas requieren evidencia continua, no inferencia
+a partir de una posición aislada por hora. Por eso no debe compararse a ciegas
+con la estimación antigua, dependiente de cuántas páginas descargó el navegador.
+
+La cola `gps_analytics_dirty` se invalida mediante trigger para inserción,
+corrección y borrado, incluidos reenvíos atrasados. Se afectan solo la hora y
+los vecinos pertinentes. El worker usa revisión para no perder invalidaciones
+concurrentes y un bloqueo de conexión para evitar trabajo duplicado. systemd lo
+ejecuta cada 30 segundos con trabajo acotado. No reescribe posiciones originales.
+Un cambio de versión de métricas exige volver a encolar los buckets históricos.
+
+El snapshot de flota evita N+1 con precarga y consultas laterales indexadas. Las
+lecturas comunes no bloquean la fila del cliente; escritura y sync/changes
+conservan su serialización para no adelantar el cursor a eventos sin confirmar.
+
+Publicación API: `manage_tracker_analytics.py qa|development|production SOURCE`.
+Ensaya copias frescas de tracker_steps_development y tracker_steps, valida
+migración sin cambios a filas existentes, GPS/recepción, llegada tardía,
+permisos, rechazo de rangos y 100 vehículos con 72.000 buckets. Publica overlays
+privados conservando .env y archivos no modificados. Aplica esquema antes del
+servicio, respalda DB/código, usa el bloqueo compartido y mantiene el PID del
+receptor TCP. Rollback: restaurar el drop-in WorkingDirectory anterior y reiniciar
+solo esa API; esquema y resúmenes son aditivos. No borrar posiciones para volver.
+La API GPS del BFF Odoo sigue en 8000; la API clásica privada de Desarrollo sigue
+en 8012. No redirigir el BFF a una base vacía ni copiar compañías entre ellas.
+
+Después publicar un único dist con deploy_tracker_frontend.py y las opciones
+`--runtime-api-root` (WorkingDirectory efectivo de tracker-steps-api) y
+`--runtime-api-manifest` (hashes revisados de app). Se conserva la recepción TCP,
+la aplicación móvil, los addons y los enlaces de entrada. Compilar con las
+variables públicas originales del servidor, sin dejar .env junto al ensayo API.
+
+Los huecos breves de 30–120 segundos con cadencia y rumbo consistentes muestran
+continuidad visual discontinua entre observaciones: no son puntos nuevos ni se
+escriben como GPS. No se unen saltos o cambios de aparato. La aproximación por
+calles existente sigue siendo una estimación explícita, nunca evidencia real.
+Los reenvíos mantienen fecha de captura, asignación histórica y deduplicación;
+una observación atrasada no debe reemplazar el estado actual del receptor.
+
+El receptor TCP tiene cola SQLite durable independiente de las API. Su nueva
+versión añade contadores de profundidad O(1), mayor capacidad configurable,
+índice de reintentos, corte de reintento ante caída global de API y protección
+contra regresión de posición actual por backfill. No elimina pendientes al
+limpiar recibos. Probar con test_receiver/test_starter y copia real. Su
+publicación debe esperar cero conexiones activas; no reiniciarlo por rutina al
+publicar API/frontend. La memoria offline del Coban 401C requiere confirmación
+de firmware/capacidad y una prueba física. No enviar comandos genéricos de otro
+modelo ni asumir que un GPS sin señal satelital pudo registrar coordenadas.
+
+Antes de ampliar mucho la flota: medir p95 de API, antigüedad/tamaño de ambas
+colas y duración del worker; después evaluar particiones mensuales y retención
+por contrato de posiciones crudas, sin borrar históricos por esta entrega.
+
 ## Comparación de vehículos en Operación
 
 La pestaña Comparar vehículos permite seleccionar una o varias unidades con

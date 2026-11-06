@@ -94,8 +94,8 @@ def position_out(p):
                                  'recovered':(utc(p.received_at)-utc(p.recorded_at)).total_seconds()>120}
 
 
-def fleet_state(db, tenant_id):
-    assignments = db.query(Assignment).filter_by(tenant_id=tenant_id, valid_to=None).all()
+def fleet_state(db, tenant_id, asset_ids):
+    assignments = db.query(Assignment).filter_by(tenant_id=tenant_id, valid_to=None).filter(Assignment.asset_id.in_(asset_ids)).all()
     ids = [a.device_id for a in assignments]
     devices = {d.id:d for d in db.query(Device).filter(Device.id.in_(ids))}
     registrations = {r.device_id:r for r in db.query(DeviceRegistration).filter(DeviceRegistration.tenant_id==tenant_id,DeviceRegistration.device_id.in_(ids))}
@@ -103,13 +103,13 @@ def fleet_state(db, tenant_id):
         points = db.query(Position).from_statement(text('''SELECT p.* FROM gps_assignments a
             JOIN LATERAL (SELECT * FROM gps_positions p WHERE p.tenant_id=a.tenant_id AND p.asset_id=a.asset_id
               AND p.assignment_id=a.id ORDER BY p.recorded_at DESC,p.id DESC LIMIT 1) p ON true
-            WHERE a.tenant_id=:tenant AND a.valid_to IS NULL''')).params(tenant=tenant_id).all()
+            WHERE a.tenant_id=:tenant AND a.asset_id=ANY(:asset_ids) AND a.valid_to IS NULL''')).params(tenant=tenant_id,asset_ids=asset_ids).all()
     else:
-        points = db.query(Position).filter_by(tenant_id=tenant_id).order_by(Position.recorded_at,Position.id).all()
+        points = db.query(Position).filter(Position.tenant_id==tenant_id,Position.asset_id.in_(asset_ids)).order_by(Position.recorded_at,Position.id).all()
     return dict(assignments={a.asset_id:a for a in assignments},devices=devices,registrations=registrations,
         points={p.assignment_id:p for p in points},
-        policies={p.asset_id:p for p in db.query(Policy).filter_by(tenant_id=tenant_id)},
-        incidents={i.asset_id:i for i in db.query(Incident).filter(Incident.tenant_id==tenant_id,Incident.state!='closed').order_by(Incident.id.desc())})
+        policies={p.asset_id:p for p in db.query(Policy).filter(Policy.tenant_id==tenant_id,Policy.asset_id.in_(asset_ids))},
+        incidents={i.asset_id:i for i in db.query(Incident).filter(Incident.tenant_id==tenant_id,Incident.asset_id.in_(asset_ids),Incident.state!='closed').order_by(Incident.id.desc())})
 
 
 def asset_out(db, a, at, state=None):
@@ -143,9 +143,10 @@ def asset_out(db, a, at, state=None):
 def snapshot(q: str = '', type: str = '', cost_center: str = '', motion: str = '', signal: str = '', protection: str = '', gps: str = '',
              after: str = '', limit: int = Query(200, ge=1, le=500), ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('viewer', 'operator', 'manager'))
-    state = fleet_state(db, ctx['tenant_id'])
+    assets = scoped(db.query(Asset).filter_by(tenant_id=ctx['tenant_id']), Asset.id, ctx).order_by(Asset.id).all()
+    state = fleet_state(db, ctx['tenant_id'],[a.id for a in assets])
     at = now()
-    rows = [asset_out(db, a, at, state) for a in scoped(db.query(Asset).filter_by(tenant_id=ctx['tenant_id']), Asset.id, ctx).order_by(Asset.id)]
+    rows = [asset_out(db, a, at, state) for a in assets]
     rows = [r for r in rows if (not q or q.casefold() in (r['name']+' '+(r['plate'] or '')).casefold())
             and (not type or r['type'] == type) and (not cost_center or r['cost_center'] == cost_center)
             and (not motion or r['motion_state'] == motion) and (not signal or r['signal_state'] == signal)
