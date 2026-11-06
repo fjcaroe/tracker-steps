@@ -8,6 +8,7 @@ import fcntl
 import json
 from pathlib import Path
 import re
+import socket
 import subprocess
 
 import manage_management
@@ -39,18 +40,24 @@ def main():
     subprocess.run(['chown', '-R', user, str(source)], check=True)
     with open('/run/lock/steps-environments.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
+        with socket.socket() as listener:
+            listener.bind(('127.0.0.1', 0))
+            port = listener.getsockname()[1]
         command = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin',
             '-c', target['config'], '-d', database, '--db-filter=^' + database + '$',
             '--addons-path=' + str(source) + ',' + options['addons_path'],
             '--data-dir=' + str(stage / 'data'), '--no-http', '--workers=0',
+            '--http-interface=127.0.0.1', '--http-port=' + str(port), '--gevent-port=0',
             '--max-cron-threads=0', '--without-demo=all', '-u', 'step_packing_fruit_proforma',
             '--test-enable', '--test-tags=/step_packing_fruit_proforma',
             '--stop-after-init', '--logfile=' + str(log)]
-        result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        result = subprocess.run(command, capture_output=True, text=True)
     text = log.read_text(errors='replace')
     print('DIAGNOSTIC_ONLY_NO_CERTIFICATION log=' + str(log), flush=True)
     print('\n'.join(line for line in text.splitlines() if any(
         marker in line for marker in ('tests.result', ' ERROR ', ' FAIL', 'Traceback')))[-6000:])
+    if result.returncode:
+        print((result.stdout + result.stderr)[-2000:])
     raise SystemExit(result.returncode)
 
 
