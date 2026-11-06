@@ -1,0 +1,14 @@
+<odoo noupdate="1">
+    <record id="sequence_fruit_proforma_33" model="ir.sequence">
+        <field name="name">Proforma de fruta TDE 33</field>
+        <field name="code">step.packing.fruit.proforma.33</field>
+        <field name="prefix">PF33/%(year)s/</field><field name="padding">6</field>
+        <field name="company_id" eval="False"/>
+    </record>
+    <record id="sequence_fruit_proforma_46" model="ir.sequence">
+        <field name="name">Proforma de fruta TDE 46</field>
+        <field name="code">step.packing.fruit.proforma.46</field>
+        <field name="prefix">PF46/%(year)s/</field><field name="padding">6</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

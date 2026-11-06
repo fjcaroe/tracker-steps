@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_proforma_po_create,Proforma fruit accountant creation,purchase.model_purchase_order,account.group_account_user,0,0,1,0
+access_proforma_line_create,Proforma fruit line accountant creation,purchase.model_purchase_order_line,account.group_account_user,0,0,1,0
+access_proforma_migration,Review old fruit drafts,model_step_packing_fruit_proforma_migration,account.group_account_manager,1,1,1,1

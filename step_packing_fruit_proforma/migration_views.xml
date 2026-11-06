@@ -1,0 +1,41 @@
+<odoo>
+    <record id="fruit_migration_form" model="ir.ui.view">
+        <field name="name">fruit.proforma.migration.review</field>
+        <field name="model">step.packing.fruit.proforma.migration</field>
+        <field name="arch" type="xml">
+            <form string="Revisar borradores anteriores">
+                <div class="alert alert-warning" role="alert">
+                    Estos documentos fueron preparados en el proceso anterior. El traslado conserva
+                    los originales cancelados para auditoría y genera proformas fuera de Contabilidad.
+                    No se trasladan documentos contabilizados ni se cambian stock o cuentas.
+                    Revise el contrato y la retención de la especie: los importes deben coincidir.
+                </div>
+                <group><field name="monthly_wizard_id" invisible="1"/><field name="company_id"/></group>
+                <field name="move_ids" readonly="1">
+                    <list create="0" edit="0" delete="0">
+                        <field name="name"/><field name="partner_id"/><field name="invoice_date"/>
+                        <field name="currency_id"/><field name="amount_untaxed"/>
+                        <field name="amount_tax"/><field name="amount_total"/><field name="state"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_move_to_proforma" type="object" string="Confirmar traslado" class="btn-primary"
+                        confirm="Se cancelarán solo estos borradores nunca contabilizados y se conservarán como historial de la proforma. ¿Continuar?"/>
+                    <button name="action_keep_drafts" type="object" string="Conservar borradores y preparar solo nuevas"/>
+                    <button special="cancel" string="Volver"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="fruit_legacy_bill_transfer_form" model="ir.ui.view">
+        <field name="name">fruit.legacy.bill.transfer</field><field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="step_can_migrate_fruit_bill" invisible="1"/>
+                <button name="action_fruit_review_proforma" type="object" string="Revisar traslado a proforma"
+                    groups="account.group_account_manager" invisible="not step_can_migrate_fruit_bill"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
