@@ -20,6 +20,8 @@ def main():
     parser.add_argument('run_id')
     parser.add_argument('release', type=Path)
     parser.add_argument('--probe', action='store_true')
+    parser.add_argument('--probe-only', action='store_true',
+                        help='Reuse successful diagnostic tests only when every addon file is identical')
     args = parser.parse_args()
     assert re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     database = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
@@ -52,7 +54,17 @@ def main():
             '--max-cron-threads=0', '--without-demo=all', '-u', 'step_packing_fruit_proforma',
             '--test-enable', '--test-tags=/step_packing_fruit_proforma',
             '--stop-after-init', '--logfile=' + str(log)]
-        result = subprocess.run(command, capture_output=True, text=True)
+        if args.probe_only:
+            assert args.probe
+            prior = [path for path in stage.glob('iteration_*')
+                if (path / 'release.json').is_file() and (path / 'tests.log').is_file()
+                and json.loads((path / 'release.json').read_text())['files'] == proof['files']
+                and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests', (path / 'tests.log').read_text())]
+            assert prior, 'Run the tests for these exact addon files before probing'
+            log = prior[-1] / 'tests.log'
+            result = subprocess.CompletedProcess(command, 0, '', '')
+        else:
+            result = subprocess.run(command, capture_output=True, text=True)
         if result.returncode == 0 and args.probe:
             manage_management.TICKET_REVISION = 'packing-fruit-proforma'
             manage_management.SETTINGS = True
