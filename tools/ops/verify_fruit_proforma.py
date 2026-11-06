@@ -92,9 +92,12 @@ def verify_copy_cycle(admin, output):
     producer.with_company(branch).property_account_payable_id = payable
 
     def tax(label, amount):
+        group = admin['account.tax.group'].with_company(holding).create({
+            'name': label, 'company_id': holding.id})
         return admin['account.tax'].with_company(holding).create({
             'name': label, 'amount': amount, 'amount_type': 'percent',
-            'type_tax_use': 'purchase', 'company_id': holding.id})
+            'type_tax_use': 'purchase', 'company_id': holding.id,
+            'tax_group_id': group.id})
 
     vat, retention = tax('QA171 VAT', 19), tax('QA171 selected retention', -14)
     category = admin['product.category'].with_company(branch).create({
