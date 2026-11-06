@@ -31,7 +31,9 @@ try:
             (Path(OUTPUT)/'t171-review-proforma.pdf').write_bytes(pdf)
             print('T171_POLICY_CASE_OK ' + json.dumps(result))
     elif PROFORMA_POLICY_PLAN:
-        order = business['purchase.order'].browse(PROFORMA_POLICY_PLAN['before']['id'])
+        actual = scoped_business_environment(env,
+            company=env['res.company'].browse(PROFORMA_POLICY_PLAN['before']['company_id']))
+        order = actual['purchase.order'].browse(PROFORMA_POLICY_PLAN['before']['id'])
         assert order.step_fruit_dte_code == PROFORMA_POLICY_PLAN['target']['dte']
         assert order.step_fruit_withholding_tax_id.id == PROFORMA_POLICY_PLAN['target']['retention_id']
         assert order.step_fruit_state == 'draft' and not order.invoice_ids
