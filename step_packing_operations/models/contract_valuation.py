@@ -203,6 +203,13 @@ class MonthlyFruitBill(models.TransientModel):
             contracts[record.id] = contract
             if prices[record.id]:
                 grouped[record.fruit_grower_id.id, contract.currency_id.id] |= record
+        source_ids = {row['contract_line_id'] for rows in prices.values() for row in rows}
+        missing = self.env['step.producer.purchase.contract.product'].browse(sorted(source_ids)).filtered(
+            lambda line: not line.debit_account_id)
+        if missing:
+            detail = '\n'.join('%s / %s' % (line.contract_id.display_name, line.product_id.display_name)
+                               for line in missing)
+            raise UserError(_('Configure la cuenta de cargo en estos productos del contrato:\n%s') % detail)
         with self.env.cr.savepoint():
             for (producer_id, currency_id), group in grouped.items():
                 lines = []
@@ -210,7 +217,7 @@ class MonthlyFruitBill(models.TransientModel):
                     for row in prices[record.id]:
                         source = self.env['step.producer.purchase.contract.product'].browse(row['contract_line_id'])
                         if not source.debit_account_id:
-                            raise UserError(_('Configure la cuenta de cargo en cada producto del contrato.'))
+                            raise UserError(_('Configure la cuenta de cargo en %s / %s.') % (source.contract_id.display_name, source.product_id.display_name))
                         taxes = source.product_id.supplier_taxes_id.filtered(lambda tax: tax.company_id == self.company_id)
                         lines.append((0, 0, {'name': '%s / tarja %s / %s' % (record.name, row['tag_id'], contracts[record.id].name),
                             'product_id': row.get('bill_product_id', row['product_id']), 'product_uom_id': row['uom_id'], 'quantity': row['quantity'],

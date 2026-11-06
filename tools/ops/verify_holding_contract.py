@@ -72,6 +72,19 @@ try:
         before = sample.read(['valuation_snapshot', 'state', 'contract_id'])[0]
         assert wizard.env.companies == branch
         contract.with_env(business).check_access('read')
+        from odoo.exceptions import UserError
+        lines = contract.product_line_ids
+        lines.write({'debit_account_id': False})
+        try:
+            wizard.action_prepare_bills()
+        except UserError as error:
+            assert contract.display_name in str(error)
+            assert all(line.product_id.display_name in str(error) for line in lines)
+            assert not sample.purchase_bill_id
+            print('T170_MISSING_ACCOUNTS_IDENTIFIED')
+        else:
+            raise AssertionError('Missing debit accounts must prevent invoice creation')
+        lines.write({'debit_account_id': account.id})
         first = wizard.action_prepare_bills()
         bill = sample.purchase_bill_id
         assert bill and bill.state == 'draft' and bill.company_id == branch
