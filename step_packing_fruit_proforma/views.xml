@@ -1,0 +1,204 @@
+<odoo>
+    <record id="fruit_proforma_list" model="ir.ui.view">
+        <field name="name">purchase.order.fruit.proforma.list</field>
+        <field name="model">purchase.order</field>
+        <field name="arch" type="xml">
+            <list string="Proformas de compra de fruta" create="0" delete="0"
+                  decoration-muted="step_fruit_state == 'cancel'">
+                <field name="name" string="Proforma"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="partner_id" string="Productor"/>
+                <field name="step_fruit_period_start"/>
+                <field name="step_fruit_period_end"/>
+                <field name="step_fruit_species_id"/>
+                <field name="step_fruit_dte_code"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="amount_untaxed"/>
+                <field name="amount_total"/>
+                <field name="step_fruit_state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+    <record id="fruit_proforma_form" model="ir.ui.view">
+        <field name="name">purchase.order.fruit.proforma.form</field>
+        <field name="model">purchase.order</field>
+        <field name="arch" type="xml">
+            <form string="Proforma de compra de fruta" create="0" duplicate="0" delete="0">
+                <header>
+                    <button name="action_fruit_approve" type="object" string="Aprobar proforma"
+                            class="btn-primary" groups="account.group_account_manager"
+                            invisible="step_fruit_state != 'draft'"
+                            confirm="Se aprobarán las cantidades, precios y documentos de esta proforma. La aprobación no crea una factura."/>
+                    <button name="action_fruit_convert" type="object" string="Preparar factura"
+                            class="btn-primary" groups="account.group_account_user"
+                            invisible="step_fruit_state != 'approved'"/>
+                    <button name="%(action_report_fruit_proforma_preview)d" type="action" string="Vista previa"/>
+                    <button name="%(action_report_fruit_proforma)d" type="action" string="Imprimir proforma"/>
+                    <button name="button_cancel" type="object" string="Cancelar"
+                            groups="account.group_account_manager"
+                            invisible="step_fruit_state not in ('draft', 'approved')"
+                            confirm="Se cancelará esta proforma. Revise los documentos vinculados antes de continuar."/>
+                    <button name="button_draft" type="object" string="Volver a borrador"
+                            groups="account.group_account_manager" invisible="step_fruit_state != 'cancel'"/>
+                    <field name="step_fruit_state" widget="statusbar" statusbar_visible="draft,approved,invoiced"/>
+                </header>
+                <sheet>
+                    <field name="step_fruit_proforma" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="invoice_ids" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_invoice" type="object" class="oe_stat_button"
+                                icon="fa-file-text-o" invisible="not invoice_ids">
+                            <field name="invoice_count" widget="statinfo" string="Facturas"/>
+                        </button>
+                    </div>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <div class="alert alert-info" role="status" invisible="step_fruit_state != 'draft'">
+                        Proforma para revisión. Apruébela antes de preparar la factura de proveedor.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" string="Productor" readonly="1" options="{'no_create': True}"/>
+                            <field name="company_id" readonly="1"/>
+                            <field name="step_fruit_species_id" readonly="1"/>
+                            <field name="step_fruit_contract_ids" widget="many2many_tags" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="step_fruit_period_start" readonly="1"/>
+                            <field name="step_fruit_period_end" readonly="1"/>
+                            <field name="step_fruit_dte_code" readonly="1"/>
+                            <field name="step_fruit_withholding_tax_id" readonly="1" invisible="step_fruit_dte_code != '46'"/>
+                            <field name="currency_id" readonly="1"/>
+                            <field name="step_fruit_approval_reference" readonly="step_fruit_state != 'draft'"/>
+                        </group>
+                    </group>
+                    <group string="Factura recibida del proveedor" invisible="step_fruit_dte_code != '33'">
+                        <field name="step_fruit_supplier_invoice_received" readonly="step_fruit_state in ('invoiced', 'cancel')"/>
+                        <field name="step_fruit_supplier_document_number"
+                               readonly="step_fruit_state in ('invoiced', 'cancel')"
+                               required="step_fruit_dte_code == '33' and step_fruit_supplier_invoice_received"/>
+                    </group>
+                    <notebook>
+                        <page name="fruit_summary" string="Resumen por variedad">
+                            <field name="order_line" readonly="1">
+                                <list create="0" delete="0">
+                                    <field name="step_fruit_variety_id"/>
+                                    <field name="product_id"/>
+                                    <field name="product_qty" string="Cantidad"/>
+                                    <field name="product_uom"/>
+                                    <field name="price_unit"/>
+                                    <field name="taxes_id" widget="many2many_tags"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="price_subtotal" sum="Neto"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer oe_right">
+                                <field name="amount_untaxed" readonly="1"/>
+                                <field name="amount_tax" readonly="1" string="Impuestos y retenciones"/>
+                                <field name="amount_total" readonly="1"/>
+                            </group>
+                        </page>
+                        <page name="fruit_annex" string="Tarjas y guías">
+                            <field name="step_fruit_tag_ids" readonly="1">
+                                <list create="0" delete="0">
+                                    <field name="name" string="Tarja"/>
+                                    <field name="especie_id"/>
+                                    <field name="variedad_id"/>
+                                    <field name="step_actual_boxes" sum="Cajas"/>
+                                    <field name="step_actual_kg" sum="Kilos"/>
+                                    <field name="step_tag_state"/>
+                                </list>
+                            </field>
+                            <group string="Guías de recepción"><field name="step_fruit_guide_refs" readonly="1" nolabel="1"/></group>
+                        </page>
+                        <page name="fruit_orders" string="Órdenes de trabajo">
+                            <field name="step_fruit_production_ids" readonly="1">
+                                <list create="0" delete="0">
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="fruit_species_id"/>
+                                    <field name="fruit_variety_id"/>
+                                    <field name="step_packing_export_kg" sum="Kilos"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page name="fruit_observations" string="Observaciones">
+                            <field name="notes" readonly="step_fruit_state != 'draft'" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="fruit_proforma_search" model="ir.ui.view">
+        <field name="name">purchase.order.fruit.proforma.search</field>
+        <field name="model">purchase.order</field>
+        <field name="arch" type="xml">
+            <search string="Proformas de compra de fruta">
+                <field name="name"/><field name="partner_id"/><field name="step_fruit_species_id"/>
+                <filter name="fruit_pending" string="Pendientes de aprobación" domain="[('step_fruit_state','=','draft')]"/>
+                <filter name="fruit_approved" string="Aprobadas" domain="[('step_fruit_state','=','approved')]"/>
+                <filter name="fruit_invoiced" string="Facturadas" domain="[('step_fruit_state','=','invoiced')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="fruit_by_producer" string="Productor" context="{'group_by':'partner_id'}"/>
+                    <filter name="fruit_by_species" string="Especie" context="{'group_by':'step_fruit_species_id'}"/>
+                    <filter name="fruit_by_state" string="Estado" context="{'group_by':'step_fruit_state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="fruit_proforma_action" model="ir.actions.act_window">
+        <field name="name">Proformas de compra de fruta</field><field name="res_model">purchase.order</field>
+        <field name="view_mode">list,form</field><field name="domain">[('step_fruit_proforma','=',True)]</field>
+        <field name="context">{'default_step_fruit_proforma': True, 'create': False}</field>
+        <field name="search_view_id" ref="fruit_proforma_search"/>
+    </record>
+    <record id="fruit_proforma_action_list" model="ir.actions.act_window.view">
+        <field name="sequence">1</field><field name="view_mode">list</field><field name="view_id" ref="fruit_proforma_list"/>
+        <field name="act_window_id" ref="fruit_proforma_action"/>
+    </record>
+    <record id="fruit_proforma_action_form" model="ir.actions.act_window.view">
+        <field name="sequence">2</field><field name="view_mode">form</field><field name="view_id" ref="fruit_proforma_form"/>
+        <field name="act_window_id" ref="fruit_proforma_action"/>
+    </record>
+    <menuitem id="fruit_billing_menu" name="Facturación" parent="step_packing_operations.menu_packing_operations_root"
+              sequence="60" groups="account.group_account_user"/>
+    <record id="step_packing_operations.menu_packing_monthly_purchase" model="ir.ui.menu">
+        <field name="parent_id" ref="fruit_billing_menu"/><field name="name">Preparar compra mensual</field>
+        <field name="sequence">10</field>
+    </record>
+    <menuitem id="fruit_proforma_menu" name="Proformas de compra" parent="fruit_billing_menu"
+              action="fruit_proforma_action" sequence="20" groups="account.group_account_user"/>
+    <record id="fruit_monthly_wizard_form" model="ir.ui.view">
+        <field name="name">packing.monthly.fruit.proforma.wizard</field>
+        <field name="model">step.packing.monthly.fruit.bill</field>
+        <field name="inherit_id" ref="step_packing_operations.view_monthly_fruit_bill"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="attributes"><attribute name="string">Preparar proformas de fruta</attribute></xpath>
+            <xpath expr="//form/p" position="replace"><p>Se preparan proformas para revisar las cantidades y precios por especie y variedad. La aprobación es previa a la preparación de la factura de proveedor.</p></xpath>
+            <xpath expr="//button[@name='action_prepare_bills']" position="attributes"><attribute name="string">Preparar proformas</attribute></xpath>
+        </field>
+    </record>
+    <record id="fruit_species_withholding_form" model="ir.ui.view">
+        <field name="name">step.especie.fruit.withholding.form</field><field name="model">step.especie</field>
+        <field name="inherit_id" ref="step_hr.view_step_especie_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside"><group string="Compra de fruta y retención de IVA" groups="account.group_account_user">
+                <field name="step_change_subject_vat"/>
+                <field name="step_withholding_tax_id" invisible="not step_change_subject_vat" required="step_change_subject_vat"
+                       options="{'no_create': True}" domain="[('type_tax_use','=','purchase'),('amount_type','=','percent'),('amount','&lt;',0),('active','=',True)]"/>
+            </group></xpath>
+        </field>
+    </record>
+    <record id="fruit_tag_proforma_form" model="ir.ui.view">
+        <field name="name">stock.quant.package.fruit.proforma.form</field><field name="model">stock.quant.package</field>
+        <field name="inherit_id" ref="step_inventory_packing.view_quant_package_form_steps_fruit"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='step_invoice_ids']" position="after">
+                <field name="step_fruit_proforma_id" readonly="1" options="{'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
