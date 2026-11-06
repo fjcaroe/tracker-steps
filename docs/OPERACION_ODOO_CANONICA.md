@@ -1,5 +1,13 @@
 # Operación y publicación de Odoo
 
+T174 (mensaje 10192, adjunto 3531) autoriza `previred-movement-dates` en
+Desarrollo y SyS. Contratación a plazo indefinido (1) y cambio a indefinido (8)
+admiten fecha Hasta vacía. Corregir únicamente el requisito falso de cierre
+del validador instalado; conservar Desde obligatorio, los controles de otros
+movimientos y todas las fechas e importes almacenados y emitidos. Probar
+anexas mixtas y la descarga nativa, formularios y casos reales en copia fresca.
+Mismo paquete, respaldo, bloqueo y ninguna declaración o cambio de nómina real.
+
 T172 (mensaje 10183, adjunto 3529) autoriza `previred-simpledigital` en
 Desarrollo, SyS y Demo-SYS. Corregir únicamente los campos CCAF 84/90
 omitidos por la puerta de cero días del proveedor, después de recuperar la

@@ -1,4 +1,4 @@
-"""Record a verified T172/T173 delivery without sending notifications."""
+"""Record a verified T172/T173/T174 delivery without sending notifications."""
 import argparse
 import base64
 import html
@@ -9,7 +9,7 @@ import xmlrpc.client
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--ticket', type=int, choices=(172, 173), required=True)
+    parser.add_argument('--ticket', type=int, choices=(172, 173, 174), required=True)
     parser.add_argument('--proof', type=Path, required=True)
     parser.add_argument('--acta', type=Path, required=True)
     parser.add_argument('--text', type=Path, required=True)

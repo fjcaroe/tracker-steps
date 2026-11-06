@@ -77,6 +77,12 @@ try:
         assert records, 'Employee absent from canonical export'
         for record in records:
             row = record.principal
+            for code in case.get('annex_codes_without_end', []):
+                matching = [annex for annex in record.annexes
+                            if str(annex[14]).lstrip('0') == str(code)]
+                assert matching, ('Reported open-ended annex missing', code)
+                assert all(str(annex[16] or '').strip() in previred.NULL_DATE_TOKENS
+                           for annex in matching)
             for field, expected in case['fields'].items():
                 if isinstance(expected, str) and expected.startswith('rule:'):
                     slip = slips.filtered(lambda item: item.id == record.payslip_id)
@@ -93,7 +99,8 @@ try:
         results.append({'ticket':case['ticket'], 'company_id':company.id,
                         'employee_id':employee.id, 'payslip_ids':slips.ids, 'fields':case['fields'],
                         'corporate_errors':[(issue.code, issue.message) for issue in dataset.errors],
-                        'issue_codes': sorted({issue.code for issue in dataset.issues}), 'payroll_preserved': True})
+                        'issue_codes': sorted({issue.code for issue in dataset.issues}),
+                        'download_verified': bool(case.get('verify_download')), 'payroll_preserved': True})
     print('PAYROLL_TICKET_FLOWS ' + json.dumps(results, ensure_ascii=False))
 finally:
     env.cr.rollback()
