@@ -61,10 +61,12 @@ class TestMonthlyFruitProforma(TransactionCase):
         cls.other_retention = tax('Fruit proforma different retention', -7.5)
         cls.species = cls.env['step.especie'].create({
             'name': 'Fruit proforma ordinary species', 'type_especie': 'frutal',
-            'group_especie': 'fruta_h'})
+            'group_especie': 'fruta_h', 'company_id': cls.root.id,
+            'company_ids': [Command.set((cls.root | cls.branch).ids)]})
         cls.retained_species = cls.env['step.especie'].create({
             'name': 'Fruit proforma retained species', 'type_especie': 'frutal',
-            'group_especie': 'fruta_h'})
+            'group_especie': 'fruta_h', 'company_id': cls.root.id,
+            'company_ids': [Command.set((cls.root | cls.branch).ids)]})
         cls.species.with_company(cls.root).write({'step_change_subject_vat': False})
         cls.retained_species.with_company(cls.root).write({
             'step_change_subject_vat': True, 'step_withholding_tax_id': cls.retention.id})
@@ -108,10 +110,13 @@ class TestMonthlyFruitProforma(TransactionCase):
     @classmethod
     def _new_variety(cls, species, code):
         group = cls.env['step.grupo.variedad'].create({
-            'name': code + ' group', 'especie_id': species.id})
+            'name': code + ' group', 'especie_id': species.id,
+            'company_id': cls.root.id,
+            'company_ids': [Command.set((cls.root | cls.branch).ids)]})
         return cls.env['step.variedad'].create({
             'name': code, 'cod_variedad': code, 'especie_id': species.id,
-            'grupo_variedad_id': group.id})
+            'grupo_variedad_id': group.id, 'company_id': cls.root.id,
+            'company_ids': [Command.set((cls.root | cls.branch).ids)]})
 
     def _as_accountant(self, records):
         return records.with_user(self.operator).with_context(allowed_company_ids=self.branch.ids)
