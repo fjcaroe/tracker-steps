@@ -34,7 +34,8 @@ class ProformaReceipts(models.Model):
     _FRUIT_SOURCE_FIELDS = PurchaseOrder._FRUIT_SOURCE_FIELDS | {'step_fruit_receipt_ids'}
 
     step_fruit_receipt_ids = fields.Many2many(
-        'stock.picking', string='Recepciones de origen', readonly=True, copy=False)
+        'stock.picking', 'step_fruit_proforma_receipt_rel', 'order_id', 'picking_id',
+        string='Recepciones de origen', readonly=True, copy=False)
 
 
 class MonthlyFruitProforma(models.TransientModel):

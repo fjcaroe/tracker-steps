@@ -33,8 +33,12 @@
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
                 <field name="step_can_migrate_fruit_bill" invisible="1"/>
+                <field name="step_fruit_migrated_proforma_id" invisible="1"/>
                 <button name="action_fruit_review_proforma" type="object" string="Revisar traslado a proforma"
                     groups="account.group_account_manager" invisible="not step_can_migrate_fruit_bill"/>
+            </xpath>
+            <xpath expr="//button[@name='button_draft']" position="attributes">
+                <attribute name="invisible" add="step_fruit_migrated_proforma_id" separator=" or "/>
             </xpath>
         </field>
     </record>

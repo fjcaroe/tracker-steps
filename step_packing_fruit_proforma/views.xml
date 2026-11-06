@@ -78,6 +78,9 @@
                                required="step_fruit_dte_code == '33' and step_fruit_supplier_invoice_received"/>
                     </group>
                     <notebook>
+                        <page string="Borradores anteriores" invisible="not step_fruit_legacy_move_ids">
+                            <field name="step_fruit_legacy_move_ids" readonly="1"/>
+                        </page>
                         <page name="fruit_summary" string="Resumen por variedad">
                             <field name="order_line" readonly="1">
                                 <list create="0" delete="0">
