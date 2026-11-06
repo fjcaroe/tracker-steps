@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Accounting already has native purchase read/write access. These rules
+         scope only the new creation permission; they do not narrow those flows. -->
+    <record id="rule_fruit_proforma_account_create" model="ir.rule">
+        <field name="name">Proforma fruta: creación por Contabilidad</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="domain_force">[('step_fruit_proforma', '=', True)]</field>
+        <field name="groups" eval="[(4, ref('account.group_account_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_fruit_proforma_line_account_create" model="ir.rule">
+        <field name="name">Proforma fruta: creación de líneas por Contabilidad</field>
+        <field name="model_id" ref="purchase.model_purchase_order_line"/>
+        <field name="domain_force">[('order_id.step_fruit_proforma', '=', True)]</field>
+        <field name="groups" eval="[(4, ref('account.group_account_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <!-- Group rules are ORed. Keep native purchase users' ordinary creation
+         rights when the same user also belongs to Accounting. The existing
+         global active-company rules continue to apply to both groups. -->
+    <record id="rule_fruit_proforma_purchase_create" model="ir.rule">
+        <field name="name">Compras: conservar creación de pedidos</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('purchase.group_purchase_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_fruit_proforma_line_purchase_create" model="ir.rule">
+        <field name="name">Compras: conservar creación de líneas de pedido</field>
+        <field name="model_id" ref="purchase.model_purchase_order_line"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('purchase.group_purchase_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+</odoo>
