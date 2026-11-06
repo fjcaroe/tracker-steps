@@ -17,10 +17,14 @@ class Production(models.Model):
 
     @api.model_create_multi
     def create(self, values_list):
-        if (any(values.get('step_fruit_proforma_ids') for values in values_list)
+        if ((self.env.context.get('default_step_fruit_proforma_ids')
+                or any(values.get('step_fruit_proforma_ids') for values in values_list))
                 and self.env.context.get('_fruit_proforma') is not _FRUIT):
             raise UserError(_('Los vínculos de proforma se preparan desde la compra mensual.'))
-        return super().create(values_list)
+        records = super().create(values_list)
+        if records.step_fruit_proforma_ids and self.env.context.get('_fruit_proforma') is not _FRUIT:
+            raise UserError(_('Los vínculos de proforma se preparan desde la compra mensual.'))
+        return records
 
     def write(self, values):
         if ('step_fruit_proforma_ids' in values
