@@ -18,11 +18,16 @@ def main():
         assert all(marker in log for marker in (
             'MANAGEMENT_DEPLOY_OK backup=', 'MANAGEMENT_VERIFY_OK', 'MANAGEMENT_REGISTRY_OK'))
         assert proof['commit'] in log
-        assert '18.0.2.11.2' in log
-        if target != 'development':
+        assert '18.0.2.12.0' in log
+        assert '0 failed, 0 error(s) of 39 tests' in (root / (target + '-qa.log')).read_text()
+        if target == 'cerro':
             flow = (root / (target + '-verify.log')).read_text()
-            assert 'T170_BRANCH_MONTHLY_FLOW_OK BRANCH_ONLY_BASE_PRODUCT' in flow
-            assert 'T170_MISSING_ACCOUNTS_IDENTIFIED' in flow
+            marker = 'T170_ACTUAL_MONTHLY_CASE_OK '
+            actual = json.loads(next(line[len(marker):] for line in flow.splitlines() if line.startswith(marker)))
+            assert actual['masters_and_stock_preserved'] and actual['retry_same_draft'] and actual['branch_only']
+            assert proof['monthly_fruit_plan']
+        elif target == 'qa-cerro':
+            assert 'T170_NATIVE_EXPENSE_FLOW_OK' in (root / (target + '-verify.log')).read_text()
         proofs.append(proof)
     assert len({p['commit'] for p in proofs}) == 1
     assert len({p['release_sha256'] for p in proofs}) == 1
@@ -43,23 +48,30 @@ def main():
     ticket = call('helpdesk.ticket', 'read', [[170]], {'fields': ['stage_id']})[0]
     assert ticket['stage_id'][0] == 2
     assert not call('mail.message', 'search_count', [[('model', '=', 'helpdesk.ticket'),
-        ('res_id', '=', 170), ('id', '>', 10161), ('message_type', 'in', ['comment', 'email'])]])
+        ('res_id', '=', 170), ('id', '>', 10164), ('message_type', 'in', ['comment', 'email'])]])
     author = call('res.users', 'read', [[uid]], {'fields': ['partner_id']})[0]['partner_id'][0]
     subtype = call('ir.model.data', 'search_read', [[('module', '=', 'mail'), ('name', '=', 'mt_note')]],
                    {'fields': ['res_id']})[0]['res_id']
-    body = ('T170 revisión 3, adjunto 3524 y comentario 10161: publicada en Desarrollo, Cerro '
-        'El Plomo producción y QA-Cerro, step_packing_operations 18.0.2.11.2 y '
-        'step_packing_holding_contract 18.0.1.0.0. El aviso de cuenta de cargo identifica '
-        'todos los productos sin cuenta, con código/nombre y contrato. La comprobación se '
-        'hace antes de crear cualquier borrador, sin asignar cuentas automáticamente. '
-        'Conserva la búsqueda de precio por Producto base y la lectura de contratos de matriz '
-        'con solo la sucursal activa. Copias frescas de los tres destinos: 33 pruebas por copia, '
-        'flujo nativo con error identificado y posterior preparación de borrador en rollback, '
-        'formulario/menú, mismo paquete, respaldo, bloqueo, paridad y aislamiento verificados. '
-        'La cuenta de cargo de los productos detallados por el aviso sigue pendiente de '
-        'definición del cliente. No se modificaron cuentas de contratos '
-        'ni se generaron facturas reales. Ticket permanece en curso. Commit: ' +
-        proofs[0]['commit'] + '; SHA-256: ' + proofs[0]['release_sha256'] + '.')
+    body = ('T170 revisión integral de los comentarios 10163/10164 y adjuntos 3525/3526. '
+        'La cuenta de gastos del producto estaba configurada: el módulo exigía indebidamente '
+        'otra cuenta en la línea del contrato. Ahora utiliza las cuentas nativas del producto '
+        'o categoría en la sucursal; respeta una cuenta contractual específica y la posición fiscal. '
+        'Los impuestos se calculan por Odoo, conservando IVA de matriz y su mapeo fiscal. '
+        'Admite el diario de matriz compatible sin cambiar la empresa de la factura. '
+        'Se reprodujo primero el fallo original en copia fresca y se verificó después el mismo '
+        'caso sin sustituir cuentas, contratos ni precios por datos ficticios. '
+        'Caso verificado: contrato ' + actual['contract'] + ', OT ' + ', '.join(actual['orders']) +
+        ', cantidad ' + str(actual['quantity']) + ', moneda ' + actual['currency'] +
+        ', neto ' + str(actual['subtotal']) + ', impuesto ' + str(actual['tax']) +
+        ', total ' + str(actual['total']) + '. Cuenta(s): ' + ', '.join(actual['accounts']) + '. '
+        'Borrador nativo balanceado, formulario, diario, producto, UdM, cuenta por pagar e '
+        'idempotencia verificados. Maestros y stock conservados; todo el ensayo se revierte. '
+        'Publicado el mismo paquete en Desarrollo, Cerro producción y QA-Cerro, versión '
+        'step_packing_operations 18.0.2.12.0: 39 pruebas por destino, respaldo, bloqueo, '
+        'paridad e aislamiento. No se requieren cambios adicionales en la cuenta mostrada '
+        'por el cliente. No se generaron facturas reales. Listo para confirmación del cliente; '
+        'el ticket permanece en curso. Commit: ' + proofs[0]['commit'] +
+        '; SHA-256: ' + proofs[0]['release_sha256'] + '.')
     message = call('mail.message', 'create', [{'model': 'helpdesk.ticket', 'res_id': 170,
         'message_type': 'comment', 'subtype_id': subtype, 'author_id': author,
         'partner_ids': [(6, 0, [])], 'body': '<p>' + html.escape(body) + '</p>'}])
