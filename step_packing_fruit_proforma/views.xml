@@ -199,7 +199,8 @@
         <field name="inherit_id" ref="step_inventory_packing.view_quant_package_form_steps_fruit"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='step_invoice_ids']" position="after">
-                <field name="step_fruit_proforma_id" readonly="1" options="{'no_create': True}"/>
+                <field name="step_fruit_proforma_id" readonly="1" options="{'no_create': True}"
+                    context="{'form_view_ref': 'step_packing_fruit_proforma.fruit_proforma_form'}"/>
             </xpath>
         </field>
     </record>

@@ -547,6 +547,11 @@ class TestMonthlyFruitProforma(TransactionCase):
         self.assertEqual(second.move_ids, bill)
         self.assertEqual(bill.state, 'draft')
         self.assertEqual(self._stock_counts(), before_stock)
+        kept = second.action_keep_drafts()
+        self.assertEqual(kept['res_model'], 'account.move')
+        self.assertEqual(bill.state, 'draft')
+        self.assertEqual(production.purchase_bill_id, bill)
+        self.assertFalse(tag.step_fruit_proforma_id)
 
     def test_explicit_legacy_migration_preserves_cancelled_history_and_retries_same_proforma(self):
         production, tag, source, bill = self._legacy_draft()
