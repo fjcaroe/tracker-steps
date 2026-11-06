@@ -7,6 +7,7 @@ del validador instalado; conservar Desde obligatorio, los controles de otros
 movimientos y todas las fechas e importes almacenados y emitidos. Probar
 anexas mixtas y la descarga nativa, formularios y casos reales en copia fresca.
 Mismo paquete, respaldo, bloqueo y ninguna declaración o cambio de nómina real.
+
 T173 (mensaje 10187, adjunto 3530) amplía `previred-simpledigital` en Desarrollo
 y SyS. Clasificar explícitamente la regla salarial nativa que paga la asignación
 familiar retroactiva y llevar su total guardado al campo 23, únicamente en la
@@ -15,6 +16,11 @@ código dinámico ni sumar al campo 22. La clasificación de reglas existentes s
 identifica en un plan privado certificado en copia; conserva IDs, fórmulas,
 auditoría, recibos e importes. No recalcular nómina ni enviar declaraciones.
 Mismo paquete, copias frescas, respaldo, bloqueo y prueba del caso reportado.
+
+El paquete `previred-revision` certifica T173 y T174 juntos, únicamente en
+Desarrollo y SyS. Incluye las dos extensiones y prueba en el mismo registro
+sus quince casos, los archivos descargados y la clasificación privada de la
+regla existente. T172 conserva además su entrega independiente en Demo-SYS.
 
 T172 (mensaje 10183, adjunto 3529) autoriza `previred-simpledigital` en
 Desarrollo, SyS y Demo-SYS. Corregir únicamente los campos CCAF 84/90
