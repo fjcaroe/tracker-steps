@@ -25,6 +25,11 @@ class TestFamilyRetroactive(PreviredCase):
         })
         self.env.flush_all()
         slip.state = 'done'
+        # Represent the imported/closed monetary evidence directly. Creating a
+        # line without running the full engine leaves a zero total in Enterprise.
+        self.env.cr.execute('UPDATE hr_payslip_line SET total=%s WHERE id=%s',
+                            (amount, line.id))
+        line.invalidate_recordset(['total'])
         row = make_row(overrides={22: '22601', 23: '0', 83: ccaf})
         annex = make_row(line_type='01', overrides={23: '0'})
         record = SimpleNamespace(principal=row, rows=[row, annex],
@@ -59,8 +64,11 @@ class TestFamilyRetroactive(PreviredCase):
 
     def test_multiple_classified_lines_are_summed_and_rounded_once(self):
         slip, line, record, dataset, _ = self.prepare(amount=300.25)
-        second = line.copy({'amount': 294.25})
+        second = line.copy({'amount': 294.25, 'code': line.code,
+                            'category_id': line.category_id.id})
         self.env.flush_all()
+        self.env.cr.execute('UPDATE hr_payslip_line SET total=294.25 WHERE id=%s', (second.id,))
+        second.invalidate_recordset(['total'])
         self.env['step.previred.extractor']._enrich_official_fields(record, slip, dataset)
         self.assertEqual(record.principal[22], '595')
         self.assertEqual(second.slip_id, slip)
