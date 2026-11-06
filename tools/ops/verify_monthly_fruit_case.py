@@ -23,13 +23,17 @@ def verify_case(env, plan):
     wizard = business['step.packing.monthly.fruit.bill'].create({
         'company_id': company.id, 'date_start': plan['date_start'], 'date_end': plan['date_end'],
         'producer_ids': [(6, 0, contract.partner_id.ids)], 'contract_id': contract.id})
+    journal = company.step_packing_purchase_journal_id
     action = wizard.action_prepare_bills()
     bills = orders.purchase_bill_id
     assert len(bills) == 1 and bills.state == 'draft' and bills.company_id == company
+    assert bills.journal_id == journal
     assert bills.currency_id.name == plan['currency']
     assert abs(bills.amount_untaxed - plan['subtotal']) < bills.currency_id.rounding
     assert abs(sum(bills.invoice_line_ids.mapped('quantity')) - plan['quantity']) < 0.00001
     for line in bills.invoice_line_ids:
+        assert line.product_id in contract.product_line_ids.product_id
+        assert line.product_uom_id in contract.product_line_ids.filtered(lambda row: row.product_id == line.product_id).uom_id
         assert line.account_id.code == plan['expense_code']
         assert line.tax_ids == line._get_computed_taxes(), 'Do not discard inherited or fiscal-position taxes'
     assert set(bills.invoice_line_ids.tax_ids.ids) == set(plan['tax_ids'])
@@ -46,7 +50,9 @@ def verify_case(env, plan):
     assert layers.read(['quantity', 'value', 'remaining_qty', 'remaining_value']) == valuation
     assert contract.product_line_ids.read(['product_id', 'price_unit', 'debit_account_id']) == contract_before
     return {'branch_only': True, 'contract': contract.name, 'orders': orders.mapped('name'),
-            'currency': bills.currency_id.name, 'subtotal': bills.amount_untaxed,
+            'currency': bills.currency_id.name, 'quantity': sum(bills.invoice_line_ids.mapped('quantity')),
+            'journal_id': bills.journal_id.id, 'products': bills.invoice_line_ids.product_id.mapped('default_code'),
+            'subtotal': bills.amount_untaxed,
             'tax': bills.amount_tax, 'total': bills.amount_total,
             'accounts': bills.invoice_line_ids.account_id.mapped('code'),
             'taxes': bills.invoice_line_ids.tax_ids.ids, 'retry_same_draft': True,
