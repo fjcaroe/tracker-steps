@@ -43,7 +43,13 @@ def main():
    try:
     with backup.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','-d',db,stdin=inp)
     with (stage/'receiver-tests.log').open('wb') as log:run('env','PYTHONPATH='+str(source)+':/opt/steps-validation/personal-transfer-test-deps',API/'.venv/bin/python','-m','pytest','receivers/coban/test_receiver.py','receivers/coban/test_starter.py','-q',cwd=source,stdout=log,stderr=subprocess.STDOUT)
-    with (stage/'copy-flow.log').open('wb') as log:run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+db,'JWT_SECRET=isolated-continuity-copy','PYTHONPATH='+str(source)+':'+str(api_root),API/'.venv/bin/python','-m','receivers.coban.rehearse',cwd=source,stdout=log,stderr=subprocess.STDOUT)
+    reference=Path('/opt/steps-validation/tracker-receiver-api-reference')/commit
+    reference.mkdir(parents=True,exist_ok=False)
+    for parent in (reference.parent,reference):parent.chmod(0o755)
+    shutil.copytree(api_root/'app',reference/'app',ignore=shutil.ignore_patterns('__pycache__'))
+    for path in reference.rglob('*'):path.chmod(0o755 if path.is_dir() else 0o644)
+    assert python_tree(reference/'app')==api
+    with (stage/'copy-flow.log').open('wb') as log:run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+db,'JWT_SECRET=isolated-continuity-copy','PYTHONPATH='+str(source)+':'+str(reference),API/'.venv/bin/python','-m','receivers.coban.rehearse',cwd=source,stdout=log,stderr=subprocess.STDOUT)
     assert 'COBAN_COPY_QA_OK' in (stage/'copy-flow.log').read_text()
     assert history(fence)==before and python_tree(api_root/'app')==api
     assert tree(current.resolve()/'receivers')==baseline['receiver'] and sha(cfg)==baseline['config'] and sha(unit)==baseline['unit']
