@@ -53,6 +53,23 @@ try:
             wizard = scoped['step.previred.export.wizard'].create({'company_id': company.id, 'date_from': first,
                                                                   'date_to': last, 'allow_without_department': True})
             dataset = wizard._build()
+            if case.get('verify_download'):
+                import base64
+                wizard.action_generate()
+                assert wizard.state == 'done' and wizard.file_data, 'Canonical TXT generation was blocked'
+                payload = base64.b64decode(wizard.file_data)
+                downloaded = [line.split(';') for line in payload.decode(previred.ENCODING).strip().splitlines()]
+                assert downloaded and all(len(row) == 105 for row in downloaded)
+                target = [row for row in downloaded
+                          if previred.rut_key(row[0] + row[1]) == key
+                          and previred.normalize_line_type(row[13]) == previred.LINE_PRINCIPAL]
+                assert len(target) == 1, 'Expected one reported principal in the actual download'
+                for position, expected in case['fields'].items():
+                    if not str(expected).startswith('rule:'):
+                        assert target[0][int(position)-1] == str(expected), ('download', position)
+                wizard.output = 'xlsx'
+                wizard.action_generate()
+                assert wizard.state == 'done' and base64.b64decode(wizard.file_data).startswith(b'PK')
         finally:
             http._request_stack.pop()
         records = [record for record in dataset.records
