@@ -67,6 +67,26 @@ Antes de ampliar mucho la flota: medir p95 de API, antigüedad/tamaño de ambas
 colas y duración del worker; después evaluar particiones mensuales y retención
 por contrato de posiciones crudas, sin borrar históricos por esta entrega.
 
+### Entrega verificada de analítica
+
+API certificada d2c3d3904c794d56effb9b15ce151f461be096f9, interfaz
+8af6904fef943058902cd312f394e44974ac917c. Recibos y respaldos en
+/opt/steps-validation/tracker-analytics/<API>/ y tracker-parity-20261031/<UI>/.
+Navegador real: Desarrollo, un vehículo y 30 días, 5.279 muestras, 162,7 ms;
+Cerro, tres vehículos y 30 días, 21.444 muestras, 165 ms. Son mediciones puntuales,
+no garantías de latencia. La prueba de copia de 100 vehículos con 72.000 buckets
+usó cuatro consultas SQL, 0,6–0,75 s y unos 513 KB. No mide la capacidad total
+TCP ni sustituye una prueba de ingestión masiva sostenida.
+
+El paquete adicional del receptor bad95ced quedó certificado sobre copia con
+31 pruebas de protocolo/cola/control y flujo TCP end-to-end. Su aplicación fue
+detenida por conexiones activas: preservar los enlaces existentes es prioritario.
+Reintentar upgrade_coban_continuity.py apply con ese checkout y
+--runtime-api-root al WorkingDirectory efectivo cuando no existan conexiones.
+No afirmar que la capacidad mayor de la nueva versión esté activa antes de
+verificar delivery.json. No se activó memoria en los 401C: firmware no informado,
+confirmación del manual y prueba física pendientes.
+
 ## Comparación de vehículos en Operación
 
 La pestaña Comparar vehículos permite seleccionar una o varias unidades con
