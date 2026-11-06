@@ -78,7 +78,10 @@ class PurchaseOrder(models.Model):
             if not all(flagged):
                 raise UserError(_('Prepare las proformas por separado de las compras ordinarias.'))
             return super(PurchaseOrder, _controlled(self)).create(vals_list)
-        return super().create(vals_list)
+        orders = super().create(vals_list)
+        if orders.filtered('step_fruit_proforma') and not _internal(self):
+            raise UserError(_('Prepare la proforma desde la compra mensual de fruta.'))
+        return orders
 
     def write(self, values):
         if 'step_fruit_proforma' in values and any(
@@ -106,6 +109,8 @@ class PurchaseOrder(models.Model):
 
     def _fruit_lock(self):
         fruit = self.filtered('step_fruit_proforma')
+        if not fruit:
+            return fruit
         fruit.check_access('write')
         fruit.flush_recordset()
         # Match the monthly source lock order: OT, packages, then proforma.
@@ -280,8 +285,9 @@ class PurchaseOrder(models.Model):
     def _fruit_link_productions(self, bill):
         self.ensure_one()
         self._fruit_check_existing_production_bills(bill)
-        _controlled(self.step_fruit_production_ids).with_context(
-            _packing_valuation=_VALUATION, _packing_control=_INTERNAL).write({'purchase_bill_id': bill.id})
+        if self.step_fruit_production_ids:
+            _controlled(self.step_fruit_production_ids).with_context(
+                _packing_valuation=_VALUATION, _packing_control=_INTERNAL).write({'purchase_bill_id': bill.id})
 
     def button_cancel(self):
         fruit = self.filtered('step_fruit_proforma')
@@ -385,7 +391,10 @@ class FruitPackage(models.Model):
         if any(values.get('step_fruit_proforma_id', self.env.context.get('default_step_fruit_proforma_id'))
                for values in vals_list) and not _internal(self):
             raise UserError(_('La proforma se vincula desde la compra mensual.'))
-        return super().create(vals_list)
+        packages = super().create(vals_list)
+        if packages.filtered('step_fruit_proforma_id') and not _internal(self):
+            raise UserError(_('La proforma se vincula desde la compra mensual.'))
+        return packages
 
     def write(self, values):
         if 'step_fruit_proforma_id' in values and not _internal(self):
@@ -409,7 +418,10 @@ class AccountMove(models.Model):
             raise UserError(_('El vínculo de proforma se genera desde su conversión o revisión autorizada.'))
         self.env['purchase.order'].browse([values.get('step_fruit_proforma_id', self.env.context.get('default_step_fruit_proforma_id'))
             for values in vals_list if values.get('step_fruit_proforma_id', self.env.context.get('default_step_fruit_proforma_id'))])._fruit_lock()
-        return super().create(vals_list)
+        moves = super().create(vals_list)
+        if moves.filtered(lambda move: move.step_fruit_proforma_id or move.step_fruit_migrated_proforma_id) and not _internal(self):
+            raise UserError(_('El vínculo de proforma requiere una conversión o revisión autorizada.'))
+        return moves
 
     def write(self, values):
         for field in ('step_fruit_proforma_id', 'step_fruit_migrated_proforma_id'):
