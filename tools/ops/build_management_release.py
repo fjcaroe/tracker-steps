@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
-    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-attendance', 'payroll-days', 'payroll-review', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-fruit-proforma', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
+    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-attendance', 'payroll-days', 'payroll-review', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'previred-simpledigital', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-fruit-proforma', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro', 'qa-cerro'))
     args = parser.parse_args()
     if args.kind == 'invoice-payments':
@@ -225,12 +225,15 @@ def main():
         modules = ('step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle_simpledigital')
     if args.kind == 'previred-fix':
         modules = ('step_hr_previred',)
+    if args.kind == 'previred-simpledigital':
+        assert args.environment in ('development', 'sys', 'demo-sys')
+        modules = ('step_hr_previred_simpledigital',)
     if args.kind == 'tarja':
         modules = ('step_inventory_packing', 'step_packing_operations')
     if args.kind == 'cerro-stack':
         from stack_scope import MODULES as modules
     if args.environment == 'demo-sys':
-        if args.kind not in ('payroll','payroll-days'):
+        if args.kind not in ('payroll','payroll-days','previred-simpledigital'):
             parser.error('Demo-SYS replica SyS; este publicador solo prepara Nómina para ese destino')
         modules = tuple(name for name in modules if name not in (
             'step_inventory_packing', 'step_packing_operations', 'step_producer_fruit_flow'))

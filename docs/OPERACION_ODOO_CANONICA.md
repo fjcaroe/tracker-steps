@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+T172 (mensaje 10183, adjunto 3529) autoriza `previred-simpledigital` en
+Desarrollo, SyS y Demo-SYS. Corregir únicamente los campos CCAF 84/90
+omitidos por la puerta de cero días del proveedor, después de recuperar la
+asistencia nativa del recibo. Usar la renta Fonasa ya emitida y el indicador
+del período; no modificar contratos, tasas, recibos ni asientos. Mantener
+las cotizaciones existentes y no repetir importes en anexas. Exigir copias
+frescas, prueba del caso privado de SyS, mismo paquete, respaldo, bloqueo,
+verificación de menú/formulario/flujo y alcance instalado de SyS para Demo-SYS.
+
 T171 (comentarios 10173/10174 y adjunto 3528) autoriza `packing-fruit-proforma`
 en Desarrollo, Cerro y QA-Cerro. La compra mensual prepara proformas nativas
 de Compras, separadas de Contabilidad y sin movimientos de stock; solo tras
