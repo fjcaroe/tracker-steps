@@ -15,6 +15,11 @@ arch = etree.fromstring(env['step.previred.export.wizard'].get_view(view_type='f
 assert arch.xpath("//field[@name='company_id']")
 assert arch.xpath("//field[@name='date_from']")
 assert hasattr(env['step.previred.extractor'], '_restore_ccaf_fields')
+if 'step_previred_family_retroactive' in env['hr.salary.rule']._fields:
+    arch = etree.fromstring(env['hr.salary.rule'].get_view(view_type='form')['arch'].encode())
+    assert arch.xpath("//field[@name='step_previred_family_retroactive']")
+    from configure_previred_retroactive import configure
+    configure(env, RETROACTIVE_RULE_PLAN)
 if CASES:
     exec((Path(PROBE_TOOLS) / 'check_payroll_ticket_flows.py').read_text())
 env.cr.rollback()

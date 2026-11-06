@@ -29,6 +29,7 @@ BUSINESS = ('step_management_operational_budget', 'step_management_budget_line',
             'step_management_plan', 'step_management_production_order', 'step_management_crop_program')
 MONTHLY_FRUIT_PLAN = None
 PREVIRED_CASES = []
+PREVIRED_RULE_PLAN = []
 SETTINGS = False
 PRODUCERS = False
 PACKING_INITIAL_MIGRATION = False
@@ -124,6 +125,8 @@ def snapshot(database):
         assert re.fullmatch('[a-z_][a-z0-9_]*', table), 'Invalid preservation table'
         if table in existing:
             row = 'jsonb_strip_nulls(to_jsonb(t))' if PRODUCERS else 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
+            if TICKET_REVISION == 'previred-simpledigital' and table == 'hr_salary_rule':
+                row = "(to_jsonb(t)-'step_previred_family_retroactive')"
             if TICKET_REVISION in ('sag-traceability', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-fruit-proforma', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency'):
                 added = sorted(set(current_columns[table]) - set(PROMOTION_COLUMNS[table]))
                 if added: row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % c for c in added)
@@ -321,7 +324,7 @@ def normalize_approved_account(base, options, database, args, commit):
 
 
 def main():
-    global PREVIRED_CASES, MONTHLY_FRUIT_PLAN, PACKING_ANALYTIC_PLAN_MAX, PACKING_INACTIVE_TYPES, PACKING_CONFIG_LIMITS, PROMOTION_COLUMNS, TRACEABILITY_INITIAL, SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
+    global PREVIRED_RULE_PLAN, PREVIRED_CASES, MONTHLY_FRUIT_PLAN, PACKING_ANALYTIC_PLAN_MAX, PACKING_INACTIVE_TYPES, PACKING_CONFIG_LIMITS, PROMOTION_COLUMNS, TRACEABILITY_INITIAL, SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys', 'qa-cerro', 'demo-sys'))
@@ -340,7 +343,11 @@ def main():
     parser.add_argument('--resume-packing-split', action='store_true',
                         help='Reuse the verified Cerro overlay from the interrupted T154 deployment')
     parser.add_argument('--previred-cases', type=Path, help='Private immutable reported payroll cases; read-only verification')
+    parser.add_argument('--previred-retroactive-rules', type=Path, help='Private reviewed native salary rule identities for field 23')
     args = parser.parse_args()
+    if args.previred_retroactive_rules:
+        assert args.kind == 'previred-simpledigital' and args.environment in ('development', 'sys')
+        PREVIRED_RULE_PLAN = json.loads(args.previred_retroactive_rules.read_text())
     if args.previred_cases:
         assert args.kind == 'previred-simpledigital'
         PREVIRED_CASES = json.loads(args.previred_cases.read_text())
@@ -504,6 +511,9 @@ def main():
     staged = stage / 'addons'
     staged.mkdir(exist_ok=True)
     proof = extract(args.release, staged)
+    if args.kind == 'previred-simpledigital' and tuple(map(int, proof['versions']['step_hr_previred_corrections'].split('.'))) >= (18, 0, 1, 1, 0):
+        assert args.environment in ('development', 'sys'), 'T173 destinations only'
+        assert args.environment != 'sys' or PREVIRED_RULE_PLAN, 'Classify the reviewed retroactive rule'
     native_agriculture_versions = {
         'step_bpa_irrigation': (18, 0, 3, 0, 0),
         'step_bpa_inventory': (18, 0, 1, 0, 1),
@@ -642,6 +652,7 @@ def main():
         baseline['allowance_rules'] = query(database, "SELECT md5(string_agg(to_jsonb(r)::text, '' ORDER BY r.id)) FROM hr_salary_rule r JOIN ir_model_data d ON d.res_id=r.id WHERE d.model='hr.salary.rule' AND d.module='l10n_cl_simpledigital_payroll' AND d.name IN ('hr_rule_colocation','hr_rule_movility')")
     if args.kind == 'previred-simpledigital':
         baseline['previred_cases'] = PREVIRED_CASES
+        baseline['previred_retroactive_rules'] = PREVIRED_RULE_PLAN
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     base = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']
     if args.kind == 'sag-traceability' and args.environment == 'cerro':
@@ -779,6 +790,8 @@ def main():
             if args.kind == 'packaging-master':
                 from packing_material_hierarchy_setup import configure
                 configure(base, options, qa_db, staged, opts, stage, MATERIAL_HIERARCHY_PLAN)
+            if PREVIRED_RULE_PLAN:
+                configure_retroactive(base, options, qa_db, staged, opts, stage)
             assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
             if args.reception_lot_plan:
                 repair_receipt_lots(base, options, qa_db, staged, opts, stage, args.reception_lot_plan)
@@ -944,6 +957,8 @@ def main():
                     assert 'CERRO_CATALOGS_SHARED_OK' in result.stdout
                 if args.kind == 'email-login' and args.normalize_user_id:
                     normalize_approved_account(base, options, database, args, True)
+                if PREVIRED_RULE_PLAN:
+                    configure_retroactive(base, options, database, release_root, opts, stage)
                 (backup / 'deployment.json').write_text(json.dumps({'commit': proof['commit'], 'sha256': release_sha, 'overlay': str(release_root), 'log': str(log)}))
             except Exception:
                 # Keep the upgraded DB and recovery dump; never silently discard business data.
@@ -959,6 +974,17 @@ def main():
     print('MANAGEMENT_VERIFY_OK ' + json.dumps({'environment': args.environment, 'commit': proof['commit'], 'url': target['url']}), flush=True)
 
 
+def configure_retroactive(base, options, database, source, opts, stage):
+    header = 'PLAN=' + repr(PREVIRED_RULE_PLAN) + '\n'
+    script = (HERE / 'configure_previred_retroactive.py').read_text()
+    script += "\nprint('PREVIRED_RULE_CLASSIFIED ' + str(configure(env, PLAN, apply=True)))\nenv.cr.commit()\n"
+    result = run(*(base + ['shell'] + options + ['-d', database,
+        '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'],
+        '--log-level=error']), input=header + script, text=True, capture_output=True)
+    (stage / ('retroactive-rule-' + database + '.log')).write_text(result.stdout + result.stderr)
+    assert 'PREVIRED_RULE_CLASSIFIED ' in result.stdout
+
+
 def verify(base, options, database, source, opts, proof, stage, installed):
     export = MODULES == ('step_export',)
     homepage = MODULES == ('step_demo_homepage',)
@@ -971,6 +997,7 @@ def verify(base, options, database, source, opts, proof, stage, installed):
         probe += '\nTICKETS=' + repr(tickets) + '\n' + (HERE / 'verify_ticket_native_flow.py').read_text()
     if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-fruit-proforma', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         header += 'OUTPUT=' + repr(str(stage)) + '\n'
+    header += 'RETROACTIVE_RULE_PLAN=' + repr(PREVIRED_RULE_PLAN) + '\n'
     header += 'CASES=' + repr(PREVIRED_CASES) + '\n'
     header += 'MONTHLY_FRUIT_PLAN=' + repr(MONTHLY_FRUIT_PLAN) + '\n'
     data_options = ['--data-dir=' + str(stage/'data')] if TICKET_REVISION in ('payroll-attendance', 'payroll-days', 'payroll-review', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-fruit-proforma', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability') and database.startswith('MANAGEMENT_QA_') else []
