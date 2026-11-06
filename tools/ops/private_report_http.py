@@ -41,7 +41,7 @@ def report_assets_http(base, options, database, source, opts, stage, query):
         for attempt in range(60):
             assert process.poll() is None, 'Private report asset server stopped'
             try:
-                with urllib.request.urlopen(url+'/web/login?db='+database, timeout=5) as response:
+                with urllib.request.urlopen(url+'/web/health', timeout=5) as response:
                     if response.status == 200: break
             except OSError: time.sleep(1)
         else: raise AssertionError('Private report asset server did not start')

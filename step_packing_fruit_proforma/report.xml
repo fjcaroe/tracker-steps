@@ -58,20 +58,20 @@
                             </div>
                             <table class="metadata w-100 mb-3"><tbody>
                                 <tr><td><strong>Período</strong></td><td><span t-field="doc.step_fruit_period_start"/> al <span t-field="doc.step_fruit_period_end"/></td>
-                                    <td><strong>Especie</strong></td><td t-field="doc.step_fruit_species_id"/></tr>
-                                <tr><td><strong>Moneda</strong></td><td t-field="doc.currency_id.name"/>
+                                    <td><strong>Especie</strong></td><td><span t-field="doc.step_fruit_species_id"/></td></tr>
+                                <tr><td><strong>Moneda</strong></td><td><span t-field="doc.currency_id.name"/></td>
                                     <td><strong>Contratos</strong></td><td t-out="', '.join(doc.step_fruit_contract_ids.mapped('name'))"/></tr>
-                                <tr t-if="doc.step_fruit_withholding_tax_id"><td><strong>Retención</strong></td><td colspan="3" t-field="doc.step_fruit_withholding_tax_id"/></tr>
+                                <tr t-if="doc.step_fruit_withholding_tax_id"><td><strong>Retención</strong></td><td colspan="3"><span t-field="doc.step_fruit_withholding_tax_id"/></td></tr>
                             </tbody></table>
                             <h5>Resumen por especie y variedad</h5>
                             <table class="table table-sm summary">
                                 <thead><tr><th>Especie</th><th>Variedad</th><th>Producto de compra</th><th class="text-end">Cantidad</th>
                                     <th>Unidad</th><th class="text-end">Precio unitario</th><th class="text-end">Neto</th></tr></thead>
                                 <tbody><tr t-foreach="doc.order_line.filtered(lambda line: not line.display_type)" t-as="line">
-                                    <td t-field="doc.step_fruit_species_id"/><td><span t-field="line.step_fruit_variety_id"/><span t-if="not line.step_fruit_variety_id">Sin variedad</span></td>
-                                    <td t-field="line.product_id"/><td class="text-end" t-out="format_quantity(line.product_qty)"/>
-                                    <td t-field="line.product_uom"/><td class="text-end" t-out="format_price(line.price_unit)"/>
-                                    <td class="text-end" t-field="line.price_subtotal"/>
+                                    <td><span t-field="doc.step_fruit_species_id"/></td><td><span t-field="line.step_fruit_variety_id"/><span t-if="not line.step_fruit_variety_id">Sin variedad</span></td>
+                                    <td><span t-field="line.product_id"/></td><td class="text-end" t-out="format_quantity(line.product_qty)"/>
+                                    <td><span t-field="line.product_uom"/></td><td class="text-end" t-out="format_price(line.price_unit)"/>
+                                    <td class="text-end"><span t-field="line.price_subtotal"/></td>
                                 </tr></tbody>
                             </table>
                             <div class="row justify-content-end mb-3"><div class="col-5">

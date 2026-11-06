@@ -194,9 +194,6 @@ def verify_copy_cycle(admin, output):
 
     before_stock = stock_counts()
     before_moves = admin['account.move'].search_count([('company_id', '=', branch.id)])
-    admin.cr.execute('SELECT id, step_fruit_vat_policy, step_fruit_retention_property_id FROM step_especie WHERE id = ANY(%s) ORDER BY id',
-        [[species.id for species, variety in species_by_code.values()]])
-    print('T171_FIXTURE_POLICY_ROWS ' + json.dumps(admin.cr.fetchall()), flush=True)
     wizard = business['step.packing.monthly.fruit.bill'].create({
         'company_id': branch.id, 'date_start': '2026-11-01', 'date_end': '2026-11-30',
         'producer_ids': [Command.set(producer.ids)]})
