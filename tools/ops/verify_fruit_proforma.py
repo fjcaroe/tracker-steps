@@ -137,16 +137,20 @@ def verify_copy_cycle(admin, output):
     for code, amount, unit_price in (('33', 600, 2), ('33', 400, 2.01), ('46', 20, 5)):
         if code not in species_by_code:
             species = admin['step.especie'].create({'name': 'QA171 species ' + code,
-                'type_especie': 'frutal', 'group_especie': 'fruta_h'})
+                'type_especie': 'frutal', 'group_especie': 'fruta_h',
+                'company_id': holding.id,
+                'company_ids': [Command.set((holding | branch).ids)]})
             policy = {'step_change_subject_vat': code == '46'}
             if code == '46':
                 policy['step_withholding_tax_id'] = retention.id
             species.with_company(holding).write(policy)
             group = admin['step.grupo.variedad'].create({'name': 'QA171 group ' + code,
-                'especie_id': species.id})
+                'especie_id': species.id, 'company_id': holding.id,
+                'company_ids': [Command.set((holding | branch).ids)]})
             variety = admin['step.variedad'].create({'name': 'QA171 variety ' + code,
                 'cod_variedad': 'QA171' + code, 'especie_id': species.id,
-                'grupo_variedad_id': group.id})
+                'grupo_variedad_id': group.id, 'company_id': holding.id,
+                'company_ids': [Command.set((holding | branch).ids)]})
             species_by_code[code] = species, variety
         species, variety = species_by_code[code]
         contract = admin['step.producer.purchase.contract'].with_company(holding).create({
