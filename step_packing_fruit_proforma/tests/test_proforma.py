@@ -4,6 +4,8 @@ The closed OT fixtures represent legacy production: they deliberately perform
 no manufacturing or stock transfer. Every master belongs to the test transaction;
 no supplier invoice is posted and no fiscal folio or message is sent.
 """
+from unittest.mock import patch
+
 from odoo import Command
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
@@ -190,6 +192,59 @@ class TestMonthlyFruitProforma(TransactionCase):
                 'name': self.base.name, 'product_qty': 1,
                 'product_uom': self.base.uom_id.id, 'price_unit': price,
                 'date_planned': '2026-11-30', 'taxes_id': [Command.clear()]}
+
+    def _legacy_draft(self, *, price=5, taxes=None):
+        """A pre-proforma monthly bill, linked by the existing OT foreign key."""
+        production, tag, source = self._case(snapshot=True)
+        taxes = self.vat if taxes is None else taxes
+        bill = self.env['account.move'].with_company(self.branch).create({
+            'move_type': 'in_invoice', 'partner_id': self.producer.id,
+            'company_id': self.branch.id, 'currency_id': self.branch.currency_id.id,
+            'journal_id': self.journal.id, 'invoice_date': '2026-11-30',
+            'ref': 'Legacy monthly draft QA171',
+            'l10n_latam_document_type_id': self.env.ref('l10n_cl.dc_a_f_dte').id,
+            'l10n_latam_document_number': '17190',
+            'invoice_line_ids': [Command.create({
+                'name': 'Legacy monthly fruit', 'product_id': self.base.id,
+                'product_uom_id': self.base.uom_id.id,
+                'account_id': self.expense.id, 'quantity': 20, 'price_unit': price,
+                'tax_ids': [Command.set(taxes.ids)]})]})
+        production.with_context(_packing_valuation=_VALUATION, _packing_control=_INTERNAL).write({
+            'purchase_bill_id': bill.id})
+        return production, tag, source, bill
+
+    def _legacy_review(self, wizard):
+        action = wizard.action_prepare_bills()
+        self.assertEqual(action['res_model'], 'step.packing.fruit.proforma.migration')
+        return self._as_accountant(self.env[action['res_model']].browse(action['res_id']))
+
+    def _assert_legacy_migration_rollback(self, *, price=5, taxes=None):
+        production, tag, source, bill = self._legacy_draft(price=price, taxes=taxes)
+        review = self._legacy_review(self._wizard())
+        fields = ['state', 'name', 'ref', 'invoice_date', 'currency_id',
+                  'invoice_line_ids', 'line_ids', 'amount_untaxed', 'amount_tax',
+                  'amount_total', 'write_date', 'step_fruit_migrated_proforma_id']
+        before_bill = bill.read(fields)[0]
+        before_lines = bill.invoice_line_ids.read([
+            'product_id', 'quantity', 'price_unit', 'tax_ids', 'price_subtotal', 'price_total'])
+        before_stock = self._stock_counts()
+        before_orders = self.env['purchase.order'].search_count([('company_id', '=', self.branch.id)])
+        # Deliberately catch without an outer savepoint: the migration itself
+        # must restore cancellation, source links, and any partially created PO.
+        with self.assertRaises(ValidationError):
+            review.action_move_to_proforma()
+        bill.invalidate_recordset()
+        production.invalidate_recordset()
+        tag.invalidate_recordset()
+        self.assertEqual(bill.read(fields)[0], before_bill)
+        self.assertEqual(bill.invoice_line_ids.read([
+            'product_id', 'quantity', 'price_unit', 'tax_ids', 'price_subtotal', 'price_total']), before_lines)
+        self.assertEqual(production.purchase_bill_id, bill)
+        self.assertFalse(tag.step_fruit_proforma_id)
+        self.assertFalse(bill.step_fruit_migration_proforma_ids)
+        self.assertEqual(self.env['purchase.order'].search_count([
+            ('company_id', '=', self.branch.id)]), before_orders)
+        self.assertEqual(self._stock_counts(), before_stock)
 
     def test_preparation_creates_purchase_proforma_without_accounting_or_stock(self):
         production, tag, source = self._case()
@@ -471,3 +526,170 @@ class TestMonthlyFruitProforma(TransactionCase):
         self.assertEqual(order.step_fruit_guide_refs, 'IN-QA171')
         self.assertNotIn(outgoing.fruit_guide_number, order.step_fruit_guide_refs)
         self.assertEqual(order.order_line.step_fruit_source_rows[0]['receipt_guides'], ['IN-QA171'])
+
+    def test_legacy_monthly_draft_requires_explicit_review_before_cancellation(self):
+        production, tag, source, bill = self._legacy_draft()
+        before_lines = bill.invoice_line_ids.ids
+        before_stock = self._stock_counts()
+        wizard = self._wizard()
+        review = self._legacy_review(wizard)
+        self.assertEqual(review.move_ids, bill)
+        self.assertEqual(bill.state, 'draft')
+        self.assertFalse(bill.posted_before)
+        self.assertEqual(production.purchase_bill_id, bill)
+        self.assertEqual(bill.invoice_line_ids.ids, before_lines)
+        self.assertFalse(tag.step_fruit_proforma_id)
+        self.assertFalse(bill.step_fruit_migrated_proforma_id)
+        self.assertFalse(self.env['purchase.order'].search([
+            ('step_fruit_proforma', '=', True), ('step_fruit_tag_ids', 'in', tag.ids)]))
+        # Opening the review again is still read-only for the legacy document.
+        second = self._legacy_review(wizard)
+        self.assertEqual(second.move_ids, bill)
+        self.assertEqual(bill.state, 'draft')
+        self.assertEqual(self._stock_counts(), before_stock)
+
+    def test_explicit_legacy_migration_preserves_cancelled_history_and_retries_same_proforma(self):
+        production, tag, source, bill = self._legacy_draft()
+        old_lines = bill.invoice_line_ids
+        old_values = old_lines.read(['name', 'product_id', 'quantity', 'price_unit', 'tax_ids'])
+        before_stock = self._stock_counts()
+        action = self._as_accountant(bill).action_fruit_review_proforma()
+        self.assertEqual(action['res_model'], 'step.packing.fruit.proforma.migration')
+        review = self._as_accountant(self.env[action['res_model']].browse(action['res_id']))
+        result = review.action_move_to_proforma()
+        self.assertEqual(result['res_model'], 'purchase.order')
+        order = tag.step_fruit_proforma_id
+        self.assertTrue(order.step_fruit_proforma)
+        self.assertEqual(order.step_fruit_state, 'draft')
+        self.assertEqual(order.step_fruit_production_ids, production)
+        self.assertEqual(bill.state, 'cancel')
+        self.assertFalse(production.purchase_bill_id)
+        self.assertEqual(bill.invoice_line_ids, old_lines)
+        self.assertEqual(old_lines.read(['name', 'product_id', 'quantity', 'price_unit', 'tax_ids']), old_values)
+        self.assertEqual(bill.step_fruit_migrated_proforma_id, order)
+        self.assertEqual(bill.step_fruit_migration_proforma_ids, order)
+        self.assertEqual(order.step_fruit_legacy_move_ids, bill)
+        self.assertEqual(order.amount_untaxed, bill.amount_untaxed)
+        self.assertEqual(order.amount_tax, bill.amount_tax)
+        self.assertEqual(order.amount_total, bill.amount_total)
+        retry = review.action_move_to_proforma()
+        self.assertEqual(retry['res_model'], 'purchase.order')
+        self.assertEqual(retry['res_id'], order.id)
+        self.assertEqual(self._prepare(production), order)
+        self.assertEqual(self.env['purchase.order'].search_count([
+            ('step_fruit_proforma', '=', True), ('step_fruit_tag_ids', 'in', tag.ids)]), 1)
+        for operation in (lambda: bill.write({'ref': 'Changed history'}),
+                          bill.button_draft, bill.action_post,
+                          lambda: old_lines.write({'price_unit': 6})):
+            with self.assertRaises(UserError), self.cr.savepoint():
+                operation()
+        self.assertEqual(bill.state, 'cancel')
+        self.assertEqual(self._stock_counts(), before_stock)
+
+    def test_previously_posted_monthly_documents_are_never_migrated(self):
+        production, tag, source, bill = self._legacy_draft()
+        wizard = self._wizard()
+        review = self._legacy_review(wizard)
+        bill.flush_recordset()
+        # Represent existing fiscal history without posting/signing any DTE in
+        # this test. Both posted state and a reset draft's posted_before flag
+        # must independently prevent migration.
+        for state in ('posted', 'draft'):
+            self.cr.execute('UPDATE account_move SET state=%s, posted_before=TRUE WHERE id=%s',
+                            [state, bill.id])
+            bill.invalidate_recordset(['state', 'posted_before', 'step_can_migrate_fruit_bill'])
+            self.assertFalse(self._as_accountant(bill).step_can_migrate_fruit_bill)
+            with self.assertRaises(UserError), self.cr.savepoint():
+                review.action_move_to_proforma()
+            with self.assertRaises(UserError), self.cr.savepoint():
+                self._as_accountant(bill).action_fruit_review_proforma()
+            with self.assertRaises(UserError), self.cr.savepoint():
+                wizard.action_prepare_bills()
+            self.assertEqual(bill.state, state)
+            self.assertEqual(production.purchase_bill_id, bill)
+            self.assertFalse(tag.step_fruit_proforma_id)
+            self.assertFalse(bill.step_fruit_migrated_proforma_id)
+
+    def test_legacy_migration_amount_mismatch_rolls_back_entire_migration(self):
+        self._assert_legacy_migration_rollback(price=6)
+
+    def test_legacy_migration_tax_mismatch_rolls_back_entire_migration(self):
+        self._assert_legacy_migration_rollback(taxes=self.vat | self.retention)
+
+    def test_monthly_retry_after_conversion_returns_existing_proforma_without_legacy_review(self):
+        production, tag, source = self._case()
+        wizard = self._wizard()
+        order = self._prepare(production, wizard)
+        self._approve(order)
+        bill = self._convert(order)
+        reviews = self.env['step.packing.fruit.proforma.migration'].search_count([
+            ('monthly_wizard_id', '=', wizard.id)])
+        for retry_wizard in (wizard, self._wizard()):
+            action = retry_wizard.action_prepare_bills()
+            self.assertEqual(action['res_model'], 'purchase.order')
+            self.assertEqual(action['res_id'], order.id)
+        self.assertEqual(self.env['step.packing.fruit.proforma.migration'].search_count([
+            ('monthly_wizard_id', '=', wizard.id)]), reviews)
+        self.assertEqual(production.purchase_bill_id, bill)
+        self.assertEqual(tag.step_fruit_proforma_id, order)
+        self.assertEqual(bill.state, 'draft')
+        self.assertEqual(len(order.invoice_ids), 1)
+
+    def test_fresh_invoice_total_mismatch_rolls_back_whole_selected_batch(self):
+        production33, tag33, source33 = self._case()
+        production46, tag46, source46 = self._case(species=self.retained_species)
+        orders = self._prepare(production33 | production46).sorted('id')
+        for order in orders:
+            self._approve(order)
+            self.assertEqual(order.step_fruit_approved_untaxed, order.amount_untaxed)
+            self.assertEqual(order.step_fruit_approved_tax, order.amount_tax)
+            self.assertEqual(order.step_fruit_approved_total, order.amount_total)
+            if order.step_fruit_dte_code == '33':
+                order.write({'step_fruit_supplier_invoice_received': True,
+                             'step_fruit_supplier_document_number': '17197'})
+        failing = orders[-1]
+        before_bills = self.env['account.move'].search_count([('company_id', '=', self.branch.id)])
+        before_stock = self._stock_counts()
+        line_type = type(self.env['purchase.order.line'])
+        native_prepare = line_type._prepare_account_move_line
+
+        def changed_native_price(line, move=False):
+            values = native_prepare(line, move=move)
+            if line.order_id == failing:
+                values['price_unit'] += 1
+            return values
+
+        # A native invoice preparation difference in the last document must
+        # also undo the first successfully prepared draft in this batch.
+        with patch.object(line_type, '_prepare_account_move_line', changed_native_price):
+            with self.assertRaises(UserError):
+                orders.action_create_invoice()
+        orders.invalidate_recordset()
+        (production33 | production46).invalidate_recordset()
+        self.assertFalse(orders.invoice_ids)
+        self.assertFalse((production33 | production46).purchase_bill_id)
+        self.assertEqual(set(orders.mapped('step_fruit_state')), {'approved'})
+        self.assertEqual(self.env['account.move'].search_count([
+            ('company_id', '=', self.branch.id)]), before_bills)
+        self.assertEqual(self._stock_counts(), before_stock)
+        with self.assertRaises(UserError), self.cr.savepoint():
+            failing.write({'step_fruit_approved_total': failing.amount_total + 1})
+
+    def test_editable_native_draft_retry_returns_existing_bill_without_repricing(self):
+        production, tag, source = self._case()
+        order = self._prepare(production)
+        self._approve(order)
+        bill = self._convert(order)
+        original = order.step_fruit_approved_untaxed
+        # The result is a native editable supplier bill. A later accountant's
+        # change must neither regenerate nor force it back to source amounts.
+        bill.invoice_line_ids.write({'price_unit': 6})
+        self.assertNotEqual(bill.amount_untaxed, original)
+        order.action_fruit_convert()
+        self.assertEqual(order.invoice_ids.filtered(lambda move: move.state != 'cancel'), bill)
+        self.assertEqual(bill.invoice_line_ids.price_unit, 6)
+        self.assertEqual(order.order_line.price_unit, 5)
+        self.assertEqual(order.step_fruit_approved_untaxed, original)
+        self.assertEqual(production.purchase_bill_id, bill)
+        self.assertEqual(self.env['account.move'].search_count([
+            ('step_fruit_proforma_id', '=', order.id)]), 1)
