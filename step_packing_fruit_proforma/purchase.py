@@ -77,6 +77,10 @@ class PurchaseOrder(models.Model):
         if any(flagged):
             if not all(flagged):
                 raise UserError(_('Prepare las proformas por separado de las compras ordinarias.'))
+            for values in vals_list:
+                if values.get('state', 'draft') != 'draft' or values.get('step_fruit_state', 'draft') != 'draft':
+                    raise UserError(_('Las proformas se crean en borrador y se aprueban mediante su acción.'))
+                values.update(state='draft', step_fruit_state='draft', date_approve=False)
             return super(PurchaseOrder, _controlled(self)).create(vals_list)
         orders = super().create(vals_list)
         if orders.filtered('step_fruit_proforma') and not _internal(self):
@@ -103,7 +107,7 @@ class PurchaseOrder(models.Model):
         return super().copy(default)
 
     def unlink(self):
-        if any(order.step_fruit_proforma for order in self) and not self.env.context.get('module_uninstall'):
+        if any(order.step_fruit_proforma for order in self):
             raise UserError(_('Cancele la proforma para conservar sus tarjas y documentos históricos.'))
         return super().unlink()
 
@@ -329,7 +333,10 @@ class PurchaseOrderLine(models.Model):
             if order.step_fruit_proforma and not _internal(self):
                 raise UserError(_('Los productos de la proforma proceden de las tarjas mensuales.'))
             normalized.append(values if order.step_fruit_proforma else _ordinary_price(self, values))
-        return super().create(normalized)
+        lines = super().create(normalized)
+        if lines.filtered(lambda line: line.order_id.step_fruit_proforma) and not _internal(self):
+            raise UserError(_('Los productos de la proforma proceden de las tarjas mensuales.'))
+        return lines
 
     def write(self, values):
         fruit = self.filtered(lambda line: line.order_id.step_fruit_proforma)
@@ -345,10 +352,19 @@ class PurchaseOrderLine(models.Model):
 
     @api.depends('product_qty', 'product_uom', 'company_id', 'order_id.partner_id')
     def _compute_price_unit_and_date_planned_and_name(self):
-        super()._compute_price_unit_and_date_planned_and_name()
+        fruit = self.filtered(lambda line: line.order_id.step_fruit_proforma)
+        ordinary = self - fruit
+        super(PurchaseOrderLine, ordinary)._compute_price_unit_and_date_planned_and_name()
         precision = self.env['decimal.precision'].precision_get('Product Price')
-        for line in self.filtered(lambda item: not item.order_id.step_fruit_proforma):
+        for line in ordinary:
             line.price_unit = float_round(line.price_unit, precision_digits=precision)
+        for line in fruit:
+            # All source amounts are already approved for review. Supplier
+            # pricelists must not replace their weighted contractual price.
+            line.price_unit = line.price_unit or 0
+            line.discount = 0
+            line.date_planned = line.date_planned or line.order_id.date_order or fields.Datetime.now()
+            line.name = line.name or line.product_id.display_name or _('Fruta de proforma')
 
     def unlink(self):
         if any(line.order_id.step_fruit_proforma for line in self) and not _internal(self):
@@ -482,7 +498,7 @@ class AccountMove(models.Model):
         return result
 
     def unlink(self):
-        if any(move.step_fruit_proforma_id or move.step_fruit_migrated_proforma_id for move in self) and not self.env.context.get('module_uninstall'):
+        if any(move.step_fruit_proforma_id or move.step_fruit_migrated_proforma_id for move in self):
             raise UserError(_('Cancele la factura vinculada para conservar su trazabilidad.'))
         return super().unlink()
 
@@ -498,6 +514,8 @@ class AccountMoveLine(models.Model):
     def create(self, vals_list):
         normalized = []
         for values in vals_list:
+            if 'step_fruit_proforma_id' in values and not _internal(self):
+                raise UserError(_('La referencia de proforma de la línea se obtiene de su factura.'))
             move = self.env['account.move'].browse(values.get('move_id') or self.env.context.get('default_move_id'))
             source = self.env['purchase.order.line'].browse(values.get('purchase_line_id') or self.env.context.get('default_purchase_line_id'))
             reversal = (source.order_id.step_fruit_proforma and move.move_type == 'in_refund'
@@ -505,9 +523,17 @@ class AccountMoveLine(models.Model):
             if source.order_id.step_fruit_proforma and not _internal(self) and not reversal:
                 raise UserError(_('Vincule las líneas de compra desde la conversión de su proforma aprobada.'))
             normalized.append(values if move.step_fruit_proforma_id or reversal else _ordinary_price(self, values))
-        return super().create(normalized)
+        lines = super().create(normalized)
+        if not _internal(self):
+            for line in lines.filtered(lambda item: item.purchase_line_id.order_id.step_fruit_proforma):
+                source = line.purchase_line_id.order_id
+                if not (line.move_id.move_type == 'in_refund' and line.move_id.reversed_entry_id.step_fruit_proforma_id == source):
+                    raise UserError(_('Vincule las líneas de compra desde la conversión de su proforma aprobada.'))
+        return lines
 
     def write(self, values):
+        if 'step_fruit_proforma_id' in values and not _internal(self):
+            raise UserError(_('La referencia de proforma de la línea se obtiene de su factura.'))
         if 'purchase_line_id' in values and not _internal(self):
             source = self.env['purchase.order.line'].browse(values['purchase_line_id'])
             if source.order_id.step_fruit_proforma or any(
