@@ -289,6 +289,10 @@ try:
     scoped = scoped_business_environment(env)
     ui = verify_ui(scoped)
     flow = verify_copy_cycle(env, OUTPUT) if env.cr.dbname.startswith('MANAGEMENT_QA_') else None
+    if env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_'):
+        assert MONTHLY_FRUIT_PLAN, 'T171 requires the original customer draft in the fresh destination copy'
+        from verify_fruit_proforma_case import verify_case
+        print('T171_ACTUAL_MONTHLY_CASE_OK ' + json.dumps(verify_case(env, MONTHLY_FRUIT_PLAN)))
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 171, 'versions': EXPECTED,
         'existing_profile': scoped.uid, 'ui': ui, 'copy_flow': flow,
         'live_business_writes': False}))

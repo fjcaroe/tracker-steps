@@ -1,5 +1,19 @@
 # Operación y publicación de Odoo
 
+T171 (comentarios 10173/10174 y adjunto 3528) autoriza `packing-fruit-proforma`
+en Desarrollo, Cerro y QA-Cerro. La compra mensual prepara proformas nativas
+de Compras, separadas de Contabilidad y sin movimientos de stock; solo tras
+aprobación se prepara la factura de proveedor en borrador. La especie permite
+seleccionar el impuesto de retención existente: no inferir factores por nombre
+ni modificar impuestos, contratos, cuentas o configuración fiscal al instalar.
+El traslado de borradores mensuales anteriores nunca es automático: requiere
+revisión explícita, conserva el original cancelado y rechaza diferencias de
+importes o documentos ya contabilizados. El plan privado de Cerro identifica
+el borrador real y los importes, tarjas y OT que deben conservarse en la copia.
+Validar el ciclo 33/46, formularios, menús, PDF y anexo de mil filas, reintentos,
+permisos y preservación de maestros y stock. Publicar el mismo paquete con
+respaldo, bloqueo y paridad; no emitir DTE, consumir folios ni enviar al SII.
+
 T170 autoriza `packing-holding-contract` en Desarrollo, Cerro y QA-Cerro.
 La compra mensual utiliza las cuentas nativas del producto/categoría en la
 sucursal, con prioridad de la cuenta contractual específica y posición fiscal;
