@@ -7,6 +7,7 @@ its temporary companies, users and documents are always rolled back.
 import importlib
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 from lxml import etree
 
@@ -317,7 +318,18 @@ try:
         assert actual == Path(ROOT) / module_name
     scoped = scoped_business_environment(env)
     ui = verify_ui(scoped)
-    flow = verify_copy_cycle(env, OUTPUT) if env.cr.dbname.startswith('MANAGEMENT_QA_') else None
+    if env.cr.dbname.startswith('MANAGEMENT_QA_'):
+        original_rollback = type(env.cr).rollback
+
+        def reject_fixture_rollback(cursor, *args, **kwargs):
+            if cursor is env.cr:
+                raise AssertionError('Unexpected whole-transaction rollback inside the copy smoke fixture')
+            return original_rollback(cursor, *args, **kwargs)
+
+        with patch.object(type(env.cr), 'rollback', reject_fixture_rollback):
+            flow = verify_copy_cycle(env, OUTPUT)
+    else:
+        flow = None
     if env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_'):
         assert MONTHLY_FRUIT_PLAN, 'T171 requires the original customer draft in the fresh destination copy'
         from verify_fruit_proforma_case import verify_case
