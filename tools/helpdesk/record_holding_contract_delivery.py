@@ -56,8 +56,8 @@ def main():
         'con solo la sucursal activa. Copias frescas de los tres destinos: 33 pruebas por copia, '
         'flujo nativo con error identificado y posterior preparación de borrador en rollback, '
         'formulario/menú, mismo paquete, respaldo, bloqueo, paridad y aislamiento verificados. '
-        'En el caso comunicado, el producto pendiente es [AR00] del contrato CTR/2026/00011; '
-        'el cliente aún debe indicar su cuenta de cargo. No se modificaron cuentas de contratos '
+        'La cuenta de cargo de los productos detallados por el aviso sigue pendiente de '
+        'definición del cliente. No se modificaron cuentas de contratos '
         'ni se generaron facturas reales. Ticket permanece en curso. Commit: ' +
         proofs[0]['commit'] + '; SHA-256: ' + proofs[0]['release_sha256'] + '.')
     message = call('mail.message', 'create', [{'model': 'helpdesk.ticket', 'res_id': 170,
