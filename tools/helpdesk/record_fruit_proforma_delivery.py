@@ -141,6 +141,8 @@ def main():
         'DTE 33 con recepción y número del documento del proveedor, o DTE 46 según la política '
         'de la especie. La retención utiliza el impuesto seleccionado y su factor configurado, '
         'sin tasas fijas incorporadas en el código. '
+        'Antes de preparar, seleccionar Cambio sujeto IVA y Retención por empresa en '
+        'Packing / Configuraciones / Fruta / Especie. '
         'Los borradores mensuales anteriores se revisan explícitamente; solo al confirmar su '
         'traslado se cancelan y conservan como historial. La instalación no traslada documentos '
         'ni cambia configuraciones comerciales automáticamente. '

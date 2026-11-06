@@ -14,6 +14,15 @@ Validar el ciclo 33/46, formularios, menús, PDF y anexo de mil filas, reintento
 permisos y preservación de maestros y stock. Publicar el mismo paquete con
 respaldo, bloqueo y paridad; no emitir DTE, consumir folios ni enviar al SII.
 
+Entrega T171 verificada con `step_packing_fruit_proforma` 18.0.1.0.1 y el mismo
+paquete en los tres destinos: 23 pruebas por copia, ciclo 33/46, caso original,
+PDF y anexo de mil tarjas. Se conservaron maestros, stock y el borrador real.
+Con esta ampliación instalada, la compra mensual se verifica mediante
+`packing-fruit-proforma`; el antiguo plan T170 sin facturación previa ya no
+representa el flujo de proformas. El usuario selecciona Cambio sujeto IVA y
+Retención en Packing / Configuraciones / Fruta / Especie para la empresa activa,
+y confirma explícitamente cualquier traslado de borradores anteriores.
+
 T170 autoriza `packing-holding-contract` en Desarrollo, Cerro y QA-Cerro.
 La compra mensual utiliza las cuentas nativas del producto/categoría en la
 sucursal, con prioridad de la cuenta contractual específica y posición fiscal;
