@@ -50,4 +50,5 @@ def _rebuild(db, limit):
             db.commit(); count += 1
         return count
     finally:
+        db.rollback()
         db.execute(text('SELECT pg_advisory_unlock(60110602)')); db.commit()

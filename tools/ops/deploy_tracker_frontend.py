@@ -33,25 +33,29 @@ def entry_package(scope,dist):
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','development','production']);p.add_argument('source',type=Path)
  p.add_argument('--runtime-api-manifest',type=Path,help='Reviewed hash manifest of the unchanged installed API for a frontend-only release')
+ p.add_argument('--runtime-api-root',type=Path,help='Effective API WorkingDirectory when installed through a private release')
  a=p.parse_args()
+ api=a.runtime_api_root.resolve() if a.runtime_api_root else API
+ if a.runtime_api_root:
+  assert api==Path(subprocess.check_output(['systemctl','show','tracker-steps-api','-p','WorkingDirectory','--value'],text=True).strip()).resolve()
  assert os.geteuid()==0;source=a.source.resolve()
  commit=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
  assert not subprocess.check_output(['git','-C',str(source),'status','--porcelain','--untracked-files=no'],text=True).strip()
  expected=json.loads(a.runtime_api_manifest.read_text()) if a.runtime_api_manifest else tree(source/'backend/tracker_py/app')
- assert expected==tree(API/'app'),'Refuse unreviewed installed API drift'
+ assert expected==tree(api/'app'),'Refuse unreviewed installed API drift'
  stage=BASE/commit;stage.mkdir(parents=True,exist_ok=True);stage.chmod(0o755)
  private=stage/'private';private.mkdir(exist_ok=True,mode=0o700);private.chmod(0o700)
  assets=files(source/'dist');assert 'index.html' in assets
  with open('/run/lock/steps-environments.lock','a') as lease:
   fcntl.flock(lease,fcntl.LOCK_EX)
-  assert expected==tree(API/'app'),'Concurrent API change'
+  assert expected==tree(api/'app'),'Concurrent API change'
   if a.action=='qa':
    assert not (stage/'qa.json').exists()
    entries={scope:entry_package(scope,source/'dist') for scope in ('dev','cerro')}
    reference=source/'backend/tracker_py'
    if a.runtime_api_manifest:
     reference=stage/'api-reference'
-    shutil.copytree(API/'app',reference/'app',ignore=shutil.ignore_patterns('__pycache__'))
+    shutil.copytree(api/'app',reference/'app',ignore=shutil.ignore_patterns('__pycache__'))
     assert tree(reference/'app')==expected
    run(sys.executable,source/'tools/qa/tracker/test_tracker_entry_routing.py')
    stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ');db='COBAN_QA_'+stamp
@@ -62,7 +66,7 @@ def main():
     with dump.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','-d',db,stdin=inp)
     with (private/'functional.log').open('w') as log:run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+db,'JWT_SECRET=test-only-copy-qa','PYTHONPATH='+str(source)+':'+str(reference),API/'.venv/bin/python',source/'tools/qa/tracker/rehearse_tracker_integration.py',cwd=source,stdout=log,stderr=subprocess.STDOUT)
     assert 'TRACKER_INTEGRATION_COPY_OK' in (private/'functional.log').read_text()
-    assert expected==tree(API/'app')
+    assert expected==tree(api/'app')
     (stage/'qa.json').write_text(json.dumps({'commit':commit,'api_source':expected,'dist':assets,'entries':entries,'fresh_target_copy':True,'gps_and_classic_session_flow':True,'database':db},indent=2))
     print('TRACKER_FRONTEND_COPY_QA_OK',flush=True)
    finally:run('sudo','-u','postgres','dropdb','--if-exists',db)
@@ -74,7 +78,7 @@ def main():
   stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ');backup=private/('backup-'+scope+'-'+stamp);backup.mkdir(mode=0o700)
   untouched={str(root):files(root) for root in [Path('/var/www/web_tracker_portal'),Path('/var/www/steps-truck-frontend'),Path('/opt/steps-coban/current').resolve()]}
   configure_frontend(source,commit,scope,backup)
-  assert expected==tree(API/'app')
+  assert expected==tree(api/'app')
   for root,original in untouched.items():assert files(Path(root))==original,'Unrelated product changed'
   for service in ('steps-coban','tracker-steps-api','teltonika-ingest','odoo18-cerroelplomo'):run('systemctl','is-active','--quiet',service)
   (stage/(a.action+'.json')).write_text(json.dumps({'commit':commit,'dist':assets,'backup':str(backup),'api_unchanged':True,'receiver_unchanged':True,'legacy_demo_unchanged':True,'mobile_unchanged':True},indent=2))
