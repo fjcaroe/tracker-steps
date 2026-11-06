@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 import subprocess
 
-from manage_management import extract
+import manage_management
 
 
 def main():
@@ -31,7 +31,8 @@ def main():
     assert options['db_name'] == target['database'] and database != options['db_name']
     source = stage / ('iteration_' + str(len(list(stage.glob('iteration_*')))))
     source.mkdir()
-    proof = extract(args.release, source)
+    manage_management.MODULES = ('step_packing_fruit_proforma',)
+    proof = manage_management.extract(args.release, source)
     assert set(proof['versions']) == {'step_packing_fruit_proforma'}
     log = source / 'tests.log'
     user = subprocess.check_output(['systemctl', 'show', '--value', '--property=User', target['service']], text=True).strip()
