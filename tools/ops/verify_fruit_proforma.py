@@ -105,12 +105,14 @@ def verify_copy_cycle(admin, output):
 
     def assert_fixture_taxes(stage, business=None):
         taxes = vat | retention
+        admin.cr.execute('SELECT txid_current(), pg_backend_pid()')
+        transaction = admin.cr.fetchone()
         admin.cr.execute('SELECT id, company_id FROM account_tax WHERE id = ANY(%s) ORDER BY id', [taxes.ids])
         rows = admin.cr.fetchall()
-        assert {row[0] for row in rows} == set(taxes.ids), (stage, 'Fixture taxes disappeared', taxes.ids, rows)
+        assert {row[0] for row in rows} == set(taxes.ids), (stage, 'Fixture taxes disappeared', taxes.ids, rows, transaction)
         assert all(row[1] == holding.id for row in rows), (stage, 'Wrong fixture tax holding', rows)
         assert taxes.exists() == taxes, (stage, 'ORM fixture existence differs from SQL')
-        print('T171_FIXTURE_TAXES_OK ' + json.dumps({'stage': stage, 'rows': rows}), flush=True)
+        print('T171_FIXTURE_TAXES_OK ' + json.dumps({'stage': stage, 'rows': rows, 'transaction': transaction}), flush=True)
         if business is not None:
             taxes.with_env(business).check_access('read')
             assert taxes.with_env(business).mapped('company_id') == holding.with_env(business)
@@ -327,13 +329,24 @@ try:
     ui = verify_ui(scoped)
     if env.cr.dbname.startswith('MANAGEMENT_QA_'):
         original_rollback = type(env.cr).rollback
+        original_execute = type(env.cr).execute
 
         def reject_fixture_rollback(cursor, *args, **kwargs):
             if cursor is env.cr:
                 raise AssertionError('Unexpected whole-transaction rollback inside the copy smoke fixture')
             return original_rollback(cursor, *args, **kwargs)
 
-        with patch.object(type(env.cr), 'rollback', reject_fixture_rollback):
+        def trace_fixture_sql(cursor, query, *args, **kwargs):
+            statement = getattr(query, 'code', str(query)).lower().strip()
+            if cursor is env.cr and (statement.startswith('rollback') or
+                    (statement.startswith('delete') and 'account_tax' in statement)):
+                import traceback
+                traceback.print_stack(limit=12)
+                print('T171_FIXTURE_CONTROL_SQL ' + statement[:100], flush=True)
+            return original_execute(cursor, query, *args, **kwargs)
+
+        with patch.object(type(env.cr), 'rollback', reject_fixture_rollback), \
+                patch.object(type(env.cr), 'execute', trace_fixture_sql):
             flow = verify_copy_cycle(env, OUTPUT)
     else:
         flow = None
