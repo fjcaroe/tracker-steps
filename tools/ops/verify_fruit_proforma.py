@@ -100,6 +100,20 @@ def verify_copy_cycle(admin, output):
             'tax_group_id': group.id})
 
     vat, retention = tax('QA171 VAT', 19), tax('QA171 selected retention', -14)
+
+    def assert_fixture_taxes(stage, business=None):
+        taxes = vat | retention
+        admin.cr.execute('SELECT id, company_id FROM account_tax WHERE id = ANY(%s) ORDER BY id', [taxes.ids])
+        rows = admin.cr.fetchall()
+        assert {row[0] for row in rows} == set(taxes.ids), (stage, 'Fixture taxes disappeared', taxes.ids, rows)
+        assert all(row[1] == holding.id for row in rows), (stage, 'Wrong fixture tax holding', rows)
+        assert taxes.exists() == taxes, (stage, 'ORM fixture existence differs from SQL')
+        print('T171_FIXTURE_TAXES_OK ' + json.dumps({'stage': stage, 'rows': rows}), flush=True)
+        if business is not None:
+            taxes.with_env(business).check_access('read')
+            assert taxes.with_env(business).mapped('company_id') == holding.with_env(business)
+
+    assert_fixture_taxes('created')
     category = admin['product.category'].with_company(branch).create({
         'name': 'QA171 smoke category', 'property_cost_method': 'fifo',
         'property_account_expense_categ_id': expense.id})
@@ -131,6 +145,7 @@ def verify_copy_cycle(admin, output):
         context=dict(admin.context, allowed_company_ids=branch.ids))
     assert not business.su and business.companies == branch
     verify_ui(business)
+    assert_fixture_taxes('accountant-ui', business)
 
     species_by_code = {}
     productions = admin['step.packing.production']
@@ -190,6 +205,10 @@ def verify_copy_cycle(admin, output):
 
     before_stock = stock_counts()
     before_moves = admin['account.move'].search_count([('company_id', '=', branch.id)])
+    assert_fixture_taxes('before-monthly', business)
+    admin.cr.execute('SELECT id, step_fruit_vat_policy, step_fruit_retention_property_id FROM step_especie WHERE id = ANY(%s) ORDER BY id',
+        [[species.id for species, variety in species_by_code.values()]])
+    print('T171_FIXTURE_POLICY_ROWS ' + json.dumps(admin.cr.fetchall()), flush=True)
     wizard = business['step.packing.monthly.fruit.bill'].create({
         'company_id': branch.id, 'date_start': '2026-11-01', 'date_end': '2026-11-30',
         'producer_ids': [Command.set(producer.ids)]})
