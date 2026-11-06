@@ -8,7 +8,8 @@ from odoo.addons.step_hr_previred.tests.common import PreviredCase, make_row
 class TestFamilyRetroactive(PreviredCase):
     def prepare(self, amount=594, ccaf='02', classified=True):
         employee = self.make_employee('Retroactive fixture', '18656818-4', self.dep_admin)
-        slip = self.make_payslip(employee, self.dep_admin)
+        slip = self.make_payslip(employee, self.dep_admin, state='draft')
+        slip.worked_days_line_ids
         rule = self.env['hr.salary.rule'].create({
             'name': 'Explicit retroactive fixture', 'code': 'ARBITRARY_CODE',
             'category_id': self.env['hr.salary.rule.category'].search([], limit=1).id,
@@ -23,6 +24,7 @@ class TestFamilyRetroactive(PreviredCase):
             'quantity': 1, 'rate': 100,
         })
         self.env.flush_all()
+        slip.state = 'done'
         row = make_row(overrides={22: '22601', 23: '0', 83: ccaf})
         annex = make_row(line_type='01', overrides={23: '0'})
         record = SimpleNamespace(principal=row, rows=[row, annex],
