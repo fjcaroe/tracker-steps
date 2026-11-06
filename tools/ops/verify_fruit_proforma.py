@@ -69,7 +69,8 @@ def verify_copy_cycle(admin, output):
     from odoo.addons.step_packing_fruit_proforma.guards import _FRUIT
 
     admin = admin(context=dict(admin.context, tracking_disable=True,
-        mail_notrack=True, mail_create_nosubscribe=True, mail_notify_force_send=False))
+        mail_notrack=True, mail_create_nosubscribe=True, mail_notify_force_send=False,
+        no_reset_password=True))
     usd, chile = admin.ref('base.USD'), admin.ref('base.cl')
     usd.active = True
     holding = admin['res.company'].create({'name': 'QA171 smoke holding',
@@ -138,6 +139,8 @@ def verify_copy_cycle(admin, output):
         'l10n_latam_use_documents': True})
     branch.step_packing_purchase_journal_id = journal
     operator = new_test_user(admin, login='qa171-smoke-accountant',
+        context={'no_reset_password': True, 'tracking_disable': True,
+                 'mail_create_nosubscribe': True, 'mail_notify_force_send': False},
         groups='account.group_account_manager,stock.group_stock_manager,base.group_multi_company',
         company_id=branch.id, company_ids=[Command.set((holding | branch).ids)])
     assert not operator.has_group('purchase.group_purchase_user')
