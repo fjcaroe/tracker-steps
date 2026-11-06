@@ -50,6 +50,9 @@ class PurchaseOrder(models.Model):
     step_fruit_supplier_document_number = fields.Char(related='partner_ref',
         string='Número de factura del proveedor', readonly=False)
     step_fruit_approval_reference = fields.Char('Referencia de aprobación', copy=False)
+    step_fruit_approved_untaxed = fields.Monetary('Neto aprobado', currency_field='currency_id', readonly=True, copy=False)
+    step_fruit_approved_tax = fields.Monetary('Impuestos y retenciones aprobados', currency_field='currency_id', readonly=True, copy=False)
+    step_fruit_approved_total = fields.Monetary('Total aprobado', currency_field='currency_id', readonly=True, copy=False)
     step_fruit_generated_move_ids = fields.One2many('account.move', 'step_fruit_proforma_id',
         string='Facturas generadas', readonly=True, copy=False)
     step_fruit_legacy_move_ids = fields.Many2many('account.move',
@@ -65,6 +68,7 @@ class PurchaseOrder(models.Model):
         'step_fruit_period_start', 'step_fruit_period_end', 'step_fruit_contract_ids',
         'step_fruit_tag_ids', 'step_fruit_production_ids', 'step_fruit_withholding_tax_id',
         'step_fruit_guide_refs', 'step_fruit_generated_move_ids', 'step_fruit_legacy_move_ids',
+        'step_fruit_approved_untaxed', 'step_fruit_approved_tax', 'step_fruit_approved_total',
     }
 
     @api.model_create_multi
@@ -176,7 +180,10 @@ class PurchaseOrder(models.Model):
             if order.step_fruit_state != 'draft':
                 raise UserError(_('Solo se aprueban proformas en borrador.'))
             _controlled(order).write({'state': 'purchase', 'date_approve': fields.Datetime.now(),
-                                      'step_fruit_state': 'approved'})
+                'step_fruit_state': 'approved',
+                'step_fruit_approved_untaxed': order.currency_id.round(order.amount_untaxed),
+                'step_fruit_approved_tax': order.currency_id.round(order.amount_tax),
+                'step_fruit_approved_total': order.currency_id.round(order.amount_total)})
         return True
 
     def button_confirm(self):
@@ -250,8 +257,13 @@ class PurchaseOrder(models.Model):
             raise UserError(_('Prepare las facturas de proformas por separado de las órdenes de compra ordinarias.'))
         if not self.env.user.has_group('account.group_account_user'):
             raise UserError(_('La preparación de facturas requiere permisos de Contabilidad.'))
+        with self.env.cr.savepoint():
+            return fruit._fruit_create_invoices()
+
+    def _fruit_create_invoices(self):
+        """A failed fresh conversion rolls back the entire selected fruit batch."""
         bills = self.env['account.move']
-        for order in fruit._fruit_lock():
+        for order in self._fruit_lock():
             order._fruit_check_conversion()
             active = order.invoice_ids.filtered(lambda move: move.state != 'cancel' and move.move_type == 'in_invoice')
             if len(active) > 1:
@@ -273,10 +285,27 @@ class PurchaseOrder(models.Model):
             created = order.invoice_ids.filtered(lambda move: move.state != 'cancel')
             if len(created) != 1 or created.state != 'draft':
                 raise UserError(_('La conversión debe preparar una única factura en borrador.'))
+            order._fruit_check_approved_totals(created)
             order._fruit_link_productions(created)
             _controlled(order).write({'step_fruit_state': 'invoiced'})
             bills |= created
         return self.action_view_invoice(bills)
+
+    def _fruit_check_approved_totals(self, bill):
+        self.ensure_one()
+        bill.ensure_one()
+        if bill.company_id != self.company_id or bill.currency_id != self.currency_id:
+            raise UserError(_('La factura debe conservar la empresa y la moneda de la proforma aprobada. No se guardó ninguna factura nueva.'))
+        amounts = (
+            (bill.amount_untaxed, self.step_fruit_approved_untaxed),
+            (bill.amount_tax, self.step_fruit_approved_tax),
+            (bill.amount_total, self.step_fruit_approved_total),
+        )
+        if any(self.currency_id.compare_amounts(actual, approved) for actual, approved in amounts):
+            raise UserError(_(
+                'Los importes de la factura no coinciden con la proforma aprobada %s. '
+                'No se guardó ninguna factura nueva. Revise los impuestos y la posición fiscal; '
+                'si los nuevos importes son correctos, cancele esta proforma y prepare otra para aprobarlos.') % self.name)
 
     def _fruit_check_existing_production_bills(self, bill=False):
         self.ensure_one()
