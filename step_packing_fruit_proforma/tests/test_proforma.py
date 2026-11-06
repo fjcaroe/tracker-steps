@@ -44,11 +44,17 @@ class TestMonthlyFruitProforma(TransactionCase):
         cls.other_expense = account('QA171ALT', 'Fruit proforma alternative expense')
         cls.payable = account('QA171PAY', 'Fruit proforma test payable', 'liability_payable')
         cls.producer.with_company(cls.branch).property_account_payable_id = cls.payable
+        # This isolated holding has no chart/template tax groups. Supply the
+        # native mandatory relation rather than relying on demo/chart defaults.
+        cls.tax_group = cls.env['account.tax.group'].with_company(cls.root).create({
+            'name': 'Fruit proforma test taxes', 'company_id': cls.root.id,
+            'country_id': cls.env.ref('base.cl').id})
 
         def tax(name, rate):
             return cls.env['account.tax'].with_company(cls.root).create({
                 'name': name, 'amount': rate, 'amount_type': 'percent',
-                'type_tax_use': 'purchase', 'company_id': cls.root.id})
+                'type_tax_use': 'purchase', 'company_id': cls.root.id,
+                'tax_group_id': cls.tax_group.id})
 
         cls.vat = tax('Fruit proforma test VAT', 19)
         cls.retention = tax('Fruit proforma selected retention', -14)
