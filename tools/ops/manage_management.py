@@ -812,7 +812,10 @@ def main():
             assert args.pdf_review and args.pdf_review.is_file(), 'Inspect the T171 summary and thousand-row annex PDFs before publication'
             review = json.loads(args.pdf_review.read_text(encoding='utf-8-sig'))
             assert review['reviewed'] is True
-            assert set(review['files']) == {'t171-smoke-proformas.pdf', 't171-large-proforma.pdf'}
+            expected = {'t171-smoke-proformas.pdf', 't171-large-proforma.pdf'}
+            if args.environment == 'cerro':
+                expected.add('t171-actual-proforma.pdf')
+            assert set(review['files']) == expected
             for filename, item in review['files'].items():
                 assert item['sha256'] == digest(stage / filename), 'T171 visual review belongs to another PDF/package'
                 assert item['pages']

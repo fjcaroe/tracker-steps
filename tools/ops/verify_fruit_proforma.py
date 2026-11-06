@@ -321,7 +321,14 @@ try:
     if env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_'):
         assert MONTHLY_FRUIT_PLAN, 'T171 requires the original customer draft in the fresh destination copy'
         from verify_fruit_proforma_case import verify_case
-        print('T171_ACTUAL_MONTHLY_CASE_OK ' + json.dumps(verify_case(env, MONTHLY_FRUIT_PLAN)))
+        actual_case = verify_case(env, MONTHLY_FRUIT_PLAN)
+        actual_business = scoped_business_environment(env,
+            company=env['res.company'].browse(MONTHLY_FRUIT_PLAN['company_id']))
+        actual_pdf, actual_type = actual_business['ir.actions.report']._render_qweb_pdf(
+            'step_packing_fruit_proforma.report_fruit_proforma', actual_case['proformas'])
+        assert actual_type == 'pdf' and actual_pdf.startswith(b'%PDF')
+        (Path(OUTPUT) / 't171-actual-proforma.pdf').write_bytes(actual_pdf)
+        print('T171_ACTUAL_MONTHLY_CASE_OK ' + json.dumps(actual_case))
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 171, 'versions': EXPECTED,
         'existing_profile': scoped.uid, 'ui': ui, 'copy_flow': flow,
         'live_business_writes': False}))
