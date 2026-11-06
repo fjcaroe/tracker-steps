@@ -46,16 +46,16 @@ def analytics(asset_ids: str = Query(...,max_length=3300), since: AwareDatetime 
               AND bucket>=:lo AND bucket<:hi) h
         FULL OUTER JOIN (SELECT * FROM gps_analytics_dirty WHERE tenant_id=:tenant AND asset_id=ANY(:ids)
               AND bucket>=:lo AND bucket<:hi) d USING(tenant_id,asset_id,bucket))
-        SELECT asset_id,(bucket AT TIME ZONE 'America/Santiago')::date day,
+        SELECT asset_id,(bucket AT TIME ZONE 'America/Santiago')::date AS local_day,
           count(*) FILTER(WHERE revision IS NOT NULL OR version IS DISTINCT FROM 2) pending_hours,
           min(computed_at) FILTER(WHERE revision IS NULL AND version=2) computed_at,
           jsonb_build_object('point_count',COALESCE(sum((metrics->>'point_count')::double precision) FILTER(WHERE version=2 AND revision IS NULL),0),'distance_m',COALESCE(sum((metrics->>'distance_m')::double precision) FILTER(WHERE version=2 AND revision IS NULL),0),'moving_seconds',COALESCE(sum((metrics->>'moving_seconds')::double precision) FILTER(WHERE version=2 AND revision IS NULL),0),'stop_count',COALESCE(sum((metrics->>'stop_count')::double precision) FILTER(WHERE version=2 AND revision IS NULL),0),'gap_count',COALESCE(sum((metrics->>'gap_count')::double precision) FILTER(WHERE version=2 AND revision IS NULL),0),'max_speed',max((metrics->>'max_speed')::double precision) FILTER(WHERE version=2 AND revision IS NULL),'first_at',min(metrics->>'first_at') FILTER(WHERE version=2 AND revision IS NULL),'last_at',max(metrics->>'last_at') FILTER(WHERE version=2 AND revision IS NULL)) metrics
-        FROM slices GROUP BY asset_id,day
+        FROM slices GROUP BY asset_id,local_day
         '''),dict(tenant=ctx['tenant_id'],ids=ids,lo=full_lo,hi=hi)).mappings().all()
     grouped={i:[] for i in ids};pending={i:0 for i in ids};computed=[]
     for row in records:
         pending[row['asset_id']]+=row['pending_hours']
-        grouped[row['asset_id']].append((str(row['day']),row['metrics']))
+        grouped[row['asset_id']].append((str(row['local_day']),row['metrics']))
         if row['computed_at']:computed.append(stamp(row['computed_at']))
     for asset in ids:
         edges=[]
