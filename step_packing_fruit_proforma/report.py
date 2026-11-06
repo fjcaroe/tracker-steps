@@ -43,5 +43,6 @@ class FruitProformaReport(models.AbstractModel):
             'doc_ids': docs.ids, 'doc_model': 'purchase.order', 'docs': docs,
             'annex_by_document': {doc.id: localized._annex_rows(doc) for doc in docs},
             'format_quantity': lambda number: formatLang(localized.env, number or 0, digits=4),
+            'format_price': lambda number: formatLang(localized.env, number or 0, digits=12).rstrip('0').rstrip(',.') ,
             'format_money': lambda number, currency: format_amount(localized.env, number or 0, currency),
         }

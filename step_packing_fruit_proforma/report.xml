@@ -70,7 +70,7 @@
                                 <tbody><tr t-foreach="doc.order_line.filtered(lambda line: not line.display_type)" t-as="line">
                                     <td t-field="doc.step_fruit_species_id"/><td><span t-field="line.step_fruit_variety_id"/><span t-if="not line.step_fruit_variety_id">Sin variedad</span></td>
                                     <td t-field="line.product_id"/><td class="text-end" t-out="format_quantity(line.product_qty)"/>
-                                    <td t-field="line.product_uom"/><td class="text-end" t-out="format_quantity(line.price_unit)"/>
+                                    <td t-field="line.product_uom"/><td class="text-end" t-out="format_price(line.price_unit)"/>
                                     <td class="text-end" t-field="line.price_subtotal"/>
                                 </tr></tbody>
                             </table>
@@ -98,7 +98,7 @@
                                         <td t-out="row.get('tag_name') or '-'"/><td t-out="row.get('ot_name') or '-'"/>
                                         <td t-out="row.get('product_name') or '-'"/><td t-out="row.get('variety_name') or 'Sin variedad'"/>
                                         <td class="text-end" t-out="format_quantity(row.get('quantity'))"/><td t-out="row.get('uom_name') or ''"/>
-                                        <td class="text-end" t-out="format_quantity(row.get('price_unit'))"/>
+                                        <td class="text-end" t-out="format_price(row.get('price_unit'))"/>
                                         <td class="text-end" t-out="format_money(row.get('amount'), doc.currency_id)"/>
                                         <td t-out="row['receipt_guides'] or '-'"/>
                                     </tr></tbody>

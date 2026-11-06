@@ -38,8 +38,7 @@
                             groups="account.group_account_manager"
                             invisible="step_fruit_state not in ('draft', 'approved')"
                             confirm="Se cancelará esta proforma. Revise los documentos vinculados antes de continuar."/>
-                    <button name="button_draft" type="object" string="Volver a borrador"
-                            groups="account.group_account_manager" invisible="step_fruit_state != 'cancel'"/>
+
                     <field name="step_fruit_state" widget="statusbar" statusbar_visible="draft,approved,invoiced"/>
                 </header>
                 <sheet>
@@ -164,7 +163,7 @@
         <field name="act_window_id" ref="fruit_proforma_action"/>
     </record>
     <menuitem id="fruit_billing_menu" name="Facturación" parent="step_packing_operations.menu_packing_operations_root"
-              sequence="60" groups="account.group_account_user"/>
+              sequence="55" groups="account.group_account_user"/>
     <record id="step_packing_operations.menu_packing_monthly_purchase" model="ir.ui.menu">
         <field name="parent_id" ref="fruit_billing_menu"/><field name="name">Preparar compra mensual</field>
         <field name="sequence">10</field>
