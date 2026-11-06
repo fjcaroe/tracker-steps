@@ -27,10 +27,14 @@ def ready():
  raise RuntimeError('Receiver did not become ready')
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','apply']);p.add_argument('source',type=Path);a=p.parse_args();assert os.geteuid()==0;os.umask(0o077)
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','apply']);p.add_argument('source',type=Path);p.add_argument('--runtime-api-root',type=Path);a=p.parse_args();assert os.geteuid()==0;os.umask(0o077)
  source=a.source.resolve();commit=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip();assert not subprocess.check_output(['git','-C',str(source),'status','--porcelain','--untracked-files=no'],text=True).strip()
  stage=BASE/commit;stage.mkdir(parents=True,exist_ok=True);current=Path('/opt/steps-coban/current');cfg=Path('/etc/steps-coban/config.json');unit=Path('/etc/systemd/system/steps-coban.service');config=json.loads(cfg.read_text());database=config['database']
- expected=tree(source/'receivers');api=python_tree(source/'backend/tracker_py/app');assert api==python_tree(API/'app'),'Refuse shared API drift'
+ expected=tree(source/'receivers');api_root=a.runtime_api_root.resolve() if a.runtime_api_root else API
+ if a.runtime_api_root:
+  assert api_root==Path(subprocess.check_output(['systemctl','show','tracker-steps-api','-p','WorkingDirectory','--value'],text=True).strip()).resolve()
+ api=python_tree(api_root/'app')
+ if not a.runtime_api_root:assert api==python_tree(source/'backend/tracker_py/app'),'Refuse shared API drift'
  with open('/run/lock/steps-environments.lock','a') as lock:
   fcntl.flock(lock,fcntl.LOCK_EX)
   fence=datetime.now(timezone.utc).isoformat();before=history(fence);baseline=dict(receiver=tree(current.resolve()/'receivers'),config=sha(cfg),unit=sha(unit),api=api)
@@ -39,9 +43,9 @@ def main():
    try:
     with backup.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','-d',db,stdin=inp)
     with (stage/'receiver-tests.log').open('wb') as log:run('env','PYTHONPATH='+str(source)+':/opt/steps-validation/personal-transfer-test-deps',API/'.venv/bin/python','-m','pytest','receivers/coban/test_receiver.py','receivers/coban/test_starter.py','-q',cwd=source,stdout=log,stderr=subprocess.STDOUT)
-    with (stage/'copy-flow.log').open('wb') as log:run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+db,'JWT_SECRET=isolated-continuity-copy','PYTHONPATH='+str(source)+':'+str(source/'backend/tracker_py'),API/'.venv/bin/python','-m','receivers.coban.rehearse',cwd=source,stdout=log,stderr=subprocess.STDOUT)
+    with (stage/'copy-flow.log').open('wb') as log:run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+db,'JWT_SECRET=isolated-continuity-copy','PYTHONPATH='+str(source)+':'+str(api_root),API/'.venv/bin/python','-m','receivers.coban.rehearse',cwd=source,stdout=log,stderr=subprocess.STDOUT)
     assert 'COBAN_COPY_QA_OK' in (stage/'copy-flow.log').read_text()
-    assert history(fence)==before and python_tree(API/'app')==api
+    assert history(fence)==before and python_tree(api_root/'app')==api
     assert tree(current.resolve()/'receivers')==baseline['receiver'] and sha(cfg)==baseline['config'] and sha(unit)==baseline['unit']
     (stage/'qa.json').write_text(json.dumps(dict(commit=commit,baseline=baseline,receiver_after=expected,fresh_copy=True,history_preserved=True,copy_flow=True),indent=2));print('COBAN_CONTINUITY_COPY_QA_OK',flush=True)
    finally:run('sudo','-u','postgres','dropdb','--if-exists',db)
@@ -64,7 +68,7 @@ def main():
   temp=current.with_name('current-continuity-'+str(os.getpid()));assert not temp.exists();run('systemctl','stop','steps-coban')
   try:
    temp.symlink_to(release,target_is_directory=True);os.replace(temp,current);run('systemctl','start','steps-coban');ready();run('systemctl','is-active','--quiet','steps-coban')
-   assert tree(current.resolve()/'receivers')==expected and sha(cfg)==baseline['config'] and sha(unit)==baseline['unit'] and python_tree(API/'app')==api and history(fence)==before
+   assert tree(current.resolve()/'receivers')==expected and sha(cfg)==baseline['config'] and sha(unit)==baseline['unit'] and python_tree(api_root/'app')==api and history(fence)==before
   except Exception:
    run('systemctl','stop','steps-coban');temp.unlink(missing_ok=True);temp.symlink_to(old,target_is_directory=True);os.replace(temp,current);run('systemctl','start','steps-coban');raise
   (stage/'delivery.json').write_text(json.dumps(dict(commit=commit,backup=str(backup),receiver_after=expected,api_unchanged=True,private_configuration_unchanged=True,history_preserved=True,quiet_tcp_window=True,physical_commands_sent=False),indent=2));print('COBAN_CONTINUITY_PUBLISHED idle_seconds=600 status_without_position=True hardware_orders=0',flush=True)
