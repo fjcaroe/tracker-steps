@@ -22,13 +22,14 @@ class Move(models.Model):
 
     step_can_migrate_fruit_bill = fields.Boolean(compute='_compute_can_migrate_fruit_bill')
 
-    @api.depends('state', 'posted_before')
+    @api.depends('state', 'posted_before', 'step_fruit_proforma_id')
     @api.depends_context('uid')
     def _compute_can_migrate_fruit_bill(self):
         permitted = self.env.user.has_group('account.group_account_manager') and self.env.user.has_group('stock.group_stock_user')
         for move in self:
             move.step_can_migrate_fruit_bill = bool(permitted and move.state == 'draft' and not move.posted_before
-                and move.move_type == 'in_invoice' and move.step_fruit_origin_order_ids)
+                and move.move_type == 'in_invoice' and not move.step_fruit_proforma_id
+                and move.step_fruit_origin_order_ids)
 
     def write(self, values):
         frozen = {'line_ids', 'invoice_line_ids', 'partner_id', 'currency_id', 'company_id', 'journal_id',
@@ -45,7 +46,8 @@ class Move(models.Model):
         if not self.env.user.has_group('account.group_account_manager'):
             raise UserError(_('El traslado requiere un responsable de Contabilidad.'))
         orders = self.step_fruit_origin_order_ids
-        if not orders or self.state != 'draft' or self.posted_before or self.move_type != 'in_invoice':
+        if (not orders or self.state != 'draft' or self.posted_before
+                or self.move_type != 'in_invoice' or self.step_fruit_proforma_id):
             raise UserError(_('Solo se trasladan borradores mensuales de fruta que nunca fueron contabilizados.'))
         months = {order.date.strftime('%Y-%m') for order in orders}
         if len(months) != 1 or len(orders.company_id) != 1:
@@ -64,6 +66,30 @@ class Move(models.Model):
             'producer_ids': [Command.set(self.partner_id.ids)],
             'contract_id': contracts.id if len(contracts) == 1 else False})
         return wizard.action_prepare_bills()
+
+
+class HistoricalLine(models.Model):
+    _inherit = 'account.move.line'
+
+    @api.model_create_multi
+    def create(self, values_list):
+        for values in values_list:
+            move = self.env['account.move'].browse(values.get('move_id') or self.env.context.get('default_move_id'))
+            if move.step_fruit_migrated_proforma_id:
+                raise UserError(_('El borrador anterior cancelado conserva sus líneas como historial.'))
+        return super().create(values_list)
+
+    def write(self, values):
+        destination = self.env['account.move'].browse(values.get('move_id'))
+        if (any(line.move_id.step_fruit_migrated_proforma_id for line in self)
+                or destination.step_fruit_migrated_proforma_id):
+            raise UserError(_('El borrador anterior cancelado conserva sus líneas como historial.'))
+        return super().write(values)
+
+    def unlink(self):
+        if any(line.move_id.step_fruit_migrated_proforma_id for line in self):
+            raise UserError(_('El borrador anterior cancelado conserva sus líneas como historial.'))
+        return super().unlink()
 
 
 class Review(models.TransientModel):
@@ -101,7 +127,7 @@ class Review(models.TransientModel):
         migrated = moves.step_fruit_migration_proforma_ids
         if all(move.state == 'cancel' and move.step_fruit_migrated_proforma_id for move in moves):
             return migrated._fruit_action()
-        if any(move.state != 'draft' or move.posted_before or move.move_type != 'in_invoice' for move in moves):
+        if any(move.state != 'draft' or move.posted_before or move.move_type != 'in_invoice' or move.step_fruit_proforma_id for move in moves):
             raise UserError(_('Solo se trasladan borradores de proveedor que nunca fueron contabilizados. Se conservan las facturas emitidas y sus asientos.'))
         expected = defaultdict(lambda: [0.0, 0.0, 0.0])
         sources = {}

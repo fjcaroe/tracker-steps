@@ -39,7 +39,7 @@
                         </style>
                         <div class="fruit-proforma">
                             <div class="row mb-2">
-                                <div class="col-8"><h2 class="mb-1">PROFORMA</h2><h4>Compra mensual de fruta</h4></div>
+                                <div class="col-8"><h2 class="mb-1" t-if="doc.step_fruit_dte_code == '46'">PROFORMA FACTURA DE COMPRA ELECTRÓNICA</h2><h2 class="mb-1" t-else="">PROFORMA FACTURA ELECTRÓNICA</h2><h4>Compra mensual de fruta</h4></div>
                                 <div class="col-4 text-end"><h3 t-field="doc.name"/>
                                     <div>Documento previsto: DTE <strong t-out="doc.step_fruit_dte_code"/></div>
                                     <div>Estado: <span t-field="doc.step_fruit_state"/></div>

@@ -1,7 +1,7 @@
 """Prepare native purchase proformas from closed fruit operations."""
 from collections import defaultdict
 
-from odoo import Command, fields, models, _
+from odoo import api, Command, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
 from .guards import _FRUIT
@@ -14,6 +14,19 @@ class Production(models.Model):
     step_fruit_proforma_ids = fields.Many2many(
         'purchase.order', 'step_fruit_proforma_production_rel', 'production_id', 'order_id',
         string='Proformas productor', readonly=True, copy=False)
+
+    @api.model_create_multi
+    def create(self, values_list):
+        if (any(values.get('step_fruit_proforma_ids') for values in values_list)
+                and self.env.context.get('_fruit_proforma') is not _FRUIT):
+            raise UserError(_('Los vínculos de proforma se preparan desde la compra mensual.'))
+        return super().create(values_list)
+
+    def write(self, values):
+        if ('step_fruit_proforma_ids' in values
+                and self.env.context.get('_fruit_proforma') is not _FRUIT):
+            raise UserError(_('Los vínculos de proforma se preparan desde la compra mensual.'))
+        return super().write(values)
 
 
 class ProformaReceipts(models.Model):
@@ -95,7 +108,8 @@ class MonthlyFruitProforma(models.TransientModel):
             if only_orders - orders:
                 raise ValidationError(_('Las OT seleccionadas no corresponden a esta compra mensual.'))
             orders &= only_orders
-        legacy = orders.purchase_bill_id.filtered(lambda bill: bill.state != 'cancel')
+        legacy = orders.purchase_bill_id.filtered(
+            lambda bill: bill.state != 'cancel' and not bill.step_fruit_proforma_id)
         if legacy and not ignore_legacy:
             drafts = legacy.filtered(lambda bill: bill.state == 'draft' and not bill.posted_before)
             if drafts:
@@ -118,6 +132,8 @@ class MonthlyFruitProforma(models.TransientModel):
                 raise UserError(_('La OT %s no tiene precios de cierre. Seleccione el contrato para preparar su proforma.') % production.name)
             contract.check_access('read')
             prices = production.valuation_snapshot or production._contract_prices(contract, for_billing=True)
+            receipts = self._fruit_origin_receipts(production.step_packing_output_tag_ids)
+            guides = sorted(set(receipts.mapped('fruit_guide_number')) - {False, ''})
             for price in prices:
                 tag = self.env['stock.quant.package'].browse(price['tag_id'])
                 if tag not in tags:
@@ -132,8 +148,6 @@ class MonthlyFruitProforma(models.TransientModel):
                 if not account:
                     raise UserError(_('Configure la cuenta de gastos del producto o su categoría: %s.') % source.product_id.display_name)
                 product = self.env['product.product'].browse(price.get('bill_product_id', price['product_id']))
-                receipts = self._fruit_origin_receipts(tag)
-                guides = sorted(set(receipts.mapped('fruit_guide_number')) - {False, ''})
                 row = dict(price, tag_name=tag.name, ot_name=production.name,
                            product_name=product.display_name, product_id=product.id,
                            species_name=species.display_name, variety_name=tag.variedad_id.display_name or '-',
@@ -143,6 +157,12 @@ class MonthlyFruitProforma(models.TransientModel):
                            expense_id=account.id, tax_ids=self._fruit_tax_ids(product, subject, retention).ids,
                            receipt_ids=receipts.ids)
                 groups[(production.fruit_grower_id.id, species.id, contract.currency_id.id, code, retention.id)].append(row)
+        production_groups = defaultdict(set)
+        for key, rows in groups.items():
+            for row in rows:
+                production_groups[row['production_id']].add(key)
+        if any(len(keys) != 1 for keys in production_groups.values()):
+            raise ValidationError(_('Una OT contiene especies, productores o regímenes de facturación distintos. Revise sus tarjas antes de preparar la proforma; la OT debe conservar un único documento de compra.'))
         result = existing
         warehouse = self.env['stock.warehouse'].search([('company_id', '=', self.company_id.id)], limit=1)
         if groups and not warehouse:
@@ -205,6 +225,10 @@ class MonthlyFruitProforma(models.TransientModel):
             result |= quote
         if not result:
             if legacy:
+                if ignore_legacy:
+                    return {'type': 'ir.actions.act_window', 'res_model': 'account.move',
+                            'view_mode': 'list,form', 'domain': [('id', 'in', legacy.ids)],
+                            'name': _('Borradores mensuales conservados')}
                 raise UserError(_('Las OT del período ya tienen facturas. Se conservan sus documentos y no se duplicará la compra.'))
             raise UserError(_('No hay fruta de exportación cerrada pendiente de proforma para el período.'))
         return result._fruit_action()
