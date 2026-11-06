@@ -163,6 +163,7 @@ def verify_copy_cycle(admin, output):
             if code == '46':
                 policy['step_withholding_tax_id'] = retention.id
             species.with_company(holding).write(policy)
+            assert_fixture_taxes('species-policy-' + code)
             group = admin['step.grupo.variedad'].create({'name': 'QA171 group ' + code,
                 'especie_id': species.id, 'company_id': holding.id,
                 'company_ids': [Command.set((holding | branch).ids)]})
@@ -171,6 +172,7 @@ def verify_copy_cycle(admin, output):
                 'grupo_variedad_id': group.id, 'company_id': holding.id,
                 'company_ids': [Command.set((holding | branch).ids)]})
             species_by_code[code] = species, variety
+            assert_fixture_taxes('variety-' + code)
         species, variety = species_by_code[code]
         contract = admin['step.producer.purchase.contract'].with_company(holding).create({
             'company_id': holding.id, 'partner_id': producer.id, 'currency_id': usd.id})
@@ -182,6 +184,7 @@ def verify_copy_cycle(admin, output):
             'contract_id': contract.id, 'product_line_id': line.id,
             'quantity': amount, 'date_due': '2026-11-30'})
         contract.action_confirm()
+        assert_fixture_taxes('contract-' + code)
         tag = admin['stock.quant.package'].with_company(branch).create({
             'name': 'QA171 smoke output %s' % contract.id, 'company_id': branch.id,
             'is_fruit_tag': True, 'step_tag_kind': 'E', 'step_packing_result': 'export',
@@ -190,15 +193,19 @@ def verify_copy_cycle(admin, output):
             'step_tag_line_ids': [Command.create({'producer_id': producer.id,
                 'product_id': finished.id, 'quantity': amount / 10,
                 'boxes': amount / 10, 'kilos': amount})]})
+        assert_fixture_taxes('tag-' + code)
         production = admin['step.packing.production'].with_company(branch).create({
             'company_id': branch.id, 'date': '2026-11-09',
             'fruit_grower_id': producer.id, 'fruit_species_id': species.id,
             'fruit_variety_id': variety.id, 'contract_id': contract.id,
             'product_id': finished.id, 'product_uom_id': finished.uom_id.id,
             'step_packing_output_tag_ids': [Command.set(tag.ids)]})
+        assert_fixture_taxes('production-created-' + code)
         production.with_context(_packing_valuation=_VALUATION).write({
             'valuation_snapshot': production._contract_prices(for_billing=True)})
+        assert_fixture_taxes('snapshot-' + code)
         production.with_context(_packing_control=_INTERNAL).write({'state': 'closed'})
+        assert_fixture_taxes('closed-' + code)
         productions |= production
 
     stock_models = ('stock.picking', 'stock.move', 'stock.quant', 'stock.valuation.layer')
