@@ -67,7 +67,7 @@ def main():
                     cols=columns(db);original=snapshot(db,cols)
                     run('sudo','-u','postgres','psql','-v','ON_ERROR_STOP=1','-d',db,'-f',migration,stdout=subprocess.DEVNULL)
                     assert snapshot(db,cols)==original,'Migration changed existing business data'
-                    env=['env','DATABASE_URL=postgresql+psycopg2:///'+db,'JWT_SECRET=private-copy-test-only','PYTHONPATH='+str(root)]
+                    env=['env','DATABASE_URL=postgresql+psycopg2:///'+db,'JWT_SECRET=private-copy-test-only','PYTHONPATH='+str(root)+':/opt/steps-validation/personal-transfer-test-deps']
                     with (private/(target+'-tests.log')).open('w') as out:
                         run('sudo','-u','postgres',*env,VENV,'-m','pytest',source/'backend/tracker_py/tests/test_gps_metrics.py',source/'backend/tracker_py/tests/test_fleet.py',source/'backend/tracker_py/tests/test_receiver.py','-q',cwd=root,stdout=out,stderr=subprocess.STDOUT)
                         run('sudo','-u','postgres',*env,VENV,source/'tools/qa/tracker/analytics-copy.py',cwd=root,stdout=out,stderr=subprocess.STDOUT)

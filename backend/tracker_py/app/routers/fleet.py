@@ -90,7 +90,8 @@ def audit(db, ctx, action, detail, asset_id=None, incident_id=None):
 
 
 def position_out(p):
-    return None if p is None else {k: getattr(p, k) for k in ('id', 'recorded_at', 'received_at', 'lat', 'lon', 'speed_kmh', 'quality', 'acc', 'external_power')}
+    return None if p is None else {**{k: getattr(p, k) for k in ('id', 'recorded_at', 'received_at', 'lat', 'lon', 'speed_kmh', 'quality', 'acc', 'external_power','assignment_id')},
+                                 'recovered':(utc(p.received_at)-utc(p.recorded_at)).total_seconds()>120}
 
 
 def fleet_state(db, tenant_id):
