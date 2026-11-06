@@ -1,0 +1,57 @@
+"""Run diagnostic iterations in an existing private copy; never certify it.
+
+Final publication still requires fresh manage_management QA for the exact package.
+"""
+import argparse
+import configparser
+import fcntl
+import json
+from pathlib import Path
+import re
+import subprocess
+
+from manage_management import extract
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('environment', choices=('development', 'cerro', 'qa-cerro'))
+    parser.add_argument('run_id')
+    parser.add_argument('release', type=Path)
+    args = parser.parse_args()
+    assert re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
+    database = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
+    registry = json.loads((Path(__file__).parent / 'environments.json').read_text())
+    target = registry['environments'][args.environment]
+    stage = Path('/opt/steps-validation') / ('management_' + args.environment + '_' + args.run_id)
+    assert (stage / 'baseline.json').is_file() and not (stage / 'qa_passed.json').exists()
+    config = configparser.ConfigParser(interpolation=None)
+    config.read(target['config'])
+    options = config['options']
+    assert options['db_name'] == target['database'] and database != options['db_name']
+    source = stage / ('iteration_' + str(len(list(stage.glob('iteration_*')))))
+    source.mkdir()
+    proof = extract(args.release, source)
+    assert set(proof['versions']) == {'step_packing_fruit_proforma'}
+    log = source / 'tests.log'
+    user = subprocess.check_output(['systemctl', 'show', '--value', '--property=User', target['service']], text=True).strip()
+    subprocess.run(['chown', '-R', user, str(source)], check=True)
+    with open('/run/lock/steps-environments.lock', 'a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        command = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin',
+            '-c', target['config'], '-d', database, '--db-filter=^' + database + '$',
+            '--addons-path=' + str(source) + ',' + options['addons_path'],
+            '--data-dir=' + str(stage / 'data'), '--no-http', '--workers=0',
+            '--max-cron-threads=0', '--without-demo=all', '-u', 'step_packing_fruit_proforma',
+            '--test-enable', '--test-tags=/step_packing_fruit_proforma',
+            '--stop-after-init', '--logfile=' + str(log)]
+        result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    text = log.read_text(errors='replace')
+    print('DIAGNOSTIC_ONLY_NO_CERTIFICATION log=' + str(log), flush=True)
+    print('\n'.join(line for line in text.splitlines() if any(
+        marker in line for marker in ('tests.result', ' ERROR ', ' FAIL', 'Traceback')))[-6000:])
+    raise SystemExit(result.returncode)
+
+
+if __name__ == '__main__':
+    main()
