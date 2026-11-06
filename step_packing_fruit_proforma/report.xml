@@ -45,7 +45,7 @@
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="doc">
                 <t t-set="o" t-value="doc"/><t t-set="company" t-value="doc.company_id"/>
-                <t t-call="step_packing_fruit_proforma.fruit_report_layout">
+                <t t-call="step_packing_fruit_proforma.fruit_report_layout" t-lang="doc.env.lang">
                     <div class="page">
                         <style>
                             .fruit-proforma { font-size: 11px; }
@@ -78,7 +78,7 @@
                                 </div>
                             </div>
                             <table class="metadata w-100 mb-3"><tbody>
-                                <tr><td><strong>Período</strong></td><td><span t-field="doc.step_fruit_period_start"/> al <span t-field="doc.step_fruit_period_end"/></td>
+                                <tr><td><strong>Período</strong></td><td><span t-out="doc.step_fruit_period_start.strftime('%d/%m/%Y') if doc.step_fruit_period_start else '-'"/> al <span t-out="doc.step_fruit_period_end.strftime('%d/%m/%Y') if doc.step_fruit_period_end else '-'"/></td>
                                     <td><strong>Especie</strong></td><td><span t-field="doc.step_fruit_species_id"/></td></tr>
                                 <tr><td><strong>Moneda</strong></td><td><span t-field="doc.currency_id.name"/></td>
                                     <td><strong>Contratos</strong></td><td t-out="', '.join(doc.step_fruit_contract_ids.mapped('name'))"/></tr>
@@ -107,7 +107,6 @@
                             <div t-if="doc.step_fruit_dte_code == '33'" class="mt-2"><strong>Factura del proveedor: </strong>
                                 <span t-if="doc.step_fruit_supplier_invoice_received" t-field="doc.step_fruit_supplier_document_number"/>
                                 <span t-else="">Pendiente de recepción</span></div>
-                            <p class="mt-3">La factura de proveedor se prepara después de aprobar esta proforma. Este documento no realiza emisión fiscal.</p>
                             <div style="page-break-before: always;" t-if="annex_by_document.get(doc.id)">
                                 <h3>Anexo de tarjas y guías</h3>
                                 <div class="mb-2"><strong t-field="doc.name"/> · <span t-field="doc.partner_id"/> · <span t-field="doc.step_fruit_species_id"/></div>

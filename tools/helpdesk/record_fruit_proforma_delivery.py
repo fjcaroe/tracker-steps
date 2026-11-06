@@ -14,7 +14,7 @@ import xmlrpc.client
 TICKET = 171
 REVIEWED_MESSAGE = 10174
 MODULE = 'step_packing_fruit_proforma'
-VERSION = '18.0.1.0.0'
+VERSION = '18.0.1.0.1'
 TARGETS = ('development', 'cerro', 'qa-cerro')
 
 
