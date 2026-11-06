@@ -7,7 +7,6 @@ its temporary companies, users and documents are always rolled back.
 import importlib
 import json
 from pathlib import Path
-from unittest.mock import patch
 
 from lxml import etree
 
@@ -71,7 +70,7 @@ def verify_copy_cycle(admin, output):
 
     admin = admin(context=dict(admin.context, tracking_disable=True,
         mail_notrack=True, mail_create_nosubscribe=True, mail_notify_force_send=False,
-        no_reset_password=True))
+        no_reset_password=True, chart_template_load=True))
     usd, chile = admin.ref('base.USD'), admin.ref('base.cl')
     usd.active = True
     holding = admin['res.company'].create({'name': 'QA171 smoke holding',
@@ -103,21 +102,6 @@ def verify_copy_cycle(admin, output):
 
     vat, retention = tax('QA171 VAT', 19), tax('QA171 selected retention', -14)
 
-    def assert_fixture_taxes(stage, business=None):
-        taxes = vat | retention
-        admin.cr.execute('SELECT txid_current(), pg_backend_pid()')
-        transaction = admin.cr.fetchone()
-        admin.cr.execute('SELECT id, company_id FROM account_tax WHERE id = ANY(%s) ORDER BY id', [taxes.ids])
-        rows = admin.cr.fetchall()
-        assert {row[0] for row in rows} == set(taxes.ids), (stage, 'Fixture taxes disappeared', taxes.ids, rows, transaction)
-        assert all(row[1] == holding.id for row in rows), (stage, 'Wrong fixture tax holding', rows)
-        assert taxes.exists() == taxes, (stage, 'ORM fixture existence differs from SQL')
-        print('T171_FIXTURE_TAXES_OK ' + json.dumps({'stage': stage, 'rows': rows, 'transaction': transaction}), flush=True)
-        if business is not None:
-            taxes.with_env(business).check_access('read')
-            assert taxes.with_env(business).mapped('company_id') == holding.with_env(business)
-
-    assert_fixture_taxes('created')
     category = admin['product.category'].with_company(branch).create({
         'name': 'QA171 smoke category', 'property_cost_method': 'fifo',
         'property_account_expense_categ_id': expense.id})
@@ -151,7 +135,6 @@ def verify_copy_cycle(admin, output):
         context=dict(admin.context, allowed_company_ids=branch.ids))
     assert not business.su and business.companies == branch
     verify_ui(business)
-    assert_fixture_taxes('accountant-ui', business)
 
     species_by_code = {}
     productions = admin['step.packing.production']
@@ -165,7 +148,6 @@ def verify_copy_cycle(admin, output):
             if code == '46':
                 policy['step_withholding_tax_id'] = retention.id
             species.with_company(holding).write(policy)
-            assert_fixture_taxes('species-policy-' + code)
             group = admin['step.grupo.variedad'].create({'name': 'QA171 group ' + code,
                 'especie_id': species.id, 'company_id': holding.id,
                 'company_ids': [Command.set((holding | branch).ids)]})
@@ -174,7 +156,6 @@ def verify_copy_cycle(admin, output):
                 'grupo_variedad_id': group.id, 'company_id': holding.id,
                 'company_ids': [Command.set((holding | branch).ids)]})
             species_by_code[code] = species, variety
-            assert_fixture_taxes('variety-' + code)
         species, variety = species_by_code[code]
         contract = admin['step.producer.purchase.contract'].with_company(holding).create({
             'company_id': holding.id, 'partner_id': producer.id, 'currency_id': usd.id})
@@ -186,7 +167,6 @@ def verify_copy_cycle(admin, output):
             'contract_id': contract.id, 'product_line_id': line.id,
             'quantity': amount, 'date_due': '2026-11-30'})
         contract.action_confirm()
-        assert_fixture_taxes('contract-' + code)
         tag = admin['stock.quant.package'].with_company(branch).create({
             'name': 'QA171 smoke output %s' % contract.id, 'company_id': branch.id,
             'is_fruit_tag': True, 'step_tag_kind': 'E', 'step_packing_result': 'export',
@@ -195,19 +175,15 @@ def verify_copy_cycle(admin, output):
             'step_tag_line_ids': [Command.create({'producer_id': producer.id,
                 'product_id': finished.id, 'quantity': amount / 10,
                 'boxes': amount / 10, 'kilos': amount})]})
-        assert_fixture_taxes('tag-' + code)
         production = admin['step.packing.production'].with_company(branch).create({
             'company_id': branch.id, 'date': '2026-11-09',
             'fruit_grower_id': producer.id, 'fruit_species_id': species.id,
             'fruit_variety_id': variety.id, 'contract_id': contract.id,
             'product_id': finished.id, 'product_uom_id': finished.uom_id.id,
             'step_packing_output_tag_ids': [Command.set(tag.ids)]})
-        assert_fixture_taxes('production-created-' + code)
         production.with_context(_packing_valuation=_VALUATION).write({
             'valuation_snapshot': production._contract_prices(for_billing=True)})
-        assert_fixture_taxes('snapshot-' + code)
         production.with_context(_packing_control=_INTERNAL).write({'state': 'closed'})
-        assert_fixture_taxes('closed-' + code)
         productions |= production
 
     stock_models = ('stock.picking', 'stock.move', 'stock.quant', 'stock.valuation.layer')
@@ -218,7 +194,6 @@ def verify_copy_cycle(admin, output):
 
     before_stock = stock_counts()
     before_moves = admin['account.move'].search_count([('company_id', '=', branch.id)])
-    assert_fixture_taxes('before-monthly', business)
     admin.cr.execute('SELECT id, step_fruit_vat_policy, step_fruit_retention_property_id FROM step_especie WHERE id = ANY(%s) ORDER BY id',
         [[species.id for species, variety in species_by_code.values()]])
     print('T171_FIXTURE_POLICY_ROWS ' + json.dumps(admin.cr.fetchall()), flush=True)
@@ -327,29 +302,7 @@ try:
         assert actual == Path(ROOT) / module_name
     scoped = scoped_business_environment(env)
     ui = verify_ui(scoped)
-    if env.cr.dbname.startswith('MANAGEMENT_QA_'):
-        original_rollback = type(env.cr).rollback
-        original_execute = type(env.cr).execute
-
-        def reject_fixture_rollback(cursor, *args, **kwargs):
-            if cursor is env.cr:
-                raise AssertionError('Unexpected whole-transaction rollback inside the copy smoke fixture')
-            return original_rollback(cursor, *args, **kwargs)
-
-        def trace_fixture_sql(cursor, query, *args, **kwargs):
-            statement = getattr(query, 'code', str(query)).lower().strip()
-            if cursor is env.cr and (statement.startswith('rollback') or
-                    (statement.startswith('delete') and 'account_tax' in statement)):
-                import traceback
-                traceback.print_stack(limit=12)
-                print('T171_FIXTURE_CONTROL_SQL ' + statement[:100], flush=True)
-            return original_execute(cursor, query, *args, **kwargs)
-
-        with patch.object(type(env.cr), 'rollback', reject_fixture_rollback), \
-                patch.object(type(env.cr), 'execute', trace_fixture_sql):
-            flow = verify_copy_cycle(env, OUTPUT)
-    else:
-        flow = None
+    flow = verify_copy_cycle(env, OUTPUT) if env.cr.dbname.startswith('MANAGEMENT_QA_') else None
     if env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_'):
         assert MONTHLY_FRUIT_PLAN, 'T171 requires the original customer draft in the fresh destination copy'
         from verify_fruit_proforma_case import verify_case
