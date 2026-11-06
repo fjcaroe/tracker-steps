@@ -56,13 +56,15 @@ class TestCcafAttendance(PreviredCase):
 
     def test_core_restores_attendance_before_bridge_contributions(self):
         employee = self.make_employee('CCAF fixture', '18656818-4', self.dep_admin)
-        slip = self.make_payslip(employee, self.dep_admin)
+        slip = self.make_payslip(employee, self.dep_admin, state='draft')
         slip.worked_days_line_ids.unlink()
         self.env['hr.payslip.worked_days'].create({
             'payslip_id': slip.id, 'name': 'Asistencia',
             'work_entry_type_id': self.env.ref('hr_work_entry.work_entry_type_attendance').id,
             'number_of_days': 30, 'number_of_hours': 240,
         })
+        self.env.flush_all()
+        slip.state = 'done'
         raw = make_row(rut='18656818', dv='4', overrides={
             13: '0', 64: '750000', 70: '21000', 75: '07', 83: '02',
             84: '00000000', 90: '00000000'})
