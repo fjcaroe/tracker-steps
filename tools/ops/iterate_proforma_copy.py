@@ -19,6 +19,7 @@ def main():
     parser.add_argument('environment', choices=('development', 'cerro', 'qa-cerro'))
     parser.add_argument('run_id')
     parser.add_argument('release', type=Path)
+    parser.add_argument('--probe', action='store_true')
     args = parser.parse_args()
     assert re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     database = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
@@ -52,6 +53,14 @@ def main():
             '--test-enable', '--test-tags=/step_packing_fruit_proforma',
             '--stop-after-init', '--logfile=' + str(log)]
         result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode == 0 and args.probe:
+            manage_management.TICKET_REVISION = 'packing-fruit-proforma'
+            manage_management.SETTINGS = True
+            base = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']
+            switches = ['-c', target['config'], '--no-http', '--http-interface=127.0.0.1',
+                '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
+            manage_management.verify(base, switches, database, source, options,
+                proof, stage, set(proof['versions']))
     text = log.read_text(errors='replace')
     print('DIAGNOSTIC_ONLY_NO_CERTIFICATION log=' + str(log), flush=True)
     print('\n'.join(line for line in text.splitlines() if any(
