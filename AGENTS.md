@@ -48,6 +48,19 @@ No desinstalar Studio hasta probar el retiro de sus dependencias en una copia.
   worktrees usar además `--all-worktrees`. Si hay un bloqueo real de push o
   integración, identificar el commit/rama preservados y lo que falta.
 
+## Orden de atención de tickets
+
+- Atender primero los tickets no resueltos con mayor prioridad asignada en Odoo.
+  A igual prioridad, primero la fecha de creación más antigua y luego el ID:
+  `priority desc, create_date asc, id asc`. Leer la cola completa, sin limitarla
+  a una aplicación o a los últimos tickets.
+- Revisar las prioridades antes de iniciar cada caso. Si llega uno de mayor
+  prioridad, adelantarlo en el siguiente punto seguro, sin interrumpir una
+  publicación o migración en ejecución. Continuar con el siguiente resoluble
+  cuando falte información imprescindible para el primero.
+- Respetar los adelantos explícitos solicitados por el usuario y conservar las
+  prioridades registradas; no modificarlas para justificar otro orden.
+
 ## Web Tracker — contexto específico
 
 Monitoreo GPS de maquinaria agrícola (frontend Vite/React) con un módulo Odoo

@@ -8,7 +8,7 @@ import xmlrpc.client
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--open-only', action='store_true', help='All unresolved Steps tickets, without keyword or recent-ticket limits')
+    parser.add_argument('--open-only', action='store_true', help='All unresolved tickets, highest priority first; oldest first within a priority')
     parser.add_argument('--ticket', type=int, action='append', help='Read specific tickets, including solved tickets with recent replies')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
@@ -25,7 +25,10 @@ def main():
 
     assert not (args.open_only and args.ticket), 'Choose unresolved tickets or explicit ticket IDs'
     domain = [('id', 'in', args.ticket)] if args.ticket else [('stage_id', 'not in', [4, 5])] if args.open_only else []
-    options = {'fields': ['id', 'name', 'description', 'stage_id', 'write_date'], 'order': 'write_date desc'}
+    options = {
+        'fields': ['id', 'name', 'description', 'stage_id', 'priority', 'create_date', 'write_date'],
+        'order': 'priority desc, create_date asc, id asc' if args.open_only else 'write_date desc',
+    }
     if not (args.open_only or args.ticket):
         options['limit'] = 70
     tickets = call('helpdesk.ticket', 'search_read', [domain], options)
@@ -36,7 +39,7 @@ def main():
     args.output.write_text(json.dumps(relevant, ensure_ascii=False, indent=2), encoding='utf-8')
     print('TICKET_AUDIT_SAVED count=' + str(len(relevant)) + ' path=' + str(args.output))
     for ticket in relevant:
-        print(json.dumps({k: ticket[k] for k in ('id', 'name', 'stage_id', 'write_date')}, ensure_ascii=False))
+        print(json.dumps({k: ticket[k] for k in ('id', 'name', 'stage_id', 'priority', 'create_date', 'write_date')}, ensure_ascii=False))
 
 
 if __name__ == '__main__':

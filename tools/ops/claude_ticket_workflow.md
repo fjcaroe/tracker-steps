@@ -52,6 +52,17 @@ frontend `/truck/` de Steps Móvil tiene su autorización y runbook propios.
 
 ## Procesar novedades reales
 
+Atender la cola completa de tickets no resueltos de mayor a menor prioridad
+asignada en Odoo. A igual prioridad, primero el más antiguo por fecha de creación
+y luego por ID: `priority desc, create_date asc, id asc`. Usar
+`tools/helpdesk/read_ticket_audit.py --open-only --output RUTA_PRIVADA` para leer
+esa cola sin filtros por aplicación ni recortes a los tickets recientes.
+Volver a consultar antes de iniciar cada caso. Una urgencia nueva pasa primero
+en el siguiente punto seguro, sin cortar una publicación o migración en curso.
+Si un caso requiere información imprescindible que falta, registrar qué falta
+y continuar con el siguiente resoluble. Una instrucción explícita del usuario
+que adelante un ticket prevalece; no cambiar las prioridades para alterar el orden.
+
 Leer los tickets que tuvieron movimiento y comparar la última respuesta humana
 con las notas anteriores. Una respuesta ya recibida elimina el bloqueo de esa
 pregunta. No preguntar de nuevo lo que consta en comentarios o adjuntos. No
