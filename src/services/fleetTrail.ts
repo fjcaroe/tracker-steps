@@ -1,7 +1,7 @@
 import type {FleetAsset} from './fleetApi';
 export type TrailPoint=NonNullable<FleetAsset['last_position']>;
 export type Stop={point:TrailPoint;start:string;end:string;minutes:number;sparse:boolean};
-export type TrailGap={before:TrailPoint;after:TrailPoint;seconds:number;reason:'time_gap'|'position_jump'|'timestamp_conflict'|'implausible_speed'};
+export type TrailGap={before:TrailPoint;after:TrailPoint;seconds:number;reason:'time_gap'|'position_jump'|'timestamp_conflict'|'implausible_speed'|'device_changed'};
 export function nextTrailStep(points:TrailPoint[],gaps:TrailGap[],index:number){
  if(index>=points.length-1)return {index,gap:null,ended:true};
  const gap=gaps.find(g=>g.after.id===points[index+1].id)||null;
@@ -42,7 +42,7 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
   const seconds=previous?(Date.parse(p.recorded_at)-Date.parse(previous.recorded_at))/1000:0;
   // Some units send a parked fix only once per hour. Bound the cluster to
   // its first sample so accumulated drift cannot turn into a trip.
-  if(previous&&(!slow||meters(run[0],p)>35||seconds<=0||seconds>4500)){
+  if(previous&&(!slow||meters(run[0],p)>35||seconds<=0||seconds>4500||previous.assignment_id!==p.assignment_id)){
    saveStop();run=[];sparse=false;
   }
   if(slow){
@@ -58,7 +58,7 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
   if(!previous){segments.push([p]);continue;}
   if(parked.has(p.id)&&parked.get(p.id)===parked.get(rawBefore!.id))continue;
   const seconds=(Date.parse(p.recorded_at)-Date.parse(rawBefore!.recorded_at))/1000,d=meters(previous,p),rawDistance=meters(rawBefore!,p);
-  if(seconds>600||rawDistance>5000||seconds<=0||(rawDistance/seconds)*3.6>220){gaps.push({before:rawBefore!,after:p,seconds,reason:seconds>600?'time_gap':seconds<=0?'timestamp_conflict':rawDistance>5000?'position_jump':'implausible_speed'});segments.push([p]);continue;}
+  if(seconds>600||rawDistance>5000||seconds<=0||(rawDistance/seconds)*3.6>220||rawBefore!.assignment_id!==p.assignment_id){gaps.push({before:rawBefore!,after:p,seconds,reason:rawBefore!.assignment_id!==p.assignment_id?'device_changed':seconds>600?'time_gap':seconds<=0?'timestamp_conflict':rawDistance>5000?'position_jump':'implausible_speed'});segments.push([p]);continue;}
   // Keep raw readings intact; suppress short low-speed wander in the displayed path.
   if(d<25&&(p.speed_kmh??0)<5&&(previous.speed_kmh??0)<5)continue;
   segment.push(p);
@@ -66,14 +66,14 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
  let confirmedMovement=false;const movingIds=new Set<string>();
  for(let i=1;i<points.length;i++){
   const a=points[i-1],b=points[i],dt=(Date.parse(b.recorded_at)-Date.parse(a.recorded_at))/1000,d=meters(a,b);
-  if((a.speed_kmh??0)>=8&&(b.speed_kmh??0)>=8&&dt>0&&dt<=600&&d>=25&&d/dt*3.6<=220){confirmedMovement=true;movingIds.add(a.id);movingIds.add(b.id);}
+  if(a.assignment_id===b.assignment_id&&(a.speed_kmh??0)>=8&&(b.speed_kmh??0)>=8&&dt>0&&dt<=600&&d>=25&&d/dt*3.6<=220){confirmedMovement=true;movingIds.add(a.id);movingIds.add(b.id);}
  }
  for(let i=2;i<points.length;i++){
   const a=points[i-2],b=points[i-1],c=points[i],dt=(Date.parse(c.recorded_at)-Date.parse(a.recorded_at))/1000;
   const ab=meters(a,b),bc=meters(b,c),net=meters(a,c);
   const fast=[a,b,c].filter(p=>(p.speed_kmh??0)>=8).length>=2;
   const inferred=[a,b,c].every(p=>p.speed_kmh==null)&&dt>0&&net/dt*3.6>=8;
-  if(dt>0&&dt<=1200&&ab<5000&&bc<5000&&net>=60&&net/Math.max(1,ab+bc)>.65&&(fast||inferred)){confirmedMovement=true;movingIds.add(a.id);movingIds.add(b.id);movingIds.add(c.id);}
+  if(a.assignment_id===b.assignment_id&&b.assignment_id===c.assignment_id&&dt>0&&dt<=1200&&ab<5000&&bc<5000&&net>=60&&net/Math.max(1,ab+bc)>.65&&(fast||inferred)){confirmedMovement=true;movingIds.add(a.id);movingIds.add(b.id);movingIds.add(c.id);}
  }
  const stationary=points.length>1&&!confirmedMovement;
  const display:TrailPoint[][]=[];
@@ -97,4 +97,19 @@ export function routeAnchors(points:TrailPoint[]){
  const result:TrailPoint[]=[];const count=Math.min(8,points.length);
  for(let i=0;i<count;i++){const p=points[Math.round(i*(points.length-1)/(count-1))];if(!result.length||meters(result[result.length-1],p)>15)result.push(p);}
  return result;
+}
+
+/** Visual continuity only. Never manufactures fixes, distances or motor time. */
+export function shortContinuity(segments:TrailPoint[][]){
+ const times=segments.flatMap(s=>s.slice(1).map((p,i)=>(Date.parse(p.recorded_at)-Date.parse(s[i].recorded_at))/1000)).filter(n=>n>0&&n<=120).sort((a,b)=>a-b);
+ const cadence=times[Math.floor(times.length/2)]??60,links:{before:TrailPoint;after:TrailPoint;seconds:number}[]=[];
+ const aligned=(a:TrailPoint,b:TrailPoint,c:TrailPoint)=>{
+  const x=b.lat-a.lat,y=(b.lon-a.lon)*Math.cos(a.lat*Math.PI/180),u=c.lat-b.lat,v=(c.lon-b.lon)*Math.cos(b.lat*Math.PI/180);
+  return (x*u+y*v)/Math.max(1e-15,Math.hypot(x,y)*Math.hypot(u,v))>.7;
+ };
+ for(const s of segments)for(let i=1;i<s.length-2;i++){
+  const a=s[i],b=s[i+1],seconds=(Date.parse(b.recorded_at)-Date.parse(a.recorded_at))/1000,inferred=meters(a,b)/seconds*3.6;
+  if(seconds>Math.max(30,cadence*2.5)&&seconds<=120&&a.assignment_id===b.assignment_id&&(a.speed_kmh??0)>=8&&(b.speed_kmh??0)>=8&&inferred<=180&&inferred<=Math.max(a.speed_kmh!,b.speed_kmh!)*1.8+10&&aligned(s[i-1],a,b)&&aligned(a,b,s[i+2]))links.push({before:a,after:b,seconds});
+ }
+ return links;
 }

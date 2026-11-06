@@ -10,6 +10,8 @@ from pathlib import Path
 import re
 import time
 from urllib.request import Request,urlopen
+from urllib.error import HTTPError
+from datetime import datetime
 from .protocol import Framer,InvalidFrame,identify,decode,source_id
 from .store import Store
 
@@ -26,9 +28,10 @@ def mapping(path):
 
 
 class Receiver:
-    def __init__(self,store,mapping_path,idle_timeout=600):
+    def __init__(self,store,mapping_path,idle_timeout=600,max_connections=1024,max_per_ip=256):
         # Modern Coban heartbeat can be 180 s: allow jitter and missed packets.
         self.store=store;self.mapping_path=mapping_path;self.idle_timeout=idle_timeout;self.active=0;self.per_ip={};self.connections={};self.points={}
+        self.max_connections=max_connections;self.max_per_ip=max_per_ip
 
     def process(self,frame):
         imei,kind=identify(frame)
@@ -48,7 +51,9 @@ class Receiver:
             self.store.observe(imei,error='no_valid_gps')
             self.store.count('no_valid_gps');return None
         self.store.observe(imei,point)
-        self.points[imei]=(point,time.time())
+        previous=self.points.get(imei)
+        if not previous or datetime.fromisoformat(point['recorded_at'])>=datetime.fromisoformat(previous[0]['recorded_at']):
+            self.points[imei]=(point,time.time())
         if route['mode']=='capture':
             self.store.capture(imei,frame,'commissioning');self.store.count('capture_only');return None
         point.update(device_id=route['device_id'],source_id=source_id(frame))
@@ -60,7 +65,7 @@ class Receiver:
 
     async def connection(self,reader,writer):
         peer=writer.get_extra_info('peername');ip=peer[0] if peer else 'unknown'
-        if self.active>=64 or self.per_ip.get(ip,0)>=8:
+        if self.active>=self.max_connections or self.per_ip.get(ip,0)>=self.max_per_ip:
             writer.close();return
         self.active+=1;self.per_ip[ip]=self.per_ip.get(ip,0)+1
         framer=Framer()
@@ -121,7 +126,15 @@ def flush(store,config):
                 'Authorization':'Bearer '+token(route['issuer'],route['company_id'],keys[route['issuer']]),'Content-Type':'application/json'})
             with urlopen(request,timeout=8) as response:receipt=json.load(response)
             accepted=bool(receipt.get('id'))
-        except (OSError,ValueError,KeyError):accepted=False
+        except HTTPError as error:
+            accepted=False
+            if error.code in (429,500,502,503,504):
+                store.result(source,False,attempts);store.count('api_retry');break
+        except OSError:
+            # A down API must not make fifty sequential 8-second timeouts,
+            # starving configuration/heartbeats for several minutes.
+            store.result(source,False,attempts);store.count('api_retry');break
+        except (ValueError,KeyError):accepted=False
         store.result(source,accepted,attempts)
         store.count('api_delivered' if accepted else 'api_retry')
 
@@ -149,7 +162,7 @@ def poll_configuration(store,config):
 
 
 async def run(config,store):
-    receiver=Receiver(store,config['mapping'])
+    receiver=Receiver(store,config['mapping'],max_connections=min(4096,max(64,config.get('max_connections',1024))),max_per_ip=min(1024,max(8,config.get('max_connections_per_ip',256))))
     async def worker():
         last_poll=0
         while True:
@@ -159,7 +172,7 @@ async def run(config,store):
                 await asyncio.to_thread(flush,store,config)
             except (OSError,ValueError):store.count('worker_config_error')
             await asyncio.sleep(2)
-    server=await asyncio.start_server(receiver.connection,config.get('host','0.0.0.0'),config.get('port',5001),limit=16384)
+    server=await asyncio.start_server(receiver.connection,config.get('host','0.0.0.0'),config.get('port',5001),limit=16384,backlog=1024)
     print('COBAN_LISTENING port='+str(config.get('port',5001)),flush=True)
     if config.get('control_socket'):
         from .starter import Control
@@ -177,7 +190,7 @@ def main():
     args=parser.parse_args();os.umask(0o077)
     config=json.loads(Path(args.config).read_text());mapping(config['mapping'])
     if config['api']!='http://127.0.0.1:8000':raise ValueError('private_api_required')
-    store=Store(config['database'])
+    store=Store(config['database'],maximum=min(5000000,max(20000,config.get('queue_maximum',1000000))))
     if args.status:
         print(json.dumps({'service':'steps-coban','protocol':'gps103-ascii','registered_identities':len(mapping(config['mapping'])),**store.status()}));return
     asyncio.run(run(config,store))

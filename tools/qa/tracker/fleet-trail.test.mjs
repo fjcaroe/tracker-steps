@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildTrail,routeAnchors,nextTrailStep} from '../../../src/services/fleetTrail.ts';
+import {buildTrail,routeAnchors,nextTrailStep,shortContinuity} from '../../../src/services/fleetTrail.ts';
 const start=Date.parse('2026-01-01T00:00:00Z');
 const point=(i,lat=-33-i*.001,speed=30)=>({id:String(i),recorded_at:new Date(start+i*60000).toISOString(),received_at:new Date(start+i*60000).toISOString(),lat,lon:-70,speed_kmh:speed,quality:'gps',acc:null,external_power:null});
 test('sorts, deduplicates and filters invalid/out-of-period samples',()=>{
@@ -80,4 +80,15 @@ test('backfilled real observations remove a time gap without interpolation',()=>
  const partial=buildTrail([point(0),point(1),point(31)],start,start+40*60000);assert.equal(partial.gaps.length,1);
  const complete=buildTrail(Array.from({length:32},(_,i)=>point(i)),start,start+40*60000);
  assert.equal(complete.gaps.length,0);assert.equal(nextTrailStep(complete.points,complete.gaps,1).index,2);
+});
+
+test('brief plausible missing fixes are visual estimates, not disconnection or invented GPS',()=>{
+ const times=[0,10,20,80,90,100];
+ const values=times.map((seconds,i)=>({...point(i,-33-seconds*.0001,40),recorded_at:new Date(start+seconds*1000).toISOString(),assignment_id:'one'}));
+ const trail=buildTrail(values,start,start+200000),links=shortContinuity(trail.segments);
+ assert.equal(trail.gapCount,0);assert.equal(links.length,1);assert.equal(links[0].seconds,60);
+ assert.equal(trail.points.length,values.length);
+ const swapped=values.map((p,i)=>({...p,assignment_id:i>=3?'two':'one'}));
+ const other=buildTrail(swapped,start,start+200000);
+ assert.ok(other.gaps.some(g=>g.reason==='device_changed'));assert.equal(shortContinuity(other.segments).length,0);
 });

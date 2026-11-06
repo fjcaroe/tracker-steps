@@ -5,7 +5,7 @@ export type FleetAsset = {
   device_last_seen_at?: string | null;
   signal_state: 'received' | 'stale' | 'no_signal'; motion_state: 'moving' | 'stationary' | 'unknown';
   protection_state: 'armed' | 'disarmed' | 'incident_open';
-  last_position: null | { id: string; recorded_at: string; received_at: string; lat: number; lon: number; speed_kmh: number | null; quality: string; acc: boolean | null; external_power: boolean | null };
+  last_position: null | { id: string; recorded_at: string; received_at: string; lat: number; lon: number; speed_kmh: number | null; quality: string; acc: boolean | null; external_power: boolean | null; assignment_id?:string;recovered?:boolean };
   device: null | { model: string; brand: string; firmware: string | null; protocol: string | null };
   capabilities: { tracking: string; remote_start_inhibit: string };
 };

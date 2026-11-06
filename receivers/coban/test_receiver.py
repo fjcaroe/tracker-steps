@@ -255,3 +255,32 @@ class ReceiverTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+
+class RecoveryTests(unittest.TestCase):
+    def test_old_replay_keeps_current_live_fix_and_pending_survives_reopen(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store=Store(Path(tmp)/'queue.sqlite')
+            current=decode(FRAME,NOW)
+            older={**current,'recorded_at':'2026-10-30T23:00:00+00:00','lat':-34}
+            store.observe(IMEI,current);store.observe(IMEI,older)
+            self.assertEqual(store.observations([IMEI])[0]['fix_at'],current['recorded_at'])
+            store.enqueue(IMEI,'current',{},current);store.enqueue(IMEI,'old',{},older)
+            reopened=Store(Path(tmp)/'queue.sqlite')
+            self.assertEqual(len(reopened.pending()),2)
+            reopened.result('old',True,0);reopened.result('old',True,0)
+            with reopened.connection() as db:
+                self.assertEqual(db.execute('SELECT pending FROM queue_state').fetchone()[0],1)
+            self.assertEqual(reopened.status()['queued'],1)
+
+    def test_api_outage_does_not_wait_fifty_timeouts_or_drop_packets(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);store=Store(root/'queue.sqlite')
+            route={'issuer':'CERRO_EL_PLOMO','company_id':2,'device_id':'00000000-0000-4000-8000-000000000001','mode':'forward'}
+            (root/'map.json').write_text(json.dumps({IMEI:route}));(root/'keys.json').write_text(json.dumps({'issuers':{'CERRO_EL_PLOMO':'test-only'}}))
+            for i in range(50):store.enqueue(IMEI,str(i),{k:route[k] for k in ('issuer','company_id','device_id')},{})
+            with patch('receivers.coban.server.urlopen',side_effect=OSError('isolated outage')) as request:
+                flush(store,{'mapping':str(root/'map.json'),'key_file':str(root/'keys.json'),'api':'http://127.0.0.1:1'})
+                self.assertEqual(request.call_count,1)
+            self.assertEqual(Store(root/'queue.sqlite').status()['queued'],50)

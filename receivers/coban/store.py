@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 
 class Store:
-    def __init__(self,path,maximum=20000,receipts=20000):
+    def __init__(self,path,maximum=1000000,receipts=20000):
         self.path=str(path);self.maximum=maximum;self.receipts=receipts
         with self.connection() as db:
             db.execute('PRAGMA journal_mode=WAL');db.execute('PRAGMA synchronous=FULL')
@@ -17,6 +17,12 @@ class Store:
             db.execute('CREATE TABLE IF NOT EXISTS observations(imei TEXT PRIMARY KEY, payload TEXT NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS relay_attempts(id TEXT PRIMARY KEY, attempted REAL NOT NULL)')
             db.execute('CREATE INDEX IF NOT EXISTS inbox_delivery ON inbox(delivered,queued)')
+            db.execute('CREATE INDEX IF NOT EXISTS inbox_retry ON inbox(retry_at,queued) WHERE delivered IS NULL')
+            db.execute('CREATE TABLE IF NOT EXISTS queue_state(id INTEGER PRIMARY KEY CHECK(id=1),pending INTEGER NOT NULL)')
+            db.execute('INSERT OR IGNORE INTO queue_state SELECT 1,count(*) FROM inbox WHERE delivered IS NULL')
+            db.execute('CREATE TRIGGER IF NOT EXISTS queue_insert AFTER INSERT ON inbox WHEN NEW.delivered IS NULL BEGIN UPDATE queue_state SET pending=pending+1 WHERE id=1; END')
+            db.execute('CREATE TRIGGER IF NOT EXISTS queue_deliver AFTER UPDATE OF delivered ON inbox WHEN OLD.delivered IS NULL AND NEW.delivered IS NOT NULL BEGIN UPDATE queue_state SET pending=pending-1 WHERE id=1; END')
+            db.execute('CREATE TRIGGER IF NOT EXISTS queue_delete AFTER DELETE ON inbox WHEN OLD.delivered IS NULL BEGIN UPDATE queue_state SET pending=pending-1 WHERE id=1; END')
 
     @contextmanager
     def connection(self):
@@ -42,7 +48,9 @@ class Store:
             previous=db.execute('SELECT payload FROM observations WHERE imei=?',(imei,)).fetchone()
             value=json.loads(previous[0]) if previous else {'imei':imei}
             value.update(last_seen_at=stamp,error=error)
-            if point:
+            # Historical replay is welcome, but never regresses live location or
+            # the safety proof used by supervised starter control.
+            if point and (not value.get('fix_at') or datetime.fromisoformat(point['recorded_at'])>=datetime.fromisoformat(value['fix_at'])):
                 value.update(fix_at=point['recorded_at'],fix_received_at=stamp,lat=point['lat'],lon=point['lon'],speed_kmh=point.get('speed_kmh'))
             db.execute('INSERT INTO observations VALUES (?,?) ON CONFLICT(imei) DO UPDATE SET payload=excluded.payload',(imei,json.dumps(value)))
 
@@ -64,7 +72,7 @@ class Store:
     def enqueue(self,imei,source,route,payload):
         with self.connection() as db:
             if db.execute('SELECT 1 FROM inbox WHERE source=?',(source,)).fetchone():return
-            if db.execute('SELECT count(*) FROM inbox WHERE delivered IS NULL').fetchone()[0]>=self.maximum:raise RuntimeError('queue_full')
+            if db.execute('SELECT pending FROM queue_state WHERE id=1').fetchone()[0]>=self.maximum:raise RuntimeError('queue_full')
             db.execute('INSERT INTO inbox(source,imei,route,payload,queued) VALUES (?,?,?,?,?)',(source,imei,json.dumps(route),json.dumps(payload),time.time()))
 
     def pending(self):
@@ -83,6 +91,9 @@ class Store:
     def status(self):
         with self.connection() as db:
             return {'queued':db.execute('SELECT count(*) FROM inbox WHERE delivered IS NULL').fetchone()[0],
+                    'capacity':self.maximum,
+                    'oldest_pending_at':db.execute('SELECT min(queued) FROM inbox WHERE delivered IS NULL').fetchone()[0],
+                    'max_retry_attempts':db.execute('SELECT COALESCE(max(attempts),0) FROM inbox WHERE delivered IS NULL').fetchone()[0],
                     'delivered_retained':db.execute('SELECT count(*) FROM inbox WHERE delivered IS NOT NULL').fetchone()[0],
                     'last_delivered':db.execute('SELECT max(delivered) FROM inbox').fetchone()[0],
                     'private_captures':db.execute('SELECT count(*) FROM capture').fetchone()[0],
