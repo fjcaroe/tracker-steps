@@ -63,7 +63,7 @@ def main():
                 with dump.open('wb') as out:run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=out)
                 run('sudo','-u','postgres','createdb',db)
                 try:
-                    run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','-d',db,dump)
+                    with dump.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','-d',db,stdin=inp)
                     cols=columns(db);original=snapshot(db,cols)
                     run('sudo','-u','postgres','psql','-v','ON_ERROR_STOP=1','-d',db,'-f',migration,stdout=subprocess.DEVNULL)
                     assert snapshot(db,cols)==original,'Migration changed existing business data'
