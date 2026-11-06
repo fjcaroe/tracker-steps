@@ -29,8 +29,8 @@ class PackingCompany(models.Model):
     def _check_packing_journal(self):
         for company in self:
             journal = company.step_packing_purchase_journal_id
-            if journal and (journal.company_id != company or journal.type != 'purchase'):
-                raise ValidationError(_('El diario debe ser de compras y de la misma empresa.'))
+            if journal and (journal.company_id not in company.sudo().search([('id', 'parent_of', company.id)]) or journal.type != 'purchase'):
+                raise ValidationError(_('El diario debe ser de compras, de la empresa o de una matriz autorizada.'))
 
 
 class PackingProduction(models.Model):
@@ -171,6 +171,11 @@ class MonthlyFruitBill(models.TransientModel):
         'step.producer.purchase.contract', string='Contrato para OT sin precios de cierre',
         help='Selección explícita para las OT cerradas sin valorización guardada. La factura usa estos precios y conserva la valorización de stock existente.')
 
+    def _billing_expense_account(self, source):
+        self.ensure_one()
+        return source.debit_account_id or source.product_id.with_company(
+            self.company_id).product_tmpl_id.get_product_accounts()['expense']
+
     def action_prepare_bills(self):
         self.ensure_one()
         if not self.env.user.has_group('account.group_account_user'):
@@ -205,28 +210,32 @@ class MonthlyFruitBill(models.TransientModel):
                 grouped[record.fruit_grower_id.id, contract.currency_id.id] |= record
         source_ids = {row['contract_line_id'] for rows in prices.values() for row in rows}
         missing = self.env['step.producer.purchase.contract.product'].browse(sorted(source_ids)).filtered(
-            lambda line: not line.debit_account_id)
+            lambda line: not self._billing_expense_account(line))
         if missing:
             detail = '\n'.join('%s / %s' % (line.contract_id.display_name, line.product_id.display_name)
                                for line in missing)
-            raise UserError(_('Configure la cuenta de cargo en estos productos del contrato:\n%s') % detail)
+            raise UserError(_(
+                'Configure la cuenta de gastos del producto o de su categoría para esta empresa, '
+                'o una cuenta específica en la línea del contrato:\n%s') % detail)
         with self.env.cr.savepoint():
             for (producer_id, currency_id), group in grouped.items():
+                bill = self.env['account.move'].with_company(self.company_id).create({
+                    'move_type': 'in_invoice', 'partner_id': producer_id, 'company_id': self.company_id.id,
+                    'currency_id': currency_id, 'journal_id': journal.id, 'invoice_date': self.date_end,
+                    'invoice_origin': ', '.join(group.mapped('name'))})
                 lines = []
                 for record in group:
                     for row in prices[record.id]:
                         source = self.env['step.producer.purchase.contract.product'].browse(row['contract_line_id'])
-                        if not source.debit_account_id:
-                            raise UserError(_('Configure la cuenta de cargo en %s / %s.') % (source.contract_id.display_name, source.product_id.display_name))
-                        taxes = source.product_id.supplier_taxes_id.filtered(lambda tax: tax.company_id == self.company_id)
-                        lines.append((0, 0, {'name': '%s / tarja %s / %s' % (record.name, row['tag_id'], contracts[record.id].name),
+                        values = {'name': '%s / tarja %s / %s' % (record.name, row['tag_id'], contracts[record.id].name),
                             'product_id': row.get('bill_product_id', row['product_id']), 'product_uom_id': row['uom_id'], 'quantity': row['quantity'],
-                            'price_unit': row['price_unit'], 'account_id': source.debit_account_id.id,
-                            'analytic_distribution': source.analytic_distribution, 'tax_ids': [(6, 0, taxes.ids)]}))
-                bill = self.env['account.move'].with_company(self.company_id).create({
-                    'move_type': 'in_invoice', 'partner_id': producer_id, 'company_id': self.company_id.id,
-                    'currency_id': currency_id, 'journal_id': journal.id, 'invoice_date': self.date_end,
-                    'invoice_origin': ', '.join(group.mapped('name')), 'invoice_line_ids': lines})
+                            'price_unit': row['price_unit'], 'analytic_distribution': source.analytic_distribution}
+                        if source.debit_account_id:
+                            values['account_id'] = bill.fiscal_position_id.map_account(source.debit_account_id).id
+                        # Native invoice lines resolve product/category accounts and
+                        # branch/parent taxes, including the fiscal position.
+                        lines.append((0, 0, values))
+                bill.write({'invoice_line_ids': lines})
                 group.with_context(_packing_valuation=_VALUATION, _packing_control=_INTERNAL).write({'purchase_bill_id': bill.id})
                 bills |= bill
         if not bills:

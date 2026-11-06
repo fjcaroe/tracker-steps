@@ -27,6 +27,7 @@ MODULES = ('step_management_costs', 'step_management_costs_agriculture', 'step_m
 BUSINESS = ('step_management_operational_budget', 'step_management_budget_line', 'step_management_budget_center',
             'step_management_estimation', 'step_management_estimation_line', 'step_management_historical_cost',
             'step_management_plan', 'step_management_production_order', 'step_management_crop_program')
+MONTHLY_FRUIT_PLAN = None
 SETTINGS = False
 PRODUCERS = False
 PACKING_INITIAL_MIGRATION = False
@@ -319,13 +320,14 @@ def normalize_approved_account(base, options, database, args, commit):
 
 
 def main():
-    global PACKING_ANALYTIC_PLAN_MAX, PACKING_INACTIVE_TYPES, PACKING_CONFIG_LIMITS, PROMOTION_COLUMNS, TRACEABILITY_INITIAL, SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
+    global MONTHLY_FRUIT_PLAN, PACKING_ANALYTIC_PLAN_MAX, PACKING_INACTIVE_TYPES, PACKING_CONFIG_LIMITS, PROMOTION_COLUMNS, TRACEABILITY_INITIAL, SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys', 'qa-cerro', 'demo-sys'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
     parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-attendance', 'payroll-days', 'payroll-review', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
+    parser.add_argument('--monthly-fruit-plan', type=Path, help='Private unchanged customer case; required for Cerro T170 accounting validation')
     parser.add_argument('--wait-for-lease', action='store_true', help='Queue this authorized ticket operation before reading its source baseline')
     parser.add_argument('--normalize-user-id', type=int)
     parser.add_argument('--expected-user-login')
@@ -337,6 +339,9 @@ def main():
     parser.add_argument('--resume-packing-split', action='store_true',
                         help='Reuse the verified Cerro overlay from the interrupted T154 deployment')
     args = parser.parse_args()
+    if args.monthly_fruit_plan:
+        assert args.kind == 'packing-holding-contract' and args.environment == 'cerro'
+        MONTHLY_FRUIT_PLAN = json.loads(args.monthly_fruit_plan.read_text())
     if args.packing_output_lot_plan:
         assert args.kind == 'packing-output-lots' and args.environment == 'cerro'
         assert args.action in ('compatibility', 'deploy') and args.packing_output_lot_plan.is_file()
@@ -773,7 +778,7 @@ def main():
                     clone_options = options + ['--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data)]
                     normalize_approved_account(base, clone_options, qa_db, args, False)
                     assert snapshot(qa_db) == before, 'Normalization dry run changed the clone'
-            (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log),
+            (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log), 'monthly_fruit_plan': MONTHLY_FRUIT_PLAN,
                 'reception_lot_plan': digest(args.reception_lot_plan) if args.reception_lot_plan else None,
                 'packing_output_lot_plan': digest(args.packing_output_lot_plan) if args.packing_output_lot_plan else None,
                 'packing_output_lot_repair': {name: digest(HERE / name) for name in ('repair_packing_output_lots.py', 'repair_reception_lots.py')} if args.packing_output_lot_plan else None,
@@ -781,6 +786,8 @@ def main():
             print('MANAGEMENT_QA_OK ' + args.environment, flush=True)
             return
     passed = json.loads((stage / 'qa_passed.json').read_text())
+    if args.kind == 'packing-holding-contract' and args.environment == 'cerro' and tuple(map(int, proof['versions']['step_packing_operations'].split('.'))) >= (18,0,2,12,0):
+        assert MONTHLY_FRUIT_PLAN and passed.get('monthly_fruit_plan') == MONTHLY_FRUIT_PLAN, 'Deploy requires the same unchanged customer case proof'
     if args.packing_output_lot_plan:
         assert passed['packing_output_lot_plan'] == digest(args.packing_output_lot_plan)
         assert passed['packing_output_lot_repair'] == {name: digest(HERE / name) for name in ('repair_packing_output_lots.py', 'repair_reception_lots.py')}
@@ -934,6 +941,7 @@ def verify(base, options, database, source, opts, proof, stage, installed):
         probe += '\nTICKETS=' + repr(tickets) + '\n' + (HERE / 'verify_ticket_native_flow.py').read_text()
     if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         header += 'OUTPUT=' + repr(str(stage)) + '\n'
+    header += 'MONTHLY_FRUIT_PLAN=' + repr(MONTHLY_FRUIT_PLAN) + '\n'
     data_options = ['--data-dir=' + str(stage/'data')] if TICKET_REVISION in ('payroll-attendance', 'payroll-days', 'payroll-review', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability') and database.startswith('MANAGEMENT_QA_') else []
     from contextlib import nullcontext
     report_server = nullcontext()

@@ -23,7 +23,11 @@ try:
         companies = sample.company_id.sudo().search([('id', 'parent_of', sample.company_id.id)])
         row = sample.with_context(allowed_company_ids=companies.ids)
         assert sample.company_id in row._contract_companies()
-    if sample and env.cr.dbname.startswith(('MANAGEMENT_QA_CERRO_', 'MANAGEMENT_QA_QA-CERRO_')):
+    if env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_') and tuple(map(int, EXPECTED['step_packing_operations'].split('.'))) >= (18,0,2,12,0):
+        assert MONTHLY_FRUIT_PLAN, 'Do not substitute the customer case with a synthetic contract'
+        from verify_monthly_fruit_case import verify_case
+        print('T170_ACTUAL_MONTHLY_CASE_OK ' + json.dumps(verify_case(env, MONTHLY_FRUIT_PLAN)))
+    elif sample and env.cr.dbname.startswith(('MANAGEMENT_QA_CERRO_', 'MANAGEMENT_QA_QA-CERRO_')):
         # Customer QA has no closed operations. Represent a legacy closed
         # record only inside this rollback-only copy fixture.
         if sample.state not in ('closed', 'costed', 'accounted'):
@@ -75,6 +79,9 @@ try:
         from odoo.exceptions import UserError
         lines = contract.product_line_ids
         lines.write({'debit_account_id': False})
+        for product in lines.product_id.with_company(branch):
+            product.property_account_expense_id = False
+            product.categ_id.property_account_expense_categ_id = False
         try:
             wizard.action_prepare_bills()
         except UserError as error:
@@ -84,14 +91,14 @@ try:
             print('T170_MISSING_ACCOUNTS_IDENTIFIED')
         else:
             raise AssertionError('Missing debit accounts must prevent invoice creation')
-        lines.write({'debit_account_id': account.id})
+        lines.product_id.with_company(branch).write({'property_account_expense_id': account.id})
         first = wizard.action_prepare_bills()
         bill = sample.purchase_bill_id
         assert bill and bill.state == 'draft' and bill.company_id == branch
         assert sample.read(['valuation_snapshot', 'state', 'contract_id'])[0] == before
         assert wizard.action_prepare_bills()['domain'] == first['domain']
         assert bill.invoice_line_ids and all(line.company_id == branch for line in bill.line_ids)
-        print('T170_BRANCH_MONTHLY_FLOW_OK BRANCH_ONLY_BASE_PRODUCT')
+        print('T170_NATIVE_EXPENSE_FLOW_OK BRANCH_ONLY_BASE_PRODUCT')
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({
         'ticket': 170, 'versions': EXPECTED, 'existing_profile': scoped.uid,
         'native_monthly_form': True, 'writes': False}))

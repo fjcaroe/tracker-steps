@@ -761,15 +761,20 @@ class TestPackingOperations(TransactionCase):
             with self.assertRaisesRegex(UserError, 'T41-EXPORT'):
                 production._contract_prices(contract, for_billing=True)
             wizard.contract_id = legacy_contract
+            base.categ_id = self.env['product.category'].create({
+                'name': 'Missing expense category QA', 'property_account_expense_categ_id': False})
+            base.property_account_expense_id = False
             base_line.debit_account_id = False
             with self.assertRaises(UserError) as missing_account:
                 wizard.action_prepare_bills()
             self.assertIn(base.display_name, str(missing_account.exception))
             self.assertIn(legacy_contract.display_name, str(missing_account.exception))
             self.assertFalse(production.purchase_bill_id)
-            base_line.debit_account_id = account
+            base.property_account_expense_id = account
             legacy_action = wizard.action_prepare_bills()
             self.assertEqual(production.purchase_bill_id.amount_untaxed, 160)
+            self.assertEqual(production.purchase_bill_id.invoice_line_ids.account_id, account)
+            self.assertFalse(base_line.debit_account_id)
             self.assertEqual(production.purchase_bill_id.invoice_line_ids.product_id, base)
             self.assertEqual(production.purchase_bill_id.invoice_line_ids.quantity, 80)
             self.assertEqual(production.purchase_bill_id.invoice_line_ids.product_uom_id, base.uom_id)
