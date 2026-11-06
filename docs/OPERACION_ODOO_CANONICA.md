@@ -1,5 +1,18 @@
 # Operación y publicación de Odoo
 
+T170 autoriza `packing-holding-contract` en Desarrollo, Cerro y QA-Cerro.
+La compra mensual utiliza las cuentas nativas del producto/categoría en la
+sucursal, con prioridad de la cuenta contractual específica y posición fiscal;
+los impuestos y los diarios compatibles respetan la jerarquía nativa de empresas.
+No revalorizar stock ni modificar contratos o cuentas al publicar. Para Cerro,
+`--monthly-fruit-plan` identifica privadamente el caso real sin facturación
+previa, con OT, período, cantidades, moneda, cuentas, impuestos y totales esperados.
+La copia fresca debe completar la preparación del borrador y su reintento con
+los mismos maestros, preservando stock e históricos. No sustituir ese caso por
+un contrato/cuenta ficticios. La promoción exige el mismo plan certificado,
+paquete, respaldo y bloqueo; conservar paridad e aislamiento de QA-Cerro.
+No contabilizar facturas ni modificar maestros reales como parte de la prueba.
+
 T166 autoriza `packing-output-lots` en Desarrollo, Cerro y QA-Cerro.
 Agregar LOTE a la OT, con el número de OT por defecto y valor editable antes
 del cierre. Propagar el nombre a stock.lot por producto y empresa en las
