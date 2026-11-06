@@ -449,7 +449,16 @@ def main():
             BUSINESS = tuple(sorted(set(BUSINESS) | {'res_country', 'res_city'}))
     if args.kind in ('payroll-attendance', 'payroll-days', 'payroll-review', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'previred-simpledigital', 'tarja'):
         TICKET_REVISION = args.kind
-        assert args.environment in (('development','sys','cerro','qa-cerro') if args.kind == 'payroll-attendance' else ('development','sys','demo-sys','cerro','qa-cerro') if args.kind == 'payroll-days' else ('development', 'sys', 'cerro') if args.kind == 'payroll-rounding' else ('development', 'sys') if args.kind in ('payroll-review', 'payroll-fixes', 'previred-fix', 'previred-simpledigital') else ('development',)), 'Ticket destination outside approved scope'
+        allowed = {
+            'payroll-attendance': ('development', 'sys', 'cerro', 'qa-cerro'),
+            'payroll-days': ('development', 'sys', 'demo-sys', 'cerro', 'qa-cerro'),
+            'payroll-rounding': ('development', 'sys', 'cerro'),
+            'payroll-review': ('development', 'sys'),
+            'payroll-fixes': ('development', 'sys'),
+            'previred-fix': ('development', 'sys'),
+            'previred-simpledigital': ('development', 'sys', 'demo-sys'),
+        }.get(args.kind, ('development',))
+        assert args.environment in allowed, 'Ticket destination outside approved scope'
         SETTINGS = True
         MODULES = ('step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle_simpledigital') if args.kind == 'payroll-fixes' else ('step_inventory_packing', 'step_packing_operations')
         if args.kind == 'payroll-attendance':
