@@ -46,7 +46,7 @@ def prepare(source,target,stage):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('action',choices=['qa','development','production']);p.add_argument('source',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('action',choices=['qa','development','production']);p.add_argument('source',type=Path);p.add_argument('--resume',action='store_true');a=p.parse_args()
     assert os.geteuid()==0;source=a.source.resolve()
     commit=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
     assert not subprocess.check_output(['git','-C',str(source),'status','--porcelain','--untracked-files=no'],text=True).strip()
@@ -92,8 +92,11 @@ def main():
         with (backup/'database.dump').open('wb') as out:run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=out)
         shutil.copytree(live/'app',backup/'app',ignore=shutil.ignore_patterns('__pycache__'))
         release=Path('/opt/steps-tracker-analytics/releases')/target/commit
-        assert not release.exists();release.parent.mkdir(parents=True,exist_ok=True);shutil.copytree(root,release)
-        if (live/'.env').exists():(release/'.env').symlink_to(live/'.env')
+        if release.exists():
+            assert a.resume and tree(release/'app')==proof['targets'][target]['after'],'Existing release differs or resume was not requested'
+        else:
+            release.parent.mkdir(parents=True,exist_ok=True);shutil.copytree(root,release)
+        if (live/'.env').exists() and not (release/'.env').exists():(release/'.env').symlink_to(live/'.env')
         for path in [release,*release.rglob('*')]:
             if not path.is_symlink():path.chmod(0o755 if path.is_dir() else 0o644)
         run('sudo','-u','postgres','psql','-v','ON_ERROR_STOP=1','-d',database,'-f',migration,stdout=subprocess.DEVNULL)
