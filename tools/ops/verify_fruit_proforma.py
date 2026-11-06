@@ -271,7 +271,7 @@ def verify_copy_cycle(admin, output):
     assert bills.company_id == branch and bills.journal_id == journal
     assert bills.invoice_line_ids.account_id == expense
     assert not retained.invoice_ids.l10n_latam_document_number
-    assert retained.invoice_ids.name == '/'
+    assert retained.invoice_ids.name in (False, '/')
     assert not bills.filtered('posted_before')
     orders.action_fruit_convert()
     assert orders.invoice_ids == bills

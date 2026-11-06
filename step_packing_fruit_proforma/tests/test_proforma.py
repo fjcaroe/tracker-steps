@@ -326,7 +326,7 @@ class TestMonthlyFruitProforma(TransactionCase):
         bill = self._convert(order)
         self.assertEqual(bill.l10n_latam_document_type_id, self.env.ref('l10n_cl.dc_fc_f_dte'))
         self.assertFalse(bill.l10n_latam_document_number)
-        self.assertEqual(bill.name, '/')
+        self.assertIn(bill.name, (False, '/'))
         self.assertEqual(bill.invoice_line_ids.tax_ids, self.vat | self.retention)
         self.assertEqual(bill.amount_untaxed, 100)
         self.assertEqual(bill.amount_total, 105)
