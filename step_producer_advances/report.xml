@@ -1,0 +1,119 @@
+<odoo>
+    <record id="advance_report_paper" model="report.paperformat">
+        <field name="name">Anticipo productor con anexo</field><field name="format">A4</field>
+        <field name="orientation">Landscape</field><field name="margin_top">35</field>
+        <field name="margin_bottom">18</field><field name="margin_left">10</field><field name="margin_right">10</field>
+        <field name="header_spacing">10</field><field name="dpi">90</field>
+    </record>
+    <record id="action_advance_pdf" model="ir.actions.report">
+        <field name="name">Proforma anticipo productor</field><field name="model">purchase.order</field>
+        <field name="report_type">qweb-pdf</field><field name="report_name">step_producer_advances.report_advance</field>
+        <field name="report_file">step_producer_advances.report_advance</field>
+        <field name="paperformat_id" ref="advance_report_paper"/>
+        <field name="print_report_name">'Anticipo - %s' % object.name</field>
+        <field name="groups_id" eval="[(4,ref('account.group_account_user'))]"/>
+    </record>
+    <record id="action_advance_preview" model="ir.actions.report">
+        <field name="name">Vista previa anticipo</field><field name="model">purchase.order</field>
+        <field name="report_type">qweb-html</field><field name="report_name">step_producer_advances.report_advance</field>
+        <field name="report_file">step_producer_advances.report_advance</field>
+        <field name="groups_id" eval="[(4,ref('account.group_account_user'))]"/>
+    </record>
+    <template id="advance_layout">
+        <div t-attf-class="header o_company_#{company.id}_layout" style="font-size:10px">
+            <div class="row" style="border-bottom:1px solid #536c65;padding-bottom:6px">
+                <div class="col-5"><img t-if="company.logo" t-att-src="image_data_uri(company.logo)" alt="Logo"
+                    style="max-height:34px;max-width:170px"/></div>
+                <div class="col-7 text-end"><strong t-field="company.name"/><div>RUT: <span t-field="company.vat"/></div></div>
+            </div>
+        </div>
+        <div t-attf-class="article o_report_layout_standard o_company_#{company.id}_layout"
+            t-att-data-oe-model="doc._name" t-att-data-oe-id="doc.id" t-att-data-oe-lang="doc.env.lang"><t t-out="0"/></div>
+        <div t-attf-class="footer o_company_#{company.id}_layout" style="font-size:9px;border-top:1px solid #536c65;padding-top:5px">
+            <div class="row"><div class="col-8">Proforma anticipo productor · Documento de revisión sin emisión fiscal</div>
+                <div class="col-4 text-end">Página <span class="page"/> / <span class="topage"/></div></div>
+        </div>
+    </template>
+    <template id="report_advance">
+        <t t-call="web.html_container"><t t-foreach="docs" t-as="doc">
+            <t t-set="company" t-value="doc.company_id"/><t t-set="o" t-value="doc"/>
+            <t t-set="data" t-value="data_by_doc[doc.id]"/>
+            <t t-call="step_producer_advances.advance_layout" t-lang="doc.env.lang">
+                <div class="page advance-proforma">
+                    <style>
+                        .advance-proforma{font-size:10px}.advance-proforma th{font-weight:600}
+                        .advance-proforma td,.advance-proforma th{padding:5px 4px;vertical-align:middle}
+                        .advance-proforma .annex{font-size:8px;table-layout:fixed;width:100%}
+                        .advance-proforma .annex td,.advance-proforma .annex th{overflow-wrap:break-word;word-wrap:break-word}
+                        .advance-proforma thead{display:table-header-group}.advance-proforma tr{page-break-inside:avoid}
+                    </style>
+                    <div class="row mb-2"><div class="col-8"><h2>PROFORMA DE FACTURA PRODUCTOR</h2><h4>Anticipo por kilos de exportación</h4></div>
+                        <div class="col-4 text-end"><h3 t-field="doc.name"/>
+                            <div>Documento previsto: DTE <strong t-field="doc.step_fruit_dte_code"/></div>
+                            <div>Estado: <span t-field="doc.step_advance_status"/></div>
+                        </div></div>
+                    <p>Documento para revisión. No constituye una factura ni un DTE emitido.</p>
+                    <div class="row mb-3"><div class="col-6">
+                        <strong>Productor</strong><div t-field="doc.partner_id" t-options="{'widget':'contact','fields':['name','address'],'no_marker':True}"/>
+                        <div>RUT: <span t-field="doc.partner_id.vat"/></div>
+                        <div>Especie: <strong t-field="doc.step_fruit_species_id"/></div>
+                    </div><div class="col-6"><table class="w-100"><tbody>
+                        <tr><td><strong>Fecha proforma</strong></td><td t-out="doc.date_order.strftime('%d/%m/%Y')"/></tr>
+                        <tr><td><strong>Fundo productor</strong></td><td t-out="data['fundos']"/></tr>
+                        <tr><td><strong>Período de recepción</strong></td><td><span t-out="doc.step_fruit_period_start.strftime('%d/%m/%Y')"/> al <span t-out="doc.step_fruit_period_end.strftime('%d/%m/%Y')"/></td></tr>
+                        <tr><td><strong>Número semana</strong></td><td t-out="data['weeks']"/></tr>
+                        <tr><td><strong>Corte proceso</strong></td><td t-out="doc.step_advance_cutoff.strftime('%d/%m/%Y')"/></tr>
+                        <tr><td><strong>Tipo de cambio</strong></td><td><span t-out="price(doc.step_advance_exchange_rate)"/> <span t-field="doc.currency_id.name"/> / <span t-field="doc.step_advance_source_currency_id.name"/></td></tr>
+                    </tbody></table></div></div>
+                    <h5>Facturar a</h5><div class="row mb-3"><div class="col-8">
+                        <strong t-field="doc.company_id.name"/><div>RUT: <span t-field="doc.company_id.vat"/></div>
+                        <div t-field="doc.company_id.partner_id" t-options="{'widget':'contact','fields':['address'],'no_marker':True}"/>
+                        <div t-if="data.get('buyer_activity')">Giro: <span t-out="data['buyer_activity']"/></div>
+                    </div><div class="col-4"><div>Teléfono: <span t-field="doc.company_id.phone"/></div>
+                        <div>Correo: <span t-field="doc.company_id.email"/></div></div></div>
+                    <h5>Detalle factura</h5><table class="table table-sm summary">
+                        <thead><tr><th>Detalle</th><th>Producto</th><th>Mercado</th><th>Embalaje</th>
+                            <th class="text-end">Kilos</th><th class="text-end">Precio <span t-field="doc.currency_id.name"/></th><th class="text-end">Neto</th></tr></thead>
+                        <tbody><tr t-foreach="doc.order_line.filtered(lambda line:not line.display_type)" t-as="line">
+                            <td>Anticipo kg</td><td t-field="line.step_advance_priced_product_id"/>
+                            <td t-field="line.step_advance_market_id"/><td t-field="line.step_advance_packaging_id"/>
+                            <td class="text-end" t-out="number(line.product_qty)"/><td class="text-end" t-out="price(line.price_unit)"/>
+                            <td class="text-end" t-out="money(line.price_subtotal,doc.currency_id)"/>
+                        </tr></tbody><tfoot><tr><td colspan="4"><strong>Total</strong></td><td class="text-end" t-out="number(data['exported'])"/>
+                            <td/><td class="text-end" t-out="money(doc.amount_untaxed,doc.currency_id)"/></tr></tfoot>
+                    </table>
+                    <div class="row"><div class="col-6"><h5>Fechas de pago</h5><table class="table table-sm payments">
+                        <thead><tr><th>Concepto</th><th class="text-end">Monto</th><th>Fecha</th></tr></thead><tbody>
+                            <tr><td>Neto</td><td class="text-end" t-out="money(doc.amount_untaxed,doc.currency_id)"/><td t-out="doc.step_advance_net_due.strftime('%d/%m/%Y')"/></tr>
+                            <tr><td>IVA a pagar</td><td class="text-end" t-out="money(doc.amount_tax,doc.currency_id)"/><td t-out="doc.step_advance_vat_due.strftime('%d/%m/%Y')"/></tr>
+                        </tbody></table></div><div class="col-6"><table class="table table-borderless o_total_table">
+                            <t t-call="purchase.document_tax_totals"><t t-set="tax_totals" t-value="doc.tax_totals"/><t t-set="currency" t-value="doc.currency_id"/></t>
+                        </table></div></div>
+                    <p t-if="doc.step_fruit_withholding_tax_id">Retención seleccionada: <span t-field="doc.step_fruit_withholding_tax_id"/></p>
+                    <p t-if="doc.step_fruit_guide_refs">Guías de recepción: <span t-field="doc.step_fruit_guide_refs"/></p>
+                    <div style="page-break-before:always"><h3>ANEXO DETALLE PROFORMA</h3><p><strong t-field="doc.name"/> · <span t-field="doc.partner_id"/> · <span t-field="doc.step_fruit_species_id"/></p>
+                        <table class="table table-sm annex"><thead><tr>
+                            <th style="width:16%">Producto / tarja</th><th style="width:8%">Embalaje</th><th style="width:7%">Mercado</th><th style="width:9%">OT</th>
+                            <th class="text-end" style="width:8%">Kilos recep.</th><th class="text-end" style="width:6%">% export.</th><th class="text-end" style="width:8%">Kg export.</th>
+                            <th class="text-end" style="width:7%">Precio <span t-field="doc.step_advance_source_currency_id.name"/></th>
+                            <th class="text-end" style="width:8%">Total <span t-field="doc.step_advance_source_currency_id.name"/></th>
+                            <th class="text-end" style="width:7%">Precio <span t-field="doc.currency_id.name"/></th><th class="text-end" style="width:9%">Total <span t-field="doc.currency_id.name"/></th><th style="width:7%">Guías</th>
+                        </tr></thead><tbody><tr t-foreach="data['rows']" t-as="row">
+                            <td><span t-out="row['priced_product_name']"/><br/><span t-out="row['tag_name']"/></td>
+                            <td t-out="row['packaging_name']"/><td t-out="row['market_name']"/><td t-out="row['ot_name'] or 'Recepción embalada'"/>
+                            <td class="text-end" t-out="number(row['received_kg'])"/><td class="text-end"><span t-out="percent(row['export_ratio'])"/>%</td>
+                            <td class="text-end" t-out="number(row['quantity'])"/><td class="text-end" t-out="price(row['source_price'])"/>
+                            <td class="text-end" t-out="money(row['source_amount'],doc.step_advance_source_currency_id)"/>
+                            <td class="text-end" t-out="price(row['price_unit'])"/><td class="text-end" t-out="money(row['print_amount'],doc.currency_id)"/>
+                            <td t-out="row['receipt_guides']"/>
+                        </tr></tbody><tfoot><tr><td colspan="4"><strong>Total</strong></td><td class="text-end" t-out="number(data['received'])"/>
+                            <td class="text-end"><span t-out="percent(data['ratio'])"/>%</td><td class="text-end" t-out="number(data['exported'])"/><td/>
+                            <td class="text-end" t-out="money(data['source_total'],doc.step_advance_source_currency_id)"/><td/>
+                            <td class="text-end" t-out="money(doc.amount_untaxed,doc.currency_id)"/><td/>
+                        </tr></tfoot></table>
+                    </div>
+                </div>
+            </t>
+        </t></t>
+    </template>
+</odoo>

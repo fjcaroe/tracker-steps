@@ -1,0 +1,62 @@
+<odoo>
+    <record id="advance_price_rule_form" model="ir.ui.view">
+        <field name="name">product.pricelist.item.advance.form</field><field name="model">product.pricelist.item</field>
+        <field name="arch" type="xml">
+            <form string="Precio productor"><sheet>
+                <field name="pricelist_id" invisible="1"/><field name="company_id" invisible="1"/>
+                <field name="currency_id" invisible="1"/><field name="labor_id" invisible="1"/>
+                <group><group>
+                    <field name="applied_on"/>
+                    <field name="product_tmpl_id" invisible="applied_on not in ('1_product','0_product_variant')" required="applied_on in ('1_product','0_product_variant')"/>
+                    <field name="product_id" invisible="applied_on != '0_product_variant'" required="applied_on == '0_product_variant'"/>
+                    <field name="categ_id" invisible="applied_on != '2_product_category'" required="applied_on == '2_product_category'"/>
+                    <field name="step_advance_market_id" options="{'no_create':True}"/>
+                    <field name="step_advance_packaging_id" options="{'no_create':True}"/>
+                    <field name="compute_price"/><field name="fixed_price" invisible="compute_price != 'fixed'"/>
+                    <field name="percent_price" invisible="compute_price != 'percentage'"/>
+                    <field name="base" invisible="compute_price != 'formula'"/>
+                    <field name="base_pricelist_id" invisible="compute_price != 'formula' or base != 'pricelist'"/>
+                    <field name="price_discount" invisible="compute_price != 'formula'"/>
+                    <field name="price_surcharge" invisible="compute_price != 'formula'"/>
+                    <field name="price_round" invisible="compute_price != 'formula'"/>
+                </group><group>
+                    <field name="uom_id" domain="[('category_id','=',%(uom.product_uom_categ_kgm)d)]"/>
+                    <field name="min_quantity"/><field name="can_std"/><field name="can_max"/>
+                    <field name="date_start"/><field name="date_end"/>
+                </group></group>
+            </sheet></form>
+        </field>
+    </record>
+    <record id="advance_pricelist_form" model="ir.ui.view">
+        <field name="name">product.pricelist.advance.form</field><field name="model">product.pricelist</field>
+        <field name="arch" type="xml"><form string="Lista de precios productores"><sheet>
+            <field name="step_advance_price" invisible="1"/><field name="company_id" invisible="1"/>
+            <div class="oe_title"><h1><field name="name" placeholder="Nombre de lista de precios"/></h1></div>
+            <group><group><field name="currency_id"/><field name="date_init"/><field name="date_end"/>
+                <field name="step_advance_company_ids" widget="many2many_tags" options="{'no_create':True}"/>
+            </group><group><field name="create_uid" readonly="1"/><field name="user_id"/>
+                <field name="especie_id" options="{'no_create':True}"/><field name="grupo_variedad_id" options="{'no_create':True}"/>
+                <field name="active"/>
+            </group></group>
+            <notebook><page string="Reglas de precio"><field name="item_ids"
+                context="{'form_view_ref':'step_producer_advances.advance_price_rule_form','default_uom_id':%(uom.product_uom_kgm)d}">
+                <list><field name="name"/><field name="step_advance_market_id"/><field name="step_advance_packaging_id"/>
+                    <field name="fixed_price"/><field name="uom_id"/><field name="min_quantity"/>
+                    <field name="date_start"/><field name="date_end"/></list>
+            </field></page></notebook>
+        </sheet></form></field>
+    </record>
+    <record id="advance_pricelist_list" model="ir.ui.view">
+        <field name="name">product.pricelist.advance.list</field><field name="model">product.pricelist</field>
+        <field name="arch" type="xml"><list string="Listas de precios productores">
+            <field name="name"/><field name="currency_id"/><field name="date_init"/><field name="date_end"/>
+            <field name="step_advance_company_ids" widget="many2many_tags"/><field name="especie_id"/>
+        </list></field>
+    </record>
+    <record id="action_advance_pricelists" model="ir.actions.act_window">
+        <field name="name">Listas de precios productores</field><field name="res_model">product.pricelist</field>
+        <field name="view_mode">list,form</field><field name="domain">[('step_advance_price','=',True)]</field>
+        <field name="context">{'default_step_advance_price':True}</field>
+        <field name="view_ids" eval="[(5,0,0),(0,0,{'view_mode':'list','view_id':ref('advance_pricelist_list')}),(0,0,{'view_mode':'form','view_id':ref('advance_pricelist_form')})]"/>
+    </record>
+</odoo>

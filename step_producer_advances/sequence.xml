@@ -1,0 +1,10 @@
+<odoo noupdate="1">
+    <record id="sequence_advance_33" model="ir.sequence">
+        <field name="name">Proforma Anticipo Productor 33</field><field name="code">step.producer.advance.33</field>
+        <field name="prefix">PA33/%(year)s/</field><field name="padding">6</field><field name="company_id" eval="False"/>
+    </record>
+    <record id="sequence_advance_46" model="ir.sequence">
+        <field name="name">Proforma Anticipo Productor 46</field><field name="code">step.producer.advance.46</field>
+        <field name="prefix">PA46/%(year)s/</field><field name="padding">6</field><field name="company_id" eval="False"/>
+    </record>
+</odoo>

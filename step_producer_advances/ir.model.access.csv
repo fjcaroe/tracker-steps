@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_advance_prepare,Prepare producer advance,model_step_producer_advance_prepare,account.group_account_user,1,1,1,1
+access_advance_prices,Producer pricelist editor,product.model_product_pricelist,account.group_account_user,0,1,1,0
+access_advance_price_rules,Producer price rule editor,product.model_product_pricelist_item,account.group_account_user,0,1,1,0

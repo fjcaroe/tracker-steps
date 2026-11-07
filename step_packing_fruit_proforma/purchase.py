@@ -160,20 +160,28 @@ class PurchaseOrder(models.Model):
         if (not self.partner_id or not self.step_fruit_species_id or not self.order_line.filtered(lambda line: not line.display_type)
                 or not self.step_fruit_tag_ids or self.step_fruit_dte_code not in ('33', '46')):
             raise ValidationError(_('La proforma debe identificar productor, especie, tarjas, productos y tipo de documento.'))
-        if (not self.step_fruit_period_start or not self.step_fruit_period_end
-                or self.step_fruit_period_start > self.step_fruit_period_end
-                or self.step_fruit_period_start.strftime('%Y-%m') != self.step_fruit_period_end.strftime('%Y-%m')):
-            raise ValidationError(_('La proforma debe identificar un período válido dentro del mismo mes.'))
+        self._fruit_check_period()
         if self.step_fruit_dte_code == '46' and not self.step_fruit_withholding_tax_id:
             raise ValidationError(_('La factura de compra requiere la retención configurada para la especie.'))
         if self.picking_ids or self.order_line.move_ids:
             raise UserError(_('La proforma no debe tener movimientos de inventario asociados.'))
-        if any(tag.step_fruit_proforma_id != self for tag in self.step_fruit_tag_ids):
-            raise UserError(_('Las tarjas deben conservar su vínculo con esta proforma. Revise sus fuentes mensuales.'))
+        self._fruit_check_tag_links()
         if any(line.product_qty <= 0 for line in self.order_line.filtered(lambda line: not line.display_type)):
             raise ValidationError(_('Las cantidades de la proforma deben ser positivas.'))
         if self.amount_total < 0:
             raise ValidationError(_('Revise los impuestos y retenciones: la proforma no puede tener un total negativo.'))
+
+    def _fruit_check_period(self):
+        self.ensure_one()
+        if (not self.step_fruit_period_start or not self.step_fruit_period_end
+                or self.step_fruit_period_start > self.step_fruit_period_end
+                or self.step_fruit_period_start.strftime('%Y-%m') != self.step_fruit_period_end.strftime('%Y-%m')):
+            raise ValidationError(_('La proforma debe identificar un período válido dentro del mismo mes.'))
+
+    def _fruit_check_tag_links(self):
+        self.ensure_one()
+        if any(tag.step_fruit_proforma_id != self for tag in self.step_fruit_tag_ids):
+            raise UserError(_('Las tarjas deben conservar su vínculo con esta proforma. Revise sus fuentes mensuales.'))
 
     def action_fruit_approve(self):
         if not self.env.user.has_group('account.group_account_manager'):
@@ -238,13 +246,17 @@ class PurchaseOrder(models.Model):
                         references.append(order.name)
                     updates.update({
                         'name': order.with_company(order.company_id).env['ir.sequence'].next_by_code(
-                            'step.packing.fruit.proforma.' + updates['step_fruit_dte_code']),
+                            order._fruit_sequence_code(updates['step_fruit_dte_code'])),
                         'step_fruit_previous_references': '\n'.join(references)})
                 before = order.amount_untaxed
                 _controlled(order).write(updates)
                 if order.currency_id.compare_amounts(order.amount_untaxed, before):
                     raise ValidationError(_('Actualizar impuestos no puede cambiar el neto de la proforma. Revise la configuración de impuestos incluidos en el precio.'))
         return self._fruit_action() if self else True
+
+    def _fruit_sequence_code(self, dte_code):
+        self.ensure_one()
+        return 'step.packing.fruit.proforma.' + dte_code
 
     def button_confirm(self):
         fruit = self.filtered('step_fruit_proforma')

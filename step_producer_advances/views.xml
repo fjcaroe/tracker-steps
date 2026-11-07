@@ -1,0 +1,77 @@
+<odoo>
+    <record id="advance_prepare_form" model="ir.ui.view">
+        <field name="name">step.producer.advance.prepare.form</field><field name="model">step.producer.advance.prepare</field>
+        <field name="arch" type="xml"><form string="Preparar proformas de anticipo">
+            <group><group><field name="company_id"/><field name="producer_ids" widget="many2many_tags" options="{'no_create':True}"/>
+                <field name="species_ids" widget="many2many_tags" options="{'no_create':True}"/>
+                <field name="pricelist_id" options="{'no_create':True}"/>
+            </group><group><field name="date_from"/><field name="date_to"/><field name="process_cutoff"/>
+                <field name="proforma_date"/><field name="net_due"/><field name="vat_due"/>
+            </group></group>
+            <p>Deje productores o especies vacíos para incluir todos. Se usa la fecha de recepción del informe al productor.
+                Cada parte de una recepción se incluye una sola vez, aunque la OT procese fruta de distintas semanas.</p>
+            <footer><button name="action_prepare" type="object" string="Preparar proformas" class="btn-primary"/>
+                <button string="Cancelar" special="cancel"/></footer>
+        </form></field>
+    </record>
+    <record id="action_prepare_advance" model="ir.actions.act_window">
+        <field name="name">Preparar anticipos</field><field name="res_model">step.producer.advance.prepare</field>
+        <field name="view_mode">form</field><field name="target">new</field><field name="view_id" ref="advance_prepare_form"/>
+    </record>
+    <record id="advance_proforma_form" model="ir.ui.view">
+        <field name="name">purchase.order.advance.proforma.form</field><field name="model">purchase.order</field>
+        <field name="inherit_id" ref="step_packing_fruit_proforma.fruit_proforma_form"/><field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_fruit_approve']" position="attributes"><attribute name="string">Validar proforma</attribute></xpath>
+            <xpath expr="//button[@string='Vista previa']" position="attributes"><attribute name="name">%(action_advance_preview)d</attribute></xpath>
+            <xpath expr="//button[@string='Imprimir proforma']" position="attributes">
+                <attribute name="name">%(action_advance_pdf)d</attribute><attribute name="string">Imprimir anticipo</attribute>
+            </xpath>
+            <xpath expr="//header/field[@name='step_fruit_state']" position="replace">
+                <field name="step_fruit_state" invisible="1"/><field name="step_advance_status" widget="statusbar" statusbar_visible="draft,approved,prepared,posted"/>
+            </xpath>
+            <xpath expr="//field[@name='step_fruit_proforma']" position="after"><field name="step_advance_proforma" invisible="1"/></xpath>
+            <xpath expr="//field[@name='step_fruit_period_end']" position="after">
+                <field name="step_advance_cutoff" readonly="1"/><field name="step_advance_pricelist_id" readonly="1"/>
+                <field name="step_advance_source_currency_id" readonly="1"/><field name="step_advance_exchange_rate" readonly="1"/>
+                <field name="step_advance_net_due" readonly="1"/><field name="step_advance_vat_due" readonly="1"/>
+            </xpath>
+            <xpath expr="//page[@name='fruit_summary']" position="attributes"><attribute name="string">Detalle anticipo</attribute></xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='step_fruit_variety_id']" position="replace">
+                <field name="step_advance_priced_product_id"/><field name="step_advance_market_id"/><field name="step_advance_packaging_id"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="advance_proforma_list" model="ir.ui.view">
+        <field name="name">purchase.order.advance.proforma.list</field><field name="model">purchase.order</field>
+        <field name="arch" type="xml"><list string="Proforma anticipos" create="0" delete="0" decoration-muted="step_fruit_state == 'cancel'">
+            <field name="name"/><field name="company_id"/><field name="partner_id" string="Productor"/>
+            <field name="step_fruit_species_id"/><field name="step_fruit_period_start"/><field name="step_fruit_period_end"/>
+            <field name="step_fruit_dte_code"/><field name="currency_id" column_invisible="True"/>
+            <field name="amount_untaxed"/><field name="amount_total"/><field name="step_advance_status" widget="badge"/>
+            <field name="step_fruit_state" column_invisible="True"/>
+        </list></field>
+    </record>
+    <record id="action_advance_proformas" model="ir.actions.act_window">
+        <field name="name">Proforma anticipos</field><field name="res_model">purchase.order</field><field name="view_mode">list,form</field>
+        <field name="domain">[('step_advance_proforma','=',True)]</field><field name="context">{'create':False}</field>
+        <field name="view_ids" eval="[(5,0,0),(0,0,{'view_mode':'list','view_id':ref('advance_proforma_list')}),(0,0,{'view_mode':'form','view_id':ref('advance_proforma_form')})]"/>
+    </record>
+    <record id="step_packing_fruit_proforma.fruit_proforma_action" model="ir.actions.act_window">
+        <field name="domain">[('step_fruit_proforma','=',True),('step_advance_proforma','=',False)]</field>
+    </record>
+    <record id="advance_tag_form" model="ir.ui.view">
+        <field name="name">stock.quant.package.advance.form</field><field name="model">stock.quant.package</field>
+        <field name="inherit_id" ref="step_inventory_packing.view_quant_package_form_steps_fruit"/>
+        <field name="arch" type="xml">
+            <field name="step_invoice_ids" position="after">
+                <field name="step_advance_market_id" options="{'no_create':True}"/>
+                <field name="step_advance_proforma_ids" widget="many2many_tags" readonly="1" options="{'no_create':True}"/>
+            </field>
+        </field>
+    </record>
+    <menuitem id="menu_producer_advances" name="Anticipos" parent="step_producers.menu_step_producers_root" sequence="35" groups="account.group_account_user"/>
+    <menuitem id="menu_advance_prices" name="Listas de precios productores" parent="menu_producer_advances" action="action_advance_pricelists" sequence="10"/>
+    <menuitem id="menu_advance_prepare" name="Preparar anticipos" parent="menu_producer_advances" action="action_prepare_advance" sequence="20"/>
+    <menuitem id="menu_advance_proformas" name="Proforma anticipos" parent="menu_producer_advances" action="action_advance_proformas" sequence="30"/>
+</odoo>

@@ -59,7 +59,7 @@ def verify_ui(business):
             'species_retention_selector': True, 'tag_proforma_link': True}
 
 
-def verify_copy_cycle(admin, output):
+def verify_copy_cycle(admin, output, return_fixture=False):
     """Exercise existing native APIs with an accountant lacking a purchase role."""
     assert admin.cr.dbname.startswith('MANAGEMENT_QA_'), 'Never run fixtures in a live database'
     from odoo import Command
@@ -283,10 +283,15 @@ def verify_copy_cycle(admin, output):
     assert stock_counts() == before_stock
     assert not orders.picking_ids and not orders.order_line.move_ids
     assert set(orders.order_line.mapped('qty_received')) == {0}
-    return {'accountant_without_purchase_role': True, 'outside_accounting_before_approval': True,
+    result = {'accountant_without_purchase_role': True, 'outside_accounting_before_approval': True,
             'weighted_price': 2.004, 'summary_lines': 2, 'annex_rows': 3,
             'large_pdf_annex_rows': 1000,
             'draft_documents': ['33', '46'], 'selected_retention': True,
             'no_official_folio': True, 'retry_same_documents': True,
             'stock_preserved': True, 'html_pdf': True}
+    if return_fixture:
+        return result, dict(admin=admin, business=business, holding=holding, branch=branch,
+            producer=producer, base=base, finished=finished, warehouse=warehouse,
+            species_by_code=species_by_code, expense=expense, journal=journal)
+    return result
 

@@ -1,5 +1,22 @@
 # Operación y publicación de Odoo
 
+T175 (mensaje 10205, adjuntos 3536/3537) autoriza `producer-advances` en
+Desarrollo, Cerro y QA-Cerro. Listas de anticipos sobre product.pricelist e
+items nativos, compañías autorizadas, mercado y embalaje relacionados con los
+maestros existentes. Proformas sobre purchase.order y factura nativa tras
+validación, con fechas separadas de pago neto e IVA. El período usa la fecha
+local programada de recepción, igual al informe de recepciones del productor;
+el corte de proceso permite incluir OT posteriores. Distribuir la exportación
+por los kilos consumidos de cada recepción y reservar cada parte una sola vez,
+conservando tarjas, OT y guías. Impedir otra compra mensual sobre esos kilos.
+La retención se toma de la política de especie y su impuesto seleccionado.
+No cargar los precios ilustrativos del anexo en producción, modificar impuestos,
+emitir DTE ni contabilizar documentos reales al instalar. La adaptación del
+alias de labor obligatorio de tarifas conserva la exigencia para las tarifas
+ordinarias y permite categorías de fruta sin inventar una labor. Probar también
+la regresión de proformas mensuales, formularios, menús, cuotas nativas y PDF.
+Mismo paquete en copias frescas, revisión visual, respaldo, bloqueo y paridad.
+
 T171 revisión 1 (mensaje 10199, adjunto 3535) autoriza `packing-proforma-policy`
 en Desarrollo, Cerro y QA-Cerro. Actualizar explícitamente los impuestos de
 proformas en borrador tras cambiar la política de su especie; el asistente
