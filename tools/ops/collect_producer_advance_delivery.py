@@ -22,11 +22,13 @@ def main():
     assert args.console_dir.resolve().is_relative_to('/opt/steps-validation')
     args.output.mkdir(mode=0o700,exist_ok=False)
     identities=set()
+    tests=0
     with open('/run/lock/steps-environments.lock','a') as lease:
         fcntl.flock(lease,fcntl.LOCK_EX)
         for target in ('development','cerro','qa-cerro'):
             stage=Path('/opt/steps-validation')/('management_'+target+'_'+args.run_id)
             proof=json.loads((stage/'qa_passed.json').read_text())
+            tests+=int(re.search(r'0 failed, 0 error\(s\) of (\d+) tests',Path(proof['log']).read_text()).group(1))
             identities.add((proof['commit'],proof['release_sha256']))
             live=args.console_dir/('deploy-'+target+'.log')
             text=live.read_text()
@@ -45,6 +47,8 @@ def main():
                      'smoke.pdf':stage/'t175-smoke-advances.pdf',
                      'large.pdf':stage/'t175-large-advance.pdf'}
             for suffix,source in sources.items():shutil.copyfile(source,args.output/(target+'-'+suffix))
+            if target=='cerro' and (stage/'t175-date-case.json').is_file():
+                shutil.copyfile(stage/'t175-date-case.json',args.output/'t175-date-case.json')
         assert len(identities)==1
         result=subprocess.run(['/usr/bin/python3.10','-c','from provision_cerro_qa import verify; verify()'],
             cwd=Path(__file__).resolve().parent,capture_output=True,text=True,check=True)
@@ -60,7 +64,7 @@ def main():
     with tarfile.open(str(args.output)+'.tar','w') as archive:
         for file in sorted(args.output.iterdir()):archive.add(file,arcname=file.name)
     Path(str(args.output)+'.tar').chmod(0o600)
-    print('T175_DELIVERY_COLLECTED tests=168 '+str(args.output)+'.tar',flush=True)
+    print('T175_DELIVERY_COLLECTED tests='+str(tests)+' '+str(args.output)+'.tar',flush=True)
 
 
 if __name__=='__main__':main()
