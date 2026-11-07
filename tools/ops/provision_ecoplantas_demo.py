@@ -92,6 +92,7 @@ def prepare():
     assert not any(name.startswith(('step_','l10n_cl_simpledigital')) for name in resolved)
     run('useradd','--system','--home-dir',str(ROOT),'--no-create-home','--shell','/usr/sbin/nologin',USER)
     identity=pwd.getpwnam(USER);ROOT.mkdir(parents=True,mode=0o750);os.chown(ROOT,0,identity.pw_gid)
+    logs=ROOT/'logs';logs.mkdir(mode=0o700);os.chown(logs,identity.pw_uid,identity.pw_gid)
     addons=ROOT/'addons';addons.mkdir(mode=0o750);os.chown(addons,0,identity.pw_gid)
     frozen={}
     for name,(source,manifest) in resolved.items():
@@ -175,10 +176,10 @@ def initialize(database,resume=False):
         private_json(phase,{'database':database,'fresh':True})
         run('sudo','-u','postgres','createdb','-O',USER,database)
         query(database,'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
-    bootstrap=ROOT/(database+'-bootstrap.log')
+    bootstrap=ROOT/'logs'/(database+'-bootstrap.log')
     odoo(database,['-i','base,web_enterprise','--load-language=es_CL','--stop-after-init','--logfile='+str(bootstrap)])
     configure_company(database)
-    log=ROOT/(database+'-applications.log')
+    log=ROOT/'logs'/(database+'-applications.log')
     odoo(database,['-i',','.join(MODULES),'--stop-after-init','--logfile='+str(log)])
     odoo(database,['--log-level=error'],script='''
 env['ir.cron'].search([]).write({'active':False})
@@ -257,9 +258,15 @@ print('ECOPLANTAS_NATIVE_VERIFY_OK '+json.dumps(proof))
     source_password=query('LAB_TAREAS',"SELECT password FROM res_users WHERE id=(SELECT res_id FROM ir_model_data WHERE module='base' AND name='user_admin')")
     target_password=query(database,"SELECT password FROM res_users WHERE id=(SELECT res_id FROM ir_model_data WHERE module='base' AND name='user_admin')")
     assert source_password==target_password
+    # The new service credential must not open the source or another customer.
+    options=settings(conf_for(database))['options']
+    denied=subprocess.run(['psql','-h','127.0.0.1','-U',USER,'-d','LAB_TAREAS','-Atc','SELECT 1'],
+        env=dict(os.environ,PGPASSWORD=options['db_password']),text=True,capture_output=True)
+    assert denied.returncode!=0 and 'pg_hba' in denied.stderr
     if not copy:
         assert target_uuid!=query(COPY,"SELECT value FROM ir_config_parameter WHERE key='database.uuid'")
-    value=json.loads(lines[0][len(marker):]);value.update(unique_uuid=True,existing_admin_preserved=True,license_copied=False)
+    value=json.loads(lines[0][len(marker):]);value.update(unique_uuid=True,existing_admin_preserved=True,
+        license_copied=False,source_database_denied=True)
     private_json(ROOT/('copy-verified.json' if copy else 'verified.json'),value)
     print('ECOPLANTAS_VERIFIED '+json.dumps(value),flush=True)
 
