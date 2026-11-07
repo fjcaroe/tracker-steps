@@ -313,6 +313,8 @@ if default.currency_id!=company.currency_id:
     assert not default.item_ids and env['sale.order'].search_count([])==0
     default.currency_id=company.currency_id
 env['ir.cron'].search([]).write({'active':False})
+if PERMANENT_DEMO:
+    env.ref('mail.ir_cron_module_update_notification').active=True
 env['ir.mail_server'].search([]).write({'active':False})
 if 'fetchmail.server' in env:
     env['fetchmail.server'].search([]).write({'active':False})
@@ -321,7 +323,10 @@ params.set_param('web.base.url','https://ecoplantas.stepsapp.cl')
 params.set_param('web.base.url.freeze','True')
 env.cr.commit()
 print('ECOPLANTAS_AUTOMATIC_DELIVERIES_DISABLED')
-''')
+'''.replace('PERMANENT_DEMO',repr(database==DB)))
+    if database==DB:
+        cfg=settings(CONF);cfg['options']['max_cron_threads']='1'
+        with CONF.open('w') as stream:cfg.write(stream)
 
 
 def verify(database):
@@ -352,7 +357,8 @@ assert not env['ir.module.module'].search_count([('state','in',['to install','to
 assert not env['ir.module.module'].search_count([('state','=','installed'),'|',('name','=like','step_%'),('name','=like','l10n_cl_simpledigital%')])
 counts={name:business[name].search_count([]) for name in ('sale.order','purchase.order','account.move','stock.picking')}
 assert not any(counts.values()),counts
-assert env['ir.cron'].search_count([('active','=',True)])==0
+active_crons=env['ir.cron'].search([('active','=',True)])
+assert active_crons==(env['ir.cron'] if COPY_FLOW else env.ref('mail.ir_cron_module_update_notification'))
 assert env['ir.mail_server'].search_count([('active','=',True)])==0
 Form(business['sale.order']);Form(business['purchase.order'])
 Form(business['account.move'].with_context(default_move_type='out_invoice'))
@@ -397,7 +403,8 @@ proof={'database':env.cr.dbname,'native_menus_and_forms':True,'copy_flow':COPY_F
        'empty_business_counts':counts,'native_trial_or_registration':params.get_param('database.expiration_reason'),
        'enterprise_code_present':bool(params.get_param('database.enterprise_code')),
        'expiration_date':params.get_param('database.expiration_date'),'source_client_data_copied':False,
-       'private_native_addons':True,'purchase_receipt_sale_delivery':COPY_FLOW,'native_vendor_bill_draft':COPY_FLOW}
+       'private_native_addons':True,'purchase_receipt_sale_delivery':COPY_FLOW,'native_vendor_bill_draft':COPY_FLOW,
+       'native_license_check_preserved':not COPY_FLOW}
 env.cr.rollback()
 print('ECOPLANTAS_NATIVE_VERIFY_OK '+json.dumps(proof))
 '''

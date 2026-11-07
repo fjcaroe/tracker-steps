@@ -22,6 +22,7 @@ def main():
         assert not any(proof['empty_business_counts'].values())
     assert all(copy[key] is True for key in ('copy_flow','purchase_receipt_sale_delivery','native_vendor_bill_draft'))
     assert live['copy_flow'] is False
+    assert live['native_license_check_preserved'] is True
     assert published['url']=='https://ecoplantas.stepsapp.cl' and published['database']=='ECOPLANTAS'
     assert published['license_copied'] is False and published['backup']
     log=(root/'publish.log').read_text()
@@ -50,7 +51,8 @@ def main():
           'La suscripción de Desarrollo se conserva allí: no se copiaron códigos de activación, UUID ni vencimientos. '
           'La nueva base conserva su registro nativo propio de demostración. '
           'Servicio, código, almacenamiento y acceso a base de datos separados; el usuario del nuevo servicio '
-          'no puede abrir Desarrollo. Correo y tareas automáticas desactivados. '
+          'no puede abrir Desarrollo. Correo y automatismos de negocio desactivados; '
+          'se conserva la comprobación nativa de licencia de la base nueva. '
           'Se probaron formularios y menús con un usuario nativo y, en copia privada, compra, recepción, venta, '
           'despacho y factura de proveedor en borrador, sin dejar esos datos en la demo. HTTPS y servicio verificados; '
           'respaldo inicial conservado. No modifica los ambientes productivos ni la política de QA de Desarrollo.')
