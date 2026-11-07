@@ -33,16 +33,22 @@ context=dict(env.context,no_reset_password=True,tracking_disable=True,mail_notra
 users=env['res.users'].with_context(context,active_test=False)
 account=users.search([('login','=',request['login'])])
 assert len(account)<=1
+groups=env['res.groups'].browse([env.ref(name).id for name in ('base.group_user','sales_team.group_sale_manager',
+    'purchase.group_purchase_manager','stock.group_stock_manager','account.group_account_manager')])
+if not COMMIT and not account:
+    account=users.create({'login':request['login'],'email':request['login'],'name':'Revisión portal ECOPLANTAS',
+        'company_id':company.id,'company_ids':[Command.set(company.ids)],
+        'groups_id':[Command.set(env.ref('base.group_portal').ids)]})
 if not account:
-    groups=[env.ref(name).id for name in ('base.group_user','sales_team.group_sale_manager',
-        'purchase.group_purchase_manager','stock.group_stock_manager','account.group_account_manager')]
     account=users.create({'login':request['login'],'email':request['login'],
         'name':'Revisión ECOPLANTAS','company_id':company.id,'company_ids':[Command.set(company.ids)],
-        'groups_id':[Command.set(groups)],'lang':'es_CL','tz':'America/Santiago',
+        'groups_id':[Command.set(groups.ids)],'lang':'es_CL','tz':'America/Santiago',
         'password':request['password']})
 else:
-    assert not account.share and account.company_id==company and account.company_ids==company
-    account.write({'password':request['password'],'active':True})
+    assert account.company_id==company and account.company_ids==company
+    scoped=(account.groups_id-env.ref('base.group_portal')-env.ref('base.group_public'))|groups
+    account.write({'password':request['password'],'active':True,'groups_id':[Command.set(scoped.ids)]})
+assert not account.share and account.has_group('base.group_user')
 auth=account.with_user(account)._check_credentials({'type':'password','password':request['password']},{'interactive':True})
 assert auth['uid']==account.id
 business=env(user=account,su=False,context=dict(env.context,allowed_company_ids=company.ids))
@@ -51,7 +57,7 @@ Form(business['account.move'].with_context(default_move_type='out_invoice'))
 visible=business['ir.ui.menu']._visible_menu_ids()
 assert env.ref('sale.sale_menu_root').id in visible and env.ref('stock.menu_stock_root').id in visible
 result={'user_id':account.id,'native_password_verified':True,'menus_and_forms':True,
-        'company_scope':True,'committed':COMMIT}
+        'company_scope':True,'internal_user':True,'committed':COMMIT}
 if COMMIT:env.cr.commit()
 else:env.cr.rollback()
 print('ECOPLANTAS_REVIEW_ACCESS_PROOF '+json.dumps(result))
