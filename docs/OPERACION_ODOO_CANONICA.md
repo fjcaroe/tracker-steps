@@ -543,3 +543,16 @@ formulario y lista. La columna solo calcula descendientes activos con membresía
 del usuario existente; no cambia permisos, relaciones legales, diarios, cuentas,
 asientos ni configuración fiscal. Probar asiento nativo de sucursal en diario
 matriz y rechazo de compañía ajena exclusivamente en copia privada del destino.
+
+T176 y la confirmación del solicitante en este chat autorizan una base nueva e
+independiente ECOPLANTAS para demostración comercial. No trasladar la suscripción
+de Desarrollo ni copiar su código, UUID, vencimiento, registros de clientes o
+personalizaciones Studio. Usar la edición Enterprise nativa disponible, con su
+registro propio. El alta comercial de una suscripción se gestiona por separado.
+Preparar únicamente los módulos estándar de contactos, CRM, ventas, compras,
+inventario y contabilidad chilena. Verificar primero los formularios y un ciclo
+de borradores en una copia privada descartable; ningún documento se publica.
+La instancia nueva usa usuario, base, puerto 8084, dominio HTTPS y addons privados
+propios; impedir el acceso de su rol a las otras bases. No sustituye Desarrollo
+como QA ni entra en el circuito de publicación de los productos. El procedimiento
+versionado es tools/ops/provision_ecoplantas_demo.py y utiliza el bloqueo común.
