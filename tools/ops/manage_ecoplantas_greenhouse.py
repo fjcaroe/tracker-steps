@@ -46,6 +46,9 @@ def snapshot(db,previous=None):
         previous={}
         for table in TABLES:
             cols=query(db,"SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='"+table+"' ORDER BY ordinal_position").splitlines()
+            # Native access-group changes can refresh the linked contact's
+            # audit stamp. Its identity and all business fields stay intact.
+            if table=='res_partner':cols=[col for col in cols if col not in ('write_date','write_uid')]
             if cols:
                 previous[table]={'columns':cols,'max_id':int(query(db,'SELECT coalesce(max(id),0) FROM '+table))}
     result={}
@@ -55,6 +58,13 @@ def snapshot(db,previous=None):
         sql="SELECT count(*)::text||':'||md5(coalesce(string_agg(to_jsonb(t)::text,'' ORDER BY t.id),'')) FROM (SELECT %s FROM %s WHERE id<=%d) t"%(cols,table,data['max_id'])
         result[table]=dict(data,rows=query(db,sql))
     return result
+
+
+def preserve(db,before,passwords,mail):
+    after=snapshot(db,before)
+    assert after==before, 'Changed existing rows: '+', '.join(name for name in before if before[name]!=after[name])
+    assert credentials(db)==passwords,'Existing credentials changed'
+    assert deliveries(db)==mail,'New outgoing deliveries or notifications'
 
 
 def credentials(db):
@@ -148,7 +158,7 @@ def qa(stage,db,user):
         assert query(db,"SELECT value FROM ir_config_parameter WHERE key='database.uuid'")!=query(DB,"SELECT value FROM ir_config_parameter WHERE key='database.uuid'")
         versions=install(db,conf,stage)
         configure(db,conf,stage,user,[],create=True)
-        assert snapshot(db,before)==before and credentials(db)==passwords and deliveries(db)==mail
+        preserve(db,before,passwords,mail)
         flow=configure(db,conf,stage,user,[],exercise=True)
         assert flow['finished_units']==100 and flow['quality_passed'] and flow['traceable_input_output']
         configure(db,conf,stage,user,[])
@@ -167,7 +177,7 @@ def deploy(stage,user):
         active=[int(value) for value in query(DB,'SELECT id FROM ir_cron WHERE active ORDER BY id').splitlines()]
         assert install(DB,CONF,backup_path)==proof['versions']
         native=configure(DB,CONF,backup_path,user,active,create=True)
-        assert snapshot(DB,before)==before and credentials(DB)==passwords and deliveries(DB)==mail
+        preserve(DB,before,passwords,mail)
     finally:run('systemctl','start',SERVICE)
     run('systemctl','is-active','--quiet',SERVICE)
     with urllib.request.urlopen('https://ecoplantas.stepsapp.cl/web/login?db=ECOPLANTAS',timeout=60) as response:
