@@ -76,6 +76,43 @@ def source_options():
     return opts
 
 
+def complete_catalog():
+    """Provide native app categories referenced by base's initial app catalog.
+
+    A dependency-only bundle omits categories of uninstalled official apps.
+    Keep the complete native catalog available without importing custom addons.
+    This is allowed only before the first successful private-copy validation.
+    """
+    assert (ROOT/'prepared.json').exists() and not (ROOT/'copy-verified.json').exists()
+    assert not (ROOT/'published.json').exists()
+    assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname='ECOPLANTAS'")
+    assert not query(COPY,"SELECT to_regclass('public.purchase_order')")
+    prepared=json.loads((ROOT/'prepared.json').read_text())
+    roots=[Path(value.strip()) for value in source_options()['addons_path'].split(',')]
+    official=set()
+    for root in (Path('/opt/odoo18/addons'),Path('/opt/odoo18/odoo/addons')):
+        for file in root.glob('*/__manifest__.py'):
+            name=file.parent.name
+            if name.startswith(('step','l10n_cl_simpledigital','studio_')):continue
+            manifest=ast.literal_eval(file.read_text(encoding='utf-8'))
+            if manifest.get('author','').replace(' ','')=='OdooS.A.':official.add(name)
+    identity=pwd.getpwnam(USER);added=[]
+    for name in sorted(official-set(prepared['modules'])):
+        source=next(root/name for root in roots if (root/name/'__manifest__.py').is_file())
+        manifest=ast.literal_eval((source/'__manifest__.py').read_text(encoding='utf-8'))
+        assert manifest.get('author','').replace(' ','')=='OdooS.A.',name
+        target=ROOT/'addons'/name
+        shutil.copytree(source,target,ignore=shutil.ignore_patterns('__pycache__','.git','*.pyc'))
+        for path in [target,*target.rglob('*')]:
+            os.chown(path,0,identity.pw_gid);path.chmod(0o750 if path.is_dir() else 0o640)
+        assert tree_hash(source)==tree_hash(target)
+        prepared['modules'][name]={'source':str(source),'sha256':tree_hash(target),'version':manifest.get('version')}
+        added.append(name)
+    prepared['complete_native_catalog']=True
+    private_json(ROOT/'prepared.json',prepared)
+    print('ECOPLANTAS_NATIVE_CATALOG_READY modules='+str(len(prepared['modules'])),flush=True)
+
+
 def prepare():
     assert not ROOT.exists() and not CONF.exists(),'Preserve an existing preparation'
     assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname IN ('ECOPLANTAS','ECOPLANTAS_T176_QA')")
@@ -389,12 +426,13 @@ proxy_read_timeout 300s; proxy_connect_timeout 30s;
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action',choices=('prepare','init-copy','verify-copy','init','verify','publish'))
+    parser.add_argument('action',choices=('prepare','complete-catalog','init-copy','verify-copy','init','verify','publish'))
     parser.add_argument('--resume',action='store_true')
     args=parser.parse_args();assert os.geteuid()==0
     with open('/run/lock/steps-environments.lock','a') as lease:
         print('ECOPLANTAS_WAITING_SHARED_LEASE',flush=True);fcntl.flock(lease,fcntl.LOCK_EX)
         if args.action=='prepare':prepare()
+        elif args.action=='complete-catalog':complete_catalog()
         elif args.action in ('init-copy','init'):initialize(COPY if args.action=='init-copy' else DB,args.resume)
         elif args.action in ('verify-copy','verify'):verify(COPY if args.action=='verify-copy' else DB)
         else:publish()
