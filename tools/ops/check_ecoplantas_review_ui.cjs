@@ -37,7 +37,7 @@ const { chromium } = require('playwright');
     const proof = { internal_login: true, application_panel: true, crm_opened: true, applications,
       url: page.url(), writes: false };
     if (scope === 'greenhouse') {
-      const greenhouse = [/^Fabricaci[oó]n$/i, /^Calidad$/i, /^Mantenimiento$/i, /^Proyectos?$/i];
+      const greenhouse = [/^(?:Fabricaci[oó]n|Manufactura)$/i, /^Calidad$/i, /^Mantenimiento$/i, /^Proyectos?$/i];
       if (!greenhouse.every(label => applications.some(name => label.test(name)))) {
         throw new Error('The internal panel is missing greenhouse apps');
       }
