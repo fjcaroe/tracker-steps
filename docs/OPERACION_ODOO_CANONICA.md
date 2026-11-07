@@ -579,3 +579,13 @@ ECOPLANTAS antes de publicar con respaldo y bloqueo común. Completar la
 recepción y fabricación de prueba únicamente en la copia; en la demo dejar
 los documentos de ejemplo en borrador. Verificar el panel y los formularios
 con el usuario de revisión existente. Ver `docs/DEMO_ECOPLANTAS_INVERNADERO.md`.
+
+La revisión para la demo del martes autoriza `step_ecoplantas_greenhouse`
+únicamente en ECOPLANTAS. Porta el layout agrícola de Steps a la portada y a
+los formularios nativos, fija Invernadero como inicio del usuario de revisión y
+agrega un despacho de ejemplo en borrador. Mantener el lote, recepción, labores
+y maestros previos. Certificar en copia privada fresca la recepción, producción,
+calidad, salida parcial por el mismo lote y saldo de inventario. Revisar el
+navegador en escritorio y teléfono mediante vista previa privada. Publicar el
+mismo paquete con respaldo, bloqueo compartido y comprobación de datos, permisos
+y correo. Operación en `tools/ops/manage_ecoplantas_layout.py`.

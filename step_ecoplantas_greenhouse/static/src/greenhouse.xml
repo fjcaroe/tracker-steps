@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_ecoplantas_greenhouse.Dashboard">
+        <main class="o_ecoplantas_dashboard">
+            <div class="eco-shell">
+                <header class="eco-hero">
+                    <div class="eco-hero-copy">
+                        <div class="eco-identity"><span class="eco-mark">S</span><strong>Steps</strong><span class="eco-identity-divider"/><span>ECOPLANTAS</span></div>
+                        <span class="eco-kicker">DEMO GUIADA · INVERNADERO</span>
+                        <h1>De la semilla<br/>al despacho</h1>
+                        <p>Un recorrido por la producción de plantines, sus controles y las labores que mantienen el invernadero en marcha.</p>
+                        <button t-if="data.receipt" type="button" class="eco-start" t-on-click="() => this.openRecord('receipt')">Comenzar recorrido <i class="fa fa-arrow-right" aria-hidden="true"/></button>
+                    </div>
+                    <div class="eco-hero-visual" aria-hidden="true">
+                        <img src="/step_ecoplantas_greenhouse/static/src/invernadero.svg" alt=""/>
+                        <span class="eco-visual-label"><i class="fa fa-leaf"/> TOMATE · PLANTINES</span>
+                    </div>
+                </header>
+                <section class="eco-metrics" aria-label="Resumen de la demo">
+                    <article t-if="data.planned !== null"><i class="fa fa-leaf" aria-hidden="true"/><div><strong t-esc="data.planned"/><span>Plantines planificados</span></div></article>
+                    <article t-if="data.operations !== null"><i class="fa fa-random" aria-hidden="true"/><div><strong t-esc="data.operations"/><span>Operaciones de cultivo</span></div></article>
+                    <article t-if="data.tasks !== null"><i class="fa fa-list-ul" aria-hidden="true"/><div><strong t-esc="data.tasks"/><span>Labores abiertas</span></div></article>
+                </section>
+                <section class="eco-route" aria-labelledby="eco-route-title">
+                    <div class="eco-section-heading">
+                        <div><span class="eco-overline">RECORRIDO DE PRODUCCIÓN</span><h2 id="eco-route-title">El lote, paso a paso</h2></div>
+                        <span class="eco-demo-badge"><i class="fa fa-circle" aria-hidden="true"/> Registros de demostración</span>
+                    </div>
+                    <div class="eco-stages">
+                        <t t-foreach="stages" t-as="stage" t-key="stage.key">
+                            <t t-set="record" t-value="data[stage.key]"/>
+                            <article t-if="record" class="eco-stage" t-att-data-stage="stage.key">
+                                <div class="eco-stage-top">
+                                    <span class="eco-stage-icon"><i t-att-class="'fa ' + stage.icon" aria-hidden="true"/></span>
+                                    <span class="eco-stage-number" t-esc="stage.number"/>
+                                </div>
+                                <span class="eco-area" t-esc="stage.area"/>
+                                <h3 t-esc="stage.title"/>
+                                <p t-esc="stage.detail"/>
+                                <span t-if="record.status" class="eco-state" t-esc="record.status"/>
+                                <span t-elif="stage.key === 'inspection'" class="eco-state">Punto de control</span>
+                                <button type="button" class="eco-stage-link" t-on-click="() => this.openRecord(stage.key)"><span t-esc="stage.button"/><i class="fa fa-arrow-right" aria-hidden="true"/></button>
+                            </article>
+                        </t>
+                    </div>
+                    <p t-if="!data.receipt and !data.batch and !data.inspection and !data.dispatch" class="eco-empty">No hay registros del recorrido disponibles en esta compañía.</p>
+                </section>
+                <section class="eco-management" aria-labelledby="eco-management-title">
+                    <div class="eco-section-heading"><div><span class="eco-overline">OPERACIÓN DIARIA</span><h2 id="eco-management-title">Cuida el invernadero</h2></div></div>
+                    <div class="eco-tools">
+                        <button t-if="data.project" class="eco-tool" type="button" t-on-click="openTasks">
+                            <i class="fa fa-calendar-check-o eco-tool-icon" aria-hidden="true"/><span><strong>Labores de cultivo</strong><small>Riego, sanidad, trasplante y despacho</small></span><i class="fa fa-angle-right" aria-hidden="true"/>
+                        </button>
+                        <button t-if="data.maintenance" class="eco-tool" type="button" t-on-click="() => this.openRecord('maintenance')">
+                            <i class="fa fa-wrench eco-tool-icon" aria-hidden="true"/><span><strong>Mantenimiento de riego</strong><small>Revisión de la bomba y los goteros</small></span><i class="fa fa-angle-right" aria-hidden="true"/>
+                        </button>
+                        <button t-if="data.plant" class="eco-tool" type="button" t-on-click="openLots">
+                            <i class="fa fa-barcode eco-tool-icon" aria-hidden="true"/><span><strong>Trazabilidad de plantines</strong><small>Consulta los lotes que produces</small></span><i class="fa fa-angle-right" aria-hidden="true"/>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </t>
+</templates>

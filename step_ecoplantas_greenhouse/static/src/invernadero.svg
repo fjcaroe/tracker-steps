@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 382" fill="none">
+  <defs>
+    <linearGradient id="glass" x1="160" y1="80" x2="474" y2="332" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c4f2b7" stop-opacity=".26"/>
+      <stop offset="1" stop-color="#bbecb5" stop-opacity=".025"/>
+    </linearGradient>
+    <linearGradient id="beds" x1="306" y1="222" x2="306" y2="378" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#bde69c" stop-opacity=".14"/>
+      <stop offset="1" stop-color="#d8ff62" stop-opacity=".43"/>
+    </linearGradient>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#eaf6da" opacity=".2"/></pattern>
+    <g id="sprout">
+      <path d="M0 14V2" stroke="#d8ff62" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M0 7c-8 0-13-4-13-11C-5-4 0 0 0 7ZM0 3c1-7 5-10 13-10-1 7-5 11-13 10Z" fill="#d8ff62"/>
+    </g>
+  </defs>
+  <path d="M12 0h608v382H12z" fill="url(#grid)" opacity=".6"/>
+  <circle cx="446" cy="97" r="58" fill="#d8ff62" opacity=".13"/>
+  <circle cx="446" cy="97" r="43" stroke="#d8ff62" stroke-opacity=".54" stroke-dasharray="2 7"/>
+  <path d="M10 273 124 231l141 35 116-42 239 48v110H10z" fill="#112f24" opacity=".32"/>
+  <path d="M134 270V151l106-77h194l91 72v124H134Z" fill="url(#glass)"/>
+  <g stroke="#e1ffd1" stroke-opacity=".55" stroke-width="2" stroke-linejoin="round">
+    <path d="M134 270V151l106-77h194l91 72v124H134Z"/>
+    <path d="M134 151h205l95-77M339 151v119m0-119-99-77M237 151v119m-103-72h205l186-17m-91-107v196"/>
+    <path d="m134 270-108 93m499-93 84 92M339 270l10 93m-112-93-45 93" opacity=".48"/>
+    <path d="M143 158h85v104h-85zm102 0h85v104h-85z" opacity=".22"/>
+  </g>
+  <path d="m216 254 43 0-65 108H53zm84 0h40l46 108H246zm81 0h40l123 108H402z" fill="url(#beds)" stroke="#d8ff62" stroke-opacity=".4"/>
+  <g opacity=".88">
+    <use href="#sprout" x="231" y="267"/><use href="#sprout" x="204" y="298"/><use href="#sprout" x="171" y="334"/>
+    <use href="#sprout" x="320" y="267"/><use href="#sprout" x="319" y="300"/><use href="#sprout" x="323" y="336"/>
+    <use href="#sprout" x="406" y="267"/><use href="#sprout" x="435" y="300"/><use href="#sprout" x="468" y="336"/>
+  </g>
+  <path d="M103 295h425" stroke="#f0ffdc" stroke-opacity=".22" stroke-dasharray="4 8"/>
+</svg>

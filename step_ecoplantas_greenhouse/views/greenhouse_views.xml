@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_greenhouse" model="ir.actions.client">
+        <field name="name">Invernadero</field>
+        <field name="tag">step_ecoplantas_greenhouse.dashboard</field>
+        <field name="path">invernadero</field>
+    </record>
+    <menuitem id="menu_greenhouse" name="Invernadero" sequence="1"
+              action="action_greenhouse" groups="base.group_user"
+              web_icon="fa-leaf,#173f33,#ddf592"/>
+    <record id="view_picking_steps" model="ir.ui.view">
+        <field name="name">stock.picking.form.steps.greenhouse</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="class" add="o_ecoplantas_native_form" separator=" "/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_production_steps" model="ir.ui.view">
+        <field name="name">mrp.production.form.steps.greenhouse</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="class" add="o_ecoplantas_native_form" separator=" "/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_quality_point_steps" model="ir.ui.view">
+        <field name="name">quality.point.form.steps.greenhouse</field>
+        <field name="model">quality.point</field>
+        <field name="inherit_id" ref="quality.quality_point_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="class" add="o_ecoplantas_native_form" separator=" "/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_quality_check_steps" model="ir.ui.view">
+        <field name="name">quality.check.form.steps.greenhouse</field>
+        <field name="model">quality.check</field>
+        <field name="inherit_id" ref="quality_control.quality_check_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="class" add="o_ecoplantas_native_form" separator=" "/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_task_steps" model="ir.ui.view">
+        <field name="name">project.task.form.steps.greenhouse</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="class" add="o_ecoplantas_native_form" separator=" "/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_maintenance_steps" model="ir.ui.view">
+        <field name="name">maintenance.request.form.steps.greenhouse</field>
+        <field name="model">maintenance.request</field>
+        <field name="inherit_id" ref="maintenance.hr_equipment_request_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="class" add="o_ecoplantas_native_form" separator=" "/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_lot_steps" model="ir.ui.view">
+        <field name="name">stock.lot.form.steps.greenhouse</field>
+        <field name="model">stock.lot</field>
+        <field name="inherit_id" ref="stock.view_production_lot_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="class" add="o_ecoplantas_native_form" separator=" "/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
