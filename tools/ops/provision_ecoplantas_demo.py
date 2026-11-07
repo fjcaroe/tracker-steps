@@ -303,6 +303,10 @@ if company.chart_template!='cl':
     assert env['account.move'].search_count([])==0,'Preserve existing accounting'
     env['account.chart.template'].try_loading('cl',company,install_demo=False)
 assert company.chart_template=='cl' and company.currency_id==env.ref('base.CLP')
+default=env.ref('product.list0')
+if default.currency_id!=company.currency_id:
+    assert not default.item_ids and env['sale.order'].search_count([])==0
+    default.currency_id=company.currency_id
 env['ir.cron'].search([]).write({'active':False})
 env['ir.mail_server'].search([]).write({'active':False})
 if 'fetchmail.server' in env:
@@ -356,7 +360,7 @@ if COPY_FLOW:
     with form.order_line.new() as line:
         line.product_id=product;line.product_uom_qty=2
     quotation=form.save()
-    assert quotation.state=='draft' and quotation.amount_untaxed==2000
+    assert quotation.state=='draft' and quotation.amount_untaxed==2000 and quotation.currency_id==company.currency_id
     form=Form(business['purchase.order'])
     form.partner_id=partner
     with form.order_line.new() as line:
