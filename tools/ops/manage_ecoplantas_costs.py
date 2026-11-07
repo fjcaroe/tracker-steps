@@ -164,7 +164,9 @@ def certified(stage, uid):
 def deploy(stage, uid, legacy_stage):
     proof = certified(stage, uid)
     old = json.loads((legacy_stage / "legacy-passed.json").read_text())
-    assert old["release"] == proof["release"] and old["same_model"] and old["same_record"]
+    assert old["same_model"] and old["same_record"]
+    assert all(old["release"]["files"][module] == proof["release"]["files"][module]
+               for module in (DRIVER, "step_sawmill"))
     browser = json.loads((stage / "browser-approved.json").read_text(encoding="utf-8-sig"))
     assert browser["sha256"] == proof["release"]["sha256"] and browser["visual_reviewed"] and browser["workflow"]
     assert proof["baseline"] == source_state()

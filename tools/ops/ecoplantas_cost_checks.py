@@ -91,7 +91,9 @@ def verify_costs(env, uid, *, prepare=False, exercise=False):
     transfers = duplicate.item_ids.filtered(lambda item: item.step_cost_source_id == source)
     assert len(transfers) == 3 and sum(transfers.mapped("amount")) == 0
     assert all(item[other_plan._column_name()] == other for item in transfers)
+    assert all(item.general_account_id == expense for item in transfers)
     assert entry.state == "posted" and source.amount == -1001
+    expect_error(entry.button_draft)
     proof.update(stale_preview_blocked=True, duplicate_blocked=True, reversed=True,
                  posted_source_preserved=True, second_analytic_dimension=True)
     return proof
