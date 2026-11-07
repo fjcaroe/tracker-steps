@@ -596,7 +596,8 @@ tabla existente de Aserradero. Validar su adopción conservando modelo, IDs y
 permisos en copia privada. El reparto genera movimientos analíticos compensados
 por semana, conserva otras dimensiones y deja los documentos contables
 originales intactos. Exigir vista previa, permiso contable, reversa y control
-de duplicados. Dejar el ejemplo calculado en borrador. Certificar copia fresca,
+de duplicados. Habilitar el grupo de analítica en el perfil contable de
+revisión de la demo. Dejar el ejemplo calculado en borrador. Certificar copia fresca,
 formularios, navegador, respaldo y bloqueo; publicar únicamente el módulo de
 vivero y su catálogo en ECOPLANTAS. Aserradero conserva su versión instalada en
 sus ambientes. Operación en `tools/ops/manage_ecoplantas_costs.py`.

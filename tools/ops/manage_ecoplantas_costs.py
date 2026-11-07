@@ -69,6 +69,10 @@ def stage_release(stage):
 
 def native(db, conf, stage, uid, *, prepare=False, exercise=False):
     code = CHECK.read_text(encoding="utf-8")
+    if prepare:
+        code += f"\nreview = env['res.users'].browse({uid})\n"
+        code += "assert review.has_group('account.group_account_manager')\n"
+        code += "review.write({'groups_id': [Command.link(env.ref('analytic.group_analytic_accounting').id)]})\n"
     code += f"\nproof = verify_costs(env, {uid}, prepare={prepare!r}, exercise={exercise!r})\n"
     code += "env.cr.commit()\n" if prepare else "env.cr.rollback()\n"
     code += "import json\nprint('ECOPLANTAS_COST_NATIVE ' + json.dumps(proof))\n"
@@ -82,13 +86,15 @@ def install(db, conf, stage, uid, expected):
     before, passwords, mail = snapshot(db, tables=BUSINESS), credentials(db), deliveries(db)
     active = query(db, "SELECT id FROM ir_cron WHERE active ORDER BY id")
     memberships = "SELECT gid,uid FROM res_groups_users_rel ORDER BY gid,uid"
-    groups = query(db, memberships)
+    groups = set(query(db, memberships).splitlines())
+    analytic_group = query(db, "SELECT res_id FROM ir_model_data WHERE module='analytic' AND name='group_analytic_accounting'")
+    assert analytic_group.isdecimal()
     assert installed(db) == expected
     odoo(db, conf, stage, "cost-install", arguments=["-i", FEATURE, "--stop-after-init"])
     assert installed(db) == dict(expected, **VERSIONS)
     result = native(db, conf, stage, uid, prepare=True)
     preserve(db, before, passwords, mail, tables=BUSINESS)
-    assert query(db, memberships) == groups
+    assert set(query(db, memberships).splitlines()) == groups | {f"{analytic_group}|{uid}"}
     assert query(db, "SELECT id FROM ir_cron WHERE active ORDER BY id") == active
     return result
 

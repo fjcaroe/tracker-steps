@@ -196,5 +196,7 @@ class Company(models.Model):
     @api.model
     def get_steps_greenhouse_dashboard(self):
         result = super().get_steps_greenhouse_dashboard()
-        result["shared_costs"] = self.env.user.has_group("account.group_account_user")
+        result["shared_costs"] = any(self.env.user.has_group(group) for group in (
+            "account.group_account_user", "account.group_account_manager",
+        ))
         return result

@@ -184,7 +184,7 @@
     <menuitem id="menu_summary" name="Resumen" parent="step_ecoplantas_greenhouse.menu_greenhouse"
               action="step_ecoplantas_greenhouse.action_greenhouse" sequence="5"/>
     <menuitem id="menu_cost_root" name="Costos compartidos" parent="step_ecoplantas_greenhouse.menu_greenhouse"
-              sequence="20" groups="account.group_account_user"/>
+              sequence="20" groups="account.group_account_user,account.group_account_manager"/>
     <menuitem id="menu_cost_run" name="Repartos semanales" parent="menu_cost_root" action="action_cost_run" sequence="10"/>
     <menuitem id="menu_cost_center" name="Centros de costo" parent="menu_cost_root" action="action_cost_center" sequence="20"/>
     <menuitem id="menu_cost_driver" name="Drivers de costeo" parent="menu_cost_root" action="action_cost_driver" sequence="30"/>
