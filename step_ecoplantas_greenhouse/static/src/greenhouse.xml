@@ -5,7 +5,7 @@
             <div class="eco-shell">
                 <header class="eco-hero">
                     <div class="eco-hero-copy">
-                        <div class="eco-identity"><span class="eco-mark">S</span><strong>Steps</strong><span class="eco-identity-divider"/><span>ECOPLANTAS</span></div>
+                        <div class="eco-identity"><span class="eco-mark">S</span><strong t-esc="'Steps'"/><span class="eco-identity-divider"/><span>ECOPLANTAS</span></div>
                         <span class="eco-kicker">DEMO GUIADA · INVERNADERO</span>
                         <h1>De la semilla<br/>al despacho</h1>
                         <p>Un recorrido por la producción de plantines, sus controles y las labores que mantienen el invernadero en marcha.</p>

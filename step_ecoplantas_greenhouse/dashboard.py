@@ -39,19 +39,20 @@ class ResCompany(models.Model):
         receipt = visible("receipt")
         point = visible("inspection")
         dispatch = visible("dispatch")
-        project = visible("project")
         maintenance = visible("pump_check")
-        plant = visible("plant")
+        plant = visible("plant") if self.env["stock.lot"].has_access("read") else None
+        tasks = self.env["project.task"]
+        project = visible("project") if tasks.has_access("read") else None
+        bom = batch.bom_id if batch else None
         checks = self.env["quality.check"]
         if batch and point and checks.has_access("read"):
             checks = checks.search([("production_id", "=", batch.id), ("point_id", "=", point.id)])
-        tasks = self.env["project.task"]
         return {
             "planned": batch.product_qty if batch else None,
-            "operations": len(batch.bom_id.operation_ids) if batch else None,
+            "operations": len(bom.operation_ids) if bom and bom.has_access("read") else None,
             "tasks": tasks.search_count([
                 ("project_id", "=", project.id), ("state", "not in", ["1_done", "1_canceled"]),
-            ]) if project and tasks.has_access("read") else None,
+            ]) if project else None,
             "receipt": form(receipt, "state"),
             "batch": form(batch, "state"),
             "inspection": form(checks[:1], "quality_state") if checks else form(point),

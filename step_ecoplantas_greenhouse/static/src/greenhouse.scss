@@ -12,7 +12,7 @@
     background: #f3f6f2;
     color: var(--eco-ink);
 
-    .eco-shell { width: 100%; max-width: 1460px; margin: 0 auto; padding: clamp(14px, 2.4vw, 32px); }
+    .eco-shell { width: 100%; max-width: 1460px; margin: 0 auto; padding: clamp(14px, 2vw, 26px); }
     h1, h2, h3, p { margin: 0; }
     h2, h3 { color: var(--eco-ink); }
     button:focus-visible { outline: 3px solid #568c41; outline-offset: 3px; }
@@ -29,17 +29,17 @@
                     linear-gradient(120deg, #10372d 0%, #17483a 55%, #2e755d 100%);
         box-shadow: 0 14px 34px #123f3227;
     }
-    .eco-hero-copy { z-index: 1; padding: clamp(24px, 3vw, 44px); }
+    .eco-hero-copy { z-index: 1; padding: clamp(24px, 2.5vw, 36px); }
     .eco-identity { display: flex; align-items: center; gap: 9px; font-size: .8rem; font-weight: 650; letter-spacing: .08em; }
     .eco-identity strong { font-size: 1.05rem; letter-spacing: -.03em; }
     .eco-mark { display: grid; width: 29px; height: 29px; place-items: center; border-radius: 8px; background: var(--eco-lime); color: var(--eco-deep); font-size: 1.15rem; font-weight: 900; }
     .eco-identity-divider { width: 1px; height: 17px; margin-inline: 4px; background: #ffffff60; }
-    .eco-kicker { display: block; margin: 24px 0 8px; color: var(--eco-lime); font-size: .7rem; font-weight: 800; letter-spacing: .14em; }
-    .eco-hero h1 { margin-bottom: 12px; color: #fff; font-size: clamp(2.5rem, 5.4vw, 4.6rem); line-height: .99; font-weight: 800; letter-spacing: -.057em; }
+    .eco-kicker { display: block; margin: 18px 0 8px; color: var(--eco-lime); font-size: .7rem; font-weight: 800; letter-spacing: .14em; }
+    .eco-hero h1 { margin-bottom: 12px; color: #fff; font-size: clamp(2.5rem, 4.6vw, 3.9rem); line-height: .99; font-weight: 800; letter-spacing: -.057em; }
     .eco-hero p { max-width: 385px; color: #e4f0e8; font-size: .94rem; line-height: 1.6; }
     .eco-start {
         display: inline-flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 42px;
-        margin-top: 20px; padding: 10px 15px; border: 0; border-radius: 9px;
+        margin-top: 16px; padding: 10px 15px; border: 0; border-radius: 9px;
         background: var(--eco-lime); color: var(--eco-deep); font-weight: 750;
         &:hover { background: #e8ff9c; }
     }
@@ -123,7 +123,11 @@
     --NavBar-background-color: #173f33;
     --NavBar-entry-backgroundColor: #173f33;
     --NavBar-entry-backgroundColor--hover: #26604b;
+    --NavBar-entry-backgroundColor--focus: #26604b;
     --NavBar-entry-color: #fff;
+    --NavBar-entry-color--hover: #fff;
+    --NavBar-brand-color: #fff;
+    --NavBar-menuToggle-color: #d8ff62;
     background-color: #173f33;
     border-color: #173f33;
 }

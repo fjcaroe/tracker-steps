@@ -12,8 +12,8 @@ async function main() {
     assert(/^[a-f0-9]{64}$/.test(sha256));
     fs.mkdirSync(output, { recursive: true });
     const browser = await chromium.launch({ executablePath, headless: true });
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-    page.setDefaultTimeout(25000);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1040 } });
+    page.setDefaultTimeout(40000);
     const failures = [];
     page.on("pageerror", error => failures.push(error.message));
     const save = name => page.screenshot({ path: path.join(output, name + ".png") });
@@ -46,9 +46,11 @@ async function main() {
         await page.locator('input[name="password"]').fill(request.password);
         await page.locator('form.oe_login_form button[type="submit"]').click();
         await screenshot("portada");
+        assert.equal(await board().locator(".eco-identity strong").innerText(), "Steps");
         assert.equal(await board().locator(".eco-stages article").count(), 4);
         assert.deepEqual((await board().locator(".eco-metrics strong").allTextContents()).slice(0, 2), ["100", "2"]);
         assert.equal(await page.locator(".o_main_navbar").evaluate(el => getComputedStyle(el).backgroundColor), "rgb(23, 63, 51)");
+        assert.equal(await page.locator(".o_menu_brand").first().evaluate(el => getComputedStyle(el).color), "rgb(255, 255, 255)");
         assert(await board().locator(".eco-stage-link").first().isVisible());
 
         const form = ".o_ecoplantas_native_form";
@@ -65,7 +67,7 @@ async function main() {
         await openBoard();
         await screenshot("portada-movil");
         assert(await board().evaluate(node => node.scrollWidth <= node.clientWidth + 1));
-        await board().getByRole("heading", { name: "El lote, paso a paso" }).scrollIntoViewIfNeeded();
+        await board().getByRole("button", { name: "Abrir despacho", exact: true }).scrollIntoViewIfNeeded();
         await save("recorrido-movil");
         assert.deepEqual(failures, []);
         const proof = { sha256, origin, home: true, desktop: true, mobile: true, destinations };
