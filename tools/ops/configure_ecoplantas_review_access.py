@@ -67,7 +67,12 @@ pending=env['mail.mail'].search([('create_date','>=',BACKUP_STAMP),('state','=',
 for message in pending:
     if set(email_split(message.email_to or ''))=={request['login']}:
         message.write({'state':'cancel'})
-if COMMIT:env.cr.commit()
+if COMMIT:
+    env.cr.commit()
+    # The configuration shell and the HTTP service have separate registries.
+    # Publish group-cache invalidation so an existing portal login sees its apps.
+    env.registry.clear_cache()
+    env.registry.signal_changes()
 else:env.cr.rollback()
 print('ECOPLANTAS_REVIEW_ACCESS_PROOF '+json.dumps(result))
 '''
