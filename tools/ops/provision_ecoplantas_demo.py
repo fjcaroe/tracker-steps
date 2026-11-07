@@ -221,6 +221,24 @@ print('ECOPLANTAS_COMPANY_AND_EXISTING_ADMIN_READY')
         handle.close();path.unlink(missing_ok=True)
 
 
+def reset_private_copy():
+    assert not (ROOT/'copy-verified.json').exists() and not (ROOT/'published.json').exists()
+    assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname='ECOPLANTAS'")
+    phase=json.loads((ROOT/('initializing-'+COPY+'.json')).read_text())
+    assert phase=={'database':COPY,'fresh':True}
+    assert query('postgres',"SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname='"+COPY+"'")==USER
+    for table in ('sale_order','purchase_order','account_move','stock_picking'):
+        if query(COPY,"SELECT to_regclass('public."+table+"')"):
+            assert query(COPY,'SELECT count(*) FROM '+table)=='0','Preserve a nonempty copy'
+    assert query('postgres',"SELECT count(*) FROM pg_stat_activity WHERE datname='"+COPY+"'")=='0'
+    backups=ROOT/'initialization-backups';backups.mkdir(mode=0o700,exist_ok=True)
+    backup=backups/(COPY+'-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'.dump')
+    with backup.open('xb') as stream:run('sudo','-u','postgres','pg_dump','-Fc',COPY,stdout=stream)
+    backup.chmod(0o600)
+    run('sudo','-u','postgres','dropdb',COPY)
+    print('ECOPLANTAS_EMPTY_PRIVATE_COPY_BACKED_UP_FOR_FRESH_RETRY',flush=True)
+
+
 def initialize(database,resume=False):
     assert (ROOT/'prepared.json').is_file()
     if database==DB:assert (ROOT/'copy-verified.json').is_file()
@@ -234,7 +252,11 @@ def initialize(database,resume=False):
         run('sudo','-u','postgres','createdb','-O',USER,database)
         query(database,'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
     bootstrap=ROOT/'logs'/(database+'-bootstrap.log')
-    odoo(database,['-i','base,web_enterprise','--load-language=es_CL','--stop-after-init','--logfile='+str(bootstrap)])
+    has_modules=bool(query(database,"SELECT to_regclass('public.ir_module_module')"))
+    missing=[name for name in ('base','web_enterprise') if not has_modules or
+        query(database,"SELECT state FROM ir_module_module WHERE name='"+name+"'")!='installed']
+    init=['-i',','.join(missing)] if missing else []
+    odoo(database,init+['--load-language=es_CL','--stop-after-init','--logfile='+str(bootstrap)])
     configure_company(database)
     log=ROOT/'logs'/(database+'-applications.log')
     odoo(database,['-i',','.join(MODULES),'--stop-after-init','--logfile='+str(log)])
@@ -429,13 +451,14 @@ proxy_read_timeout 300s; proxy_connect_timeout 30s;
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action',choices=('prepare','complete-catalog','init-copy','verify-copy','init','verify','publish'))
+    parser.add_argument('action',choices=('prepare','complete-catalog','reset-private-copy','init-copy','verify-copy','init','verify','publish'))
     parser.add_argument('--resume',action='store_true')
     args=parser.parse_args();assert os.geteuid()==0
     with open('/run/lock/steps-environments.lock','a') as lease:
         print('ECOPLANTAS_WAITING_SHARED_LEASE',flush=True);fcntl.flock(lease,fcntl.LOCK_EX)
         if args.action=='prepare':prepare()
         elif args.action=='complete-catalog':complete_catalog()
+        elif args.action=='reset-private-copy':reset_private_copy()
         elif args.action in ('init-copy','init'):initialize(COPY if args.action=='init-copy' else DB,args.resume)
         elif args.action in ('verify-copy','verify'):verify(COPY if args.action=='verify-copy' else DB)
         else:publish()
