@@ -41,6 +41,7 @@ def verify_advances(env, output):
     monthly, case = verify_copy_cycle(env, output, return_fixture=True)
     admin, business = case['admin'].with_company(case['branch']), case['business']
     branch, producer, finished = case['branch'], case['producer'], case['finished']
+    case['base'].is_storable=True
     fundo = admin['step.fundo'].with_company(branch).create({'name':'QA175 smoke fundo','company_id':branch.id,
         'partner_id':producer.id,'company_ids':[Command.set((case['holding'] | branch).ids)]})
     market = admin['step.fruit.market'].create({'name':'QA175 smoke market','code':'QA175','abbreviation':'QA175'})

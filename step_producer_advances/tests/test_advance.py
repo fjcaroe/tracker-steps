@@ -16,6 +16,7 @@ class TestProducerAdvances(FruitProformaCase):
     def setUp(self):
         super().setUp()
         self.env = self.env(context=dict(self.env.context, allowed_company_ids=(self.branch | self.root).ids))
+        self.base.is_storable = True
         self.fundo = self.env['step.fundo'].with_company(self.branch).create({'name':'QA175 Fundo',
             'partner_id':self.producer.id,'company_id':self.branch.id,
             'company_ids':[Command.set((self.root | self.branch).ids)]})

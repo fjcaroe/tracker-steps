@@ -22,6 +22,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('release',type=Path)
     parser.add_argument('--database',required=True)
+    parser.add_argument('--scope', choices=('advance','all'), default='advance')
     args=parser.parse_args()
     assert os.geteuid()==0
     assert re.fullmatch('MANAGEMENT_QA_DEVELOPMENT_t175[a-z0-9_]*',args.database)
@@ -48,7 +49,7 @@ def main():
             '-d',args.database,'--db-filter=^'+args.database+'$','--http-interface=127.0.0.1',
             '--http-port='+str(port),'--gevent-port=0','--workers=0','--max-cron-threads=0','--without-demo=all',
             '--addons-path='+str(root/'candidate')+','+opts['addons_path'],'--data-dir='+str(data),
-            '--test-enable','--test-tags=/step_packing_fruit_proforma,/step_producer_advances','--stop-after-init']
+            '--test-enable','--test-tags='+('/step_packing_fruit_proforma,/step_producer_advances' if args.scope=='all' else '/step_producer_advances'),'--stop-after-init']
         for flag,names in [('-u',installed),('-i',set(proof['versions'])-installed)]:
             if names:command += [flag,','.join(sorted(names))]
         log=root/(proof['commit']+'.log')
