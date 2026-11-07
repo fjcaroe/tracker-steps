@@ -101,12 +101,15 @@ def native(db, conf, logs, user, *, configure=False, exercise=False):
 def install(db, conf, logs, user, expected):
     before, passwords, mail = snapshot(db), credentials(db), deliveries(db)
     active = query(db, "SELECT id FROM ir_cron WHERE active ORDER BY id")
+    memberships = "SELECT gid,uid FROM res_groups_users_rel ORDER BY gid,uid"
+    groups = query(db, memberships)
     assert MODULE not in expected and installed(db) == expected
     odoo(db, conf, logs, "layout-install", arguments=["-i", MODULE, "--stop-after-init"])
     versions = installed(db)
     assert versions.pop(MODULE) == "18.0.1.0.0" and versions == expected
     result = native(db, conf, logs, user, configure=True)
     preserve(db, before, passwords, mail)
+    assert query(db, memberships) == groups
     assert query(db, "SELECT id FROM ir_cron WHERE active ORDER BY id") == active
     return result
 
@@ -191,6 +194,10 @@ def deploy(stage, user):
         with CONF.open("w") as stream:
             cfg.write(stream)
         result = install(DB, CONF, saved, user, proof["baseline"]["installed"])
+    except Exception:
+        if (saved / "odoo.conf").is_file() and MODULE not in installed(DB):
+            CONF.write_bytes((saved / "odoo.conf").read_bytes())
+        raise
     finally:
         run("systemctl", "start", SERVICE)
     wait_for_https()

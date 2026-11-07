@@ -1,5 +1,4 @@
 """Validate the branded views and use the native dispatch in the copy only."""
-from odoo.tools import config
 
 
 def layout_check(env, uid, exercise=False):
@@ -7,7 +6,7 @@ def layout_check(env, uid, exercise=False):
     assert not exercise or env.cr.dbname.startswith("ECOPLANTAS_GH_QA_")
     user = env["res.users"].browse(uid)
     action = env.ref("step_ecoplantas_greenhouse.action_greenhouse")
-    assert user.active and not user.share and user.action_id == action
+    assert user.active and not user.share and user.action_id.id == action.id
     business = env(user=user, su=False, context=dict(env.context, allowed_company_ids=user.company_ids.ids))
     dashboard = business["res.company"].get_steps_greenhouse_dashboard()
     assert dashboard["planned"] == 100 and dashboard["operations"] == 2
