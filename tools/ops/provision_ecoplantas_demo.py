@@ -62,7 +62,7 @@ def odoo(database,arguments,script=None):
     command+=arguments
     result=subprocess.run(command,input=script,text=True,capture_output=True)
     if result.returncode:
-        failure=ROOT/'logs'/(database+'-last-failure.log')
+        failure=ROOT/'logs'/(database+'-failure-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')+'.log')
         failure.write_text(result.stdout+'\n'+result.stderr);failure.chmod(0o600)
         raise RuntimeError('Native operation failed; private diagnostic: '+str(failure))
     if script is not None:
@@ -303,7 +303,8 @@ if company.chart_template!='cl':
     assert env['account.move'].search_count([])==0,'Preserve existing accounting'
     env['account.chart.template'].try_loading('cl',company,install_demo=False)
 assert company.chart_template=='cl' and company.currency_id==env.ref('base.CLP')
-default=env.ref('product.list0')
+default=env['product.pricelist'].search([])
+assert len(default)==1,'Review unexpected additional pricelists in the new company'
 if default.currency_id!=company.currency_id:
     assert not default.item_ids and env['sale.order'].search_count([])==0
     default.currency_id=company.currency_id
