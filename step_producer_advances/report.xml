@@ -49,7 +49,7 @@
                     </style>
                     <div class="row mb-2"><div class="col-8"><h2>PROFORMA DE FACTURA PRODUCTOR</h2><h4>Anticipo por kilos de exportación</h4></div>
                         <div class="col-4 text-end"><h3 t-field="doc.name"/>
-                            <div>Documento previsto: DTE <strong t-field="doc.step_fruit_dte_code"/></div>
+                            <div>Documento previsto: DTE <strong t-out="doc.step_fruit_dte_code"/></div>
                             <div>Estado: <span t-field="doc.step_advance_status"/></div>
                         </div></div>
                     <p>Documento para revisión. No constituye una factura ni un DTE emitido.</p>
@@ -75,8 +75,8 @@
                         <thead><tr><th>Detalle</th><th>Producto</th><th>Mercado</th><th>Embalaje</th>
                             <th class="text-end">Kilos</th><th class="text-end">Precio <span t-field="doc.currency_id.name"/></th><th class="text-end">Neto</th></tr></thead>
                         <tbody><tr t-foreach="doc.order_line.filtered(lambda line:not line.display_type)" t-as="line">
-                            <td>Anticipo kg</td><td t-field="line.step_advance_priced_product_id"/>
-                            <td t-field="line.step_advance_market_id"/><td t-field="line.step_advance_packaging_id"/>
+                            <td>Anticipo kg</td><td><span t-field="line.step_advance_priced_product_id"/></td>
+                            <td><span t-field="line.step_advance_market_id"/></td><td><span t-field="line.step_advance_packaging_id"/></td>
                             <td class="text-end" t-out="number(line.product_qty)"/><td class="text-end" t-out="price(line.price_unit)"/>
                             <td class="text-end" t-out="money(line.price_subtotal,doc.currency_id)"/>
                         </tr></tbody><tfoot><tr><td colspan="4"><strong>Total</strong></td><td class="text-end" t-out="number(data['exported'])"/>
