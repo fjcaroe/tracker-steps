@@ -32,6 +32,7 @@ DOMAIN='ecoplantas.stepsapp.cl'
 PORT=8084
 CONF=Path('/etc/odoo18-ecoplantas.conf')
 SERVICE='odoo18-ecoplantas.service'
+PRIVATE_BIN=ROOT/'runtime/odoo-bin'
 MODULES=('contacts','crm','sale_management','purchase_stock','stock_account','account_accountant','l10n_cl')
 
 
@@ -54,7 +55,7 @@ def conf_for(database):
 
 
 def odoo(database,arguments,script=None):
-    command=['sudo','-u',USER,'/usr/bin/python3.10','/opt/odoo18/odoo-bin']
+    command=['sudo','-u',USER,'/usr/bin/python3.10',str(PRIVATE_BIN)]
     if script is not None:command+=['shell']
     command+=['-c',str(conf_for(database)),'-d',database,'--db-filter=^'+database+'$',
               '--no-http','--workers=0','--max-cron-threads=0','--without-demo=all']
@@ -97,6 +98,17 @@ def prepare():
     run('useradd','--system','--home-dir',str(ROOT),'--no-create-home','--shell','/usr/sbin/nologin',USER)
     identity=pwd.getpwnam(USER);ROOT.mkdir(parents=True,mode=0o750);os.chown(ROOT,0,identity.pw_gid)
     logs=ROOT/'logs';logs.mkdir(mode=0o700);os.chown(logs,identity.pw_uid,identity.pw_gid)
+    # Odoo adds its built-in addons directory to every configured addon path.
+    # Freeze the unchanged core with an empty built-in addon namespace, so
+    # unrelated shared custom addons cannot auto-install in this new demo.
+    runtime=ROOT/'runtime';runtime.mkdir(mode=0o750);os.chown(runtime,0,identity.pw_gid)
+    shutil.copytree('/opt/odoo18/odoo',runtime/'odoo',
+        ignore=shutil.ignore_patterns('addons','__pycache__','.git','*.pyc'))
+    native=runtime/'odoo/addons';native.mkdir()
+    shutil.copyfile('/opt/odoo18/odoo/addons/__init__.py',native/'__init__.py')
+    shutil.copyfile('/opt/odoo18/odoo-bin',PRIVATE_BIN)
+    for path in [runtime,*runtime.rglob('*')]:
+        os.chown(path,0,identity.pw_gid);path.chmod(0o750 if path.is_dir() else 0o640)
     addons=ROOT/'addons';addons.mkdir(mode=0o750);os.chown(addons,0,identity.pw_gid)
     frozen={}
     for name,(source,manifest) in resolved.items():
@@ -135,7 +147,8 @@ def prepare():
     assert query('postgres','SELECT pg_reload_conf()')=='t'
     private_json(ROOT/'prepared.json',{'ticket':176,'source':'Development native code only','modules':frozen,
         'config_before_sha256':hashlib.sha256(Path('/etc/dev_odoo18.conf').read_bytes()).hexdigest(),
-        'created_at':datetime.now(timezone.utc).isoformat(),'license_copied':False})
+        'core_sha256':tree_hash(runtime),'created_at':datetime.now(timezone.utc).isoformat(),
+        'license_copied':False})
     print('ECOPLANTAS_PREPARED modules='+str(len(frozen)),flush=True)
 
 
@@ -202,6 +215,7 @@ print('ECOPLANTAS_AUTOMATIC_DELIVERIES_DISABLED')
 def verify(database):
     copy=database==COPY
     prepared=json.loads((ROOT/'prepared.json').read_text())
+    assert tree_hash(ROOT/'runtime')==prepared['core_sha256']
     assert hashlib.sha256(Path('/etc/dev_odoo18.conf').read_bytes()).hexdigest()==prepared['config_before_sha256']
     for name,item in prepared['modules'].items():
         assert tree_hash(ROOT/'addons'/name)==item['sha256'],name
@@ -221,6 +235,7 @@ assert company.name=='ECOPLANTAS' and company.country_id==env.ref('base.cl') and
 required=set(MODULE_NAMES)
 modules=env['ir.module.module'].search([('name','in',list(required)),('state','=','installed')])
 assert set(modules.mapped('name'))==required
+assert not env['ir.module.module'].search_count([('state','=','installed'),'|',('name','=like','step_%'),('name','=like','l10n_cl_simpledigital%')])
 counts={name:business[name].search_count([]) for name in ('sale.order','purchase.order','account.move','stock.picking')}
 assert not any(counts.values()),counts
 assert env['ir.cron'].search_count([('active','=',True)])==0
@@ -293,8 +308,8 @@ After=network.target postgresql.service
 Type=simple
 User={USER}
 Group={USER}
-WorkingDirectory=/opt/odoo18
-ExecStart=/usr/bin/python3.10 /opt/odoo18/odoo-bin -c {CONF}
+WorkingDirectory={ROOT}/runtime
+ExecStart=/usr/bin/python3.10 {PRIVATE_BIN} -c {CONF}
 Restart=on-failure
 RestartSec=5
 UMask=0027
