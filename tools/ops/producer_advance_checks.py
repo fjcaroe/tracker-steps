@@ -39,9 +39,10 @@ def verify_advances(env, output):
     from odoo.addons.step_packing_operations.models.process_control import _INTERNAL
     from odoo.addons.step_packing_fruit_proforma.purchase import _controlled
     monthly, case = verify_copy_cycle(env, output, return_fixture=True)
-    admin, business = case['admin'], case['business']
+    admin, business = case['admin'].with_company(case['branch']), case['business']
     branch, producer, finished = case['branch'], case['producer'], case['finished']
-    fundo = admin['step.fundo'].create({'name':'QA175 smoke fundo','company_id':branch.id,'partner_id':producer.id})
+    fundo = admin['step.fundo'].with_company(branch).create({'name':'QA175 smoke fundo','company_id':branch.id,
+        'partner_id':producer.id,'company_ids':[Command.set((case['holding'] | branch).ids)]})
     market = admin['step.fruit.market'].create({'name':'QA175 smoke market','code':'QA175','abbreviation':'QA175'})
     packaging = admin['product.packaging'].create({'name':'QA175 smoke carton','product_id':finished.id,'qty':1})
     prices = business['product.pricelist'].create({'name':'QA175 smoke producer prices','step_advance_price':True,
@@ -69,7 +70,7 @@ def verify_advances(env, output):
             'location_dest_id':case['warehouse'].in_type_id.default_location_dest_id.id,
             'step_fruit_reception_kind':kind,'fruit_fundo_id':fundo.id,'fruit_species_id':record.especie_id.id,
             'fruit_guide_number':'QA175 smoke guide '+kind})
-        admin['step.packing.picking.tag.line'].create({'picking_id':picking.id,'package_id':record.id,
+        admin['step.packing.picking.tag.line'].with_company(branch).create({'picking_id':picking.id,'package_id':record.id,
             'product_id':record.step_tag_line_ids.product_id.id,'tag_number':record.name,
             'quantity':record.step_tag_line_ids.quantity,'kilos':record.step_actual_kg,
             'gross_kg':record.step_actual_kg,'variety_id':record.variedad_id.id})

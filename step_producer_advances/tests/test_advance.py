@@ -15,8 +15,10 @@ from odoo.addons.step_packing_operations.models.process_control import _INTERNAL
 class TestProducerAdvances(FruitProformaCase):
     def setUp(self):
         super().setUp()
-        self.fundo = self.env['step.fundo'].create({'name':'QA175 Fundo',
-            'partner_id':self.producer.id,'company_id':self.branch.id})
+        self.env = self.env(context=dict(self.env.context, allowed_company_ids=(self.branch | self.root).ids))
+        self.fundo = self.env['step.fundo'].with_company(self.branch).create({'name':'QA175 Fundo',
+            'partner_id':self.producer.id,'company_id':self.branch.id,
+            'company_ids':[Command.set((self.root | self.branch).ids)]})
         self.market = self.env['step.fruit.market'].create({'name':'QA175 Market',
             'code':'QA175','abbreviation':'Q175'})
         self.packaging = self.env['product.packaging'].create({'name':'QA175 Carton',
@@ -41,7 +43,7 @@ class TestProducerAdvances(FruitProformaCase):
             'step_fruit_reception_kind':kind,'fruit_fundo_id':self.fundo.id,
             'fruit_species_id':tags[:1].especie_id.id,'fruit_guide_number':'QA175-%s'%tags[:1].id})
         for tag in tags:
-            self.env['step.packing.picking.tag.line'].create({
+            self.env['step.packing.picking.tag.line'].with_company(self.branch).create({
                 'picking_id':picking.id,'package_id':tag.id,'product_id':tag.step_tag_line_ids[:1].product_id.id,
                 'tag_number':tag.name,'quantity':tag.step_actual_kg,'kilos':tag.step_actual_kg,
                 'gross_kg':tag.step_actual_kg,'variety_id':tag.variedad_id.id})
@@ -258,7 +260,7 @@ class TestProducerAdvances(FruitProformaCase):
         foreign=self.env['res.company'].create({'name':'QA175 Foreign'})
         user=new_test_user(self.env,login='qa175-limited',groups='account.group_account_user',company_id=self.branch.id,
             company_ids=[Command.set(self.branch.ids)])
-        with self.assertRaises((AccessError,ValidationError)):
+        with self.assertRaises(ValidationError):
             self.pricelist.with_user(user).with_context(allowed_company_ids=self.branch.ids).write({
                 'step_advance_company_ids':[Command.set(foreign.ids)]})
 
