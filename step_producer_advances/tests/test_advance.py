@@ -36,12 +36,13 @@ class TestProducerAdvances(FruitProformaCase):
             'product_tmpl_id':self.finished.product_tmpl_id.id,
             'uom_id':self.base.uom_id.id,'compute_price':'fixed','fixed_price':price},**values))
 
-    def _receipt(self, tags, when='2026-10-29 12:00:00', kind='process'):
+    def _receipt(self, tags, when='2026-10-29 12:00:00', kind='process',
+                 actual='2026-11-10 12:00:00', has_fundo=True):
         picking = self.env['stock.picking'].with_company(self.branch).create({
             'company_id':self.branch.id,'picking_type_id':self.warehouse.in_type_id.id,
             'partner_id':self.producer.id,'location_id':self.warehouse.in_type_id.default_location_src_id.id,
             'location_dest_id':self.warehouse.in_type_id.default_location_dest_id.id,
-            'step_fruit_reception_kind':kind,'fruit_fundo_id':self.fundo.id,
+            'step_fruit_reception_kind':kind,'fruit_fundo_id':self.fundo.id if has_fundo else False,
             'fruit_species_id':tags[:1].especie_id.id,'fruit_guide_number':'QA175-%s'%tags[:1].id})
         for tag in tags:
             self.env['step.packing.picking.tag.line'].with_company(self.branch).create({
@@ -49,13 +50,13 @@ class TestProducerAdvances(FruitProformaCase):
                 'tag_number':tag.name,'quantity':tag.step_actual_kg,'kilos':tag.step_actual_kg,
                 'gross_kg':tag.step_actual_kg,'variety_id':tag.variedad_id.id})
         # Imported historical reception fixture: no inventory move is created.
-        # Eligibility deliberately uses scheduled reception day, not validation.
         picking.flush_recordset(['state','scheduled_date','date_done'])
-        self.env.cr.execute("UPDATE stock_picking SET state='done',scheduled_date=%s,date_done='2026-11-10 12:00:00' WHERE id=%s",[when,picking.id])
+        self.env.cr.execute("UPDATE stock_picking SET state='done',scheduled_date=%s,date_done=%s WHERE id=%s",[when,actual,picking.id])
         picking.invalidate_recordset(['state','scheduled_date','date_done'],flush=False)
         return picking
 
-    def _raw(self, kilos=1000, when='2026-10-29 12:00:00', species=None):
+    def _raw(self, kilos=1000, when='2026-10-29 12:00:00', species=None,
+             actual='2026-11-10 12:00:00', has_fundo=True):
         species = species or self.species
         variety = self.retained_variety if species == self.retained_species else self.variety
         tag = self.env['stock.quant.package'].with_company(self.branch).create({
@@ -66,8 +67,9 @@ class TestProducerAdvances(FruitProformaCase):
                 'quantity':kilos,'kilos':kilos})]})
         self.env['stock.quant'].with_company(self.branch)._update_available_quantity(
             self.base,self.warehouse.lot_stock_id,kilos,package_id=tag,owner_id=self.producer)
-        tag.write({'fundo_id':self.fundo.id})
-        receipt = self._receipt(tag,when)
+        if has_fundo:
+            tag.write({'fundo_id':self.fundo.id})
+        receipt = self._receipt(tag,when,actual=actual,has_fundo=has_fundo)
         tag.action_step_validate_tag()
         return tag,receipt
 
@@ -95,11 +97,16 @@ class TestProducerAdvances(FruitProformaCase):
 
     def test_later_process_includes_only_received_cohort(self):
         order,tag = self._processed()
+        order.flush_recordset(['create_date'])
+        self.env.cr.execute("UPDATE step_packing_production SET create_date='2026-11-10 12:00:00' WHERE id=%s",[order.id])
+        order.invalidate_recordset(['create_date'],flush=False)
+        tag.pack_date='2026-11-10'
         before = self._stock_counts()
         quote = self._advance()
         self.assertEqual(quote.step_fruit_production_ids,order)
         self.assertEqual(quote.step_fruit_tag_ids,tag)
         self.assertEqual(quote.order_line.product_qty,750)
+        self.assertEqual(quote.order_line.step_fruit_source_rows[0]['packing_day'],'2026-11-03')
         self.assertEqual(quote.amount_untaxed,900)
         self.assertFalse(quote.invoice_ids)
         self.assertFalse(order.purchase_bill_id)
@@ -110,9 +117,46 @@ class TestProducerAdvances(FruitProformaCase):
         with self.assertRaises(UserError): self._advance()
 
     def test_received_outside_period_is_not_included(self):
-        raw,_ = self._raw(when='2026-10-20 12:00:00')
+        raw,_ = self._raw(when='2026-10-20 12:00:00',actual='2026-10-27 12:00:00')
         self._processed(raw=raw)
         with self.assertRaises(UserError): self._advance()
+
+    def test_earlier_effective_reception_selects_week_and_price(self):
+        self.rule.date_end='2026-10-31 23:59:59'
+        self._rule(2.1,date_start='2026-11-01 00:00:00')
+        raw,_=self._raw(when='2026-11-02 12:00:00',actual='2026-10-28 12:00:00')
+        self._processed(raw=raw)
+        quote=self._advance()
+        self.assertEqual(quote.order_line.step_fruit_source_rows[0]['receipt_day'],'2026-10-28')
+        self.assertEqual(quote.order_line.price_unit,1.2)
+
+    def test_earlier_effective_reception_before_period_is_not_included(self):
+        raw,_=self._raw(actual='2026-10-20 12:00:00')
+        self._processed(raw=raw)
+        with self.assertRaises(UserError): self._advance()
+
+    def test_missing_effective_date_preserves_known_scheduled_day(self):
+        raw,_=self._raw(actual=None)
+        self._processed(raw=raw)
+        self.assertEqual(self._advance().order_line.step_fruit_source_rows[0]['receipt_day'],'2026-10-29')
+
+    def test_historical_receipt_without_fundo_keeps_native_producer(self):
+        raw,receipt=self._raw(has_fundo=False)
+        self._processed(raw=raw)
+        quote=self._advance()
+        row=quote.order_line.step_fruit_source_rows[0]
+        self.assertEqual((row['receipt_id'],row['producer_id']),(receipt.id,self.producer.id))
+        self.assertFalse(row['fundo_id'])
+        self.assertFalse(receipt.fruit_fundo_id)
+
+    def test_historical_receipt_rejects_conflicting_native_producer(self):
+        raw,receipt=self._raw(has_fundo=False)
+        other=self.env['res.partner'].create({'name':'QA175 Otro productor','is_productor':True})
+        receipt.write({'partner_id':other.id})
+        self._processed(raw=raw)
+        wizard=self._advance_wizard(producer_ids=[Command.clear()])
+        with self.assertRaisesRegex(UserError,'mismo productor'):
+            wizard.action_prepare()
 
     def test_open_process_is_not_included(self):
         order,tag = self._processed()
@@ -132,7 +176,7 @@ class TestProducerAdvances(FruitProformaCase):
             self.finished,self.warehouse.lot_stock_id,100,package_id=packed)
         packed.write({'fundo_id':self.fundo.id})
         packed.action_step_validate_tag()
-        self._receipt(packed,kind='packed')
+        self._receipt(packed,when='2026-11-02 12:00:00',kind='packed',actual='2026-10-29 12:00:00')
         quote = self._advance(self._advance_wizard(process_cutoff='2026-10-31'))
         self.assertEqual(quote.step_fruit_tag_ids,packed)
         self.assertFalse(quote.step_fruit_production_ids)
