@@ -86,7 +86,8 @@ def complete_catalog():
     assert (ROOT/'prepared.json').exists() and not (ROOT/'copy-verified.json').exists()
     assert not (ROOT/'published.json').exists()
     assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname='ECOPLANTAS'")
-    assert not query(COPY,"SELECT to_regclass('public.purchase_order')")
+    if query('postgres',"SELECT 1 FROM pg_database WHERE datname='"+COPY+"'"):
+        assert not query(COPY,"SELECT to_regclass('public.purchase_order')")
     prepared=json.loads((ROOT/'prepared.json').read_text())
     roots=[Path(value.strip()) for value in source_options()['addons_path'].split(',')]
     official=set()
@@ -189,7 +190,8 @@ def prepare():
         'config_before_sha256':hashlib.sha256(Path('/etc/dev_odoo18.conf').read_bytes()).hexdigest(),
         'core_sha256':tree_hash(runtime),'created_at':datetime.now(timezone.utc).isoformat(),
         'license_copied':False})
-    print('ECOPLANTAS_PREPARED modules='+str(len(frozen)),flush=True)
+    complete_catalog()
+    print('ECOPLANTAS_PREPARED complete_native_catalog=True',flush=True)
 
 
 def configure_company(database):
