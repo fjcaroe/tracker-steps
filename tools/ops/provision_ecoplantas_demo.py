@@ -97,13 +97,13 @@ def complete_catalog():
             text=file.read_text(encoding='utf-8')
             manifest=ast.literal_eval(text)
             if ('Part of Odoo. See LICENSE file' in text
-                    and manifest.get('author','Odoo S.A.').replace(' ','')=='OdooS.A.'):
+                    and manifest.get('author','Odoo S.A.').replace(' ','').startswith('OdooS.A.')):
                 official.add(name)
     identity=pwd.getpwnam(USER);added=[]
     for name in sorted(official-set(prepared['modules'])):
         source=next(root/name for root in roots if (root/name/'__manifest__.py').is_file())
         manifest=ast.literal_eval((source/'__manifest__.py').read_text(encoding='utf-8'))
-        assert manifest.get('author','Odoo S.A.').replace(' ','')=='OdooS.A.',name
+        assert manifest.get('author','Odoo S.A.').replace(' ','').startswith('OdooS.A.'),name
         target=ROOT/'addons'/name
         shutil.copytree(source,target,ignore=shutil.ignore_patterns('__pycache__','.git','*.pyc'))
         for path in [target,*target.rglob('*')]:
