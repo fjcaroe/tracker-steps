@@ -152,15 +152,24 @@ def proof_for(stage, user):
 def preview(stage, db, user):
     proof_for(stage, user)
     conf = stage / "copy.conf"
-    cmd = ["sudo", "-u", USER, "/usr/bin/python3.10", str(PRIVATE_BIN), "-c", str(conf), "-d", db]
+    identity = pwd.getpwnam(USER)
+    cmd = ["/usr/bin/python3.10", str(PRIVATE_BIN), "-c", str(conf), "-d", db]
     print("ECOPLANTAS_LAYOUT_PREVIEW " + str(PREVIEW_PORT), flush=True)
     with copy_access(db, stage):
-        with subprocess.Popen(cmd) as server:
-            try:
-                server.wait(timeout=180)
-            except (subprocess.TimeoutExpired, KeyboardInterrupt):
+        server = subprocess.Popen(cmd, cwd=stage, user=identity.pw_uid, group=identity.pw_gid,
+                                  extra_groups=[], start_new_session=True)
+        try:
+            server.wait(timeout=180)
+        except (subprocess.TimeoutExpired, KeyboardInterrupt):
+            pass
+        finally:
+            if server.poll() is None:
                 server.terminate()
-                server.wait(timeout=15)
+                try:
+                    server.wait(timeout=8)
+                except subprocess.TimeoutExpired:
+                    server.kill()
+                    server.wait()
 
 
 def wait_for_https():
