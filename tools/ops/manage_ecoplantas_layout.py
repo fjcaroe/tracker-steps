@@ -46,7 +46,7 @@ def extend_paths(cfg, overlay):
 
 
 @contextmanager
-def fresh_copy(stage, db, overlay):
+def fresh_copy(stage, db, overlay, *, path_setup=extend_paths):
     identity = pwd.getpwnam(USER)
     saved = stage / "source"
     backup(DB, saved)
@@ -54,7 +54,7 @@ def fresh_copy(stage, db, overlay):
     data.mkdir(mode=0o750)
     os.chown(data, identity.pw_uid, identity.pw_gid)
     cfg = read_config(CONF)
-    extend_paths(cfg, overlay)
+    path_setup(cfg, overlay)
     cfg["options"].update({
         "db_name": db, "dbfilter": "^" + db + "$", "data_dir": str(data),
         "max_cron_threads": "0", "workers": "0", "proxy_mode": "False",
@@ -151,6 +151,10 @@ def proof_for(stage, user):
 
 def preview(stage, db, user):
     proof_for(stage, user)
+    serve_preview(stage, db)
+
+
+def serve_preview(stage, db):
     conf = stage / "copy.conf"
     identity = pwd.getpwnam(USER)
     cmd = ["/usr/bin/python3.10", str(PRIVATE_BIN), "-c", str(conf), "-d", db]

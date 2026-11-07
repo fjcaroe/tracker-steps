@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Catálogos de Aserradero.
 
-Todos son autocontenidos: no dependen de otros módulos Steps para que la
-aplicación se pueda instalar sola en cualquier instancia.
+Los catálogos de producción son propios. El maestro de drivers se comparte
+con otras aplicaciones Steps mediante su dependencia de catálogo.
 """
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
@@ -69,9 +69,7 @@ class StepSawmillDestination(models.Model):
 
 
 class StepSawmillCostingDriver(models.Model):
-    _name = 'step.sawmill.costing.driver'
-    _inherit = 'step.sawmill.catalog'
-    _description = 'Driver de costeo'
+    _inherit = 'step.sawmill.costing.driver'
 
 
 class StepSawmillShift(models.Model):

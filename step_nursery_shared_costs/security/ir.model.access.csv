@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_cost_run_accountant,Cost run accountant,model_step_nursery_cost_run,account.group_account_user,1,0,0,0
+access_cost_run_manager,Cost run manager,model_step_nursery_cost_run,account.group_account_manager,1,1,1,1
+access_cost_run_line_accountant,Cost run line accountant,model_step_nursery_cost_run_line,account.group_account_user,1,0,0,0
+access_cost_run_line_manager,Cost run line manager,model_step_nursery_cost_run_line,account.group_account_manager,1,1,1,1
+access_cost_rule_accountant,Cost rule accountant,model_step_nursery_cost_rule,account.group_account_user,1,0,0,0
+access_cost_rule_manager,Cost rule manager,model_step_nursery_cost_rule,account.group_account_manager,1,1,1,1
+access_cost_measure_accountant,Cost measure accountant,model_step_nursery_cost_measure,account.group_account_user,1,0,0,0
+access_cost_measure_manager,Cost measure manager,model_step_nursery_cost_measure,account.group_account_manager,1,1,1,1
+access_cost_driver_accountant,Cost driver accountant,step_costing_driver.model_step_sawmill_costing_driver,account.group_account_user,1,0,0,0
+access_cost_driver_manager,Cost driver manager,step_costing_driver.model_step_sawmill_costing_driver,account.group_account_manager,1,1,1,1

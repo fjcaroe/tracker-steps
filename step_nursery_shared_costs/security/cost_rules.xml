@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_cost_run_company" model="ir.rule">
+        <field name="name">Repartos del vivero por empresa</field>
+        <field name="model_id" ref="model_step_nursery_cost_run"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_cost_run_line_company" model="ir.rule">
+        <field name="name">Detalle del reparto por empresa</field>
+        <field name="model_id" ref="model_step_nursery_cost_run_line"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_cost_rule_company" model="ir.rule">
+        <field name="name">Reglas de reparto por empresa</field>
+        <field name="model_id" ref="model_step_nursery_cost_rule"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_measure_company" model="ir.rule">
+        <field name="name">Cantidades del driver por empresa</field>
+        <field name="model_id" ref="model_step_nursery_cost_measure"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

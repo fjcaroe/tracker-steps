@@ -12,15 +12,13 @@ Aplicación autocontenida de Aserradero (ticket 34, opción C: de Studio a códi
 * Secado, Impregnado y Certificación de impregnado.
 * Cuadrillas, catálogos de madera (grado, calidad, tipo, destino) y turnos.
 
-Solo depende de módulos estándar de Odoo (base, mail, product, stock, mrp, hr):
-no requiere ningún otro módulo Steps ni Enterprise, para poder instalarse en
-otras instancias.
+Usa módulos estándar de Odoo y el catálogo compartido de drivers de Steps.
 """,
-    "version": "18.0.1.0.1",
+    "version": "18.0.1.0.2",
     "category": "Manufacturing",
     "author": "Steps Consulting",
     "license": "LGPL-3",
-    "depends": ["base", "mail", "product", "stock", "mrp", "hr"],
+    "depends": ["base", "mail", "product", "stock", "mrp", "hr", "step_costing_driver"],
     "data": [
         "security/security.xml",
         "security/ir.model.access.csv",

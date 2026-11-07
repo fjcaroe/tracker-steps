@@ -41,10 +41,10 @@ def baseline():
             'scenario':sha(SCENARIO),'operation':sha(Path(__file__))}
 
 
-def snapshot(db,previous=None):
+def snapshot(db,previous=None,*,tables=TABLES):
     if previous is None:
         previous={}
-        for table in TABLES:
+        for table in tables:
             cols=query(db,"SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='"+table+"' ORDER BY ordinal_position").splitlines()
             # Native access-group changes can refresh the linked contact's
             # audit stamp. Its identity and all business fields stay intact.
@@ -53,15 +53,15 @@ def snapshot(db,previous=None):
                 previous[table]={'columns':cols,'max_id':int(query(db,'SELECT coalesce(max(id),0) FROM '+table))}
     result={}
     for table,data in previous.items():
-        assert table in TABLES and all(re.fullmatch(r'[a-zA-Z0-9_]+',col) for col in data['columns'])
+        assert table in tables and all(re.fullmatch(r'[a-zA-Z0-9_]+',col) for col in data['columns'])
         cols=','.join('"'+col+'"' for col in data['columns'])
         sql="SELECT count(*)::text||':'||md5(coalesce(string_agg(to_jsonb(t)::text,'' ORDER BY t.id),'')) FROM (SELECT %s FROM %s WHERE id<=%d) t"%(cols,table,data['max_id'])
         result[table]=dict(data,rows=query(db,sql))
     return result
 
 
-def preserve(db,before,passwords,mail):
-    after=snapshot(db,before)
+def preserve(db,before,passwords,mail,*,tables=TABLES):
+    after=snapshot(db,before,tables=tables)
     assert after==before, 'Changed existing rows: '+', '.join(name for name in before if before[name]!=after[name])
     assert credentials(db)==passwords,'Existing credentials changed'
     assert deliveries(db)==mail,'New outgoing deliveries or notifications'

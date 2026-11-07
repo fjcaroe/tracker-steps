@@ -589,3 +589,14 @@ calidad, salida parcial por el mismo lote y saldo de inventario. Revisar el
 navegador en escritorio y teléfono mediante vista previa privada. Publicar el
 mismo paquete con respaldo, bloqueo compartido y comprobación de datos, permisos
 y correo. Operación en `tools/ops/manage_ecoplantas_layout.py`.
+
+El vivero ECOPLANTAS autoriza centros analíticos padres, reglas por labor y
+carga manual del driver por centro hijo y semana. El catálogo comparte la
+tabla existente de Aserradero. Validar su adopción conservando modelo, IDs y
+permisos en copia privada. El reparto genera movimientos analíticos compensados
+por semana, conserva otras dimensiones y deja los documentos contables
+originales intactos. Exigir vista previa, permiso contable, reversa y control
+de duplicados. Dejar el ejemplo calculado en borrador. Certificar copia fresca,
+formularios, navegador, respaldo y bloqueo; publicar únicamente el módulo de
+vivero y su catálogo en ECOPLANTAS. Aserradero conserva su versión instalada en
+sus ambientes. Operación en `tools/ops/manage_ecoplantas_costs.py`.
