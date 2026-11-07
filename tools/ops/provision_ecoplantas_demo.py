@@ -291,7 +291,18 @@ def initialize(database,resume=False):
     # Set Chile and CLP before accounting's native chart installation hook.
     # Loading Enterprise first can create a generic chart for the empty company.
     odoo(database,['-i',','.join(('web_enterprise',*MODULES)),'--stop-after-init','--logfile='+str(log)])
+    configure_runtime(database)
+    print('ECOPLANTAS_INITIALIZED '+database,flush=True)
+
+
+def configure_runtime(database):
     odoo(database,['--log-level=error'],script='''
+company=env.ref('base.main_company')
+assert company.name=='ECOPLANTAS' and company.country_id==env.ref('base.cl')
+if company.chart_template!='cl':
+    assert env['account.move'].search_count([])==0,'Preserve existing accounting'
+    env['account.chart.template'].try_loading('cl',company,install_demo=False)
+assert company.chart_template=='cl' and company.currency_id==env.ref('base.CLP')
 env['ir.cron'].search([]).write({'active':False})
 env['ir.mail_server'].search([]).write({'active':False})
 if 'fetchmail.server' in env:
@@ -302,7 +313,6 @@ params.set_param('web.base.url.freeze','True')
 env.cr.commit()
 print('ECOPLANTAS_AUTOMATIC_DELIVERIES_DISABLED')
 ''')
-    print('ECOPLANTAS_INITIALIZED '+database,flush=True)
 
 
 def verify(database):
@@ -483,7 +493,7 @@ proxy_read_timeout 300s; proxy_connect_timeout 30s;
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action',choices=('prepare','complete-catalog','reset-private-copy','init-copy','verify-copy','init','verify','publish'))
+    parser.add_argument('action',choices=('prepare','complete-catalog','reset-private-copy','init-copy','configure-copy','verify-copy','init','verify','publish'))
     parser.add_argument('--resume',action='store_true')
     args=parser.parse_args();assert os.geteuid()==0
     with open('/run/lock/steps-environments.lock','a') as lease:
@@ -491,6 +501,9 @@ def main():
         if args.action=='prepare':prepare()
         elif args.action=='complete-catalog':complete_catalog()
         elif args.action=='reset-private-copy':reset_private_copy()
+        elif args.action=='configure-copy':
+            assert not (ROOT/'copy-verified.json').exists() and not (ROOT/'published.json').exists()
+            configure_runtime(COPY)
         elif args.action in ('init-copy','init'):initialize(COPY if args.action=='init-copy' else DB,args.resume)
         elif args.action in ('verify-copy','verify'):verify(COPY if args.action=='verify-copy' else DB)
         else:publish()
