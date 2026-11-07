@@ -556,3 +556,15 @@ La instancia nueva usa usuario, base, puerto 8084, dominio HTTPS y addons privad
 propios; impedir el acceso de su rol a las otras bases. No sustituye Desarrollo
 como QA ni entra en el circuito de publicación de los productos. El procedimiento
 versionado es tools/ops/provision_ecoplantas_demo.py y utiliza el bloqueo común.
+
+La ampliación solicitada para el invernadero autoriza habilitar Fabricación,
+Calidad, Mantenimiento y Proyectos exclusivamente en ECOPLANTAS. Reutilizar
+sus módulos nativos, lotes, productos, ubicaciones, materiales y tareas.
+Agregar ejemplos identificados como DEMO para la recepción de insumos, lote
+de plantines, revisión visual, riego y mantenimiento. Conservar los registros
+y las credenciales existentes, la licencia independiente y el bloqueo de correo.
+Certificar la misma instalación y ejemplos en una copia privada fresca de
+ECOPLANTAS antes de publicar con respaldo y bloqueo común. Completar la
+recepción y fabricación de prueba únicamente en la copia; en la demo dejar
+los documentos de ejemplo en borrador. Verificar el panel y los formularios
+con el usuario de revisión existente. Ver `docs/DEMO_ECOPLANTAS_INVERNADERO.md`.
