@@ -246,7 +246,7 @@ menus=business['ir.ui.menu']._visible_menu_ids()
 assert env.ref('sale.sale_menu_root').id in menus and env.ref('stock.menu_stock_root').id in menus
 if COPY_FLOW:
     partner=business['res.partner'].create({'name':'ECOPLANTAS validation partner'})
-    product=business['product.product'].create({'name':'ECOPLANTAS validation plant','list_price':1000,'standard_price':500})
+    product=business['product.product'].create({'name':'ECOPLANTAS validation plant','list_price':1000,'standard_price':500,'is_storable':True})
     form=Form(business['sale.order'])
     form.partner_id=partner
     with form.order_line.new() as line:
@@ -259,15 +259,31 @@ if COPY_FLOW:
         line.product_id=product;line.product_qty=3;line.price_unit=500
     purchase=form.save()
     assert purchase.state=='draft' and purchase.amount_untaxed==1500
-    bill=business['account.move'].with_context(default_move_type='in_invoice').create({
-        'move_type':'in_invoice','partner_id':partner.id,'invoice_line_ids':[(0,0,{'product_id':product.id,'quantity':1,'price_unit':500})]})
-    assert bill.state=='draft' and bill.amount_untaxed==500 and not bill.posted_before
+    purchase.button_confirm()
+    receipt=purchase.picking_ids
+    assert len(receipt)==1
+    Form(receipt)
+    for move in receipt.move_ids:
+        move.quantity=3;move.picked=True
+    receipt.with_context(skip_backorder=True).button_validate()
+    assert receipt.state=='done'
+    purchase.action_create_invoice()
+    bill=purchase.invoice_ids
+    assert len(bill)==1 and bill.state=='draft' and bill.amount_untaxed==1500 and not bill.posted_before
+    quotation.action_confirm()
+    delivery=quotation.picking_ids
+    assert len(delivery)==1
+    for move in delivery.move_ids:
+        move.quantity=2;move.picked=True
+    delivery.with_context(skip_backorder=True).button_validate()
+    assert delivery.state=='done'
+    assert business['stock.quant']._get_available_quantity(product,receipt.location_dest_id)==1
 params=env['ir.config_parameter']
 proof={'database':env.cr.dbname,'native_menus_and_forms':True,'copy_flow':COPY_FLOW,
        'empty_business_counts':counts,'native_trial_or_registration':params.get_param('database.expiration_reason'),
        'enterprise_code_present':bool(params.get_param('database.enterprise_code')),
        'expiration_date':params.get_param('database.expiration_date'),'source_client_data_copied':False,
-       'private_native_addons':True}
+       'private_native_addons':True,'purchase_receipt_sale_delivery':COPY_FLOW,'native_vendor_bill_draft':COPY_FLOW}
 env.cr.rollback()
 print('ECOPLANTAS_NATIVE_VERIFY_OK '+json.dumps(proof))
 '''
