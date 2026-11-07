@@ -301,6 +301,13 @@ def publish():
     assert socket.gethostbyname(DOMAIN)=='35.222.25.110','Publish the new DNS record first'
     service=Path('/etc/systemd/system')/SERVICE
     assert not service.exists(),'Do not replace another service'
+    backup=ROOT/'publication-backup';backup.mkdir(mode=0o700)
+    with (backup/'database.dump').open('wb') as stream:
+        run('sudo','-u','postgres','pg_dump','-Fc',DB,stdout=stream)
+    shutil.copyfile(CONF,backup/'odoo.conf');(backup/'odoo.conf').chmod(0o600)
+    store=ROOT/'data/filestore'/DB
+    if store.exists():run('rsync','-a',str(store)+'/',str(backup/'filestore')+'/')
+    shutil.copyfile(ROOT/'verified.json',backup/'verified.json')
     service.write_text(f'''[Unit]
 Description=Odoo ECOPLANTAS demonstration T176
 After=network.target postgresql.service
@@ -359,7 +366,8 @@ proxy_read_timeout 300s; proxy_connect_timeout 30s;
         assert response.status==200 and b'password' in response.read()
     run('systemctl','is-active','--quiet',SERVICE)
     private_json(ROOT/'published.json',{'database':DB,'url':'https://'+DOMAIN,'service':SERVICE,
-        'copy_proof':str(ROOT/'copy-verified.json'),'proof':str(ROOT/'verified.json'),'license_copied':False})
+        'copy_proof':str(ROOT/'copy-verified.json'),'proof':str(ROOT/'verified.json'),
+        'backup':str(backup),'license_copied':False})
     print('ECOPLANTAS_PUBLISHED https://'+DOMAIN,flush=True)
 
 
