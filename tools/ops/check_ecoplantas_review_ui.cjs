@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
 
 (async () => {
   const request = JSON.parse(fs.readFileSync(0, 'utf8'));
-  const [browserPath, output] = process.argv.slice(2);
+  const [browserPath, output, scope] = process.argv.slice(2);
   if (!browserPath || !path.isAbsolute(output)) throw new Error('Use an existing browser and private absolute artifact directory');
   fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ executablePath: browserPath, headless: true });
@@ -20,10 +20,13 @@ const { chromium } = require('playwright');
       { waitUntil: 'commit', timeout: 30000 });
     await page.locator('.o_web_client').waitFor({ timeout: 60000 });
     await page.waitForTimeout(2000);
-    if (await page.locator('.o_app').count() === 0) {
-      await page.locator('.o_navbar_apps_menu button, .o_menu_toggle').first().click();
-      await page.locator('.o_app').first().waitFor({ timeout: 15000 });
-    }
+    const openApps = async () => {
+      if (!(await page.locator('.o_app').first().isVisible())) {
+        await page.locator('.o_navbar_apps_menu button, .o_menu_toggle').first().click();
+        await page.locator('.o_app').first().waitFor({ timeout: 15000 });
+      }
+    };
+    await openApps();
     const applications = (await page.locator('.o_app').allTextContents()).map(value => value.trim()).filter(Boolean);
     if (!applications.some(value => /CRM/i.test(value))) throw new Error('The CRM app is missing from the internal panel');
     await page.screenshot({ path: path.join(output, 'applications.png'), fullPage: true });
@@ -33,6 +36,23 @@ const { chromium } = require('playwright');
     await page.screenshot({ path: path.join(output, 'crm.png'), fullPage: true });
     const proof = { internal_login: true, application_panel: true, crm_opened: true, applications,
       url: page.url(), writes: false };
+    if (scope === 'greenhouse') {
+      const greenhouse = [/^Fabricaci[oó]n$/i, /^Calidad$/i, /^Mantenimiento$/i, /^Proyectos?$/i];
+      if (!greenhouse.every(label => applications.some(name => label.test(name)))) {
+        throw new Error('The internal panel is missing greenhouse apps');
+      }
+      await openApps();
+      await page.locator('.o_app').filter({ hasText: greenhouse[3] }).click();
+      const project = page.getByText('Labores del invernadero [DEMO]', { exact: true }).first();
+      await project.waitFor({ timeout: 30000 });
+      await project.click();
+      await page.getByText('Registrar riego y condición de bandejas [DEMO]', { exact: true }).first().waitFor({ timeout: 30000 });
+      await page.getByText('Revisar sanidad y uniformidad [DEMO]', { exact: true }).first().waitFor({ timeout: 30000 });
+      await page.screenshot({ path: path.join(output, 'greenhouse-tasks.png'), fullPage: true });
+      proof.greenhouse_apps = true;
+      proof.greenhouse_tasks_opened = true;
+      proof.url = page.url();
+    }
     fs.writeFileSync(path.join(output, 'ui-proof.json'), JSON.stringify(proof, null, 2));
     process.stdout.write('ECOPLANTAS_UI_OK '+JSON.stringify(proof)+'\n');
   } catch (error) {
