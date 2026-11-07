@@ -158,6 +158,20 @@ class TestProducerAdvances(FruitProformaCase):
         with self.assertRaisesRegex(UserError,'mismo productor'):
             wizard.action_prepare()
 
+    def test_legacy_output_uses_only_unique_native_product_packaging(self):
+        self.rule.step_advance_packaging_id=self.packaging
+        _order,tag=self._processed()
+        quote=self._advance()
+        self.assertEqual(quote.order_line.step_advance_packaging_id,self.packaging)
+        self.assertFalse(tag.step_packaging_id)
+
+    def test_legacy_output_does_not_guess_between_packagings(self):
+        self.rule.step_advance_packaging_id=self.packaging
+        self.env['product.packaging'].create({'name':'QA175 Second carton','product_id':self.finished.id,'qty':2})
+        self._processed()
+        with self.assertRaisesRegex(UserError,'No hay precio de anticipo'):
+            self._advance()
+
     def test_open_process_is_not_included(self):
         order,tag = self._processed()
         order.with_context(_packing_control=_INTERNAL).write({'state':'validated'})

@@ -173,6 +173,14 @@ class PrepareAdvance(models.TransientModel):
                 or not tag.especie_id or detail.kilos <= 0
                 or tag.step_tag_state in ('created', 'void', 'liquidated')):
             raise UserError(_('Revise productor, compañía, especie, estado y kilos de la tarja %s.') % tag.display_name)
+        packaging = tag.step_packaging_id
+        if not packaging:
+            # Historical E tags can predate the packaging relation. Only an
+            # unambiguous native packaging of this exact product can fill it.
+            candidates = detail.product_id.packaging_ids.filtered(lambda item: not item.company_id
+                or self.company_id.parent_path.startswith(item.company_id.parent_path))
+            if len(candidates) == 1:
+                packaging = candidates
         return {'tag_id': tag.id, 'tag_name': tag.name, 'tag_line_id': detail.id,
             'input_tag_id': source.id if source else 0,
             'receipt_id': receipt.id, 'receipt_ids': receipt.ids,
@@ -185,7 +193,7 @@ class PrepareAdvance(models.TransientModel):
             'variety_id': tag.variedad_id.id, 'variety_name': tag.variedad_id.display_name or '',
             'priced_product_id': detail.product_id.id, 'priced_product_name': detail.product_id.display_name,
             'market_id': tag.step_advance_market_id.id, 'market_name': tag.step_advance_market_id.display_name or '',
-            'packaging_id': tag.step_packaging_id.id, 'packaging_name': tag.step_packaging_id.display_name or ''}
+            'packaging_id': packaging.id, 'packaging_name': packaging.display_name or ''}
 
     def _price_rows(self, rows):
         kg = self.env.ref('uom.product_uom_kgm')

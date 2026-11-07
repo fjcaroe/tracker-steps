@@ -22,6 +22,8 @@ recepción prevista y efectiva; usar esa misma fecha para la vigencia de precios
 El corte utiliza la fecha nativa de la OT que se muestra como Date Packing,
 independiente de su registro en el ERP. En recepciones históricas sin fundo,
 admitir el productor nativo de la recepción si coincide con la tarja de origen.
+Si una tarja histórica no indica embalaje, usar únicamente el único embalaje
+nativo disponible de su producto exacto y alcance de compañía, si existe.
 Preservar fundos, tarjas, órdenes, precios guardados y documentos existentes.
 Verificar el caso real en copia fresca y promover el mismo paquete únicamente
 en Desarrollo, Cerro y QA-Cerro.
