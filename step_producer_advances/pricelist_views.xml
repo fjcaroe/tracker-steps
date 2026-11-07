@@ -20,7 +20,7 @@
                     <field name="price_surcharge" invisible="compute_price != 'formula'"/>
                     <field name="price_round" invisible="compute_price != 'formula'"/>
                 </group><group>
-                    <field name="uom_id" domain="[('category_id','=',%(uom.product_uom_categ_kgm)d)]"/>
+                    <field name="uom_id" required="1" domain="[('category_id','=',%(uom.product_uom_categ_kgm)d)]"/>
                     <field name="min_quantity"/><field name="can_std"/><field name="can_max"/>
                     <field name="date_start"/><field name="date_end"/>
                 </group></group>

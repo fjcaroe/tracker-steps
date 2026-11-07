@@ -23,8 +23,8 @@
         <field name="inherit_id" ref="step_packing_fruit_proforma.fruit_proforma_form"/><field name="mode">primary</field>
         <field name="arch" type="xml">
             <xpath expr="//button[@name='action_fruit_approve']" position="attributes"><attribute name="string">Validar proforma</attribute></xpath>
-            <xpath expr="//button[@string='Vista previa']" position="attributes"><attribute name="name">%(action_advance_preview)d</attribute></xpath>
-            <xpath expr="//button[@string='Imprimir proforma']" position="attributes">
+            <xpath expr="//button[@name='%(step_packing_fruit_proforma.action_report_fruit_proforma_preview)d']" position="attributes"><attribute name="name">%(action_advance_preview)d</attribute></xpath>
+            <xpath expr="//button[@name='%(step_packing_fruit_proforma.action_report_fruit_proforma)d']" position="attributes">
                 <attribute name="name">%(action_advance_pdf)d</attribute><attribute name="string">Imprimir anticipo</attribute>
             </xpath>
             <xpath expr="//header/field[@name='step_fruit_state']" position="replace">

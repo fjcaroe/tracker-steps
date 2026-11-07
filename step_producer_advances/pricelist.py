@@ -117,6 +117,7 @@ class PricelistItem(models.Model):
     # A category/global producer rule has no single labor. Preserve the original
     # requirement for every non-producer rule with a conditional constraint.
     labor_id = fields.Many2one(required=False)
+    uom_id = fields.Many2one(required=False)
     step_advance_market_id = fields.Many2one('step.fruit.market', string='Mercado', ondelete='restrict')
     step_advance_packaging_id = fields.Many2one('product.packaging', string='Embalaje', ondelete='restrict')
 
@@ -135,8 +136,8 @@ class PricelistItem(models.Model):
         kg = self.env.ref('uom.product_uom_kgm')
         for rule in self:
             if not rule.pricelist_id.step_advance_price:
-                if not rule.labor_id:
-                    raise ValidationError(_('La tarifa ordinaria conserva su labor/producto obligatorio.'))
+                if not rule.labor_id or not rule.uom_id:
+                    raise ValidationError(_('La tarifa ordinaria conserva su labor/producto y unidad obligatorios.'))
                 continue
             if rule.uom_id.category_id != kg.category_id:
                 raise ValidationError(_('El precio de anticipo requiere una unidad de peso.'))
