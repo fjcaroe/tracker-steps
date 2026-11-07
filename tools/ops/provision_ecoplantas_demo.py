@@ -102,21 +102,36 @@ def complete_catalog():
                     and manifest.get('author','Odoo S.A.').replace(' ','').startswith('OdooS.A.')):
                 official.add(name)
     visited=set()
+    manifests={}
+    def manifest_for(name):
+        if name not in manifests:
+            source=next(root/name for root in roots if (root/name/'__manifest__.py').is_file())
+            manifests[name]=ast.literal_eval((source/'__manifest__.py').read_text(encoding='utf-8'))
+        return manifests[name]
     def dependencies(name):
         if name in visited:return
         assert not name.startswith(('step','l10n_cl_simpledigital','studio_')),name
         visited.add(name)
-        source=next(root/name for root in roots if (root/name/'__manifest__.py').is_file())
-        manifest=ast.literal_eval((source/'__manifest__.py').read_text(encoding='utf-8'))
-        assert manifest.get('author','Odoo S.A.').replace(' ','').startswith('OdooS.A.'),name
+        manifest=manifest_for(name)
         official.add(name)
         for child in manifest.get('depends',[]):dependencies(child)
-    for name in tuple(official):dependencies(name)
+    for name in ('base','web_enterprise',*MODULES):dependencies(name)
+    # Match native automatic extensions of the selected apps. Other catalog
+    # entries remain available for display without installing unrelated apps.
+    changed=True
+    while changed:
+        before=set(visited)
+        for name in tuple(official):
+            manifest=manifest_for(name);automatic=manifest.get('auto_install',False)
+            if automatic is False or manifest.get('installable',True) is False:continue
+            triggers=manifest.get('depends',[]) if automatic is True else automatic
+            if set(triggers)<=visited:dependencies(name)
+        changed=before!=visited
     identity=pwd.getpwnam(USER);added=[]
     for name in sorted(official-set(prepared['modules'])):
         source=next(root/name for root in roots if (root/name/'__manifest__.py').is_file())
         manifest=ast.literal_eval((source/'__manifest__.py').read_text(encoding='utf-8'))
-        assert manifest.get('author','Odoo S.A.').replace(' ','').startswith('OdooS.A.'),name
+        assert name in official and not name.startswith(('step','l10n_cl_simpledigital','studio_'))
         target=ROOT/'addons'/name
         shutil.copytree(source,target,ignore=shutil.ignore_patterns('__pycache__','.git','*.pyc'))
         for path in [target,*target.rglob('*')]:
@@ -308,6 +323,7 @@ finally:config['test_enable']=old
 company=env.ref('base.main_company');user=env.ref('base.user_admin')
 business=env(user=user,su=False,context=dict(env.context,allowed_company_ids=company.ids,tracking_disable=True,mail_notrack=True))
 assert company.name=='ECOPLANTAS' and company.country_id==env.ref('base.cl') and company.currency_id==env.ref('base.CLP')
+assert company.chart_template=='cl',company.chart_template
 required=set(MODULE_NAMES)
 modules=env['ir.module.module'].search([('name','in',list(required)),('state','=','installed')])
 assert set(modules.mapped('name'))==required
