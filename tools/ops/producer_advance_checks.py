@@ -39,7 +39,9 @@ def verify_advances(env, output):
     from odoo.addons.step_packing_operations.models.process_control import _INTERNAL
     from odoo.addons.step_packing_fruit_proforma.purchase import _controlled
     monthly, case = verify_copy_cycle(env, output, return_fixture=True)
-    admin, business = case['admin'].with_company(case['branch']), case['business']
+    admin = case['admin'](context=dict(case['admin'].context,
+        allowed_company_ids=(case['branch'] | case['holding']).ids))
+    business = case['business']
     branch, producer, finished = case['branch'], case['producer'], case['finished']
     case['base'].is_storable=True
     fundo = admin['step.fundo'].with_company(branch).create({'name':'QA175 smoke fundo','company_id':branch.id,
