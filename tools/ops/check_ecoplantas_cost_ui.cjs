@@ -48,9 +48,14 @@ async function main() {
             await page.getByText(name, { exact: true }).last().click();
         };
         await openMenu("Carga semanal");
-        const measures = page.locator(".o_list_view .o_data_row");
+        const weeklyGrid = page.locator(".o_list_view").filter({
+            has: page.getByRole("columnheader", { name: /Cantidad semanal/ }),
+        });
+        const measures = weeklyGrid.locator(".o_data_row");
         await measures.first().waitFor();
         assert.equal(await measures.count(), 4);
+        assert((await measures.allTextContents()).some(row => row.includes("Propagación Norte") &&
+            row.includes("Superficie atendida") && row.includes("300")));
         await save("carga-drivers");
         await openMenu("Centros de costo");
         await page.locator(".o_list_view .o_data_row").filter({ hasText: poolName }).click();
