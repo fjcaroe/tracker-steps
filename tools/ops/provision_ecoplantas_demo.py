@@ -19,6 +19,7 @@ import shutil
 import socket
 import subprocess
 import tempfile
+import time
 import urllib.request
 
 from manage_management import query, tree_hash
@@ -499,8 +500,27 @@ proxy_read_timeout 300s; proxy_connect_timeout 30s;
 }}
 ''')
     run('nginx','-t');run('systemctl','reload','nginx')
-    with urllib.request.urlopen('https://'+DOMAIN+'/web/login?db='+DB,timeout=60) as response:
-        assert response.status==200 and b'password' in response.read()
+    finalize_publication()
+
+
+def finalize_publication():
+    assert (ROOT/'verified.json').is_file() and not (ROOT/'published.json').exists()
+    backup=ROOT/'publication-backup'
+    assert (backup/'database.dump').is_file() and (backup/'verified.json').is_file()
+    site=Path('/etc/nginx/sites-available')/DOMAIN
+    assert site.read_text().startswith('# Steps ECOPLANTAS demo T176\n')
+    assert 'proxy_pass http://127.0.0.1:8084;' in site.read_text()
+    # nginx reload returns before the replacement workers accept every socket.
+    # Keep normal TLS hostname validation enabled while waiting for that handoff.
+    for attempt in range(10):
+        try:
+            with urllib.request.urlopen('https://'+DOMAIN+'/web/login?db='+DB,timeout=15) as response:
+                assert response.status==200 and b'password' in response.read()
+                assert response.geturl().startswith('https://'+DOMAIN+'/')
+            break
+        except OSError:
+            if attempt==9:raise
+            time.sleep(1)
     run('systemctl','is-active','--quiet',SERVICE)
     private_json(ROOT/'published.json',{'database':DB,'url':'https://'+DOMAIN,'service':SERVICE,
         'copy_proof':str(ROOT/'copy-verified.json'),'proof':str(ROOT/'verified.json'),
@@ -510,7 +530,7 @@ proxy_read_timeout 300s; proxy_connect_timeout 30s;
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action',choices=('prepare','complete-catalog','reset-private-copy','init-copy','configure-copy','verify-copy','init','verify','publish'))
+    parser.add_argument('action',choices=('prepare','complete-catalog','reset-private-copy','init-copy','configure-copy','verify-copy','init','verify','publish','finalize-publication'))
     parser.add_argument('--resume',action='store_true')
     args=parser.parse_args();assert os.geteuid()==0
     with open('/run/lock/steps-environments.lock','a') as lease:
@@ -523,6 +543,7 @@ def main():
             configure_runtime(COPY)
         elif args.action in ('init-copy','init'):initialize(COPY if args.action=='init-copy' else DB,args.resume)
         elif args.action in ('verify-copy','verify'):verify(COPY if args.action=='verify-copy' else DB)
+        elif args.action=='finalize-publication':finalize_publication()
         else:publish()
 
 
