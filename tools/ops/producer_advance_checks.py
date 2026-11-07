@@ -92,6 +92,7 @@ def verify_advances(env, output):
         'company_id':branch.id,'date':'2026-11-03','fruit_grower_id':producer.id,
         'fruit_species_id':result.especie_id.id,'fruit_variety_id':result.variedad_id.id,
         'step_packing_input_tag_ids':[Command.set(raw.ids)],'step_packing_output_tag_ids':[Command.set(result.ids)]})
+    result.write({'step_packing_production_id':production.id})
     production.with_context(_packing_control=_INTERNAL).write({'state':'closed'})
     result.action_step_validate_tag()
     counts = lambda: tuple(business[model].search_count([('company_id','=',branch.id)])

@@ -140,7 +140,11 @@ class PrepareAdvance(models.TransientModel):
         return list(unique.values())
 
     def _row(self, tag, detail, receipt, production=None, source=None):
-        if (tag.company_id != self.company_id or detail.producer_id != receipt.fruit_fundo_id.partner_id
+        # Native packages can lose their quant-derived company after shipment.
+        # The closed OT / completed incoming receipt remains authoritative.
+        company = tag.company_id or (production.company_id if production else receipt.company_id)
+        if (company != self.company_id or receipt.company_id != self.company_id
+                or detail.producer_id != receipt.fruit_fundo_id.partner_id
                 or self.producer_ids and detail.producer_id not in self.producer_ids
                 or self.species_ids and tag.especie_id not in self.species_ids
                 or not tag.especie_id or detail.kilos <= 0

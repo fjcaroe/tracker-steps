@@ -156,6 +156,8 @@ class FruitProformaCase(TransactionCase):
         if snapshot:
             prices = production._contract_prices(for_billing=True)
             production.with_context(_packing_valuation=_VALUATION).write({'valuation_snapshot': prices})
+        if tag_values is not None:
+            tag.write({'step_packing_production_id': production.id})
         production.with_context(_packing_control=_INTERNAL).write({'state': 'closed'})
         return production, tag, source
 
