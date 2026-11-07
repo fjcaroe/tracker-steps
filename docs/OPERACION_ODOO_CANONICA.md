@@ -17,6 +17,17 @@ ordinarias y permite categorías de fruta sin inventar una labor. Probar tambié
 la regresión de proformas mensuales, formularios, menús, cuotas nativas y PDF.
 Mismo paquete en copias frescas, revisión visual, respaldo, bloqueo y paridad.
 
+T175 revisión 1 (mensaje 10210): seleccionar la fecha local más antigua de
+recepción prevista y efectiva; usar esa misma fecha para la vigencia de precios.
+El corte utiliza la fecha nativa de la OT que se muestra como Date Packing,
+independiente de su registro en el ERP. En recepciones históricas sin fundo,
+admitir el productor nativo de la recepción si coincide con la tarja de origen.
+Si una tarja histórica no indica embalaje, usar únicamente el único embalaje
+nativo disponible de su producto exacto y alcance de compañía, si existe.
+Preservar fundos, tarjas, órdenes, precios guardados y documentos existentes.
+Verificar el caso real en copia fresca y promover el mismo paquete únicamente
+en Desarrollo, Cerro y QA-Cerro.
+
 T171 revisión 1 (mensaje 10199, adjunto 3535) autoriza `packing-proforma-policy`
 en Desarrollo, Cerro y QA-Cerro. Actualizar explícitamente los impuestos de
 proformas en borrador tras cambiar la política de su especie; el asistente

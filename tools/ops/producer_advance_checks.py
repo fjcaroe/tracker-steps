@@ -33,6 +33,51 @@ def verify_ui(business):
     return {'menus': True, 'native_pricelist': True, 'effective_forms': True, 'tag_proforma_links': True}
 
 
+def verify_reported_dates(env, plan, *, run_flow):
+    """Use the reported advance's actual parameters; prepare it only in a copy."""
+    from odoo import Command
+    from native_business_profile import scoped_business_environment
+    assert plan['ticket']==175 and plan['reviewed_message_id']==10210
+    original=env['purchase.order'].browse(plan['order_id']).exists()
+    assert original.step_advance_proforma and original.company_id.id==plan['company_id']
+    business=scoped_business_environment(env,company=original.company_id)
+    order=original.with_env(business)
+    settings={'company_id':order.company_id.id,'producer_ids':[Command.set(order.partner_id.ids)],
+        'species_ids':[Command.set(order.step_fruit_species_id.ids)],'pricelist_id':order.step_advance_pricelist_id.id,
+        'date_from':order.step_fruit_period_start,'date_to':order.step_fruit_period_end,
+        'process_cutoff':order.step_advance_cutoff,'proforma_date':order.date_order.date(),
+        'net_due':order.step_advance_net_due,'vat_due':order.step_advance_vat_due}
+    model=business['step.producer.advance.prepare'].with_context(tz='America/Santiago')
+    wizard=model.new(settings)
+    receipts=wizard._receipt_sources()
+    receipt_days={str(item.id):str(wizard._receipt_day(item)) for item in receipts if str(item.id) in plan['receipt_days']}
+    assert receipt_days==plan['receipt_days'],receipt_days
+    orders=business['step.packing.production'].browse([int(key) for key in plan['packing_days']])
+    assert {str(item.id):str(item.date) for item in orders}==plan['packing_days']
+    result={'order_id':order.id,'receipt_days':receipt_days,'packing_days':plan['packing_days'],
+            'copy_flow':run_flow,'live_business_writes':False}
+    if run_flow:
+        before={name:business[name].search_count([('company_id','=',order.company_id.id)])
+                for name in ('stock.picking','stock.move','stock.quant','account.move')}
+        wizard=model.create(settings)
+        action=wizard.action_prepare()
+        documents=business['purchase.order'].browse(action['res_id']) if action.get('res_id') else business['purchase.order'].search(action['domain'])
+        rows=[row for line in documents.order_line for row in line.step_fruit_source_rows or []
+              if row['receipt_id'] in plan['recovered_receipts']]
+        recovered=sorted({row['receipt_id'] for row in rows})
+        kilos=sum(row['quantity'] for row in rows)
+        assert recovered==plan['recovered_receipts'],recovered
+        assert abs(kilos-plan['recovered_kilos'])<0.0001,kilos
+        assert all(row['packing_day']==plan['packing_days'][str(row['production_id'])] for row in rows)
+        assert not documents.invoice_ids
+        retry=wizard.action_prepare()
+        again=business['purchase.order'].browse(retry['res_id']) if retry.get('res_id') else business['purchase.order'].search(retry['domain'])
+        assert again==documents
+        assert {name:business[name].search_count([('company_id','=',order.company_id.id)]) for name in before}==before
+        result.update(recovered_receipts=recovered,recovered_kilos=round(kilos,4),idempotent=True)
+    return result
+
+
 def verify_advances(env, output):
     assert env.cr.dbname.startswith('MANAGEMENT_QA_')
     from odoo import Command

@@ -6,6 +6,7 @@ import pytz
 
 from odoo import api, Command, fields, models, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.osv import expression
 from odoo.addons.step_packing_fruit_proforma.purchase import _controlled
 from odoo.addons.step_packing_fruit_proforma.species import purchase_taxes
 from .purchase import source_key
@@ -19,10 +20,11 @@ class PrepareAdvance(models.TransientModel):
     producer_ids = fields.Many2many('res.partner', string='Productores', domain=[('is_productor', '=', True)])
     species_ids = fields.Many2many('step.especie', string='Especies')
     date_from = fields.Date('Desde recepción', required=True,
-        default=lambda self: fields.Date.context_today(self) - timedelta(days=6))
+        default=lambda self: fields.Date.context_today(self) - timedelta(days=6),
+        help='Para cada recepción se considera la fecha más antigua entre la prevista y la efectiva.')
     date_to = fields.Date('Hasta recepción', required=True, default=fields.Date.context_today)
     process_cutoff = fields.Date('Fecha corte proceso', required=True, default=fields.Date.context_today,
-        help='Incluye exportación de procesos cerrados hasta esta fecha, solo de las recepciones seleccionadas. En una OT mixta, los kilos exportados se distribuyen según los kilos de entrada de cada recepción.')
+        help='Incluye la exportación de OT cerradas según su Fecha de proceso (Date Packing), hasta este corte. En una OT mixta, los kilos exportados se distribuyen según los kilos de entrada de cada recepción.')
     proforma_date = fields.Date('Fecha proforma', required=True, default=fields.Date.context_today)
     net_due = fields.Date('Fecha de pago Neto', required=True)
     vat_due = fields.Date('Fecha de pago IVA', required=True)
@@ -47,16 +49,28 @@ class PrepareAdvance(models.TransientModel):
                      for day in (self.date_from, self.date_to + timedelta(days=1)))
 
     def _receipt_day(self, receipt):
-        return fields.Datetime.context_timestamp(self, receipt.scheduled_date).date()
+        dates = [value for value in (receipt.scheduled_date, receipt.date_done) if value]
+        if not dates:
+            raise ValidationError(_('La recepción no tiene fecha prevista ni efectiva.'))
+        return fields.Datetime.context_timestamp(self, min(dates)).date()
 
     def _receipt_sources(self):
-        """Read the same local scheduled reception date as the producer report."""
+        """Select the first available receipt date in the user's local period."""
         start, end = self._bounds()
         domain = [('company_id', '=', self.company_id.id), ('state', '=', 'done'),
-                  ('picking_type_code', '=', 'incoming'), ('step_fruit_reception_kind', 'in', ['process', 'packed']),
-                  ('scheduled_date', '>=', start), ('scheduled_date', '<', end)]
+                  ('picking_type_code', '=', 'incoming'), ('step_fruit_reception_kind', 'in', ['process', 'packed'])]
+        names = ('scheduled_date', 'date_done')
+        # At least one known date must be in the period, and neither may
+        # precede its start. Keep the filtering in the native picking query.
+        domain = expression.AND([domain,
+            expression.OR([[(name, '>=', start), (name, '<', end)] for name in names]),
+            *[expression.OR([[(name, '=', False)], [(name, '>=', start)]]) for name in names],
+        ])
         if self.producer_ids:
-            domain.append(('fruit_fundo_id.partner_id', 'in', self.producer_ids.ids))
+            domain = expression.AND([domain, expression.OR([
+                [('fruit_fundo_id.partner_id', 'in', self.producer_ids.ids)],
+                [('fruit_fundo_id', '=', False), ('partner_id', 'in', self.producer_ids.ids)],
+            ])])
         if self.species_ids:
             domain.append(('fruit_species_id', 'in', self.species_ids.ids))
         return self.env['stock.picking'].search(domain, order='scheduled_date,id')
@@ -90,6 +104,9 @@ class PrepareAdvance(models.TransientModel):
     def _source_rows(self):
         receipts = self._receipt_sources()
         raw = receipts.filtered(lambda row: row.step_fruit_reception_kind == 'process').fruit_tag_line_ids.package_id
+        # This native process date is also displayed on output tags as Date
+        # Packing. Registration timestamps and the tag's generic pack date do
+        # not determine the cutoff for the closed production order.
         orders = self.env['step.packing.production'].search([
             ('company_id', '=', self.company_id.id), ('state', 'in', ['closed', 'costed', 'accounted']),
             ('date', '<=', self.process_cutoff), ('step_packing_input_tag_ids', 'in', self._raw_descendants(raw).ids)], order='id')
@@ -143,25 +160,40 @@ class PrepareAdvance(models.TransientModel):
         # Native packages can lose their quant-derived company after shipment.
         # The closed OT / completed incoming receipt remains authoritative.
         company = tag.company_id or (production.company_id if production else receipt.company_id)
+        origin = source or tag
+        fundo = receipt.fruit_fundo_id or origin.fundo_id
+        producer = receipt.fruit_fundo_id.partner_id or receipt.partner_id
+        if not receipt.fruit_fundo_id and (not producer.is_productor or origin.step_producer_id != producer
+                or fundo and fundo.partner_id != producer):
+            raise UserError(_('La recepción sin fundo debe identificar el mismo productor que su tarja de origen. Revise la recepción de %s.') % origin.display_name)
         if (company != self.company_id or receipt.company_id != self.company_id
-                or detail.producer_id != receipt.fruit_fundo_id.partner_id
+                or detail.producer_id != producer
                 or self.producer_ids and detail.producer_id not in self.producer_ids
                 or self.species_ids and tag.especie_id not in self.species_ids
                 or not tag.especie_id or detail.kilos <= 0
                 or tag.step_tag_state in ('created', 'void', 'liquidated')):
             raise UserError(_('Revise productor, compañía, especie, estado y kilos de la tarja %s.') % tag.display_name)
+        packaging = tag.step_packaging_id
+        if not packaging:
+            # Historical E tags can predate the packaging relation. Only an
+            # unambiguous native packaging of this exact product can fill it.
+            candidates = detail.product_id.packaging_ids.filtered(lambda item: not item.company_id
+                or self.company_id.parent_path.startswith(item.company_id.parent_path))
+            if len(candidates) == 1:
+                packaging = candidates
         return {'tag_id': tag.id, 'tag_name': tag.name, 'tag_line_id': detail.id,
             'input_tag_id': source.id if source else 0,
             'receipt_id': receipt.id, 'receipt_ids': receipt.ids,
             'receipt_guides': [receipt.fruit_guide_number] if receipt.fruit_guide_number else [],
-            'receipt_day': str(self._receipt_day(receipt)), 'fundo_id': receipt.fruit_fundo_id.id,
-            'fundo_name': receipt.fruit_fundo_id.display_name,
+            'receipt_day': str(self._receipt_day(receipt)), 'fundo_id': fundo.id,
+            'fundo_name': fundo.display_name or '',
             'production_id': production.id if production else 0, 'ot_name': production.name if production else '',
+            'packing_day': fields.Date.to_string(production.date) if production else False,
             'producer_id': detail.producer_id.id, 'species_id': tag.especie_id.id,
             'variety_id': tag.variedad_id.id, 'variety_name': tag.variedad_id.display_name or '',
             'priced_product_id': detail.product_id.id, 'priced_product_name': detail.product_id.display_name,
             'market_id': tag.step_advance_market_id.id, 'market_name': tag.step_advance_market_id.display_name or '',
-            'packaging_id': tag.step_packaging_id.id, 'packaging_name': tag.step_packaging_id.display_name or ''}
+            'packaging_id': packaging.id, 'packaging_name': packaging.display_name or ''}
 
     def _price_rows(self, rows):
         kg = self.env.ref('uom.product_uom_kgm')
