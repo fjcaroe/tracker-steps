@@ -87,7 +87,8 @@ def complete_catalog():
     assert not (ROOT/'published.json').exists()
     assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname='ECOPLANTAS'")
     if query('postgres',"SELECT 1 FROM pg_database WHERE datname='"+COPY+"'"):
-        assert not query(COPY,"SELECT to_regclass('public.purchase_order')")
+        if query(COPY,"SELECT to_regclass('public.purchase_order')"):
+            assert query(COPY,'SELECT count(*) FROM purchase_order')=='0'
     prepared=json.loads((ROOT/'prepared.json').read_text())
     roots=[Path(value.strip()) for value in source_options()['addons_path'].split(',')]
     official=set()
@@ -100,6 +101,17 @@ def complete_catalog():
             if ('Part of Odoo. See LICENSE file' in text
                     and manifest.get('author','Odoo S.A.').replace(' ','').startswith('OdooS.A.')):
                 official.add(name)
+    visited=set()
+    def dependencies(name):
+        if name in visited:return
+        assert not name.startswith(('step','l10n_cl_simpledigital','studio_')),name
+        visited.add(name)
+        source=next(root/name for root in roots if (root/name/'__manifest__.py').is_file())
+        manifest=ast.literal_eval((source/'__manifest__.py').read_text(encoding='utf-8'))
+        assert manifest.get('author','Odoo S.A.').replace(' ','').startswith('OdooS.A.'),name
+        official.add(name)
+        for child in manifest.get('depends',[]):dependencies(child)
+    for name in tuple(official):dependencies(name)
     identity=pwd.getpwnam(USER);added=[]
     for name in sorted(official-set(prepared['modules'])):
         source=next(root/name for root in roots if (root/name/'__manifest__.py').is_file())
