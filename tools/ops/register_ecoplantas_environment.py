@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 ENTRY={'label':'ECOPLANTAS demo','url':'https://ecoplantas.stepsapp.cl','port':8084,
+       'listen_ip':'127.0.0.1',
        'database':'ECOPLANTAS','service':'odoo18-ecoplantas.service',
        'config':'/etc/odoo18-ecoplantas.conf','role':'customer-demo','deploy_enabled':False,
        'authorization':'T176 y confirmación del solicitante: base independiente de demostración, sin traslado de suscripción'}
