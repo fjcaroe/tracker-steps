@@ -15,6 +15,7 @@ import socket
 import subprocess
 
 from manage_management import extract, query
+import manage_management
 
 
 def main():
@@ -30,6 +31,7 @@ def main():
     root.mkdir(parents=True,exist_ok=True)
     with open('/run/lock/steps-environments.lock','a') as lease:
         fcntl.flock(lease,fcntl.LOCK_EX)
+        manage_management.MODULES=('step_packing_fruit_proforma','step_producer_advances')
         proof=extract(args.release,root/'candidate')
         assert set(proof['versions'])=={'step_packing_fruit_proforma','step_producer_advances'}
         cfg=configparser.ConfigParser(interpolation=None);cfg.read('/etc/dev_odoo18.conf');opts=cfg['options']
