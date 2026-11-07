@@ -59,10 +59,13 @@ class TestProducerAdvances(FruitProformaCase):
         variety = self.retained_variety if species == self.retained_species else self.variety
         tag = self.env['stock.quant.package'].with_company(self.branch).create({
             'name':'QA175 Raw %s'%when,'company_id':self.branch.id,'is_fruit_tag':True,
-            'step_tag_kind':'C','step_producer_id':self.producer.id,'fundo_id':self.fundo.id,
+            'step_tag_kind':'C','step_producer_id':self.producer.id,
             'especie_id':species.id,'variedad_id':variety.id,'fruit_type':'conventional',
             'step_tag_line_ids':[Command.create({'producer_id':self.producer.id,'product_id':self.base.id,
                 'quantity':kilos,'kilos':kilos})]})
+        self.env['stock.quant'].with_company(self.branch)._update_available_quantity(
+            self.base,self.warehouse.lot_stock_id,kilos,package_id=tag,owner_id=self.producer)
+        tag.write({'fundo_id':self.fundo.id})
         receipt = self._receipt(tag,when)
         tag.action_step_validate_tag()
         return tag,receipt
@@ -120,10 +123,13 @@ class TestProducerAdvances(FruitProformaCase):
         # Create a distinct received E pallet, with no OT or manufactured stock.
         packed = self.env['stock.quant.package'].with_company(self.branch).create({
             'name':'QA175 Packed','company_id':self.branch.id,'is_fruit_tag':True,'step_tag_kind':'E',
-            'step_producer_id':self.producer.id,'fundo_id':self.fundo.id,'especie_id':self.species.id,
+            'step_producer_id':self.producer.id,'especie_id':self.species.id,
             'variedad_id':self.variety.id,'fruit_type':'conventional','step_packing_result':'export',
             'step_tag_line_ids':[Command.create({'producer_id':self.producer.id,'product_id':self.finished.id,
                 'quantity':100,'kilos':1000,'boxes':100})]})
+        self.env['stock.quant'].with_company(self.branch)._update_available_quantity(
+            self.finished,self.warehouse.lot_stock_id,100,package_id=packed)
+        packed.write({'fundo_id':self.fundo.id})
         packed.action_step_validate_tag()
         self._receipt(packed,kind='packed')
         quote = self._advance(self._advance_wizard(process_cutoff='2026-10-31'))

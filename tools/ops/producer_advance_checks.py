@@ -56,7 +56,7 @@ def verify_advances(env, output):
         record = admin['stock.quant.package'].with_company(branch).create({
             'name':'QA175 smoke %s %s'%(kind,code),'company_id':branch.id,'is_fruit_tag':True,
             'step_tag_kind':kind,'step_packing_result':'export' if kind=='E' else False,
-            'step_producer_id':producer.id,'fundo_id':fundo.id,'especie_id':species.id,'variedad_id':variety.id,
+            'step_producer_id':producer.id,'especie_id':species.id,'variedad_id':variety.id,
             'fruit_type':'conventional','step_advance_market_id':market.id,
             'step_packaging_id':packaging.id if kind=='E' else False,
             'step_tag_line_ids':[Command.create({'producer_id':producer.id,'product_id':product.id,
@@ -64,6 +64,11 @@ def verify_advances(env, output):
         return record
 
     def receipt(record, kind):
+        detail=record.step_tag_line_ids
+        admin['stock.quant'].with_company(branch)._update_available_quantity(
+            detail.product_id,case['warehouse'].lot_stock_id,detail.quantity,package_id=record,
+            owner_id=producer if kind=='process' else None)
+        record.write({'fundo_id':fundo.id})
         picking = admin['stock.picking'].with_company(branch).create({
             'company_id':branch.id,'picking_type_id':case['warehouse'].in_type_id.id,
             'partner_id':producer.id,'location_id':case['warehouse'].in_type_id.default_location_src_id.id,
