@@ -282,13 +282,15 @@ def initialize(database,resume=False):
         query(database,'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
     bootstrap=ROOT/'logs'/(database+'-bootstrap.log')
     has_modules=bool(query(database,"SELECT to_regclass('public.ir_module_module')"))
-    missing=[name for name in ('base','web_enterprise') if not has_modules or
+    missing=[name for name in ('base',) if not has_modules or
         query(database,"SELECT state FROM ir_module_module WHERE name='"+name+"'")!='installed']
     init=['-i',','.join(missing)] if missing else []
     odoo(database,init+['--load-language=es_CL','--stop-after-init','--logfile='+str(bootstrap)])
     configure_company(database)
     log=ROOT/'logs'/(database+'-applications.log')
-    odoo(database,['-i',','.join(MODULES),'--stop-after-init','--logfile='+str(log)])
+    # Set Chile and CLP before accounting's native chart installation hook.
+    # Loading Enterprise first can create a generic chart for the empty company.
+    odoo(database,['-i',','.join(('web_enterprise',*MODULES)),'--stop-after-init','--logfile='+str(log)])
     odoo(database,['--log-level=error'],script='''
 env['ir.cron'].search([]).write({'active':False})
 env['ir.mail_server'].search([]).write({'active':False})
