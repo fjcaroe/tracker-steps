@@ -12,7 +12,7 @@
     background: #f3f6f2;
     color: var(--eco-ink);
 
-    .eco-shell { width: min(100%, 1460px); margin: 0 auto; padding: clamp(14px, 2.4vw, 32px); }
+    .eco-shell { width: 100%; max-width: 1460px; margin: 0 auto; padding: clamp(14px, 2.4vw, 32px); }
     h1, h2, h3, p { margin: 0; }
     h2, h3 { color: var(--eco-ink); }
     button:focus-visible { outline: 3px solid #568c41; outline-offset: 3px; }

@@ -1,8 +1,8 @@
 # Demo de invernadero ECOPLANTAS
 
-Ingresar a [ECOPLANTAS](https://ecoplantas.stepsapp.cl/odoo) con el usuario
-interno habilitado para la revisión. Los registros con `[DEMO]` sirven para
-recorrer los procesos con ejemplos.
+Ingresar a [Invernadero](https://ecoplantas.stepsapp.cl/odoo/invernadero) con el
+usuario interno habilitado para la revisión. La portada de Steps enlaza a los
+registros de Odoo identificados con `[DEMO]` y muestra los estados del lote.
 
 1. En Inventario, abrir la recepción en borrador con origen `[DEMO] Semillas
    y sustrato`. Registrar un lote para las semillas y recibir los insumos en
@@ -13,7 +13,10 @@ recorrer los procesos con ejemplos.
 3. En Calidad, completar la revisión visual del lote vinculada a fabricación.
    Después de terminar las operaciones, registrar los plantines producidos.
    Consultar el lote final y sus movimientos en Inventario.
-4. En Proyecto, abrir `Labores del invernadero [DEMO]` para revisar riego,
+4. En el despacho con origen `[DEMO] Despacho de plantines`, seleccionar el
+   lote producido y preparar la salida de 60 plantines. Consultar el saldo y
+   los movimientos del lote desde Trazabilidad de plantines.
+5. En Proyecto, abrir `Labores del invernadero [DEMO]` para revisar riego,
    sanidad, trasplante y despacho. En Mantenimiento, abrir `Bomba de riego
    [DEMO]` y su solicitud preventiva de revisión de bomba y goteros.
 
