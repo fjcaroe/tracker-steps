@@ -59,7 +59,11 @@ def odoo(database,arguments,script=None):
     command+=['-c',str(conf_for(database)),'-d',database,'--db-filter=^'+database+'$',
               '--no-http','--workers=0','--max-cron-threads=0','--without-demo=all']
     command+=arguments
-    result=run(*command,input=script,text=True,capture_output=True)
+    result=subprocess.run(command,input=script,text=True,capture_output=True)
+    if result.returncode:
+        failure=ROOT/'logs'/(database+'-last-failure.log')
+        failure.write_text(result.stdout+'\n'+result.stderr);failure.chmod(0o600)
+        raise RuntimeError('Native operation failed; private diagnostic: '+str(failure))
     if script is not None:
         assert 'ECOPLANTAS_' in result.stdout,result.stderr[-2000:]
     return result
@@ -204,6 +208,9 @@ def verify(database):
     script='''
 import json
 from odoo.tools import config
+from odoo.modules.module import get_module_path
+from pathlib import Path
+assert all(Path(get_module_path(name)).resolve()==Path(FROZEN_ADDONS)/name for name in FROZEN_MODULES)
 old=config['test_enable'];config['test_enable']=True
 try:
     from odoo.tests import Form
@@ -244,11 +251,14 @@ params=env['ir.config_parameter']
 proof={'database':env.cr.dbname,'native_menus_and_forms':True,'copy_flow':COPY_FLOW,
        'empty_business_counts':counts,'native_trial_or_registration':params.get_param('database.expiration_reason'),
        'enterprise_code_present':bool(params.get_param('database.enterprise_code')),
-       'expiration_date':params.get_param('database.expiration_date'),'source_client_data_copied':False}
+       'expiration_date':params.get_param('database.expiration_date'),'source_client_data_copied':False,
+       'private_native_addons':True}
 env.cr.rollback()
 print('ECOPLANTAS_NATIVE_VERIFY_OK '+json.dumps(proof))
 '''
-    result=odoo(database,['--log-level=error'],script='MODULE_NAMES='+repr(('web_enterprise',*MODULES))+'\nCOPY_FLOW='+repr(copy)+'\n'+script)
+    header='MODULE_NAMES='+repr(('web_enterprise',*MODULES))+'\nCOPY_FLOW='+repr(copy)+'\n'
+    header+='FROZEN_ADDONS='+repr(str(ROOT/'addons'))+'\nFROZEN_MODULES='+repr(tuple(prepared['modules']))+'\n'
+    result=odoo(database,['--log-level=error'],script=header+script)
     marker='ECOPLANTAS_NATIVE_VERIFY_OK '
     lines=[line for line in result.stdout.splitlines() if line.startswith(marker)]
     assert len(lines)==1,result.stderr[-2000:]
