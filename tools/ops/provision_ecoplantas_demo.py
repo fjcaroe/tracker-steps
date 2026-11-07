@@ -116,6 +116,10 @@ def complete_catalog():
         official.add(name)
         for child in manifest.get('depends',[]):dependencies(child)
     for name in ('base','web_enterprise',*MODULES):dependencies(name)
+    # Base's native initialization can queue automatic catalog extensions before
+    # the selected apps finish installing; their dependency graphs must also be
+    # complete. This includes official components supplied by Odoo partners.
+    for name in tuple(official):dependencies(name)
     # Match native automatic extensions of the selected apps. Other catalog
     # entries remain available for display without installing unrelated apps.
     changed=True
@@ -224,7 +228,7 @@ def prepare():
 def configure_company(database):
     # Only the source administrative identity is read. Its password hash stays
     # on the server and is never printed, reset or included in an evidence file.
-    profile=json.loads(query('LAB_TAREAS',"SELECT row_to_json(profile) FROM (SELECT u.login,p.name,u.password,u.active FROM res_users u JOIN res_partner p ON p.id=u.partner_id WHERE u.id=(SELECT res_id FROM ir_model_data WHERE module='base' AND name='user_admin')) profile"))
+    profile=json.loads(query('LAB_TAREAS',"SELECT row_to_json(profile) FROM (SELECT u.login,p.name,p.email,u.password,u.active FROM res_users u JOIN res_partner p ON p.id=u.partner_id WHERE u.id=(SELECT res_id FROM ir_model_data WHERE module='base' AND name='user_admin')) profile"))
     assert profile['active'] and profile['password']
     identity=pwd.getpwnam(USER)
     handle=tempfile.NamedTemporaryFile(mode='w',dir=ROOT,prefix='.admin-profile-',suffix='.json',delete=False)
@@ -239,7 +243,7 @@ currency=env.ref('base.CLP');currency.active=True
 company.with_context(tracking_disable=True).write({'name':'ECOPLANTAS','country_id':env.ref('base.cl').id,'currency_id':currency.id})
 user=env.ref('base.user_admin')
 user.with_context(no_reset_password=True,tracking_disable=True,mail_notrack=True,mail_create_nosubscribe=True).write({
-    'login':profile['login'],'name':profile['name'],'email':False,'lang':'es_CL','tz':'America/Santiago'})
+    'login':profile['login'],'name':profile['name'],'email':profile['email'] or profile['login'],'lang':'es_CL','tz':'America/Santiago'})
 env.cr.execute('UPDATE res_users SET password=%s WHERE id=%s',[profile['password'],user.id])
 env.cr.commit()
 print('ECOPLANTAS_COMPANY_AND_EXISTING_ADMIN_READY')
@@ -344,6 +348,7 @@ assert company.chart_template=='cl',company.chart_template
 required=set(MODULE_NAMES)
 modules=env['ir.module.module'].search([('name','in',list(required)),('state','=','installed')])
 assert set(modules.mapped('name'))==required
+assert not env['ir.module.module'].search_count([('state','in',['to install','to upgrade','to remove'])]),'Resolve pending native module dependencies'
 assert not env['ir.module.module'].search_count([('state','=','installed'),'|',('name','=like','step_%'),('name','=like','l10n_cl_simpledigital%')])
 counts={name:business[name].search_count([]) for name in ('sale.order','purchase.order','account.move','stock.picking')}
 assert not any(counts.values()),counts
