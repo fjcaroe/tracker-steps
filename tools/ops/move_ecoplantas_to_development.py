@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import pwd
 import re
+import secrets
 import shutil
 import signal
 import subprocess
@@ -228,7 +229,6 @@ def qa(stage, db):
     store_copy(cfg, TARGET["database"], data / "filestore" / db)
     for path in (data, *data.rglob("*")):
         os.chown(path, unix.pw_uid, unix.pw_gid)
-    put_overlay(cfg, overlay)
     role = cfg["options"]["db_user"]
     cfg["options"].update({"db_name": db, "dbfilter": "^" + db + "$", "db_host": "127.0.0.1",
                            "data_dir": str(data), "workers": "0", "max_cron_threads": "0",
@@ -249,6 +249,8 @@ def qa(stage, db):
              "env['ir.config_parameter'].init(force=True)\nenv.cr.commit()\n")
         uuid = "SELECT value FROM ir_config_parameter WHERE key='database.uuid'"
         assert query(db, uuid) != query(TARGET["database"], uuid)
+        put_overlay(cfg, overlay)
+        write_config(cfg, conf)
         imported, versions = apply_stage(conf, db, stage, payload, state)
         tested = native(conf, db, stage, state, payload, "exercise_demo")
         native(conf, db, stage, state, payload, "verify_demo")
@@ -269,12 +271,34 @@ def certified(stage):
 
 
 def preview(stage, db):
-    certified(stage)
+    proof = certified(stage)
     conf = stage / "copy.conf"
     role = config(conf)["options"]["db_user"]
     unix = pwd.getpwnam(get_user(TARGET["service"]))
     command = ["/usr/bin/python3.10", "/opt/odoo18/odoo-bin", "-c", str(conf), "-d", db]
     with private_db(db, role, stage):
+        state = proof["baseline"]
+        request = {"login": "qa_ecoplantas_" + secrets.token_hex(8), "password": secrets.token_urlsafe(24),
+                   "company": state["cid"], "db": db}
+        script = f"""
+from odoo import Command
+assert env.cr.dbname.startswith('ECOPLANTAS_DEV_QA_')
+review = env['res.users'].browse({state['uid']})
+assert review.active and {state['cid']} in review.company_ids.ids
+data = {request!r}
+env['res.users'].with_context(no_reset_password=True, tracking_disable=True, mail_create_nosubscribe=True).create({{
+    'name': 'Validación privada EcoPlantas', 'login': data['login'], 'password': data['password'],
+    'company_id': review.company_id.id, 'company_ids': [Command.set(review.company_ids.ids)],
+    'groups_id': [Command.set(review.groups_id.ids)], 'lang': review.lang, 'tz': review.tz,
+}})
+env.cr.commit()
+print('ECOPLANTAS_BROWSER_COPY_ACCOUNT_READY')
+"""
+        odoo(conf, db, unix.pw_name, "/opt/odoo18/odoo-bin", stage / "preview-account.log", script)
+        secret = stage / "browser-login.json"
+        fd = os.open(secret, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w") as stream:
+            json.dump(request, stream)
         print("ECOPLANTAS_DEVELOPMENT_PREVIEW " + str(PREVIEW_PORT), flush=True)
         process = subprocess.Popen(command, cwd=stage, user=unix.pw_uid, group=unix.pw_gid,
                                    extra_groups=[], start_new_session=True)
@@ -290,6 +314,7 @@ def preview(stage, db):
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait()
+            secret.unlink(missing_ok=True)
 
 
 def deploy(stage):
