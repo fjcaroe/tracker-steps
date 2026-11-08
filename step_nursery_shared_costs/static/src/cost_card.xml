@@ -3,7 +3,7 @@
     <t t-name="step_nursery_shared_costs.CostCard" t-inherit="step_ecoplantas_greenhouse.Dashboard" t-inherit-mode="extension">
         <xpath expr="//div[@class='eco-tools']" position="inside">
             <button t-if="data.shared_costs" type="button" class="eco-tool"
-                    t-on-click="() => this.actions.doAction('step_nursery_shared_costs.action_cost_run')">
+                    t-on-click="() => this.workspace.open('costs')">
                 <i class="fa fa-sitemap eco-tool-icon" aria-hidden="true"/>
                 <span><strong>Costos compartidos</strong><small>Centros padres, drivers y reparto semanal</small></span>
                 <i class="fa fa-angle-right" aria-hidden="true"/>

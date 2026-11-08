@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_ecoplantas_greenhouse.Subnav">
+        <section t-if="section" class="eco-workspace" t-att-data-section="section.key" aria-label="Guía de Invernadero">
+            <div class="eco-subhero">
+                <div class="eco-sub-copy">
+                    <div class="eco-sub-label"><i t-att-class="'fa ' + section.icon" aria-hidden="true"/> <span t-esc="section.area"/></div>
+                    <h2 t-esc="section.title"/>
+                    <p t-esc="section.detail"/>
+                </div>
+                <div class="eco-sub-actions">
+                    <button type="button" class="eco-sub-button" t-on-click="() => this.workspace.home()">
+                        <i class="fa fa-arrow-left" aria-hidden="true"/> Panel
+                    </button>
+                    <button t-if="next" type="button" class="eco-sub-button eco-sub-next" t-on-click="() => this.workspace.open(next.key)">
+                        <span t-esc="next.short"/> <i class="fa fa-arrow-right" aria-hidden="true"/>
+                    </button>
+                </div>
+            </div>
+            <div class="eco-sub-summary">
+                <nav class="eco-sub-tabs" aria-label="Pasos del invernadero">
+                    <button t-foreach="tabs" t-as="tab" t-key="tab.key" type="button" t-att-aria-current="tab.key === state.key ? 'step' : undefined"
+                            t-att-class="tab.key === state.key ? 'is-current' : ''" t-on-click="() => this.workspace.open(tab.key)">
+                        <span t-if="tab.number" class="eco-tab-index" t-esc="tab.number"/>
+                        <span t-esc="tab.short"/>
+                    </button>
+                </nav>
+                <div t-if="status or metrics.length" class="eco-sub-data" aria-live="polite">
+                    <span t-if="status" class="eco-sub-state" t-esc="status"/>
+                    <span t-foreach="metrics" t-as="metric" t-key="metric.label" class="eco-sub-metric">
+                        <strong t-esc="metric.value"/> <span t-esc="metric.label"/>
+                    </span>
+                    <button type="button" class="eco-sub-refresh" title="Actualizar indicadores" aria-label="Actualizar indicadores"
+                            t-att-disabled="state.refreshing" t-on-click="() => this.workspace.refresh()">
+                        <i class="fa fa-refresh" aria-hidden="true"/>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </t>
+    <t t-name="step_ecoplantas_greenhouse.Layout" t-inherit="web.Layout" t-inherit-mode="extension">
+        <xpath expr="//div[@t-ref='content']" position="before">
+            <t t-if="!env.inDialog and greenhouseWorkspace.key" t-component="components.GreenhouseSubnav"/>
+        </xpath>
+    </t>
+</templates>

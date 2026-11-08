@@ -3,6 +3,7 @@ from math import isfinite
 
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tools.misc import formatLang
 
 OPERATION = object()
 OPERATION_KEY = "_steps_cost_reallocation"
@@ -199,4 +200,19 @@ class Company(models.Model):
         result["shared_costs"] = any(self.env.user.has_group(group) for group in (
             "account.group_account_user", "account.group_account_manager",
         ))
+        if result["shared_costs"]:
+            draft = self.env["step.nursery.cost.run"].search([
+                ("company_id", "=", self.env.company.id), ("state", "=", "draft"),
+            ], limit=1)
+            if draft:
+                result["subpage_metrics"]["costs"] = [{
+                    "label": _("en vista previa"),
+                    "value": formatLang(self.env, draft.cost_total, currency_obj=draft.currency_id),
+                }]
+                result["subpage_metrics"]["measures"] = [{
+                    "label": _("mediciones de la semana"),
+                    "value": self.env["step.nursery.cost.measure"].search_count([
+                        ("company_id", "=", self.env.company.id), ("week_start", "=", draft.week_start),
+                    ]),
+                }]
         return result

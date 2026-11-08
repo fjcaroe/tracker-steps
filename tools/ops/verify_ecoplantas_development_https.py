@@ -26,6 +26,7 @@ def main():
     dashboard = read("res.company", "get_steps_greenhouse_dashboard", context=ctx)
     assert dashboard["planned"] == 100 and dashboard["operations"] == 2 and dashboard["tasks"] == 4
     assert dashboard["shared_costs"]
+    assert dashboard["subpage_metrics"]["batch"][0]["value"] == 100
     for key in ("receipt", "batch", "inspection", "dispatch", "maintenance", "project"):
         entry = dashboard[key]
         record, = read(entry["model"], "read", [[entry["id"]]], fields=["company_id"], context=ctx)
@@ -46,7 +47,7 @@ def main():
         else:
             raise AssertionError("Invernadero loaded for a different company")
     print(json.dumps({"company": cid, "reviewer": uid, "forms": 6, "cost_total": costs["cost_total"],
-                      "version": "18.0.1.1.0", "route": f"{URL}/odoo/invernadero?cids={cid}"}))
+                      "route": f"{URL}/odoo/invernadero?cids={cid}"}))
 
 
 if __name__ == "__main__":

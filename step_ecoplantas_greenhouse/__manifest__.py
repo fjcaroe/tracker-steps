@@ -1,7 +1,7 @@
 {
     "name": "Steps - Invernadero",
     "summary": "Portada operativa y recorrido de demostración de ECOPLANTAS",
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.2.0",
     "category": "Operations/Agriculture",
     "author": "Steps Consulting",
     "website": "https://stepsapp.cl",
@@ -11,6 +11,9 @@
     "assets": {
         "web.assets_backend": [
             "step_ecoplantas_greenhouse/static/src/company_theme.js",
+            "step_ecoplantas_greenhouse/static/src/workspace.js",
+            "step_ecoplantas_greenhouse/static/src/workspace.xml",
+            "step_ecoplantas_greenhouse/static/src/workspace.scss",
             "step_ecoplantas_greenhouse/static/src/greenhouse.js",
             "step_ecoplantas_greenhouse/static/src/greenhouse.xml",
             "step_ecoplantas_greenhouse/static/src/greenhouse.scss",

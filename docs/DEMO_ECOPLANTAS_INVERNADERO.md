@@ -5,6 +5,11 @@ con la cuenta habitual de Desarrollo y seleccionar **EcoPlantas** como empresa
 activa. La portada de Steps enlaza a los registros de Odoo identificados con
 `[DEMO]` y muestra los estados del lote.
 
+Las pantallas del recorrido tienen una guía con pasos, acceso al panel e
+indicadores actualizables. En Despacho se puede consultar la disponibilidad
+en la ubicación de plantines. El reparto enlaza a centros, drivers y carga
+semanal desde la misma pantalla.
+
 1. En Inventario, abrir la recepción en borrador con origen `[DEMO] Semillas
    y sustrato`. Registrar un lote para las semillas y recibir los insumos en
    la ubicación de invernadero.

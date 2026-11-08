@@ -265,6 +265,7 @@ def certified(stage):
     assert proof["release"] == identity()
     assert proof["source_sha256"] == file_hash(stage / "payload.json")
     assert proof["exercise"]["same_lot"] and proof["exercise"]["cost_confirmed_and_reversed"]
+    assert proof["exercise"]["live_indicators"]
     for name, digest in proof["release"]["files"].items():
         assert package_hash(stage / "addons" / name) == digest
     return proof
@@ -324,6 +325,7 @@ def deploy(stage):
     browser = json.loads((stage / "browser-approved.json").read_text(encoding="utf-8-sig"))
     assert browser["sha256"] == proof["release"]["sha256"] and browser["visual_reviewed"]
     assert browser["company"] == state["cid"] and browser["other_company_unthemed"] and browser["cost_preview"]
+    assert browser["workflow_navigation"] and browser["mobile_forms"]
     payload = json.loads((stage / "payload.json").read_text())
     assert source_data(stage, state, "source-recheck") == payload, "The source demo changed; certify a fresh export"
     release = Path("/opt/steps-managed/releases/development") / proof["release"]["commit"]

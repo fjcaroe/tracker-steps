@@ -294,6 +294,8 @@ def exercise_demo(env, payload, cid, uid):
     dispatch.with_context(skip_backorder=True).button_validate()
     remaining = business["stock.quant"]._get_available_quantity(plant, dispatch.location_id, lot_id=lot)
     assert dispatch.state == "done" and remaining == batch.product_qty - dispatch.move_ids.quantity
+    metrics = business["res.company"].get_steps_greenhouse_dashboard()["subpage_metrics"]
+    assert metrics["dispatch"][0]["value"] == remaining and metrics["lots"][0]["value"] == 1
     run = business.ref(f"{COST}.demo_run")
     run.action_confirm()
     assert run.state == "done" and sum(run.item_ids.mapped("amount")) == 0
@@ -301,4 +303,4 @@ def exercise_demo(env, payload, cid, uid):
     assert run.state == "reversed"
     return {"received": True, "produced": batch.product_qty, "quality": True,
             "shipped": dispatch.move_ids.quantity, "same_lot": True, "remaining": remaining,
-            "cost_total": run.cost_total, "cost_confirmed_and_reversed": True}
+            "cost_total": run.cost_total, "cost_confirmed_and_reversed": True, "live_indicators": True}

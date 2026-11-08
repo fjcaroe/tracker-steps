@@ -164,22 +164,26 @@
         <field name="res_model">step.nursery.cost.run</field>
         <field name="view_mode">list,form</field>
         <field name="path">repartos-vivero</field>
+        <field name="context">{'steps_greenhouse_stage': 'costs'}</field>
     </record>
     <record id="action_cost_center" model="ir.actions.act_window">
         <field name="name">Centros de costo</field>
         <field name="res_model">account.analytic.account</field>
         <field name="view_mode">list,form</field>
+        <field name="context">{'steps_greenhouse_stage': 'centers'}</field>
     </record>
     <record id="action_cost_driver" model="ir.actions.act_window">
         <field name="name">Drivers de costeo</field>
         <field name="res_model">step.sawmill.costing.driver</field>
         <field name="view_mode">list,form</field>
         <field name="view_id" ref="view_cost_driver_list"/>
+        <field name="context">{'steps_greenhouse_stage': 'drivers'}</field>
     </record>
     <record id="action_cost_measure" model="ir.actions.act_window">
         <field name="name">Carga semanal de drivers</field>
         <field name="res_model">step.nursery.cost.measure</field>
         <field name="view_mode">list,form</field>
+        <field name="context">{'steps_greenhouse_stage': 'measures'}</field>
     </record>
     <menuitem id="menu_summary" name="Resumen" parent="step_ecoplantas_greenhouse.menu_greenhouse"
               action="step_ecoplantas_greenhouse.action_greenhouse" sequence="5"/>

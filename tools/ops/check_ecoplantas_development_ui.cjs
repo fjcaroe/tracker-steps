@@ -40,35 +40,69 @@ async function main() {
         assert.equal(await page.locator(".o_main_navbar").evaluate(node => getComputedStyle(node).backgroundColor), "rgb(23, 63, 51)");
         assert.deepEqual(await board.locator(".eco-metrics strong").allTextContents(), ["100", "2", "4"]);
         await save("invernadero-desarrollo");
+        const guide = section => page.locator(`.eco-workspace[data-section="${section}"]`);
+        await board.getByRole("button", { name: "Abrir recepción", exact: true }).click();
+        await guide("receipt").waitFor();
+        await content("[DEMO] Semillas y sustrato");
+        assert.match(await guide("receipt").locator(".eco-sub-data").innerText(), /2\s+insumos/);
+        await save("recepcion-desarrollo");
+        await guide("receipt").locator(".eco-sub-next").click();
+        await guide("batch").waitFor();
+        await content("Plantín de tomate [DEMO]");
+        await guide("batch").getByRole("button", { name: "Actualizar indicadores" }).click();
+        assert.match(await guide("batch").locator(".eco-sub-data").innerText(), /100\s+plantines planificados/);
+        await save("manufactura-desarrollo");
+        await guide("batch").getByRole("button", { name: "Panel", exact: true }).click();
+        await board.waitFor();
         const visits = [
-            ["Abrir recepción", "[DEMO] Semillas y sustrato"],
-            ["Abrir orden", "Plantín de tomate [DEMO]"],
-            ["Abrir control", "Revisión visual del lote de plantines [DEMO]"],
-            ["Abrir despacho", "[DEMO] Despacho de plantines"],
-            [/^Mantenimiento de riego/, "Revisar bomba y goteros [DEMO]"],
+            ["inspection", "Abrir control", "Revisión visual del lote de plantines [DEMO]"],
+            ["dispatch", "Abrir despacho", "[DEMO] Despacho de plantines"],
+            ["maintenance", /^Mantenimiento de riego/, "Revisar bomba y goteros [DEMO]"],
         ];
-        for (const [label, value] of visits) {
+        for (const [section, label, value] of visits) {
             await board.getByRole("button", { name: label, exact: typeof label === "string" }).click();
+            await guide(section).waitFor();
             await page.locator(".o_ecoplantas_native_form").first().waitFor();
             await content(value);
-            await returnToBoard();
+            await guide(section).getByRole("button", { name: "Panel", exact: true }).click();
+            await board.waitFor();
         }
         await board.getByRole("button", { name: /^Labores de cultivo/ }).click();
+        await guide("project").waitFor();
         await page.getByText("Registrar riego y condición de bandejas [DEMO]", { exact: true }).first().waitFor();
-        await returnToBoard();
+        await guide("project").getByRole("button", { name: "Panel", exact: true }).click();
+        await board.waitFor();
+        await board.getByRole("button", { name: /^Trazabilidad de plantines/ }).click();
+        await guide("lots").waitFor();
+        assert.match(await guide("lots").locator(".eco-sub-data").innerText(), /0\s+lotes registrados/);
+        await guide("lots").getByRole("button", { name: "Panel", exact: true }).click();
+        await board.waitFor();
         await board.getByRole("button", { name: /^Costos compartidos/ }).click();
+        await guide("costs").waitFor();
         await page.locator(".o_list_view .o_data_row").filter({ hasText: "Servicios compartidos del vivero [DEMO]" }).click();
         await page.getByRole("button", { name: "Confirmar reparto", exact: true }).waitFor();
         assert.match(await page.locator('.o_field_widget[name="cost_total"]').innerText(), /200[.\s]?000/);
         assert.equal(await page.locator('.o_field_widget[name="line_ids"] .o_data_row').count(), 4);
         await save("reparto-desarrollo");
+        await guide("costs").getByRole("button", { name: "Carga semanal", exact: true }).click();
+        await guide("measures").waitFor();
+        await page.getByRole("columnheader", { name: /Cantidad semanal/ }).waitFor();
+        await save("carga-desarrollo");
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await returnToBoard();
+        await board.getByRole("button", { name: "Abrir recepción", exact: true }).click();
+        await guide("receipt").waitFor();
+        assert(await guide("receipt").evaluate(node => node.scrollWidth <= node.clientWidth + 1));
+        await save("recepcion-movil");
 
         await page.goto(origin + "/odoo?cids=1", { waitUntil: "domcontentloaded" });
         await page.locator(".o_web_client .o_main_navbar").waitFor();
         await page.waitForFunction(() => document.cookie.split(";").some(item => item.trim() === "cids=1"));
         assert.equal(await page.locator("body").evaluate(body => body.classList.contains("o_ecoplantas_company")), false);
         assert.deepEqual(errors, []);
-        const proof = { sha256, company: request.company, other_company_unthemed: true, cost_preview: true, forms: visits.length };
+        const proof = { sha256, company: request.company, other_company_unthemed: true, cost_preview: true,
+            forms: visits.length + 2, workflow_navigation: true, mobile_forms: true };
         fs.writeFileSync(path.join(output, "browser-proof.json"), JSON.stringify(proof, null, 2));
         console.log("ECOPLANTAS_DEVELOPMENT_BROWSER_OK", JSON.stringify(proof));
     } catch (error) {

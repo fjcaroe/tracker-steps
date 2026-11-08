@@ -63,12 +63,40 @@ class ResCompany(models.Model):
         checks = self.env["quality.check"]
         if batch and point and checks.has_access("read"):
             checks = checks.search([("production_id", "=", batch.id), ("point_id", "=", point.id)])
+        open_tasks = tasks.search_count([
+            ("project_id", "=", project.id), ("state", "not in", ["1_done", "1_canceled"]),
+        ]) if project else None
+        operations = len(bom.operation_ids) if bom and bom.has_access("read") else None
+        metrics = {}
+
+        def metric(section, label, value):
+            metrics.setdefault(section, []).append({"label": label, "value": value})
+
+        if receipt and receipt.move_ids.has_access("read"):
+            metric("receipt", _("insumos"), len(receipt.move_ids))
+        if batch:
+            metric("batch", _("plantines planificados"), batch.product_qty)
+        if operations is not None:
+            metric("batch", _("operaciones"), operations)
+        if point and checks.has_access("read"):
+            metric("inspection", _("controles pendientes"), len(checks.filtered(lambda check: check.quality_state == "none")))
+            metric("inspection", _("aprobados"), len(checks.filtered(lambda check: check.quality_state == "pass")))
+        if plant:
+            metric("lots", _("lotes registrados"), self.env["stock.lot"].search_count([
+                ("product_id", "=", plant.id), ("company_id", "=", self.env.company.id),
+            ]))
+        if plant and dispatch and self.env["stock.quant"].has_access("read"):
+            available = round(self.env["stock.quant"]._get_available_quantity(plant, dispatch.location_id), 4)
+            metric("dispatch", _("plantines disponibles"), available)
+        if project:
+            metric("project", _("labores abiertas"), open_tasks)
+        if maintenance:
+            metric("maintenance", _("etapa"), maintenance.stage_id.name)
         return {
             "planned": batch.product_qty if batch else None,
-            "operations": len(bom.operation_ids) if bom and bom.has_access("read") else None,
-            "tasks": tasks.search_count([
-                ("project_id", "=", project.id), ("state", "not in", ["1_done", "1_canceled"]),
-            ]) if project else None,
+            "operations": operations,
+            "tasks": open_tasks,
+            "subpage_metrics": metrics,
             "receipt": form(receipt, "state"),
             "batch": form(batch, "state"),
             "inspection": form(checks[:1], "quality_state") if checks else form(point),

@@ -1,0 +1,60 @@
+body.o_ecoplantas_company.o_ecoplantas_workspace {
+    .o_action_manager .o_action > .o_content { background: #f4f7f4; }
+    .o_ecoplantas_native_form .oe_title { max-width: 100%; }
+    .eco-workspace {
+        flex: 0 0 auto;
+        min-width: 0;
+        margin: 0 16px 9px;
+        border: 1px solid #dce8df;
+        border-radius: 13px;
+        color: #173f33;
+        background: #fff;
+        overflow: hidden;
+    }
+    .eco-subhero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 14px 18px;
+        background: radial-gradient(ellipse at 90% 0, #89c45e38, transparent 52%), linear-gradient(110deg, #10372d, #24614d);
+        color: #fff;
+    }
+    .eco-sub-label { display: flex; align-items: center; gap: 6px; color: #d8ff62; font-size: .66rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+    .eco-subhero h2 { margin: 4px 0 3px; color: #fff; font-size: clamp(1.15rem, 2.1vw, 1.6rem); line-height: 1.15; font-weight: 800; }
+    .eco-subhero p { margin: 0; color: #e3f0e7; font-size: .8rem; }
+    .eco-sub-actions { display: flex; align-items: center; gap: 7px; }
+    .eco-sub-button {
+        display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+        min-height: 37px; padding: 6px 11px; border: 1px solid #d9eddf72; border-radius: 7px;
+        color: #fff; background: #ffffff15; font-weight: 700; white-space: nowrap;
+        &:hover { background: #ffffff2c; }
+    }
+    .eco-sub-next { color: #173f33; background: #d8ff62; border-color: #d8ff62; }
+    .eco-sub-next:hover { background: #e9ff9e; }
+    .eco-sub-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; padding: 6px 10px; }
+    .eco-sub-tabs, .eco-sub-data { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+    .eco-sub-tabs button, .eco-sub-refresh {
+        display: inline-flex; align-items: center; gap: 5px; min-height: 33px; padding: 5px 8px;
+        border: 1px solid transparent; border-radius: 6px; color: #285642;
+        background: transparent; font-weight: 750; font-size: .76rem;
+        &:hover { background: #f0f7ef; }
+    }
+    .eco-sub-tabs button.is-current { border-color: #cde3c9; background: #edf7e8; }
+    .eco-tab-index { color: #4b785d; font-size: .65rem; }
+    .eco-sub-state, .eco-sub-metric { display: inline-flex; gap: 4px; align-items: baseline; padding: 4px 7px; border-radius: 6px; background: #eff5ec; font-size: .74rem; }
+    .eco-sub-state { color: #1b533d; font-weight: 800; }
+    .eco-sub-metric strong { color: #103d33; }
+    .eco-sub-refresh { padding: 5px 7px; }
+    .eco-workspace button:focus-visible { outline: 2px solid #7ab259; outline-offset: 1px; }
+
+    @media (max-width: 620px) {
+        .eco-workspace { margin-inline: 7px; }
+        .eco-subhero { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+        .eco-subhero p { font-size: .74rem; }
+        .eco-sub-actions { gap: 6px; }
+        .eco-sub-button { min-height: 40px; }
+        .eco-sub-tabs button { min-height: 37px; padding-inline: 6px; }
+        .eco-sub-summary { gap: 4px; padding: 4px 7px; }
+    }
+}
