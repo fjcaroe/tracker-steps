@@ -26,8 +26,9 @@ FIELDS = {
     "project.project": "name description privacy_visibility active",
     "project.task.type": "name sequence fold project_ids",
     "project.task": "name description project_id stage_id priority state date_deadline user_ids active",
-    "maintenance.equipment": "name workcenter_id model serial_no note active",
-    "maintenance.request": "name equipment_id maintenance_type request_date schedule_date duration description stage_id",
+    "maintenance.team": "name",
+    "maintenance.equipment": "name workcenter_id maintenance_team_id model serial_no note active",
+    "maintenance.request": "name equipment_id maintenance_team_id maintenance_type request_date schedule_date duration description stage_id",
     "step.sawmill.costing.driver": "name uom_id sequence active",
     "account.analytic.account": "name code plan_id step_cost_pool step_cost_parent_id active",
     "step.nursery.cost.rule": "parent_id labor_id driver_id",
@@ -38,7 +39,7 @@ FIELDS = {
 COMPANY_ONLY = {
     "res.partner", "product.template", "stock.location", "mrp.workcenter", "mrp.bom", "stock.picking", "stock.move",
     "mrp.production", "quality.alert.team", "quality.point", "project.project", "project.task", "maintenance.equipment",
-    "maintenance.request", "step.sawmill.costing.driver", "account.analytic.account", "step.nursery.cost.measure",
+    "maintenance.request", "maintenance.team", "step.sawmill.costing.driver", "account.analytic.account", "step.nursery.cost.measure",
     "account.analytic.line",
 }
 QUIET = {"tracking_disable": True, "mail_notrack": True, "mail_create_nosubscribe": True,
@@ -77,6 +78,7 @@ def export_demo(env, uid):
     records["mrp.bom.line"] = bom.bom_line_ids
     records["stock.move"] = records["stock.picking"].move_ids
     records["quality.alert.team"] = inspection.team_id
+    records["maintenance.team"] = records["maintenance.equipment"].maintenance_team_id | records["maintenance.request"].maintenance_team_id
     records["step.nursery.cost.rule"] = run.parent_id.step_cost_rule_ids
 
     assert batch.state == run.state == "draft" and not run.item_ids
@@ -84,7 +86,7 @@ def export_demo(env, uid):
     for model in ("account.move", "purchase.order", "sale.order", "crm.lead", "stock.move.line",
                   "stock.quant", "stock.lot", "quality.check"):
         assert not env[model].search_count([("company_id", "=", company.id)]), f"New {model} in source"
-    for model in COMPANY_ONLY - {"res.partner", "stock.location", "stock.move", "quality.alert.team"}:
+    for model in COMPANY_ONLY - {"res.partner", "stock.location", "stock.move", "quality.alert.team", "maintenance.team"}:
         assert set(env[model].search([("company_id", "=", company.id)]).ids) == set(records[model].ids), (
             f"Unexpected company records in {model}"
         )
