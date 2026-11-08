@@ -6,7 +6,7 @@
         <field name="path">invernadero</field>
     </record>
     <menuitem id="menu_greenhouse" name="Invernadero" sequence="1"
-              action="action_greenhouse" groups="base.group_user"
+              action="action_greenhouse" groups="step_ecoplantas_greenhouse.group_greenhouse"
               web_icon="fa-leaf,#173f33,#ddf592"/>
     <record id="view_picking_steps" model="ir.ui.view">
         <field name="name">stock.picking.form.steps.greenhouse</field>

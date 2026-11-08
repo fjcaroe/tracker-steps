@@ -601,3 +601,14 @@ revisión de la demo. Dejar el ejemplo calculado en borrador. Certificar copia f
 formularios, navegador, respaldo y bloqueo; publicar únicamente el módulo de
 vivero y su catálogo en ECOPLANTAS. Aserradero conserva su versión instalada en
 sus ambientes. Operación en `tools/ops/manage_ecoplantas_costs.py`.
+
+La decisión posterior del usuario traslada la demo activa de ECOPLANTAS a la
+empresa EcoPlantas que ya existe en Desarrollo (LAB_TAREAS). Respalda ambas
+bases y conserva la anterior como fuente histórica. No reemplaza la base,
+empresa, bodega, planes, usuarios, credenciales o suscripción de Desarrollo.
+Importa los registros de ejemplo con relaciones nativas, reutiliza el perfil
+interno existente y acota el tema a la empresa activa. Instala los módulos
+faltantes mediante overlay privado, incluida la adopción del catálogo de
+drivers de Aserradero sin pérdida de identidad. Valida los cargos, el reparto,
+los borradores y el flujo de lote en una copia privada fresca de Desarrollo.
+Operación en `tools/ops/move_ecoplantas_to_development.py`.

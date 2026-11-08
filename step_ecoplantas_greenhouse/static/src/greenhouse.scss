@@ -118,8 +118,7 @@
     }
 }
 
-// The demo is the only database with this asset bundle installed.
-.o_web_client .o_main_navbar {
+body.o_ecoplantas_company .o_web_client .o_main_navbar {
     --NavBar-background-color: #173f33;
     --NavBar-entry-backgroundColor: #173f33;
     --NavBar-entry-backgroundColor--hover: #26604b;
@@ -132,7 +131,7 @@
     border-color: #173f33;
 }
 
-.o_ecoplantas_native_form {
+body.o_ecoplantas_company .o_ecoplantas_native_form {
     .o_form_sheet {
         border-top: 3px solid #348064;
         border-radius: 13px;

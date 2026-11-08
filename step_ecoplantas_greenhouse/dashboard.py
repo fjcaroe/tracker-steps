@@ -1,7 +1,20 @@
 from odoo import _, api, models
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError
 
 from .hooks import DEMO
+
+
+class Http(models.AbstractModel):
+    _inherit = "ir.http"
+
+    def session_info(self):
+        result = super().session_info()
+        batch = self.env.ref(f"{DEMO}.batch", raise_if_not_found=False)
+        if batch and self.env.user.has_group("step_ecoplantas_greenhouse.group_greenhouse"):
+            company = batch.sudo().company_id
+            if company in self.env.user.company_ids:
+                result["steps_greenhouse_company"] = company.id
+        return result
 
 
 class ResCompany(models.Model):
@@ -9,8 +22,11 @@ class ResCompany(models.Model):
 
     @api.model
     def get_steps_greenhouse_dashboard(self):
-        if not self.env.user.has_group("base.group_user"):
-            raise AccessError(_("El panel requiere un usuario interno."))
+        if not self.env.user.has_group("step_ecoplantas_greenhouse.group_greenhouse"):
+            raise AccessError(_("El panel requiere acceso a Invernadero."))
+        batch_ref = self.env.ref(f"{DEMO}.batch", raise_if_not_found=False)
+        if not batch_ref or batch_ref.sudo().company_id != self.env.company:
+            raise UserError(_("Seleccione EcoPlantas como empresa activa para abrir Invernadero."))
 
         def visible(key):
             record = self.env.ref(f"{DEMO}.{key}", raise_if_not_found=False)
