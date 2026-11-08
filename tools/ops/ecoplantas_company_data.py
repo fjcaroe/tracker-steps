@@ -181,7 +181,9 @@ def import_demo(env, payload, cid, uid):
             return common[pointer["special"]].id
         record = env.ref(pointer["xmlid"])
         assert record._name == pointer["model"]
-        if "company_id" in record._fields:
+        if record._name == "res.users":
+            assert company in record.company_ids, "Assignee lacks access to EcoPlantas"
+        elif "company_id" in record._fields:
             assert not record.company_id or record.company_id == company, f"Cross-company dependency: {record._name}"
         return record.id
 
