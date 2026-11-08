@@ -1,8 +1,9 @@
 # Demo de invernadero ECOPLANTAS
 
-Ingresar a [Invernadero](https://ecoplantas.stepsapp.cl/odoo/invernadero) con el
-usuario interno habilitado para la revisión. La portada de Steps enlaza a los
-registros de Odoo identificados con `[DEMO]` y muestra los estados del lote.
+Ingresar a [Invernadero en Desarrollo](https://desarrollo.stepsapp.cl/odoo/invernadero?cids=527)
+con la cuenta habitual de Desarrollo y seleccionar **EcoPlantas** como empresa
+activa. La portada de Steps enlaza a los registros de Odoo identificados con
+`[DEMO]` y muestra los estados del lote.
 
 1. En Inventario, abrir la recepción en borrador con origen `[DEMO] Semillas
    y sustrato`. Registrar un lote para las semillas y recibir los insumos en
@@ -23,16 +24,18 @@ registros de Odoo identificados con `[DEMO]` y muestra los estados del lote.
 Las cantidades, operaciones y controles ilustran el flujo. Ajustar los
 productos, lotes y labores al proceso del invernadero al preparar su operación.
 
+En **Costos compartidos → Repartos semanales**, abrir *Servicios compartidos
+del vivero [DEMO]*. El borrador conserva los cargos y la semana de la demo
+original. Muestra $110.000 para Propagación Norte y $90.000 para Propagación Sur.
+La opción **Carga semanal** reúne las cantidades de superficie y horas que
+explican los importes.
+
 ## Comprobación de publicación
 
-`tools/ops/manage_ecoplantas_greenhouse.py` prueba la instalación y el ciclo
-completo en una copia privada nueva antes de publicar el mismo origen nativo.
-Conserva un respaldo previo, datos existentes y credenciales.
-
-Si la instalación y configuración terminaron y solo falla la respuesta HTTPS
-inmediatamente después del arranque, no repetir la instalación. Ejecutar
-`tools/ops/verify_ecoplantas_greenhouse_delivery.py RUN_ID RUTA_RESPALDO` bajo
-el bloqueo compartido que adquiere el propio verificador. Este comprueba el
-origen probado, versiones, formularios y respuesta HTTPS; restaura el respaldo
-en una base privada temporal para cotejar los registros originales, contraseñas
-cifradas y ausencia de nuevas notificaciones, sin modificar los datos de la demo.
+`tools/ops/move_ecoplantas_to_development.py` traslada los registros de la base
+separada a la empresa existente. Certifica una copia fresca de Desarrollo y
+compara el paquete y los datos exportados antes de aplicar el traslado con
+respaldo. El recorrido completo se prueba en la copia y se conservan los
+borradores para la presentación. La cuenta interna usa sus credenciales de
+Desarrollo. `tools/ops/verify_ecoplantas_development_https.py` verifica la entrega
+con el perfil de Desarrollo.
