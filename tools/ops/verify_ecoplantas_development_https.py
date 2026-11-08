@@ -1,6 +1,7 @@
 """Verify the migrated company with the existing Desarrollo API profile."""
 import json
 from pathlib import Path
+from urllib.request import Request, urlopen
 import xmlrpc.client
 
 URL = "https://desarrollo.stepsapp.cl"
@@ -13,10 +14,20 @@ def main():
     credential = access["api_key"]
     uid = xmlrpc.client.ServerProxy(URL + "/xmlrpc/2/common").authenticate(DB, access["username"], credential, {})
     assert uid
-    rpc = xmlrpc.client.ServerProxy(URL + "/xmlrpc/2/object")
 
     def read(model, method, args=(), **kwargs):
-        return rpc.execute_kw(DB, uid, credential, model, method, list(args), kwargs)
+        payload = {
+            "jsonrpc": "2.0", "method": "call", "id": 1,
+            "params": {"service": "object", "method": "execute_kw",
+                       "args": [DB, uid, credential, model, method, list(args), kwargs]},
+        }
+        request = Request(URL + "/jsonrpc", data=json.dumps(payload).encode(),
+                          headers={"Content-Type": "application/json"})
+        with urlopen(request, timeout=30) as response:
+            data = json.load(response)
+        if "error" in data:
+            raise RuntimeError(data["error"]["data"]["message"])
+        return data["result"]
 
     company, = read("res.company", "search_read", [[("name", "=ilike", "EcoPlantas")]], fields=["name"])
     cid = company["id"]
@@ -42,8 +53,8 @@ def main():
     if other != cid:
         try:
             read("res.company", "get_steps_greenhouse_dashboard", context={"allowed_company_ids": [other]})
-        except xmlrpc.client.Fault as error:
-            assert "Seleccione EcoPlantas" in error.faultString
+        except RuntimeError as error:
+            assert "Seleccione EcoPlantas" in str(error)
         else:
             raise AssertionError("Invernadero loaded for a different company")
     print(json.dumps({"company": cid, "reviewer": uid, "forms": 6, "cost_total": costs["cost_total"],
