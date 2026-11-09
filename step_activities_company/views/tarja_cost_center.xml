@@ -1,0 +1,18 @@
+<odoo>
+    <record id="view_tarja_cost_center_without_tariff" model="ir.ui.view">
+        <field name="name">step.tarja.cost.center.without.tariff</field>
+        <field name="model">step.tarja</field>
+        <field name="inherit_id" ref="step_hr.view_step_tarja_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='tarja_registry']//field[@name='tarja_line']/list/field[@name='cost_id']" position="attributes">
+                <attribute name="domain">[('id', 'in', cost_id_domain)] if parent.pricelist_id else [('company_id', '=', parent.company_id), ('active', '=', True), ('root_plan_id.name', 'in', ['Centro de costos', 'Centro Costos'])]</attribute>
+            </xpath>
+            <xpath expr="//page[@name='tarja_line']//field[@name='tarja_line']/list/field[@name='cost_id']" position="attributes">
+                <attribute name="domain">[('id', 'in', cost_id_domain)] if parent.pricelist_id else [('company_id', '=', parent.company_id), ('active', '=', True), ('root_plan_id.name', 'in', ['Centro de costos', 'Centro Costos'])]</attribute>
+            </xpath>
+            <xpath expr="//page[@name='tarja_cost_line']//field[@name='tarja_cost_line']/list/field[@name='cost_id']" position="attributes">
+                <attribute name="domain">[('id', 'in', cost_id_domain)] if parent.pricelist_id else [('company_id', '=', parent.company_id), ('active', '=', True), ('root_plan_id.name', 'in', ['Centro de costos', 'Centro Costos'])]</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

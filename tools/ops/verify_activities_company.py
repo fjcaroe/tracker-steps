@@ -2,7 +2,9 @@
 import importlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
+from lxml import etree
 from odoo.exceptions import AccessError
 from odoo.tools.safe_eval import safe_eval
 from native_business_profile import scoped_business_environment
@@ -45,6 +47,33 @@ def verify_scope(scoped):
     return count
 
 
+def verify_cost_centers(scoped):
+    tarjas = scoped['step.tarja']
+    form = tarjas.get_view(view_id=scoped.ref('step_hr.view_step_tarja_form').id, view_type='form')
+    nodes = etree.fromstring(form['arch']).xpath("//list/field[@name='cost_id']")
+    assert len(nodes) == 3
+    company = scoped.company
+    context = {'parent': SimpleNamespace(company_id=company.id, pricelist_id=False),
+               'cost_id_domain': []}
+    accounts = scoped['account.analytic.account']
+    expected = accounts.search([
+        ('company_id', '=', company.id), ('active', '=', True),
+        ('root_plan_id.name', 'in', ['Centro de costos', 'Centro Costos']),
+    ])
+    for node in nodes:
+        context['parent'].pricelist_id = False
+        domain = safe_eval(node.get('domain'), context)
+        assert {item[0] for item in accounts.name_search(args=domain, limit=None)} == set(expected.ids)
+        context['parent'].pricelist_id = 1
+        assert safe_eval(node.get('domain'), context) == [('id', 'in', [])]
+    example = tarjas.search([('pricelist_id', '=', False), ('tarja_line', '!=', False)], limit=1, order='id desc')
+    if company.name == 'EcoPlantas':
+        assert example and expected, 'The reported no-tariff form and cost center catalog must be available'
+    if example:
+        assert example.company_id == company and example.tarja_line.read(['cost_id'])
+    return {'centers': len(expected), 'existing_no_tariff': bool(example)}
+
+
 try:
     for name, version in EXPECTED.items():
         module = env['ir.module.module'].search([('name', '=', name)])
@@ -67,9 +96,20 @@ try:
     else:
         scopes = [scoped_business_environment(env)]
     counts = {scope.company.id: verify_scope(scope) for scope in scopes}
+    cost_centers = {}
+    if EXPECTED['step_activities_company'] == '18.0.1.1.0':
+        if not is_development:
+            scoped = scopes[0]
+            allowed = scoped.user.company_ids
+            owners = scoped['step.tarja'].sudo().search([('company_id', 'in', allowed.ids)]).company_id
+            scopes += [scoped(context=dict(scoped.context, allowed_company_ids=(owner | allowed).ids))
+                       for owner in owners - scoped.company]
+        cost_centers = {scope.company.id: verify_cost_centers(scope) for scope in scopes}
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({
         'ticket': 179, 'versions': EXPECTED, 'existing_profile': scopes[0].uid,
         'menus_and_forms': len(MENU_NAMES), 'records_by_company': counts, 'writes': False,
     }))
+    if cost_centers:
+        print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 182, 'cost_center_selectors': cost_centers}))
 finally:
     env.cr.rollback()

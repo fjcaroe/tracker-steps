@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T182 amplía `activities-company` en Desarrollo (incluida la empresa EcoPlantas),
+Cerro y QA-Cerro. El detalle de la tarja sin lista de precios permite seleccionar
+centros activos del plan de costos de la empresa. Con lista se mantiene su
+selección de centros. Verificar la búsqueda nativa, el registro de labores
+y la conservación de las reglas de T179 en copias frescas. Mismo paquete,
+respaldo, bloqueo y paridad sin refrescar QA-Cerro.
+
 T180 autoriza `payroll-steps-layout` solo en Desarrollo y para la empresa
 seleccionada en el plan privado del caso. Conservar la acción nativa de
 Nómina y los importes almacenados de Simple Digital. Verificar el formulario,
