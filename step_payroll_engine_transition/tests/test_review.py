@@ -4,15 +4,15 @@ from odoo.tests import TransactionCase, tagged
 
 @tagged('post_install', '-at_install')
 class PayrollReviewCase(TransactionCase):
-    def contract(self, name):
+    def contract(self, name, review=True):
         employee = self.env['hr.employee'].create({'name': name, 'company_id': self.env.company.id})
         return self.env['hr.contract'].create({'name': 'Contrato ' + name, 'employee_id': employee.id,
             'date_start':'2026-01-01','wage':1000,'resource_calendar_id':self.env.company.resource_calendar_id.id,
-            'company_id': self.env.company.id, 'step_payroll_migration_review': True})
+            'company_id': self.env.company.id, 'step_payroll_migration_review': review})
 
-    def slip(self, contract):
+    def slip(self, contract, structure=False):
         return self.env['hr.payslip'].new({'employee_id': contract.employee_id,
-            'contract_id': contract, 'company_id': self.env.company.id, 'struct_id': False})
+            'contract_id': contract, 'company_id': self.env.company.id, 'struct_id': structure})
 
     def test_batch_identifies_every_pending_contract_and_keeps_review_gate(self):
         first, second = self.contract('QA Persona A'), self.contract('QA Persona B')
@@ -42,6 +42,25 @@ class PayrollReviewCase(TransactionCase):
     def test_direct_flag_write_remains_protected(self):
         with self.assertRaises(UserError):
             self.contract('QA Protegido').write({'step_payroll_migration_review': False})
+
+    def test_regular_chilean_batch_names_all_incomplete_contracts(self):
+        structure = self.env.ref('l10n_cl_simpledigital_payroll.structure_chile', raise_if_not_found=False)
+        if not structure:
+            self.skipTest('Requires Simple Digital')
+        first = self.contract('QA Sin Salud', review=False)
+        second = self.contract('QA Sin Comuna', review=False)
+        first.health_institution = False
+        second.employee_id.hr_commune = False
+        slips = self.slip(first, structure) | self.slip(second, structure) | self.slip(first, structure)
+
+        with self.assertRaises(UserError) as error:
+            slips.compute_sheet()
+        message = str(error.exception)
+        self.assertEqual(message.count(first.name), 1)
+        self.assertIn(first._fields['health_institution'].get_description(self.env)['string'], message)
+        self.assertIn(second.name, message)
+        self.assertIn('Comuna del trabajador', message)
+        self.assertNotIn('Confirmar parámetros de nómina', message)
 
     def test_non_manager_cannot_confirm(self):
         contract = self.contract('QA Acceso')

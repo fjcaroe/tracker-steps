@@ -93,11 +93,19 @@ class Payslip(models.Model):
                 '«Confirmar parámetros de nómina» y luego volver a generar los recibos. '
                 'Esta confirmación conserva las liquidaciones históricas.',
                 contracts=pending._step_simpledigital_review_lines()))
-        for slip in self:
-            if slip.struct_id.get_external_id().get(slip.struct_id.id) == 'l10n_cl_simpledigital_payroll.structure_chile':
-                contract = slip.contract_id
-                if any(not contract[name] for name in ('analytic_account_id','health_institution','pension_option','work_schedule_id','income_tax_type','contract_type_id')):
-                    raise UserError(_('Complete los parámetros de Simple Digital del contrato antes de calcular.'))
-                if not slip.employee_id.hr_commune:
-                    raise UserError(_('Seleccione la comuna del trabajador antes de calcular.'))
+        structure = self.env.ref('l10n_cl_simpledigital_payroll.structure_chile', raise_if_not_found=False)
+        if structure:
+            slips = self.filtered(lambda slip: slip.struct_id == structure)
+            incomplete = slips.contract_id.filtered(lambda contract: contract._step_simpledigital_review_issues())
+            missing_contract = slips.filtered(lambda slip: not slip.contract_id)
+            if incomplete or missing_contract:
+                details = [incomplete._step_simpledigital_review_lines()] if incomplete else []
+                details.extend(
+                    _('• %(employee)s: falta el contrato', employee=employee.name)
+                    for employee in missing_contract.employee_id.sorted('name')
+                )
+                raise UserError(_(
+                    'Complete los parámetros de Simple Digital antes de calcular:\n\n%s',
+                    '\n'.join(details),
+                ))
         return super().compute_sheet()
