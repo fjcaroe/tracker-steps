@@ -1,5 +1,11 @@
 # Operación y publicación de Odoo
 
+T186 amplía `producer-advances` en Desarrollo, Cerro y QA-Cerro. Las dos
+acciones de tarifas de Actividades abren su formulario agrícola y la acción
+de Productores abre su formulario de anticipos. Verificar guardado de labor,
+producto y unidad con ambas tarifas de Actividades y conservar el flujo de
+precios de fruta. Mismo paquete en copias frescas, respaldo y bloqueo.
+
 T185 autoriza `packing-company` en Desarrollo, Cerro y QA-Cerro. Al guardar
 una tarja nueva se conserva la compañía de origen aunque esté sin existencias.
 En Cerro, anular solo los tres borradores auditados sin stock, movimientos ni
