@@ -61,7 +61,9 @@ const path = require('node:path');
     await page.locator('.inspector-header').getByText(driverLabel, { exact: true }).waitFor();
     if (target.located) {
       const marker = page.locator('.ops-map-vehicle').filter({ has: page.getByText(target.plate || target.name, { exact: true }) });
-      await marker.getByText(driverLabel, { exact: true }).waitFor();
+      const label = marker.getByText(driverLabel, { exact: true });
+      await label.waitFor();
+      if (target.driver) assert.ok((await label.boundingBox()).width >= 95, 'Driver label has room to read');
     }
     if (target.driver) {
       const search = page.getByRole('searchbox', { name: 'Buscar equipo, patente o chofer' });

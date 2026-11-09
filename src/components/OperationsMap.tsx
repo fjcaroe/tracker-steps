@@ -42,7 +42,7 @@ function toMapPoint(point: GeoPoint): google.maps.LatLngLiteral {
 
 function TractorMarker({ vehicle, selected, label, type, showDriver }: { vehicle: DemoVehicle; selected: boolean; label?: string; type?: string; showDriver: boolean }) {
   return (
-    <div className={`ops-map-vehicle ${selected ? "is-selected" : ""}`}>
+    <div className={`ops-map-vehicle ${selected ? "is-selected" : ""} ${showDriver ? "has-driver-label" : ""}`}>
       <span className="ops-map-vehicle__pulse" />
       <span className="ops-map-vehicle__icon" style={{ transform: `rotate(${vehicle.bearing}deg)` }}>
         <TrackerIcon name={type === 'truck' ? 'truck' : !type || type === 'tractor' || type === 'machinery' ? 'tractor' : 'fleet'}/>
