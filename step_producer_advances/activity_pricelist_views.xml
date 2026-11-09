@@ -2,19 +2,107 @@
     <record id="activity_pricelist_form" model="ir.ui.view">
         <field name="name">product.pricelist.activity.form</field>
         <field name="model">product.pricelist</field>
-        <field name="inherit_id" ref="step_hr.step_pricelist_view_inherit"/>
-        <field name="mode">primary</field>
         <field name="priority">90</field>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='item_ids']/form//field[@name='labor_id']" position="attributes">
-                <attribute name="required">True</attribute>
-                <attribute name="domain">[('is_labor', '=', True)]</attribute>
-            </xpath>
-            <xpath expr="//field[@name='item_ids']/form//field[@name='uom_id']" position="attributes">
-                <attribute name="required">True</attribute>
-            </xpath>
-            <xpath expr="//field[@name='item_ids']/form//field[@name='tarifa_trato']" position="replace"/>
-            <xpath expr="//field[@name='item_ids']/form//field[@name='uom_trato']" position="replace"/>
+            <form string="Tarifa de Actividades">
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" placeholder="Nombre de la tarifa"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="group_type" widget="radio" readonly="True" force_save="1"/>
+                            <field name="currency_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="country_group_ids" widget="many2many_tags"/>
+                            <field name="date_init"/>
+                            <field name="date_end"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="partner_ids" widget="many2many_tags" domain="[('step_contra', '=', True)]"
+                                   invisible="group_type != 'contratista'"/>
+                            <field name="escalonado"/>
+                            <field name="cost_ids" widget="many2many_tags"
+                                   domain="[('root_plan_id.name', 'in', ['Centro de costos', 'Centro Costos'])]"/>
+                            <field name="moviliza"/>
+                            <field name="transporte_id" invisible="not moviliza"/>
+                            <field name="especie_id"/>
+                            <field name="grupo_variedad_id_domain" widget="many2many_tags"
+                                   domain="[('especie_id', '=', especie_id)]"/>
+                            <field name="user_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="pricelist_rules" string="Reglas de precio">
+                            <field name="item_ids" context="{'default_applied_on': '1_product', 'default_base': 'list_price'}">
+                                <list>
+                                    <field name="labor_id"/>
+                                    <field name="name" optional="show"/>
+                                    <field name="price"/>
+                                    <field name="uom_id"/>
+                                    <field name="min_quantity"/>
+                                    <field name="can_std" optional="hide"/>
+                                    <field name="can_max" optional="hide"/>
+                                    <field name="date_start"/>
+                                    <field name="date_end"/>
+                                </list>
+                                <form string="Regla de precio de Actividades">
+                                    <sheet>
+                                        <group>
+                                            <group>
+                                                <field name="labor_id" domain="[('is_labor', '=', True)]" required="True"/>
+                                                <field name="uom_id" required="True"/>
+                                                <field name="applied_on"/>
+                                                <field name="categ_id" invisible="applied_on != '2_product_category'"/>
+                                                <field name="product_tmpl_id" domain="[('is_labor', '=', True)]"
+                                                       invisible="applied_on not in ('1_product', '0_product_variant')"
+                                                       required="applied_on in ('1_product', '0_product_variant')"/>
+                                                <field name="product_id" invisible="applied_on != '0_product_variant'"
+                                                       required="applied_on == '0_product_variant'"/>
+                                            </group>
+                                            <group>
+                                                <field name="compute_price"/>
+                                                <field name="fixed_price" invisible="compute_price != 'fixed'"/>
+                                                <field name="percent_price" invisible="compute_price != 'percentage'"/>
+                                                <field name="min_quantity"/>
+                                                <field name="can_std"/>
+                                                <field name="can_max"/>
+                                                <field name="date_start"/>
+                                                <field name="date_end"/>
+                                            </group>
+                                        </group>
+                                        <group string="Fórmula" invisible="compute_price != 'formula'">
+                                            <field name="base"/>
+                                            <field name="base_pricelist_id" invisible="base != 'pricelist'"/>
+                                            <field name="price_discount"/>
+                                            <field name="price_round"/>
+                                            <field name="price_surcharge"/>
+                                            <field name="price_min_margin"/>
+                                            <field name="price_max_margin"/>
+                                        </group>
+                                    </sheet>
+                                </form>
+                            </field>
+                        </page>
+                        <page name="move_line" string="Tarifas por recorrido" invisible="not moviliza"
+                              groups="step_mobilization.group_mobilization_user">
+                            <field name="move_item">
+                                <list editable="bottom">
+                                    <field name="recorrido_id"/>
+                                    <field name="product_id" domain="[('is_movi', '=', True)]"/>
+                                    <field name="desde"/>
+                                    <field name="hasta"/>
+                                    <field name="cobro_type"/>
+                                    <field name="charge_type"/>
+                                    <field name="tarifa"/>
+                                    <field name="currency_id" optional="hide"/>
+                                    <field name="date_start"/>
+                                    <field name="date_end"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
         </field>
     </record>
 
