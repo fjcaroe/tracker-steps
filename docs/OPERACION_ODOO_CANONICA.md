@@ -11,6 +11,10 @@ indicada en el plan privado. Usar la categoría imponible de la estructura
 nativa cuando la regla GROSS conserva la fórmula anterior BASIC + ALW.
 Verificar imponible, cotizaciones y líquido al calcular copias en borrador
 del lote reportado. Preservar los originales y sus asientos al instalar.
+La autorización posterior permite corregir los tres recibos de demostración
+del lote indicado. Repetir el mismo flujo nativo en copia y conservar IDs,
+referencias y el respaldo de los borradores previos. Los asientos regenerados
+deben quedar cuadrados y en borrador. Sin pagos ni notificaciones.
 
 T179 (adjunto 3544 y confirmación del usuario) autoriza `activities-company`
 en Desarrollo, Cerro y QA-Cerro. Cuadrillas, registro de tareas y costeo
