@@ -1,0 +1,14 @@
+<odoo>
+    <record id="view_crew_worker_by_company_and_contractor" model="ir.ui.view">
+        <field name="name">hr.salary.custom.contractor.worker.by.company</field>
+        <field name="model">hr.salary.custom</field>
+        <field name="inherit_id" ref="step_hr.view_hr_salary_custom_form"/>
+        <field name="priority">80</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='contract_line']/list/field[@name='employee_id']" position="attributes">
+                <attribute name="domain">[('active', '=', True), ('is_contratista', '=', True), ('company_id', '=', parent.company_id), ('contratista_id', '=', parent.partner_id)] if parent.partner_id else [('id', '=', False)]</attribute>
+            </xpath>
+            <xpath expr="//field[@name='contract_line']/list/field[@name='employee_id_domain']" position="replace"/>
+        </field>
+    </record>
+</odoo>

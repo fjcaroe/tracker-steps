@@ -87,6 +87,20 @@ def verify_accounting_form(scoped):
         raise AssertionError('The incomplete task should fail preflight')
 
 
+def verify_contractor_worker_form(scoped):
+    crews = scoped['hr.salary.custom']
+    form = crews.get_view(view_id=scoped.ref('step_hr.view_hr_salary_custom_form').id, view_type='form')
+    fields = etree.fromstring(form['arch']).xpath("//field[@name='contract_line']/list/field")
+    assert not [field for field in fields if field.get('name') == 'employee_id_domain']
+    worker, = [field for field in fields if field.get('name') == 'employee_id']
+    parent = SimpleNamespace(company_id=scoped.company.id, partner_id=False)
+    assert safe_eval(worker.get('domain'), {'parent': parent}) == [('id', '=', False)]
+    parent.partner_id = 1
+    domain = safe_eval(worker.get('domain'), {'parent': parent})
+    assert ('company_id', '=', scoped.company.id) in domain
+    assert ('contratista_id', '=', parent.partner_id) in domain
+
+
 try:
     for name, version in EXPECTED.items():
         module = env['ir.module.module'].search([('name', '=', name)])
@@ -129,5 +143,9 @@ try:
         for scope in scopes:
             verify_accounting_form(scope)
         print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 183, 'accounting_preflight': True}))
+    if version >= (18, 0, 1, 3, 0):
+        for scope in scopes:
+            verify_contractor_worker_form(scope)
+        print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 184, 'contractor_worker_form': True}))
 finally:
     env.cr.rollback()

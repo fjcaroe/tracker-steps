@@ -1,5 +1,11 @@
 # Operación y publicación de Odoo
 
+T184 amplía `activities-company` en Desarrollo para el caso de EcoPlantas.
+El selector de trabajadores de una cuadrilla contratista usa la empresa y el
+contratista del registro, conserva las reglas de acceso y valida las líneas al
+guardar. Verificar el formulario y el guardado en copia con la cuadrilla
+reportada y trabajadores locales. Usar el paquete probado con respaldo y bloqueo.
+
 T183 amplía `activities-company` en Desarrollo, Cerro y QA-Cerro. En el
 registro de tareas, verificar que Contabilizar informe los maestros pendientes
 antes de crear el asiento. Probar en copia una tarja inválida y la OT00068 de
