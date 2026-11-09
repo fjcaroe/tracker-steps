@@ -10,9 +10,9 @@ class PayrollReviewCase(TransactionCase):
             'date_start':'2026-01-01','wage':1000,'resource_calendar_id':self.env.company.resource_calendar_id.id,
             'company_id': self.env.company.id, 'step_payroll_migration_review': review})
 
-    def slip(self, contract, structure=False):
+    def slip(self, contract):
         return self.env['hr.payslip'].new({'employee_id': contract.employee_id,
-            'contract_id': contract, 'company_id': self.env.company.id, 'struct_id': structure})
+            'contract_id': contract, 'company_id': self.env.company.id, 'struct_id': False})
 
     def test_batch_identifies_every_pending_contract_and_keeps_review_gate(self):
         first, second = self.contract('QA Persona A'), self.contract('QA Persona B')
@@ -51,12 +51,23 @@ class PayrollReviewCase(TransactionCase):
         second = self.contract('QA Sin Comuna', review=False)
         first.health_institution = False
         second.employee_id.hr_commune = False
-        slips = self.slip(first, structure) | self.slip(second, structure) | self.slip(first, structure)
+        slips = self.env['hr.payslip'].create([
+            {
+                'name': 'QA Simple Digital',
+                'employee_id': contract.employee_id.id,
+                'contract_id': contract.id,
+                'company_id': contract.company_id.id,
+                'struct_id': structure.id,
+                'date_from': '2026-10-01',
+                'date_to': '2026-10-31',
+            }
+            for contract in (first, second, first)
+        ])
 
         with self.assertRaises(UserError) as error:
             slips.compute_sheet()
         message = str(error.exception)
-        self.assertEqual(message.count(first.name), 1)
+        self.assertEqual(message.count(first.name), 1, message)
         self.assertIn(first._fields['health_institution'].get_description(self.env)['string'], message)
         self.assertIn(second.name, message)
         self.assertIn('Comuna del trabajador', message)
