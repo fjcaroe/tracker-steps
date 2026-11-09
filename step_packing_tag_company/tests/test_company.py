@@ -1,3 +1,5 @@
+from odoo.exceptions import ValidationError
+from odoo.tools.safe_eval import safe_eval
 from odoo.tests import TransactionCase, tagged
 from odoo.addons.step_packing_tag_company.hooks import post_init_hook
 
@@ -34,3 +36,25 @@ class CompanyCase(TransactionCase):
     def test_unrelated_empty_package_keeps_native_company(self):
         tag = self.env['stock.quant.package'].create({})
         self.assertFalse(tag.company_id)
+
+    def test_manual_fruit_tag_keeps_company_before_stock(self):
+        model = self.env['stock.quant.package']
+        tag = model.create({'is_fruit_tag': True, 'step_tag_kind': 'C', 'company_id': False})
+        tag._compute_package_info()
+        self.assertEqual(tag.company_id, self.env.company)
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            tag.write({'company_id': False})
+
+    def test_confirmed_duplicate_is_retained_and_removed_from_tag_reports(self):
+        model = self.env['stock.quant.package']
+        duplicate = self.make_tag('E')
+        order = duplicate.step_packing_production_id
+        valid = model.create({
+            'is_fruit_tag': True, 'step_tag_kind': 'E', 'step_packing_result': 'export',
+            'step_packing_production_id': order.id,
+        })
+        duplicate.write({'step_tag_state': 'void', 'step_packing_duplicate_of_id': valid.id})
+        for xml_id in ('step_packing_ticket_revision.tags', 'step_inventory_packing.action_steps_fruit_packages'):
+            report_domain = safe_eval(self.env.ref(xml_id).domain)
+            self.assertEqual(model.search([('id', 'in', (valid | duplicate).ids), *report_domain]), valid)
+        self.assertTrue(duplicate.exists())

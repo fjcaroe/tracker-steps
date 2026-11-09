@@ -1,0 +1,8 @@
+<odoo>
+    <record id="step_packing_ticket_revision.tags" model="ir.actions.act_window">
+        <field name="domain">[('is_fruit_tag','=',True), ('step_packing_detached_duplicate','=',False), ('step_packing_duplicate_of_id','=',False)]</field>
+    </record>
+    <record id="step_inventory_packing.action_steps_fruit_packages" model="ir.actions.act_window">
+        <field name="domain">[('is_fruit_tag','=',True), ('step_packing_duplicate_of_id','=',False)]</field>
+    </record>
+</odoo>

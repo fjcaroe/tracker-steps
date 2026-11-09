@@ -3,6 +3,7 @@ import importlib
 import json
 from pathlib import Path
 from lxml import etree
+from odoo.tools.safe_eval import safe_eval
 from native_business_profile import scoped_business_environment
 
 try:
@@ -26,5 +27,13 @@ try:
         found=scoped['stock.quant.package'].search([('id','in',visible.ids),('company_id','in',scoped.companies.ids)])
         assert found==visible.sorted(key=lambda tag: tag.name) or set(found.ids)==set(visible.ids)
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':144,'versions':EXPECTED,'existing_profile':scoped.uid,'native_menu_and_form':True,'company_filter':True,'verified_existing_tags':len(tags),'writes':False}))
+    if tuple(map(int, EXPECTED['step_packing_tag_company'].split('.'))) >= (18, 0, 1, 1, 0):
+        for xml_id in ('step_packing_ticket_revision.tag_report', 'step_inventory_packing.menu_steps_fruit_packages'):
+            tag_menu = scoped.ref(xml_id)
+            assert tag_menu.id in scoped['ir.ui.menu']._visible_menu_ids()
+            domain = safe_eval(tag_menu.action.domain)
+            assert ('step_packing_duplicate_of_id', '=', False) in domain
+            assert scoped['stock.quant.package'].get_view(view_type='list')['arch']
+        print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 185, 'native_tag_reports': True}))
 finally:
     env.cr.rollback()

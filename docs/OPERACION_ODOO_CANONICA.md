@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T185 autoriza `packing-company` en Desarrollo, Cerro y QA-Cerro. Al guardar
+una tarja nueva se conserva la compañía de origen aunque esté sin existencias.
+En Cerro, anular solo los tres borradores auditados sin stock, movimientos ni
+referencias externas y enlazarlos con sus tarjas vigentes. Preservar sus
+detalles y excluirlos de los listados de tarjas. Repetir el plan privado
+validado en copia con el mismo paquete, respaldo y bloqueo.
+
 T184 amplía `activities-company` en Desarrollo para el caso de EcoPlantas.
 El selector de trabajadores de una cuadrilla contratista usa la empresa y el
 contratista del registro, conserva las reglas de acceso y valida las líneas al
