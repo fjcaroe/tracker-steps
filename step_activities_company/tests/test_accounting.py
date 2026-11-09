@@ -14,7 +14,7 @@ class TestDailyAccounting(TransactionCase):
         with self.assertRaises(UserError) as error:
             task.action_conta()
 
-        for detail in ('Diario Transitorio', 'Temporadas', 'Haberes de costeo',
+        for detail in ('Diario Transitorio', 'Parámetros Generales → Temporada', 'Haberes de costeo',
                        'Centro de costos', 'cuenta analítica Actividad'):
             self.assertIn(detail, str(error.exception))
         self.assertEqual(task.state, 'costo')

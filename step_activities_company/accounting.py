@@ -67,7 +67,7 @@ class StepTarja(models.Model):
             season = seasons.filtered(lambda item: item.company_id == company) or seasons
             if len(season) != 1:
                 issues.append(_(
-                    'En Maestros → Temporadas, configure una sola temporada que cubra el %(date)s para esta empresa.',
+                    'En Actividades → Configuración → Parámetros Generales → Temporada, configure una sola temporada que cubra el %(date)s para esta empresa.',
                     date=self.date.strftime('%d/%m/%Y'),
                 ))
             elif not self._step_compatible_master(season.cost_id, [('active', '=', True)]):
@@ -87,7 +87,7 @@ class StepTarja(models.Model):
                 chosen = candidates.filtered(lambda rule: rule.company_id == company) or candidates
                 if len(chosen) != 1:
                     issues.append(_(
-                        'En Maestros → Haberes de costeo, configure un solo registro activo para %(concept)s.',
+                        'En Actividades → Configuración → Empleado → Haberes de costeo sueldo, configure un solo registro activo para %(concept)s.',
                         concept=label,
                     ))
                     continue
@@ -112,7 +112,7 @@ class StepTarja(models.Model):
                 issues.append(_('Seleccione un Centro de costos activo de la empresa en la línea %(line)s.', line=number))
             if not self._step_compatible_master(line.labor_id.actividad_id, [('active', '=', True)]):
                 issues.append(_(
-                    'En Maestros → Labores, revise la cuenta analítica Actividad de %(labor)s (línea %(line)s).',
+                    'En Actividades → Maestros → Productos / Labores, revise la cuenta analítica Actividad de %(labor)s (línea %(line)s).',
                     labor=line.labor_id.display_name or _('la labor sin seleccionar'), line=number,
                 ))
         if issues:
