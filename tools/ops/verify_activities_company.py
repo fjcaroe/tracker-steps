@@ -50,19 +50,25 @@ try:
         module = env['ir.module.module'].search([('name', '=', name)])
         assert module.state == 'installed' and module.latest_version == version
         assert Path(importlib.import_module('odoo.addons.' + name).__file__).resolve().parent == Path(ROOT) / name
-    scoped = scoped_business_environment(env)
-    other_companies = scoped.user.company_ids - scoped.company
     is_development = env.cr.dbname == 'LAB_TAREAS' or env.cr.dbname.startswith('MANAGEMENT_QA_DEVELOPMENT_')
-    scopes = [scoped]
     if is_development:
-        demo = other_companies.filtered(lambda company: company.name == 'EcoPlantas')
-        assert len(demo) == 1, 'The reviewer must have access to both reported companies'
-        first, second = scoped.company.id, demo.id
-        scopes = [scoped(context=dict(scoped.context, allowed_company_ids=ids))
+        main = env.ref('base.main_company')
+        demo = env['res.company'].search([('name', '=', 'EcoPlantas')])
+        assert len(demo) == 1
+        reviewers = env['res.users'].search([
+            ('share', '=', False), ('id', '!=', 1),
+            ('company_ids', 'in', main.ids), ('company_ids', 'in', demo.ids),
+        ])
+        reviewer = reviewers.filtered(lambda user: user.has_group('base.group_system'))[:1]
+        assert reviewer, 'An existing reviewer must have access to both reported companies'
+        first, second = main.id, demo.id
+        scopes = [env(user=reviewer, su=False, context=dict(env.context, allowed_company_ids=ids))
                   for ids in ([first, second], [second, first])]
+    else:
+        scopes = [scoped_business_environment(env)]
     counts = {scope.company.id: verify_scope(scope) for scope in scopes}
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({
-        'ticket': 179, 'versions': EXPECTED, 'existing_profile': scoped.uid,
+        'ticket': 179, 'versions': EXPECTED, 'existing_profile': scopes[0].uid,
         'menus_and_forms': len(MENU_NAMES), 'records_by_company': counts, 'writes': False,
     }))
 finally:
