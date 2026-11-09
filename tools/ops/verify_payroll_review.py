@@ -5,6 +5,7 @@ from pathlib import Path
 from lxml import etree
 from odoo.exceptions import UserError
 from odoo.tools import config
+from odoo.addons.step_payroll_engine_transition.models import Payslip as PayrollTransition
 
 try:
     assert 'step_payroll_engine_transition' in EXPECTED
@@ -43,7 +44,9 @@ try:
     pending = contracts.new({'name': 'QA Contract', 'employee_id': employee, 'company_id': company.id, 'step_payroll_migration_review': True})
     slip = payslips.new({'employee_id': employee, 'contract_id': pending, 'struct_id': False, 'company_id': company.id})
     try:
-        slip.compute_sheet()
+        # The persisted flow is replayed separately. Verify this guard directly
+        # because downstream payroll wrappers can clear an in-memory fixture.
+        PayrollTransition.compute_sheet(slip)
     except UserError as error:
         assert 'QA Review' in str(error) and 'Confirmar' in str(error)
     else:
