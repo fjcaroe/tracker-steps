@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from lxml import etree
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError
 from odoo.tools.safe_eval import safe_eval
 from native_business_profile import scoped_business_environment
 
@@ -74,6 +74,19 @@ def verify_cost_centers(scoped):
     return {'centers': len(expected), 'existing_no_tariff': bool(example)}
 
 
+def verify_accounting_form(scoped):
+    tarjas = scoped['step.tarja']
+    form = tarjas.get_view(view_id=scoped.ref('step_hr.view_step_tarja_form').id, view_type='form')
+    assert etree.fromstring(form['arch']).xpath("//button[@name='action_conta']")
+    incomplete = tarjas.new({'company_id': scoped.company.id, 'tarja_type': 'propio', 'date': False})
+    try:
+        incomplete._step_daily_accounting_scope()
+    except UserError as error:
+        assert 'Agregue al menos una línea' in str(error), str(error)
+    else:
+        raise AssertionError('The incomplete task should fail preflight')
+
+
 try:
     for name, version in EXPECTED.items():
         module = env['ir.module.module'].search([('name', '=', name)])
@@ -97,7 +110,8 @@ try:
         scopes = [scoped_business_environment(env)]
     counts = {scope.company.id: verify_scope(scope) for scope in scopes}
     cost_centers = {}
-    if EXPECTED['step_activities_company'] == '18.0.1.1.0':
+    version = tuple(map(int, EXPECTED['step_activities_company'].split('.')))
+    if version >= (18, 0, 1, 1, 0):
         if not is_development:
             scoped = scopes[0]
             allowed = scoped.user.company_ids
@@ -111,5 +125,9 @@ try:
     }))
     if cost_centers:
         print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 182, 'cost_center_selectors': cost_centers}))
+    if version >= (18, 0, 1, 2, 0):
+        for scope in scopes:
+            verify_accounting_form(scope)
+        print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 183, 'accounting_preflight': True}))
 finally:
     env.cr.rollback()

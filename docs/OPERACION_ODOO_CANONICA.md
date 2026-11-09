@@ -1,5 +1,11 @@
 # Operación y publicación de Odoo
 
+T183 amplía `activities-company` en Desarrollo, Cerro y QA-Cerro. En el
+registro de tareas, verificar que Contabilizar informe los maestros pendientes
+antes de crear el asiento. Probar en copia una tarja inválida y la OT00068 de
+EcoPlantas con sus maestros completos hasta generar un asiento cuadrado en
+borrador. Publicar el mismo paquete con respaldo y bloqueo compartido.
+
 T182 amplía `activities-company` en Desarrollo (incluida la empresa EcoPlantas),
 Cerro y QA-Cerro. El detalle de la tarja sin lista de precios permite seleccionar
 centros activos del plan de costos de la empresa. Con lista se mantiene su
