@@ -6,6 +6,12 @@ Nómina y los importes almacenados de Simple Digital. Verificar el formulario,
 el menú Imprimir, el formato alternativo y el PDF real en una copia fresca.
 Revisar visualmente el PDF y publicar el mismo paquete con respaldo y bloqueo.
 
+T181 autoriza `payroll-simpledigital-base` en Desarrollo para la empresa
+indicada en el plan privado. Usar la categoría imponible de la estructura
+nativa cuando la regla GROSS conserva la fórmula anterior BASIC + ALW.
+Verificar imponible, cotizaciones y líquido al calcular copias en borrador
+del lote reportado. Preservar los originales y sus asientos al instalar.
+
 T179 (adjunto 3544 y confirmación del usuario) autoriza `activities-company`
 en Desarrollo, Cerro y QA-Cerro. Cuadrillas, registro de tareas y costeo
 usan la empresa actual para personal propio y contratistas, incluso al tener

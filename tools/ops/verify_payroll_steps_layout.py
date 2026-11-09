@@ -11,8 +11,8 @@ try:
         module = env['ir.module.module'].search([('name', '=', name)])
         assert module.state == 'installed' and module.latest_version == version
         assert Path(importlib.import_module('odoo.addons.' + name).__file__).resolve().parent == Path(ROOT) / name
-    company = env['res.company'].browse(PAYROLL_LAYOUT_CASE['company_id']).exists()
-    batch = env['hr.payslip.run'].browse(PAYROLL_LAYOUT_CASE['batch_id']).exists()
+    company = env['res.company'].browse(PAYROLL_CASE['company_id']).exists()
+    batch = env['hr.payslip.run'].browse(PAYROLL_CASE['batch_id']).exists()
     assert company and batch.company_id == company and batch.slip_ids
     candidates = env['res.users'].search([
         ('share', '=', False), ('id', '!=', 1), ('company_ids', 'in', company.ids),
