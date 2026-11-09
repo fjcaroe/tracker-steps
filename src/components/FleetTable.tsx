@@ -1,7 +1,7 @@
-import {assetSignalLabel, columnLabels, dateLabel, label, type FleetAsset } from '../services/fleetApi';
+import {assignedDriverLabel, assetSignalLabel, columnLabels, dateLabel, label, type FleetAsset } from '../services/fleetApi';
 export default function FleetTable({ assets, columns, selected, onSelect }: { assets: FleetAsset[]; columns: string[]; selected: string | null; onSelect: (id: string) => void }) {
   const cell = (a: FleetAsset, key: string) => {
-    if (key === 'name') return <button aria-pressed={selected === a.asset_id} onClick={() => onSelect(a.asset_id)}>{a.name}<small>{a.plate || 'Sin patente'}</small></button>;
+    if (key === 'name') return <button aria-pressed={selected === a.asset_id} onClick={() => onSelect(a.asset_id)}>{a.name}<small>{a.plate || 'Sin patente'}</small><small>{assignedDriverLabel(a)}</small></button>;
     if (key === 'signal_state') return <>{assetSignalLabel(a)}<small>{dateLabel(a.device_last_seen_at ?? a.last_position?.received_at)}</small></>;
     if (key === 'device') return a.device ? `${a.device.brand} ${a.device.model}` : 'No asociado';
     if (key === 'acc') return a.position_stale ? 'Dato antiguo / sin dato' : a.last_position?.acc == null ? 'No disponible' : a.last_position.acc ? 'Contacto encendido' : 'Contacto apagado';

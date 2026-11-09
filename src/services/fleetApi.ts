@@ -1,6 +1,6 @@
 export type FleetAsset = {
   asset_id: string; name: string; plate: string | null; type: string; cost_center: string | null; linked_to_odoo?: boolean;
-  responsible: string | null; created_at: string; position_stale: boolean;
+  responsible: string | null; driver_name?: string | null; created_at: string; position_stale: boolean;
   device_recent?: boolean;
   device_last_seen_at?: string | null;
   signal_state: 'received' | 'stale' | 'no_signal'; motion_state: 'moving' | 'stationary' | 'unknown';
@@ -49,8 +49,13 @@ export const labels: Record<string, string> = { car:'Auto', pickup:'Camioneta', 
 const auditLabels: Record<string, string> = { incident_opened: 'Incidente registrado', notification_pending: 'Aviso en bandeja', policy_changed: 'Política modificada', command_denied: 'Solicitud denegada', approval_denied: 'Aprobación denegada', device_assigned: 'GPS asociado', asset_upsert: 'Equipo sincronizado' };
 export const label = (s: string) => labels[s] || auditLabels[s] || s;
 export const dateLabel = (s?: string | null) => s ? new Date(s).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin dato';
+export function assignedDriverLabel(asset: FleetAsset) {
+  if (asset.driver_name === undefined) return 'Chofer no disponible';
+  return asset.driver_name ? 'Chofer asignado: '+asset.driver_name : 'Sin chofer asignado';
+}
+
 export function filterFleet(rows: FleetAsset[], f: FleetFilters) {
-  return rows.filter(a => (!f.q || `${a.name} ${a.plate || ''}`.toLocaleLowerCase().includes(f.q.toLocaleLowerCase())) && (!f.type || a.type === f.type) && (!f.cost_center || a.cost_center === f.cost_center) && (!f.motion || a.motion_state === f.motion) && (!f.signal || a.signal_state === f.signal) && (!f.protection || a.protection_state === f.protection) && (!f.gps || a.device?.model === f.gps));
+  return rows.filter(a => (!f.q || `${a.name} ${a.plate || ''} ${a.driver_name || ''}`.toLocaleLowerCase().includes(f.q.toLocaleLowerCase())) && (!f.type || a.type === f.type) && (!f.cost_center || a.cost_center === f.cost_center) && (!f.motion || a.motion_state === f.motion) && (!f.signal || a.signal_state === f.signal) && (!f.protection || a.protection_state === f.protection) && (!f.gps || a.device?.model === f.gps));
 }
 
 export function assetSignalLabel(asset: FleetAsset) {

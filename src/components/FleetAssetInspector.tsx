@@ -1,5 +1,5 @@
 import {useId,useState} from 'react';
-import {assetSignalLabel,dateLabel,label,type FleetAsset} from '../services/fleetApi';
+import {assignedDriverLabel,assetSignalLabel,dateLabel,label,type FleetAsset} from '../services/fleetApi';
 import AssetCostsPanel from './AssetCostsPanel';
 export default function FleetAssetInspector({asset,onProtect,onEdit,onHistory,onConfigure,costs}:{asset:FleetAsset|undefined;onProtect:()=>void;onEdit?:()=>void;onHistory:()=>void;onConfigure:()=>void;costs?:boolean}){
  const [tab,setTab]=useState('summary');const id=useId();
@@ -7,7 +7,7 @@ export default function FleetAssetInspector({asset,onProtect,onEdit,onHistory,on
  const p=asset.last_position;
  const tabs=[['summary','Resumen'],['gps','Equipo GPS'],...(costs?[['costs','Costos']]:[])];
  const field=(name:string,value:React.ReactNode)=><div className="inspector-field"><dt>{name}</dt><dd>{value}</dd></div>;
- return <aside className="fleet-detail inspector" aria-label={`Detalle de ${asset.name}`}><header className="inspector-header"><span className="fleet-eyebrow">Vehículo seleccionado</span><h2>{asset.name}</h2><div className="inspector-identity"><b className="inspector-plate">{asset.plate||'Sin patente'}</b><span className={`fleet-state fleet-state--${asset.signal_state}`}>{assetSignalLabel(asset)}</span></div></header>
+ return <aside className="fleet-detail inspector" aria-label={`Detalle de ${asset.name}`}><header className="inspector-header"><span className="fleet-eyebrow">Vehículo seleccionado</span><h2>{asset.name}</h2><div className="inspector-identity"><b className="inspector-plate">{asset.plate||'Sin patente'}</b><span className={`fleet-state fleet-state--${asset.signal_state}`}>{assetSignalLabel(asset)}</span></div><p>{assignedDriverLabel(asset)}</p></header>
  <div role="tablist" aria-label="Información del vehículo" className="inspector-tabs">{tabs.map(([key,text],index)=><button key={key} id={id+key} role="tab" aria-selected={tab===key} aria-controls={id+'panel'} tabIndex={tab===key?0:-1} onClick={()=>setTab(key)} onKeyDown={e=>{const next=e.key==='ArrowRight'?(index+1)%tabs.length:e.key==='ArrowLeft'?(index+tabs.length-1)%tabs.length:e.key==='Home'?0:e.key==='End'?tabs.length-1:-1;if(next>=0){e.preventDefault();setTab(tabs[next][0]);document.getElementById(id+tabs[next][0])?.focus();}}}>{text}</button>)}</div>
  <div className="inspector-body" role="tabpanel" id={id+'panel'} aria-labelledby={id+tab} tabIndex={0}>
  {tab==='summary'&&<><div className="inspector-telemetry"><div><span>Velocidad registrada</span><strong>{p?.speed_kmh!=null&&!asset.position_stale?Math.round(p.speed_kmh):'—'}<small>km/h</small></strong></div><span>{label(asset.motion_state)}</span></div><dl>{field('Última posición',<>{dateLabel(p?.recorded_at)}{asset.position_stale&&<strong>Dato antiguo o no disponible</strong>}</>)}{field('Recibido por Steps',dateLabel(p?.received_at))}{field('Responsable',asset.responsible||'Sin asignar')}{field('Protección',label(asset.protection_state))}</dl></>}

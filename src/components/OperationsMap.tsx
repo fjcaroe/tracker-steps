@@ -29,6 +29,7 @@ type OperationsMapProps = {
   depot: GeoPoint;
   followVehicle: boolean;
   onUserInteracted?: () => void;
+  showDriver?: boolean;
   markerLabels?: Record<string, string>;
   markerTypes?: Record<string, string>;
 };
@@ -39,14 +40,14 @@ function toMapPoint(point: GeoPoint): google.maps.LatLngLiteral {
   return { lat: point.lat, lng: point.lon };
 }
 
-function TractorMarker({ vehicle, selected, label, type }: { vehicle: DemoVehicle; selected: boolean; label?: string; type?: string }) {
+function TractorMarker({ vehicle, selected, label, type, showDriver }: { vehicle: DemoVehicle; selected: boolean; label?: string; type?: string; showDriver: boolean }) {
   return (
     <div className={`ops-map-vehicle ${selected ? "is-selected" : ""}`}>
       <span className="ops-map-vehicle__pulse" />
       <span className="ops-map-vehicle__icon" style={{ transform: `rotate(${vehicle.bearing}deg)` }}>
         <TrackerIcon name={type === 'truck' ? 'truck' : !type || type === 'tractor' || type === 'machinery' ? 'tractor' : 'fleet'}/>
       </span>
-      <span className="ops-map-vehicle__copy"><b>{vehicle.name}</b><small>{label ?? `${vehicle.speedKmh.toFixed(1)} km/h`}</small></span>
+      <span className="ops-map-vehicle__copy"><b>{vehicle.name}</b>{showDriver && <small className="ops-map-vehicle__driver">{vehicle.driver}</small>}<small>{label ?? `${vehicle.speedKmh.toFixed(1)} km/h`}</small></span>
     </div>
   );
 }
@@ -65,6 +66,7 @@ export default function OperationsMap({
   depot,
   followVehicle,
   onUserInteracted,
+  showDriver = false,
   markerLabels,
   markerTypes,
   mapType = 'satellite',
@@ -189,9 +191,10 @@ export default function OperationsMap({
             className="ops-map-vehicle-button"
             onClick={(event) => { event.stopPropagation(); onSelectVehicle(selectedVehicleId === vehicle.id ? null : vehicle.id); }}
             aria-label={selectedVehicleId === vehicle.id ? `Quitar foco de ${vehicle.name}` : `Enfocar ${vehicle.name}`}
+            aria-description={showDriver ? vehicle.driver : undefined}
             aria-pressed={selectedVehicleId === vehicle.id}
           >
-            <TractorMarker vehicle={vehicle} selected={selectedVehicleId === vehicle.id} label={markerLabels?.[vehicle.id]} type={markerTypes?.[vehicle.id]} />
+            <TractorMarker vehicle={vehicle} selected={selectedVehicleId === vehicle.id} label={markerLabels?.[vehicle.id]} type={markerTypes?.[vehicle.id]} showDriver={showDriver} />
           </button>
         </OverlayViewF>
       ))}

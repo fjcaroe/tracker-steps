@@ -5,8 +5,8 @@ export type OdometerReading={id:number;date:string;value:number;unit:'kilometers
 export type AssetLink={id:number;asset_id:string;vehicle_id:[number,string]};
 export type OdooMenu={id:number;name:string;xmlid?:string;action:string|false;children:number[]};
 
-export async function odooCall<T>(context:FleetContext,model:string,method:string,args:unknown[]=[],kwargs:Record<string,unknown>={}):Promise<T>{
- const response=await fetch(`/web/dataset/call_kw/${model}/${method}`,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'call',id:crypto.randomUUID(),params:{model,method,args,kwargs:{...kwargs,context:{allowed_company_ids:[context.company_id]}}}})});
+export async function odooCall<T>(context:FleetContext,model:string,method:string,args:unknown[]=[],kwargs:Record<string,unknown>={},signal?:AbortSignal):Promise<T>{
+ const response=await fetch(`/web/dataset/call_kw/${model}/${method}`,{method:'POST',signal,credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',method:'call',id:crypto.randomUUID(),params:{model,method,args,kwargs:{...kwargs,context:{allowed_company_ids:[context.company_id]}}}})});
  if(!response.ok)throw new FleetApiError('No fue posible consultar Odoo. Comprueba tu sesión y vuelve a intentar.',response.status);
  const data=await response.json();
  if(data.error){const name=String(data.error.data?.name||'');throw new FleetApiError(String(data.error.data?.message||'Odoo no pudo completar esta acción.').slice(0,600),name.includes('Access')?403:400);}
@@ -25,6 +25,32 @@ export async function readVehicle(context:FleetContext,id:number){
  const rows=await odooCall<OdooVehicle[]>(context,'fleet.vehicle','search_read',[],{domain:[['id','=',id],'|',['company_id','=',context.company_id],['company_id','=',false]],fields:['id','name','license_plate','odometer','odometer_unit','driver_id'],limit:1});
  if(!rows[0])throw new Error('El vehículo vinculado no está disponible en esta compañía con tu perfil.');return rows[0];
 }
+export async function readFleetDrivers(context: FleetContext, assetIds: string[]) {
+ const drivers = new Map<string, string | null>();
+ const signal = AbortSignal.timeout(10000);
+ for (let offset = 0; offset < assetIds.length; offset += 500) {
+  const ids = assetIds.slice(offset, offset + 500);
+  const links = await odooCall<AssetLink[]>(context, 'step.tracker.asset.link', 'search_read', [], {
+   domain: [['company_id', '=', context.company_id], ['active', '=', true], ['asset_id', 'in', ids]],
+   fields: ['asset_id', 'vehicle_id'],
+   limit: ids.length,
+  }, signal);
+  if (!links.length) continue;
+  const vehicleIds = [...new Set(links.map(link => link.vehicle_id[0]))];
+  const vehicles = await odooCall<Pick<OdooVehicle, 'id' | 'driver_id'>[]>(context, 'fleet.vehicle', 'search_read', [], {
+   domain: [['id', 'in', vehicleIds], '|', ['company_id', '=', context.company_id], ['company_id', '=', false]],
+   fields: ['id', 'driver_id'],
+   limit: vehicleIds.length,
+  }, signal);
+  const byVehicle = new Map(vehicles.map(vehicle => [vehicle.id, vehicle.driver_id ? vehicle.driver_id[1] : null]));
+  for (const link of links) {
+   const name = byVehicle.get(link.vehicle_id[0]);
+   if (name !== undefined) drivers.set(link.asset_id, name);
+  }
+ }
+ return drivers;
+}
+
 export async function readOdometers(context:FleetContext,id:number){
  await readVehicle(context,id);
  return odooCall<OdometerReading[]>(context,'fleet.vehicle.odometer','search_read',[],{domain:[['vehicle_id','=',id]],fields:['id','date','value','unit'],order:'date desc,id desc',limit:51});
