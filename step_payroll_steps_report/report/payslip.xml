@@ -1,0 +1,60 @@
+<odoo>
+    <template id="steps_payslip_layout" inherit_id="hr_payroll.report_payslip" priority="40">
+        <xpath expr="//h2[@id='payslip_name']" position="before">
+            <t t-set="steps_layout" t-value="o._step_uses_steps_payroll_layout()"/>
+            <div t-if="steps_layout" id="steps_payslip_title" class="text-center mb-3">
+                <h3 class="mb-1">Liquidación de sueldo</h3>
+                <div><span t-field="o.date_from"/> al <span t-field="o.date_to"/></div>
+                <div t-if="o.number"><span t-field="o.number"/></div>
+            </div>
+        </xpath>
+        <xpath expr="//h2[@id='payslip_name']" position="attributes">
+            <attribute name="t-if">not steps_layout</attribute>
+        </xpath>
+        <xpath expr="//div[@id='infos_table']" position="before">
+            <table t-if="steps_layout" id="steps_payslip_information" class="table table-sm table-bordered mb-3">
+                <tbody>
+                    <tr>
+                        <th class="bg-light">Razón social</th><td><span t-field="o.company_id.name"/></td>
+                        <th class="bg-light">RUT empresa</th><td><span t-field="o.company_id.vat"/></td>
+                    </tr>
+                    <tr>
+                        <th>Nombre trabajador</th><td><span t-field="o.employee_id.legal_name"/></td>
+                        <th>RUT trabajador</th><td><span t-field="o.employee_id.identification_id"/></td>
+                    </tr>
+                    <tr>
+                        <th>Departamento</th><td><span t-field="o.employee_id.department_id"/></td>
+                        <th>Fecha de ingreso</th><td><span t-field="o.contract_id.date_start"/></td>
+                    </tr>
+                    <tr>
+                        <th>Cargo</th><td><span t-field="o.employee_id.job_title"/></td>
+                        <th>Tipo de contrato</th><td><span t-field="o.contract_id.contract_type_id"/></td>
+                    </tr>
+                    <tr>
+                        <th>AFP</th><td><span t-field="o.contract_id.afp_option"/></td>
+                        <th>Institución de salud</th><td><span t-field="o.contract_id.health_institution"/></td>
+                    </tr>
+                </tbody>
+            </table>
+        </xpath>
+        <xpath expr="//div[@id='infos_table']" position="attributes">
+            <attribute name="t-if">not steps_layout</attribute>
+        </xpath>
+        <xpath expr="//div[@id='signature_section']" position="attributes">
+            <attribute name="t-if">not steps_layout</attribute>
+        </xpath>
+        <xpath expr="//div[@id='signature_section']" position="after">
+            <div t-if="steps_layout" id="steps_payslip_signatures" class="mt-4" style="page-break-inside: avoid;">
+                <p>Certifico que recibí a mi entera satisfacción el saldo líquido indicado en la presente liquidación.</p>
+                <table class="table table-sm table-borderless text-center mt-5">
+                    <tbody>
+                        <tr>
+                            <td><span class="border-top border-dark pt-1 px-3">Firma del empleador</span></td>
+                            <td><span class="border-top border-dark pt-1 px-3">Firma del trabajador</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </xpath>
+    </template>
+</odoo>
