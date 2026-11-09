@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+T179 (adjunto 3544 y confirmación del usuario) autoriza `activities-company`
+en Desarrollo, Cerro y QA-Cerro. Cuadrillas, registro de tareas y costeo
+usan la empresa actual para personal propio y contratistas, incluso al tener
+varias empresas habilitadas. Aplicar las reglas sobre los modelos existentes
+y sus detalles. Conservar sus datos, permisos de grupo, menús y referencias.
+Probar los seis menús, el acceso directo y los detalles en copias frescas.
+Publicar el mismo paquete con respaldo, bloqueo y paridad. Mantener el
+aislamiento y los ejercicios de QA-Cerro.
+
 T175 (mensaje 10205, adjuntos 3536/3537) autoriza `producer-advances` en
 Desarrollo, Cerro y QA-Cerro. Listas de anticipos sobre product.pricelist e
 items nativos, compañías autorizadas, mercado y embalaje relacionados con los

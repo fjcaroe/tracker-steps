@@ -1,0 +1,43 @@
+<odoo>
+    <!-- Operational records follow the current company even when several are enabled. -->
+    <record id="rule_crew_current_company" model="ir.rule">
+        <field name="name">Actividades: cuadrillas de la empresa actual</field>
+        <field name="model_id" ref="step_hr.model_hr_salary_custom"/>
+        <field name="domain_force">[('company_id', '=', company_id)]</field>
+    </record>
+    <record id="rule_own_crew_line_current_company" model="ir.rule">
+        <field name="name">Actividades: detalle de cuadrillas propias de la empresa actual</field>
+        <field name="model_id" ref="step_hr.model_hr_salary_custom_line"/>
+        <field name="domain_force">[('salary_id.company_id', '=', company_id)]</field>
+    </record>
+    <record id="rule_contractor_crew_line_current_company" model="ir.rule">
+        <field name="name">Actividades: detalle de cuadrillas contratistas de la empresa actual</field>
+        <field name="model_id" ref="step_hr.model_hr_salary_contract_line"/>
+        <field name="domain_force">[('salary_id.company_id', '=', company_id)]</field>
+    </record>
+    <record id="rule_task_current_company" model="ir.rule">
+        <field name="name">Actividades: tarjas de la empresa actual</field>
+        <field name="model_id" ref="step_hr.model_step_tarja"/>
+        <field name="domain_force">[('company_id', '=', company_id)]</field>
+    </record>
+    <record id="rule_task_registry_current_company" model="ir.rule">
+        <field name="name">Actividades: registro de tarjas de la empresa actual</field>
+        <field name="model_id" ref="step_hr.model_step_tarja_registry"/>
+        <field name="domain_force">[('tarja_id.company_id', '=', company_id)]</field>
+    </record>
+    <record id="rule_task_line_current_company" model="ir.rule">
+        <field name="name">Actividades: detalle de tarjas de la empresa actual</field>
+        <field name="model_id" ref="step_hr.model_step_tarja_line"/>
+        <field name="domain_force">[('tarja_id.company_id', '=', company_id)]</field>
+    </record>
+    <record id="rule_cost_current_company" model="ir.rule">
+        <field name="name">Actividades: costeos de la empresa actual</field>
+        <field name="model_id" ref="step_hr.model_step_tarja_cost"/>
+        <field name="domain_force">[('company_id', '=', company_id)]</field>
+    </record>
+    <record id="rule_cost_line_current_company" model="ir.rule">
+        <field name="name">Actividades: detalle de costeos de la empresa actual</field>
+        <field name="model_id" ref="step_hr.model_step_tarja_cost_line"/>
+        <field name="domain_force">[('tarja_cost_id.company_id', '=', company_id)]</field>
+    </record>
+</odoo>
