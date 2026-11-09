@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+  <record id="view_fruit_reception_conditions" model="ir.ui.view">
+    <field name="name">stock.picking.fruit.reception.conditions</field>
+    <field name="model">stock.picking</field>
+    <field name="inherit_id" ref="step_inventory_packing.view_picking_form_steps_fruit_reception"/>
+    <field name="arch" type="xml">
+      <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_season_id']" position="after">
+        <field name="step_fruit_gassed" invisible="picking_type_code != 'incoming' or not step_fruit_reception_kind"
+               readonly="state in ('done', 'cancel')"/>
+        <field name="step_fruit_chilled" invisible="picking_type_code != 'incoming' or not step_fruit_reception_kind"
+               readonly="state in ('done', 'cancel')"/>
+        <field name="step_fruit_palletized" invisible="picking_type_code != 'incoming' or not step_fruit_reception_kind"
+               readonly="state in ('done', 'cancel')"/>
+        <field name="step_fruit_reception_classification"
+               invisible="picking_type_code != 'incoming' or not step_fruit_reception_kind"
+               readonly="state in ('done', 'cancel')"/>
+      </xpath>
+    </field>
+  </record>
   <record id="view_process_reception_form" model="ir.ui.view">
     <field name="name">packing.process.reception.revision.form</field>
     <field name="model">stock.picking</field>

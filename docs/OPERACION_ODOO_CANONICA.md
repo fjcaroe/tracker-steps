@@ -1,5 +1,11 @@
 # Operación y publicación de Odoo
 
+T188 amplía `reception-lots` en Desarrollo, Cerro y QA-Cerro. La pestaña
+Fruta incorpora las condiciones de recepción y la clasificación. Validar los
+dos menús de recepción y el guardado en copias frescas. Las selecciones
+históricas quedan sin valor predeterminado. Publicar el mismo paquete con
+respaldo y bloqueo, sin ejecutar el plan de reparación de lotes de T165.
+
 T186 amplía `producer-advances` en Desarrollo, Cerro y QA-Cerro. Las dos
 acciones de tarifas de Actividades abren su formulario agrícola y la acción
 de Productores abre su formulario de anticipos. Verificar guardado de labor,

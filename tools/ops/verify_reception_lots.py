@@ -3,7 +3,55 @@ import importlib
 import json
 from pathlib import Path
 from lxml import etree
+from odoo.tools.safe_eval import safe_eval
 from native_business_profile import scoped_business_environment
+
+def verify_reception_conditions(scoped, is_copy):
+    selections = {
+        'step_fruit_gassed': {'yes', 'no'},
+        'step_fruit_chilled': {'yes', 'no'},
+        'step_fruit_palletized': {'yes', 'no'},
+        'step_fruit_reception_classification': {'psj', 'cg', 'gid'},
+    }
+    model = scoped['stock.picking']
+    fields = model.fields_get(list(selections), attributes=['selection', 'required'])
+    for name, options in selections.items():
+        assert {key for key, _label in fields[name]['selection']} == options
+        assert not fields[name]['required']
+    result = {}
+    for kind in ('process', 'packed'):
+        menu = scoped.ref('step_inventory_packing.menu_steps_fruit_' + kind + '_reception')
+        assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
+        action = menu.action._get_action_dict()
+        view_id = dict((view_type, view) for view, view_type in action['views'])['form']
+        form = etree.fromstring(model.get_view(view_id=view_id, view_type='form')['arch'])
+        for name in selections:
+            node, = form.xpath("//page[@name='step_packing_fruit']//field[@name=$name]", name=name)
+            invisible = node.get('invisible')
+            readonly = node.get('readonly')
+            assert not safe_eval(invisible, {'picking_type_code': 'incoming', 'step_fruit_reception_kind': kind})
+            assert safe_eval(invisible, {'picking_type_code': 'outgoing', 'step_fruit_reception_kind': False})
+            assert not safe_eval(readonly, {'state': 'draft'}) and safe_eval(readonly, {'state': 'done'})
+        if is_copy:
+            scoped.company.sudo().step_fruit_inventory_enabled = True
+            wh = scoped['stock.warehouse'].search([('company_id', '=', scoped.company.id)], limit=1)
+            assert wh and wh.in_type_id.default_location_src_id and wh.lot_stock_id
+            entry = model.with_context(**safe_eval(action['context']))
+            values = {
+                'picking_type_id': wh.in_type_id.id,
+                'location_id': wh.in_type_id.default_location_src_id.id,
+                'location_dest_id': wh.lot_stock_id.id,
+            }
+            row = entry.create(values)
+            assert row.step_fruit_reception_kind == kind
+            assert not any(row[name] for name in selections)
+            choices = dict(zip(selections, ('yes', 'no', 'yes', 'cg' if kind == 'process' else 'gid')))
+            row.web_save(choices, {name: {} for name in selections})
+            row.invalidate_recordset(list(selections))
+            assert all(row[name] == choice for name, choice in choices.items())
+        result[kind] = {'menu': True, 'form': True, 'saved_in_copy': is_copy}
+    return result
+
 
 try:
     for name, version in EXPECTED.items():
@@ -25,5 +73,9 @@ try:
     assert picking.check_access_rights('write', raise_exception=False)
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 165, 'versions': EXPECTED,
           'native_reception_form': True, 'native_tag_and_order_form': True, 'business_profile': scoped.uid}))
+    version = tuple(map(int, EXPECTED['step_packing_reception_revision'].split('.')))
+    if version >= (18, 0, 1, 3, 6):
+        result = verify_reception_conditions(scoped, env.cr.dbname.startswith('MANAGEMENT_QA_'))
+        print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 188, 'receptions': result}))
 finally:
     env.cr.rollback()

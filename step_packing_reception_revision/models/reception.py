@@ -5,6 +5,12 @@ from odoo.exceptions import ValidationError
 class Picking(models.Model):
     _inherit = 'stock.picking'
 
+    step_fruit_gassed = fields.Selection([('yes', 'Sí'), ('no', 'No')], string='Fruta gasificada')
+    step_fruit_chilled = fields.Selection([('yes', 'Sí'), ('no', 'No')], string='Fruta con frío')
+    step_fruit_palletized = fields.Selection([('yes', 'Sí'), ('no', 'No')], string='Fruta paletizada')
+    step_fruit_reception_classification = fields.Selection(
+        [('psj', 'PSJ'), ('cg', 'C&G'), ('gid', 'GID')], string='Clasificación')
+
     step_fruit_type = fields.Selection(
         [('conventional', 'Convencional'), ('organic', 'Orgánica')], string='Tipo de fruta')
 
