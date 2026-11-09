@@ -40,7 +40,8 @@ class CompanyCase(TransactionCase):
     def test_manual_fruit_tag_keeps_company_before_stock(self):
         model = self.env['stock.quant.package']
         tag = model.create({'is_fruit_tag': True, 'step_tag_kind': 'C', 'company_id': False})
-        tag._compute_package_info()
+        self.env.add_to_compute(tag._fields['company_id'], tag)
+        tag._recompute_recordset(['company_id'])
         self.assertEqual(tag.company_id, self.env.company)
         with self.assertRaises(ValidationError), self.cr.savepoint():
             tag.write({'company_id': False})
