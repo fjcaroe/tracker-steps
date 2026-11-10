@@ -88,6 +88,18 @@ def reception_date(value):
     return local.date(), utc.replace(tzinfo=None)
 
 
+def open_excel(file, filename):
+    if not (filename or '').lower().endswith('.xlsx'):
+        raise UserError(_('Cargue un archivo .xlsx.'))
+    try:
+        data = base64.b64decode(file)
+        with ZipFile(BytesIO(data)) as archive:
+            if len(data) > 5_000_000 or sum(item.file_size for item in archive.infolist()) > 50_000_000:
+                raise ValueError('large workbook')
+        return load_workbook(BytesIO(data), read_only=True, data_only=True, keep_links=False)
+    except Exception as error:
+        raise UserError(_('No se pudo leer el Excel. Verifique el formato y el tamaño del archivo.')) from error
+
 class ExternalReceptionImport(models.TransientModel):
     _name = 'step.external.fruit.reception.import'
     _description = 'Importar recepciones externas de fruta por Excel'
@@ -162,16 +174,7 @@ class ExternalReceptionImport(models.TransientModel):
         ))
 
     def _open_workbook(self):
-        if not (self.filename or '').lower().endswith('.xlsx'):
-            raise UserError(_('Cargue un archivo .xlsx.'))
-        try:
-            data = base64.b64decode(self.file)
-            with ZipFile(BytesIO(data)) as archive:
-                if len(data) > 5_000_000 or sum(item.file_size for item in archive.infolist()) > 50_000_000:
-                    raise ValueError('large workbook')
-            return load_workbook(BytesIO(data), read_only=True, data_only=True, keep_links=False)
-        except Exception as error:
-            raise UserError(_('No se pudo leer el Excel. Verifique el formato y el tamaño del archivo.')) from error
+        return open_excel(self.file, self.filename)
 
     def _suggest_columns(self, values):
         saved = self.template_id.columns or {}
@@ -337,16 +340,11 @@ class ExternalReceptionImport(models.TransientModel):
             template.write(values)
         else:
             template = template.create(dict(values, name=name, company_id=self.env.company.id))
-        aliases = {(line.kind, line.source_key): line for line in template.alias_ids}
-        for line in self.alias_ids.filtered(lambda item: item.fundo_id or item.packaging_id):
-            key = normalized(line.source)
-            values = {'source': line.source, 'source_key': key, 'kind': line.kind,
-                      'fundo_id': line.fundo_id.id, 'packaging_id': line.packaging_id.id}
-            saved = aliases.get((line.kind, key))
-            if saved:
-                saved.write(values)
-            else:
-                self.env['step.external.fruit.reception.template.alias'].create(dict(values, template_id=template.id))
+        template._remember_aliases([
+            {'source': line.source, 'source_key': normalized(line.source), 'kind': line.kind,
+             'fundo_id': line.fundo_id.id, 'packaging_id': line.packaging_id.id}
+            for line in self.alias_ids.filtered(lambda item: item.fundo_id or item.packaging_id)
+        ])
 
     def _match(self, rows, key, masters, labels, fallback=None, saved=None):
         matches = {}

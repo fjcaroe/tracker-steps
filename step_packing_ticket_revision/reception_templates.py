@@ -44,6 +44,20 @@ class ExternalReceptionTemplate(models.Model):
     ]
 
 
+    def _remember_aliases(self, values):
+        self.ensure_one()
+        self.env.cr.execute('SELECT id FROM step_external_fruit_reception_template WHERE id=%s FOR UPDATE', [self.id])
+        self.invalidate_recordset(['alias_ids'])
+        existing = {(alias.kind, alias.source_key): alias for alias in self.alias_ids}
+        alias_model = self.env['step.external.fruit.reception.template.alias']
+        for item in values:
+            alias = existing.get((item['kind'], item['source_key']))
+            if alias:
+                alias.write(item)
+            else:
+                alias_model.create(dict(item, template_id=self.id))
+
+
 class ExternalReceptionTemplateAlias(models.Model):
     _name = 'step.external.fruit.reception.template.alias'
     _description = 'Equivalencia guardada de recepción de fruta'
@@ -53,18 +67,23 @@ class ExternalReceptionTemplateAlias(models.Model):
     company_id = fields.Many2one(related='template_id.company_id', store=True)
     source = fields.Char(required=True)
     source_key = fields.Char(required=True)
-    kind = fields.Selection([('producer', 'Productor'), ('packaging', 'Embalaje')], required=True)
+    kind = fields.Selection([('producer', 'Productor'), ('packaging', 'Embalaje de recepción'),
+                             ('process_packaging', 'Embalaje de proceso'), ('process_caliber', 'Calibre de proceso')],
+                            required=True)
     fundo_id = fields.Many2one('step.fundo', ondelete='restrict')
     packaging_id = fields.Many2one('product.packaging', check_company=True, ondelete='restrict')
+    caliber_id = fields.Many2one('step.management.fruit.caliber', ondelete='restrict')
     _sql_constraints = [
         ('reception_template_alias_unique', 'unique(template_id, kind, source_key)', 'La equivalencia ya existe.'),
     ]
 
-    @api.constrains('kind', 'fundo_id', 'packaging_id')
+    @api.constrains('kind', 'fundo_id', 'packaging_id', 'caliber_id')
     def _check_target(self):
+        fields_by_kind = {'producer': 'fundo_id', 'packaging': 'packaging_id',
+                          'process_packaging': 'packaging_id', 'process_caliber': 'caliber_id'}
         for alias in self:
-            if alias.kind == 'producer' and (not alias.fundo_id or alias.packaging_id) or (
-                    alias.kind == 'packaging' and (not alias.packaging_id or alias.fundo_id)):
+            targets = [field for field in ('fundo_id', 'packaging_id', 'caliber_id') if alias[field]]
+            if targets != [fields_by_kind[alias.kind]]:
                 raise ValidationError(_('Seleccione el maestro correspondiente al tipo de equivalencia.'))
 
 
