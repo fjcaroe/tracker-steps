@@ -3,7 +3,7 @@
 ## Historial y evidencia de comunicación — 09-11-2026
 
 Recorridos carga páginas de 5.000 posiciones con rango obligatorio (máximo 31
- días), cursor compuesto indexado y cancelación al cambiar de vehículo/período.
+días), cursor compuesto indexado y cancelación al cambiar de vehículo/período.
 El mapa reutiliza sus trazas durante la reproducción. La actualización en vivo
 busca por hora de recepción: incluye datos capturados antes y reenviados tarde.
 Se mantiene explícito el historial parcial y la carga de páginas adicionales.
@@ -22,7 +22,8 @@ con diagnóstico al seleccionar; no cuentan como recorrido ni distancia. Los
 reenvíos originales conservan su fecha y asignación histórica. No enviar órdenes
 al GPS ni reiniciar TCP para instalar este cambio de API/frontend.
 
-Publicar con `manage_tracker_analytics.py` (incluye receiver.py e índices aditivos)
+Publicar con `manage_tracker_analytics.py --history-connectivity` (incluye
+receiver.py e índices aditivos, requiere analítica ya instalada)
 y luego `deploy_tracker_frontend.py`, mismo paquete en Desarrollo y Cerro. Las
 copias prueban permisos, 50.000 posiciones, paginación, recepción tardía y los
 estados sin GPS. `history-performance.cjs` revisa el flujo nativo y cuatro lecturas

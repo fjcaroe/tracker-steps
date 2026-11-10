@@ -46,7 +46,7 @@ def prepare(source,target,stage):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('action',choices=['qa','development','production']);p.add_argument('source',type=Path);p.add_argument('--resume',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('action',choices=['qa','development','production']);p.add_argument('source',type=Path);p.add_argument('--resume',action='store_true');p.add_argument('--history-connectivity',action='store_true',help='Apply only additive history indexes to the already installed analytics schema');a=p.parse_args()
     assert os.geteuid()==0;source=a.source.resolve()
     commit=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
     assert not subprocess.check_output(['git','-C',str(source),'status','--porcelain','--untracked-files=no'],text=True).strip()
@@ -56,7 +56,7 @@ def main():
         TARGETS[label]=(current,service,database,port)
     stage=BASE/commit;stage.mkdir(parents=True,exist_ok=True);stage.chmod(0o755)
     private=stage/'private';private.mkdir(exist_ok=True,mode=0o700)
-    migration=source/'backend/tracker_py/migrations/20261106_gps_analytics.up.sql'
+    migration=source/'backend/tracker_py/migrations'/('20261109_history_connectivity.up.sql' if a.history_connectivity else '20261106_gps_analytics.up.sql')
     with open('/run/lock/steps-environments.lock','a') as lease:
         fcntl.flock(lease,fcntl.LOCK_EX)
         if a.action=='qa':

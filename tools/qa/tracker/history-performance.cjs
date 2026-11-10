@@ -96,6 +96,11 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
    await page.locator('.trail-gap-summary').getByText('Hubo comunicación. El equipo informó falta de posición GPS válida.').waitFor();
    assert.ok(await page.getByText('Naranja discontinuo · intervalo desconocido, sin ruta ni distancia atribuida').isVisible());
    await page.screenshot({path:path.join(output,'diagnostic-fixture.png'),fullPage:true});
+   let caughtLate=false;
+   await page.route('**/assets/'+asset+'/positions?*',route=>{const query=new URL(route.request().url()).searchParams;if(query.has('received_since')){caughtLate=true;return route.fulfill({json:{items:[{...points[1],id:'qa-delayed',recorded_at:new Date(start.getTime()+2*60000).toISOString(),received_at:new Date().toISOString(),recovered:true}],next_cursor:null}});}return route.fulfill({json:{items:points,next_cursor:null}});});
+   await page.getByRole('button',{name:'Seguir en vivo',exact:true}).click();
+   await page.waitForFunction(()=>document.querySelector('.trail-options')?.textContent.includes('5 muestras GPS cargadas'));
+   assert.ok(caughtLate,'Live refresh must query receipt time to recover older fixes');
   }
   console.log('HISTORY_NATIVE_OK '+JSON.stringify(report));
 
