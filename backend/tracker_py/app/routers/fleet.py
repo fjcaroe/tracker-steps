@@ -7,6 +7,7 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from jose import jwt, JWTError
 from pydantic import BaseModel, Field, ConfigDict, AwareDatetime
 from sqlalchemy import or_, text, tuple_
@@ -205,7 +206,11 @@ def positions(asset_id: str, before: str = '', limit: int = Query(100, ge=1, le=
             raise HTTPException(400, 'Cursor inválido')
         query = query.filter(tuple_(Position.recorded_at, Position.id) < (anchor.recorded_at, anchor.id))
     rows = query.order_by(Position.recorded_at.desc(), Position.id.desc()).limit(limit + 1).all()
-    return {'items': [position_out(p) for p in rows[:limit]], 'next_cursor': rows[limit-1].id if len(rows) > limit else None}
+    # Fixed read schema: serialize the two dates once and bypass the generic
+    # recursive encoder for thousands of already validated scalar fields.
+    items = [{**position_out(p), 'recorded_at': p.recorded_at.isoformat(),
+              'received_at': p.received_at.isoformat()} for p in rows[:limit]]
+    return JSONResponse({'items': items, 'next_cursor': rows[limit-1].id if len(rows) > limit else None})
 
 
 class Strict(BaseModel):

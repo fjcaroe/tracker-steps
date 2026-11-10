@@ -330,3 +330,14 @@ def test_history_batch_seek_and_receipt_catchup(fleet):
     assert client.get(path,params={'limit':5000},headers=headers()).status_code==422
     assert client.get(path,params={**params,'since':(received-timedelta(days=32)).isoformat()},headers=headers()).status_code==422
     assert client.get('/v1/assets/a2/positions',params=params,headers=headers()).status_code==404
+
+
+def test_history_response_keeps_exact_public_schema(fleet):
+    from fastapi.encoders import jsonable_encoder
+    from app.routers.fleet import position_out
+    client,factory=fleet
+    client.post('/v1/ingest/positions',headers=headers(role='ingestor'),json=point('schema',minutes=30))
+    with factory() as db:expected=jsonable_encoder(position_out(db.query(Position).one()))
+    response=client.get('/v1/assets/a1/positions',headers=headers())
+    assert response.status_code==200
+    assert response.json()=={'items':[expected],'next_cursor':None}
