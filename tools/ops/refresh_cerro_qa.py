@@ -184,7 +184,7 @@ def prepare(stage, candidate):
         attachments = verify_attachments(candidate, store)
         assert business_snapshot(candidate) == after
     proof = {'snapshot_time': snapshot_time, 'production_versions': production, 'qa_versions': existing,
-             'versions': expected, 'sources': hashes, 'attachments': attachments,
+             'versions': expected, 'sources': hashes, 'attachments': attachments, 'business_snapshot': after,
              'source_config': hashlib.sha256(SOURCE_CONF.read_bytes()).hexdigest(),
              'qa_config': hashlib.sha256(CONF.read_bytes()).hexdigest()}
     (stage / 'validated.json').write_text(json.dumps(proof))
@@ -210,6 +210,7 @@ def publish(stage, candidate, stamp):
     assert hashlib.sha256(SOURCE_CONF.read_bytes()).hexdigest() == proof['source_config']
     assert hashlib.sha256(CONF.read_bytes()).hexdigest() == proof['qa_config']
     assert versions(candidate) == proof['versions']
+    assert business_snapshot(candidate) == proof['business_snapshot']
     assert all(tree_hash(stage / 'addons' / name) == digest for name, digest in proof['sources'].items())
     verify_neutralization(candidate)
     config = configuration(stage / 'candidate.conf', candidate)
