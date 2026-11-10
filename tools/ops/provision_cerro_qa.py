@@ -144,6 +144,9 @@ def business_snapshot(database=DB):
     for table in tables:
         assert re.fullmatch('[a-z_][a-z0-9_]*',table)
         row="(to_jsonb(t)-'l10n_cl_dte_service_provider')" if table=='res_company' else 'to_jsonb(t)'
+        if table == 'stock_package_type':
+            # Odoo can remove insignificant decimal zeroes during module upgrades.
+            row = "(to_jsonb(t) || jsonb_build_object('base_weight', CASE "                   "WHEN strpos(base_weight::text,'.')>0 THEN "                   "rtrim(rtrim(base_weight::text,'0'),'.')::numeric ELSE base_weight END))"
         entries.append("SELECT '%s' AS name,json_build_object('rows',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),''))) AS value FROM %s t"%(table,row,row,table))
     return json.loads(query(database,'SELECT json_object_agg(name,value) FROM ('+' UNION ALL '.join(entries)+') snapshots'))
 
