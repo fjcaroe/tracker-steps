@@ -85,8 +85,8 @@ def verify_attachments(database, store):
     return len(rows.splitlines())
 
 
-def odoo(config, database, command=()):
-    return ['sudo', '-u', USER, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin', *command,
+def odoo(config, database, command=(), *, entrypoint='/opt/odoo18/odoo-bin'):
+    return ['sudo', '-u', USER, '/usr/bin/python3.10', str(entrypoint), *command,
             '-c', str(config), '-d', database, '--no-http', '--workers=0', '--max-cron-threads=0']
 
 
@@ -154,8 +154,8 @@ def prepare(stage, candidate):
         assert business_snapshot(candidate) == before, 'Neutralization changed business history'
         print('T192_SNAPSHOT_NEUTRALIZED', flush=True)
         log = stage / 'upgrade.log'
-        command = odoo(config_file, candidate)
         if install or upgrade:
+            command = odoo(config_file, candidate, entrypoint=OPERATIONS / 'run_sag_cerro_upgrade.py')
             if install:
                 command += ['-i', ','.join(install)]
             if upgrade:
