@@ -1,5 +1,11 @@
 # Operación y publicación de Odoo
 
+T191 autoriza `activities-accounting-list` en Desarrollo, Cerro y QA-Cerro.
+La acción nativa de Contabilización Personal Propio conserva sus vistas y
+limita los asientos a la empresa activa. Probar el cambio de empresa con
+ambas seleccionadas en Desarrollo y verificar menú, listado y formulario en
+copias frescas de los destinos. Publicar con respaldo, bloqueo y paridad.
+
 T190 autoriza recuperar el ciclo nativo de Compras en Desarrollo, Cerro y
 QA-Cerro, manteniendo proformas mensuales y anticipos como ciclos adicionales.
 El formulario primario de anticipos no debe ser predeterminado de purchase.order.

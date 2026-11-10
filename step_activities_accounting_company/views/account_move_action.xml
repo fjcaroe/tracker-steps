@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="step_hr.action_move_journal_step_propio" model="ir.actions.act_window" forcecreate="0">
+        <field name="domain">[('propio', '=', True), ('company_id', '=', allowed_company_ids[0])]</field>
+    </record>
+</odoo>
