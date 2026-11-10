@@ -286,11 +286,11 @@ class ExternalReceptionImport(models.TransientModel):
                 'gross_kg': 0, 'tare_kg': 0, 'step_fruit_palletized': row['palletized'],
                 'step_import_stock_quantity': kg._compute_quantity(row['kilos'], product.uom_id, round=False),
             }))
-        moves = [Command.create({
+        moves = [{
             'name': product.display_name, 'product_id': product.id, 'product_uom': kg.id,
             'product_uom_qty': quantity, 'quantity': quantity, 'product_packaging_id': packaging.id,
             'location_id': source.id, 'location_dest_id': destination.id,
-        }) for packaging, quantity in quantities.items()]
+        } for packaging, quantity in quantities.items()]
         palletized = {row['palletized'] for row in lines}
         values = {
             'picking_type_id': operation.id, 'company_id': company.id,
@@ -307,11 +307,14 @@ class ExternalReceptionImport(models.TransientModel):
             'step_fruit_gassed': first['gassed'], 'step_fruit_chilled': first['chilled'],
             'step_fruit_palletized': next(iter(palletized)) if len(palletized) == 1 else False,
             'step_fruit_reception_classification': first['classification'],
-            'fruit_tag_line_ids': details, 'move_ids_without_package': moves,
+            'fruit_tag_line_ids': details,
         }
         if 'l10n_cl_delivery_guide_reason' in model._fields:
             values['l10n_cl_delivery_guide_reason'] = '6'
         receipt = model.create(values)
+        # Creating the moves separately keeps Odoo from auto-confirming the draft.
+        self.env['stock.move'].create([dict(move, picking_id=receipt.id, date=first['scheduled'])
+                                       for move in moves])
         if product.tracking == 'lot':
             lots = self.env['stock.lot']
             for row in receipt.fruit_tag_line_ids:

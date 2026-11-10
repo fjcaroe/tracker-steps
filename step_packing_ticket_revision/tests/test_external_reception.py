@@ -29,9 +29,9 @@ class ExternalReceiptCase(TransactionCase):
         product = self.env['product.product'].create({'name': 'QA T189 Fruta',
             'is_storable': True, 'uom_id': kg.id, 'uom_po_id': kg.id, 'tracking': 'lot'})
         packaging = self.env['product.packaging'].create({'name': 'QA T189 Rejilla', 'product_id': product.id, 'qty': 3})
-        category = self.env['step.management.fruit.category'].create({'name': 'QA T189 Categoría'})
-        fruit_class = self.env['step.management.fruit.class'].create({'name': 'QA T189 Clase', 'category_id': category.id})
-        season = self.env['step.temporada'].create({'name': 'QA T189 Temporada'})
+        category = self.env['step.management.fruit.category'].create({'name': 'QA T189 Categoría', 'code': 'T189'})
+        fruit_class = self.env['step.management.fruit.class'].create({'name': 'QA T189 Clase', 'code': 'T189', 'category_id': category.id})
+        season = self.env['step.temporada'].create({'name': 'QA T189 Temporada', 'code': 'T189'})
 
         workbook = Workbook()
         sheet = workbook.active
