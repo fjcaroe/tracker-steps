@@ -42,7 +42,7 @@ class ExternalReceiptCase(TransactionCase):
         for index, variety in enumerate(varieties, 1):
             sheet.append(['QA189-01', 'QA189-GUIA', f'QA189-TARJA-{index}', '05-11-2026  02:43',
                 species.name, variety.name, 'Cliente', 'Alias externo productor', 'Alias externo envase',
-                10 * index, 20.5 * index, 'GRANEL PROCESO', 'CONVENCIONAL', 'N', 'S', 'S' if index == 1 else 'N', 'PSJ'])
+                10 * index, 20.5 * index, 'GRANEL PROCESO', 'CONVENCIONAL', 'S' if index == 1 else 'N', 'S', 'S' if index == 1 else 'N', 'PSJ'])
         sheet.append(['QA189-01', 'QA189-GUIA', 'QA189-RECHAZADA', '05/11/2026 02:43',
                       species.name, varieties[0].name, 'Cliente', 'Alias externo productor',
                       'Alias externo envase', 5, 10, 'RECHAZADO', 'CONVENCIONAL', 'N', 'S', 'N', 'PSJ'])
@@ -77,9 +77,12 @@ class ExternalReceiptCase(TransactionCase):
         self.assertEqual(str(receipt.scheduled_date), '2026-11-05 05:43:00')
         self.assertEqual(receipt.fruit_fundo_id, fundo)
         self.assertFalse(receipt.step_fruit_palletized)
+        self.assertFalse(receipt.step_fruit_gassed)
+        self.assertEqual(receipt.step_fruit_chilled, 'yes')
         lines = receipt.fruit_tag_line_ids
         self.assertEqual(lines.variety_id, varieties)
         self.assertEqual(lines.mapped('step_fruit_palletized'), ['yes', 'no'])
+        self.assertEqual(lines.mapped('step_fruit_gassed'), ['yes', 'no'])
         self.assertEqual(sum(lines.mapped('quantity')), 30)
         self.assertEqual(sum(lines.mapped('kilos')), 61.5)
         self.assertFalse(lines.package_id)

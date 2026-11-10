@@ -458,7 +458,7 @@ class ExternalReceptionImport(models.TransientModel):
 
     def _create_reception(self, folio, lines, kg):
         first = lines[0]
-        header = ('guide', 'scheduled', 'especie', 'fundo', 'fruit_type', 'gassed', 'chilled', 'classification')
+        header = ('guide', 'scheduled', 'especie', 'fundo', 'fruit_type', 'classification')
         if any(any(row[key] != first[key] for key in header) for row in lines[1:]):
             raise UserError(_('El folio %s tiene valores distintos en el encabezado. Corrija el archivo.', folio))
         company = self.env.company
@@ -488,6 +488,7 @@ class ExternalReceptionImport(models.TransientModel):
                 'packaging_id': packaging.id, 'category_id': self.category_id.id, 'uom_id': kg.id,
                 'quantity': row['boxes'], 'box_count': row['boxes'], 'kilos': row['kilos'],
                 'gross_kg': 0, 'tare_kg': 0, 'step_fruit_palletized': row['palletized'],
+                'step_fruit_gassed': row['gassed'], 'step_fruit_chilled': row['chilled'],
                 'step_import_stock_quantity': kg._compute_quantity(row['kilos'], product.uom_id, round=False),
             }))
         moves = [{
@@ -495,7 +496,10 @@ class ExternalReceptionImport(models.TransientModel):
             'product_uom_qty': quantity, 'quantity': quantity, 'product_packaging_id': packaging.id,
             'location_id': source.id, 'location_dest_id': destination.id,
         } for packaging, quantity in quantities.items()]
-        palletized = {row['palletized'] for row in lines}
+        flags = {}
+        for flag in ('gassed', 'chilled', 'palletized'):
+            candidates = {row[flag] for row in lines}
+            flags['step_fruit_' + flag] = next(iter(candidates)) if len(candidates) == 1 else False
         values = {
             'picking_type_id': operation.id, 'company_id': company.id,
             'location_id': source.id, 'location_dest_id': destination.id,
@@ -508,8 +512,7 @@ class ExternalReceptionImport(models.TransientModel):
             'fruit_category_id': self.category_id.id, 'step_fruit_origin_class_id': self.fruit_class_id.id,
             'fruit_season_id': self.season_id.id, 'step_fruit_type': first['fruit_type'],
             'step_fruit_weighing_method': 'manual', 'step_fruit_weighing_by': 'unit',
-            'step_fruit_gassed': first['gassed'], 'step_fruit_chilled': first['chilled'],
-            'step_fruit_palletized': next(iter(palletized)) if len(palletized) == 1 else False,
+            **flags,
             'step_fruit_reception_classification': first['classification'],
             'fruit_tag_line_ids': details,
         }

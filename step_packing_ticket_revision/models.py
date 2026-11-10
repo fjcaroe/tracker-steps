@@ -40,6 +40,8 @@ class Production(models.Model):
 class TagLine(models.Model):
     _inherit = 'step.packing.picking.tag.line'
 
+    step_fruit_gassed = fields.Selection([('yes', 'Sí'), ('no', 'No')], string='Fruta gasificada')
+    step_fruit_chilled = fields.Selection([('yes', 'Sí'), ('no', 'No')], string='Fruta con frío')
     step_fruit_palletized = fields.Selection([('yes', 'Sí'), ('no', 'No')], string='Fruta paletizada')
     step_legacy_kg_per_box = fields.Float(string='Kg por caja del prototipo', readonly=True)
 

@@ -95,6 +95,8 @@
     <field name="inherit_id" ref="step_packing_reception_revision.view_process_reception_form"/>
     <field name="arch" type="xml">
       <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='step_kg_per_box']" position="after">
+        <field name="step_fruit_gassed" optional="show"/>
+        <field name="step_fruit_chilled" optional="hide"/>
         <field name="step_fruit_palletized" optional="hide"/>
       </xpath>
     </field>
