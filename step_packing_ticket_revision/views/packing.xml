@@ -4,6 +4,7 @@
     <field name="inherit_id" ref="stock.view_picking_form"/><field name="priority">80</field>
     <field name="arch" type="xml">
       <xpath expr="//label[@for='scheduled_date']" position="before">
+        <field name="step_external_reception_folio" invisible="not step_external_reception_folio"/>
         <field name="step_receiving_packing_id" invisible="not step_fruit_reception_kind"
                readonly="state in ('done','cancel')" options="{'no_create':True}"/>
       </xpath>

@@ -6,6 +6,13 @@ from odoo.osv import expression
 class Picking(models.Model):
     _inherit = 'stock.picking'
 
+    step_external_reception_folio = fields.Char(string='Referencia externa', readonly=True, copy=False, index=True)
+    _sql_constraints = [
+        ('external_reception_folio_unique',
+         'UNIQUE(company_id, step_receiving_packing_id, fruit_season_id, step_external_reception_folio)',
+         'Ya existe una recepción con ese folio externo para el packing y la temporada.'),
+    ]
+
     step_receiving_packing_id = fields.Many2one(
         'res.partner', string='Packing', check_company=True,
         domain="[('step_export_packing','=',True)]")
@@ -33,6 +40,7 @@ class Production(models.Model):
 class TagLine(models.Model):
     _inherit = 'step.packing.picking.tag.line'
 
+    step_fruit_palletized = fields.Selection([('yes', 'Sí'), ('no', 'No')], string='Fruta paletizada')
     step_legacy_kg_per_box = fields.Float(string='Kg por caja del prototipo', readonly=True)
 
 

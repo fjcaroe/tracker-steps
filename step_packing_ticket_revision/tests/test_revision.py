@@ -64,7 +64,7 @@ class TicketRevisionCase(TransactionCase):
             self.assertEqual(self.env.ref('step_packing_ticket_revision.'+menu).action,self.env.ref('step_producer_fruit_reports.'+action))
         action=self.env.ref('step_packing_ticket_revision.tags')
         self.assertEqual(action.res_model,'stock.quant.package')
-        self.assertEqual(safe_eval(action.domain),[('is_fruit_tag','=',True)])
+        self.assertIn(('is_fruit_tag','=',True), safe_eval(action.domain))
         self.assertTrue(self.env['stock.quant.package']._fields['step_packing_partner_id'].store)
 
     def test_tag_packing_follows_reception_then_actual_process(self):

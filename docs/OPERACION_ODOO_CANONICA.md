@@ -1,5 +1,11 @@
 # Operación y publicación de Odoo
 
+T189 autoriza `reception-excel` en Desarrollo, Cerro y QA-Cerro. Probar
+la primera hoja del Excel externo y el guardado en borrador de una recepción
+por folio. El usuario confirma los maestros cuando sus nombres difieren del
+archivo. Mantener fecha efectiva y stock bajo el flujo de validación nativo.
+Probar el adjunto en copia sin cargar registros del caso en producción.
+
 T188 amplía `reception-lots` en Desarrollo, Cerro y QA-Cerro. La pestaña
 Fruta incorpora las condiciones de recepción y la clasificación. Validar los
 dos menús de recepción y el guardado en copias frescas. Las selecciones
