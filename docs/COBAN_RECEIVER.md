@@ -1,5 +1,40 @@
 # Receptor Coban para Cerro - 31/10/2026
 
+## Auditoría pasiva de reconexión — 09-11-2026
+
+`tools/gps/observe_coban_link.py` observa de 30 a 600 segundos de TCP5001 en el
+host receptor, filtrando por el GPS actualmente asignado al UUID de activo
+indicado. No abre ni reinicia enlaces, no envía órdenes y no guarda capturas
+crudas. Informa latidos, acuses ON/LOAD y tiempos, conexiones observadas, cierres,
+retransmisiones y atraso entre captura GPS y recepción del paquete. Ignora los
+otros equipos y descarta sus datos. Las únicas opciones de estado que puede
+extraer son modo e intervalos de reporte; nunca muestra clave, IMEI, teléfonos,
+coordenadas, APN ni el mensaje status completo. En modo de ahorro (2) no interpreta
+la agenda de despertar como un intervalo en segundos.
+
+Usar con PYTHONPATH al paquete de receptor inspeccionado, ejecución privilegiada
+y salida privada fuera del checkout. `test_observe_coban_link.py` verifica
+privacidad, aislamiento de otro dispositivo y separación del relleno de red.
+El reporte es una muestra pasiva; un silencio o ausencia de status no prueba que
+el GPS esté apagado. Una sola conexión observada tampoco prueba ausencia de
+reconexiones antes de comenzar la captura.
+
+Para revisar la unidad física, identificar antes la SIM por el vínculo activo
+al vehículo. La consulta SMS documentada por el manual 401 es `check<clave>`
+(sin espacios). El operador usa su teléfono autorizado y devuelve únicamente
+los estados; nunca se pide publicar la clave ni el campo UP. Verificar revisión
+y respuesta antes de cambiar el modo online/sleep o heartbeat: los manuales de
+401 tienen sintaxis y valores predeterminados distintos. El timeout TCP de 600 s
+es tolerancia del servidor, no un temporizador de reconexión del módem.
+
+La cola SQLite protege lo que el servidor ya recibió. Posiciones con hora de
+captura anterior que entran después, espaciadas por segundos, prueban recepción
+tardía/reenvío; no certifican memoria no volátil, capacidad ni cobertura completa
+de un intervalo. Validar memoria offline requiere especificación de la revisión
+exacta y una prueba controlada conservando alimentación y recepción satelital,
+comparando las muestras antes/durante/después de perder solo la conectividad.
+No aplicar comandos save/load de modelos 303 al 401 por similitud de marca.
+
 ## Continuidad y diagnóstico — 02-11-2026
 
 El límite de inactividad TCP pasa de 180 a 600 segundos. El protocolo reciente
