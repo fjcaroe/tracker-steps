@@ -3,29 +3,56 @@
     <field name="name">step.external.fruit.reception.import.form</field>
     <field name="model">step.external.fruit.reception.import</field>
     <field name="arch" type="xml">
-      <form string="Importar recepciones externas">
-        <p>Use la primera hoja del Excel externo. Se creará una recepción en borrador por cada folio.</p>
+      <form string="Importar recepciones de fruta">
+        <p>Suba el Excel y revise las columnas detectadas. Se creará un borrador por referencia de recepción.</p>
         <group>
           <group>
             <field name="company_id"/>
+            <field name="template_id" options="{'no_create': True, 'no_open': True}"/>
+            <field name="file" filename="filename"/>
+            <field name="filename" invisible="1"/>
+            <field name="header_row"/>
+            <field name="reviewed_row" invisible="1"/>
+          </group>
+          <group>
             <field name="picking_type_id" options="{'no_create': True}"/>
             <field name="packing_id" options="{'no_create': True}"/>
             <field name="season_id" options="{'no_create': True}"/>
-          </group>
-          <group>
             <field name="product_id" options="{'no_create': True}"/>
             <field name="category_id" options="{'no_create': True}"/>
             <field name="fruit_class_id" options="{'no_create': True}"/>
-            <field name="file" filename="filename"/>
-            <field name="filename" invisible="1"/>
           </group>
         </group>
-        <group string="Equivalencias de nombres externos">
-          <field name="fallback_fundo_id" options="{'no_create': True}"/>
-          <field name="fallback_packaging_id" options="{'no_create': True}"/>
+        <group invisible="not reviewed_row">
+          <field name="review_note" nolabel="1"/>
+          <field name="template_name" placeholder="Por ejemplo, Packing externo"/>
+          <field name="save_template" invisible="not template_id or template_name"/>
         </group>
+        <notebook invisible="not reviewed_row">
+          <page string="Columnas del Excel">
+            <field name="column_ids" nolabel="1">
+              <list editable="bottom" create="0" delete="0">
+                <field name="source" string="Encabezado del Excel" readonly="1"/>
+                <field name="target"/>
+              </list>
+            </field>
+          </page>
+          <page string="Productores y embalajes">
+            <field name="alias_ids" nolabel="1">
+              <list editable="bottom" create="0" delete="0">
+                <field name="kind" readonly="1"/>
+                <field name="source" string="Nombre del Excel" readonly="1"/>
+                <field name="product_id" column_invisible="1"/>
+                <field name="fundo_id" readonly="kind != 'producer'" options="{'no_create': True}"/>
+                <field name="packaging_id" readonly="kind != 'packaging'" options="{'no_create': True}"/>
+              </list>
+            </field>
+          </page>
+        </notebook>
         <footer>
-          <button name="action_import" type="object" string="Crear borradores" class="btn-primary"/>
+          <button name="action_review" type="object" string="Revisar Excel" class="btn-primary" invisible="reviewed_row"/>
+          <button name="action_import" type="object" string="Crear borradores" class="btn-primary" invisible="not reviewed_row"/>
+          <button name="action_review" type="object" string="Actualizar equivalencias" invisible="not reviewed_row"/>
           <button string="Cancelar" special="cancel" class="btn-secondary"/>
         </footer>
       </form>
@@ -38,6 +65,27 @@
     <field name="view_id" ref="view_external_fruit_reception_import_form"/>
     <field name="target">new</field>
   </record>
+  <record id="view_external_process_reception_list" model="ir.ui.view">
+    <field name="name">stock.picking.process.reception.list</field>
+    <field name="model">stock.picking</field>
+    <field name="inherit_id" ref="stock.vpicktree"/>
+    <field name="mode">primary</field>
+    <field name="priority">99</field>
+    <field name="arch" type="xml">
+      <xpath expr="//list" position="attributes"><attribute name="import">0</attribute></xpath>
+      <xpath expr="//list/header" position="inside">
+        <button name="%(action_external_fruit_reception_import)d" type="action"
+                string="Importar registros" display="always" groups="stock.group_stock_user"/>
+      </xpath>
+      <field name="name" position="after">
+        <field name="step_external_reception_folio" string="Referencia del Excel" optional="hide"/>
+      </field>
+    </field>
+  </record>
+  <record id="step_packing_reception_revision.process_reception_list_action"
+          model="ir.actions.act_window.view" forcecreate="0">
+    <field name="view_id" ref="view_external_process_reception_list"/>
+  </record>
   <menuitem id="menu_external_fruit_reception_import" name="Importar recepciones por Excel"
             parent="step_packing.menu_packing_fruta_receptions" action="action_external_fruit_reception_import"
             groups="stock.group_stock_user" sequence="13"/>
@@ -47,6 +95,8 @@
     <field name="inherit_id" ref="step_packing_reception_revision.view_process_reception_form"/>
     <field name="arch" type="xml">
       <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='step_kg_per_box']" position="after">
+        <field name="step_fruit_gassed" optional="show"/>
+        <field name="step_fruit_chilled" optional="hide"/>
         <field name="step_fruit_palletized" optional="hide"/>
       </xpath>
     </field>

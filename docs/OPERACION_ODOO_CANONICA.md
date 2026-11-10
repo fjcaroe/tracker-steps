@@ -7,6 +7,12 @@ informes y adjuntos. Antes de publicar, respaldar y archivar la base de
 capacitación anterior, su configuración y su filestore. Mantener la
 neutralización y el aislamiento de QA-Cerro. Desarrollo conserva el QA general.
 
+T193 amplía `reception-excel` en Desarrollo y Cerro. Verificar la carga de
+recepciones desde Fruta a proceso, la reutilización de plantillas y la carga
+de una OT desde las secciones Fruta procesada y Fruta embalada. Las tarjas C
+provienen de recepciones validadas. El Excel deja la OT abierta y no mueve
+existencias. Probar los adjuntos en copia antes de publicar.
+
 T191 autoriza `activities-accounting-list` en Desarrollo, Cerro y QA-Cerro.
 La acción nativa de Contabilización Personal Propio conserva sus vistas y
 limita los asientos a la empresa activa. Probar el cambio de empresa con
