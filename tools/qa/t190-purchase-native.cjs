@@ -56,7 +56,7 @@ const fs = require('node:fs'), path = require('node:path'), assert = require('no
     await page.locator('[data-menu-xmlid="step_packing_fruit_proforma.menu_purchase_fruit_list"]').click();
     await page.locator('.o_list_view').waitFor();
     await page.locator('.o_list_button_add').waitFor({ state: 'detached' });
-      assert.equal(await page.locator('.o_list_button_add').count(), 0);
+    assert.equal(await page.locator('.o_list_button_add').count(), 0);
     assert.deepEqual(denied, []);
     assert.deepEqual(errors, []);
     fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify({ forms: seen, native_create_and_confirm: true,
