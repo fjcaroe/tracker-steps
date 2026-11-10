@@ -92,3 +92,12 @@ test('brief plausible missing fixes are visual estimates, not disconnection or i
  const other=buildTrail(swapped,start,start+200000);
  assert.ok(other.gaps.some(g=>g.reason==='device_changed'));assert.equal(shortContinuity(other.segments).length,0);
 });
+
+
+test('identical simultaneous fixes do not create a teleportation gap',()=>{
+ const a=point(1),duplicate={...a,id:'duplicate'},b=point(2);
+ const r=buildTrail([a,duplicate,b],start,start+180000);
+ assert.equal(r.gaps.length,0);assert.equal(r.points.length,3);
+ const changed=buildTrail([a,{...duplicate,assignment_id:'another-device'},b],start,start+180000);
+ assert.ok(changed.gaps.some(g=>g.reason==='device_changed'));
+});

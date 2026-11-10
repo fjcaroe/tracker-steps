@@ -9,7 +9,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from jose import jwt, JWTError
 from pydantic import BaseModel, Field, ConfigDict, AwareDatetime
-from sqlalchemy import or_, text
+from sqlalchemy import or_, text, tuple_
 from sqlalchemy.orm import Session
 from app.core.security import oauth2_scheme, create_access_token, hash_password, get_user_cost_centers
 from app.models.users import User
@@ -181,7 +181,7 @@ def asset_detail(asset_id: str, ctx=Depends(identity), db: Session = Depends(get
 
 
 @router.get('/assets/{asset_id}/positions')
-def positions(asset_id: str, before: str = '', limit: int = Query(100, ge=1, le=500), current_assignment: bool = False, since: AwareDatetime | None = None, until: AwareDatetime | None = None, ctx=Depends(identity), db: Session = Depends(get_db)):
+def positions(asset_id: str, before: str = '', limit: int = Query(100, ge=1, le=5000), current_assignment: bool = False, received_since: AwareDatetime | None = None, since: AwareDatetime | None = None, until: AwareDatetime | None = None, ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('viewer', 'operator', 'manager'))
     owned(db, Asset, asset_id, ctx)
     query = db.query(Position).filter_by(tenant_id=ctx['tenant_id'], asset_id=asset_id)
@@ -194,11 +194,16 @@ def positions(asset_id: str, before: str = '', limit: int = Query(100, ge=1, le=
         query = query.filter(Position.recorded_at >= since)
     if until:
         query = query.filter(Position.recorded_at <= until)
+    if received_since:
+        query = query.filter(Position.received_at >= received_since)
+    if limit > 500 and (not since or not until or not timedelta(0) < until-since <= timedelta(days=31)):
+        raise HTTPException(422, 'Selecciona un período de hasta 31 días')
     if before:
+        # Retain legacy ID cursors while bounding the compound index scan.
         anchor = query.filter_by(id=before).one_or_none()
         if not anchor:
             raise HTTPException(400, 'Cursor inválido')
-        query = query.filter(or_(Position.recorded_at < anchor.recorded_at, (Position.recorded_at == anchor.recorded_at) & (Position.id < anchor.id)))
+        query = query.filter(tuple_(Position.recorded_at, Position.id) < (anchor.recorded_at, anchor.id))
     rows = query.order_by(Position.recorded_at.desc(), Position.id.desc()).limit(limit + 1).all()
     return {'items': [position_out(p) for p in rows[:limit]], 'next_cursor': rows[limit-1].id if len(rows) > limit else None}
 
@@ -582,3 +587,17 @@ def classic_session(payload: ClassicSessionIn, ctx=Depends(identity), db: Sessio
     token = create_access_token({'sub': str(user.id), 'username': user.username})
     db.commit()
     return {'access_token': token, 'token_type': 'bearer', 'user': user, 'cost_centers': get_user_cost_centers(db, user.id)}
+
+@router.get('/assets/{asset_id}/receiver-history')
+def receiver_history(asset_id: str, since: AwareDatetime, until: AwareDatetime,
+                     ctx=Depends(identity), db: Session=Depends(get_db)):
+    require(ctx, ('viewer', 'operator', 'manager'))
+    owned(db, Asset, asset_id, ctx)
+    if not timedelta(0) < until-since <= timedelta(days=31):
+        raise HTTPException(422, 'Selecciona un período de hasta 31 días')
+    rows = db.query(Audit).filter(
+        Audit.tenant_id == ctx['tenant_id'], Audit.asset_id == asset_id,
+        Audit.action == 'receiver_observation', Audit.created_at >= since,
+        Audit.created_at <= until).order_by(Audit.created_at).limit(5001).all()
+    return {'items': [{'at': row.created_at, **row.detail} for row in rows[:5000]],
+            'partial': len(rows) > 5000}

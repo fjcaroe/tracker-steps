@@ -58,6 +58,7 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
   if(!previous){segments.push([p]);continue;}
   if(parked.has(p.id)&&parked.get(p.id)===parked.get(rawBefore!.id))continue;
   const seconds=(Date.parse(p.recorded_at)-Date.parse(rawBefore!.recorded_at))/1000,d=meters(previous,p),rawDistance=meters(rawBefore!,p);
+  if(seconds===0&&rawDistance<1&&rawBefore!.assignment_id===p.assignment_id)continue;
   if(seconds>600||rawDistance>5000||seconds<=0||(rawDistance/seconds)*3.6>220||rawBefore!.assignment_id!==p.assignment_id){gaps.push({before:rawBefore!,after:p,seconds,reason:rawBefore!.assignment_id!==p.assignment_id?'device_changed':seconds>600?'time_gap':seconds<=0?'timestamp_conflict':rawDistance>5000?'position_jump':'implausible_speed'});segments.push([p]);continue;}
   // Keep raw readings intact; suppress short low-speed wander in the displayed path.
   if(d<25&&(p.speed_kmh??0)<5&&(previous.speed_kmh??0)<5)continue;
@@ -90,7 +91,7 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
   return stop&&stop!==p?{...p,lat:stop.lat,lon:stop.lon}:p;
  });
  const onlyParking=stops.length===1&&parked.size===points.length;
- return {points,playback,onlyParking,segments:stationary?[[points[0]]]:display,stops,gaps,distanceM:stationary?0:distanceM,movingSeconds,gapCount:gaps.length,stationary,maxSpeed:Math.max(0,...playback.map(p=>p.speed_kmh??0))};
+ return {points,playback,onlyParking,segments:stationary?[[points[0]]]:display,stops,gaps,distanceM:stationary?0:distanceM,movingSeconds,gapCount:gaps.length,stationary,maxSpeed:playback.reduce((maximum,p)=>Math.max(maximum,p.speed_kmh??0),0)};
 }
 export function routeAnchors(points:TrailPoint[]){
  if(points.length<2)return [];

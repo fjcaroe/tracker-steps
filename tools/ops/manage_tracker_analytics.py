@@ -12,7 +12,7 @@ from deploy_gps_commissioning import tree,columns,snapshot,query,run
 BASE=Path('/opt/steps-validation/tracker-analytics')
 API=Path('/opt/fernando_odoo18/apis/backend/tracker_py')
 VENV=API/'.venv/bin/python'
-FILES=('main.py','routers/fleet.py','routers/gps_analytics.py','services/gps_metrics.py','services/gps_analytics.py')
+FILES=('main.py','routers/fleet.py','routers/receiver.py','routers/gps_analytics.py','services/gps_metrics.py','services/gps_analytics.py')
 TARGETS={'development':(Path('/opt/steps-tracker-development/current/backend/tracker_py'),'steps-tracker-dev-api','tracker_steps_development',8012),
          'production':(API,'tracker-steps-api','tracker_steps',8000)}
 

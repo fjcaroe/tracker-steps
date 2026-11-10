@@ -51,3 +51,12 @@ SELECT DISTINCT tenant_id,asset_id,(date_trunc('hour',recorded_at AT TIME ZONE '
 FROM gps_positions CROSS JOIN generate_series(-1,1) delta
 ON CONFLICT DO NOTHING;
 COMMIT;
+
+-- Bounded lookup for diagnostics and their latest observation per asset.
+CREATE INDEX IF NOT EXISTS gps_receiver_observation_time
+ON gps_audit_events(tenant_id, asset_id, created_at)
+WHERE action='receiver_observation';
+
+-- Catch up by receipt time, including GPS fixes buffered upstream for hours.
+CREATE INDEX IF NOT EXISTS gps_position_asset_received
+ON gps_positions (tenant_id, asset_id, received_at, id);

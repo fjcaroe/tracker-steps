@@ -1,5 +1,34 @@
 # Cómo desplegar Web Tracker a producción
 
+## Historial y evidencia de comunicación — 09-11-2026
+
+Recorridos carga páginas de 5.000 posiciones con rango obligatorio (máximo 31
+ días), cursor compuesto indexado y cancelación al cambiar de vehículo/período.
+El mapa reutiliza sus trazas durante la reproducción. La actualización en vivo
+busca por hora de recepción: incluye datos capturados antes y reenviados tarde.
+Se mantiene explícito el historial parcial y la carga de páginas adicionales.
+
+La API conserva en la auditoría existente los cambios de estado observados por
+el receptor y una muestra por minuto con contacto nuevo. Distingue ausencia
+explícita de posición GPS válida, comunicación sin fix reciente y falta de
+contacto reciente. No inventa posiciones ni atribuye ausencia de datos a una
+causa física. Son observaciones del sondeo del receptor; un mensaje transitorio
+entre dos sondeos podría no quedar registrado. No reconstruye diagnósticos
+anteriores a la instalación. Consulta aislada por empresa y activo, acotada a
+31 días y 5.000 observaciones, con aviso de resultado parcial.
+
+Las líneas naranjas discontinuas identifican extremos de intervalos desconocidos,
+con diagnóstico al seleccionar; no cuentan como recorrido ni distancia. Los
+reenvíos originales conservan su fecha y asignación histórica. No enviar órdenes
+al GPS ni reiniciar TCP para instalar este cambio de API/frontend.
+
+Publicar con `manage_tracker_analytics.py` (incluye receiver.py e índices aditivos)
+y luego `deploy_tracker_frontend.py`, mismo paquete en Desarrollo y Cerro. Las
+copias prueban permisos, 50.000 posiciones, paginación, recepción tardía y los
+estados sin GPS. `history-performance.cjs` revisa el flujo nativo y cuatro lecturas
+simultáneas; las sesiones privadas se usan en el host donde fueron creadas.
+
+
 
 ## Analítica escalable y recuperación GPS — 06-11-2026
 

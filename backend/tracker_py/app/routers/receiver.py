@@ -8,7 +8,7 @@ from pydantic import AwareDatetime, Field
 from sqlalchemy.orm import Session
 from typing import Literal
 from app.db.session import get_db
-from app.models.fleet import Tenant, Device, DeviceRegistration, Assignment, now
+from app.models.fleet import Tenant, Device, DeviceRegistration, Assignment, Audit, now
 from app.routers.fleet import Strict, identity, require, utc, audit, owned
 
 router=APIRouter(prefix='/v1',tags=['receiver-commissioning'])
@@ -68,6 +68,27 @@ def poll(body: Poll,ctx=Depends(identity),db: Session=Depends(get_db)):
         for stamp in (observation.last_seen_at,observation.fix_at,observation.fix_received_at):
             if stamp and stamp>now()+timedelta(minutes=5):raise HTTPException(422,'Hora de diagnóstico futura')
         if observation.last_seen_at and (not row.receiver_seen_at or observation.last_seen_at>=utc(row.receiver_seen_at)):
+            stamp = now()
+            contact = observation.last_seen_at
+            state = ('no_contact' if stamp-contact > timedelta(seconds=240) else
+                     'no_gps' if observation.error == 'no_valid_gps' else
+                     'invalid_message' if observation.error == 'decode_rejected' else
+                     'contact_without_fix' if not observation.fix_at or contact-observation.fix_at > timedelta(seconds=120) else
+                     'gps')
+            assignment = db.query(Assignment).filter(
+                Assignment.tenant_id == tenant.id, Assignment.device_id == row.device_id,
+                Assignment.valid_from <= contact,
+                (Assignment.valid_to.is_(None) | (Assignment.valid_to > contact))).one_or_none()
+            # A delayed observation stays attached to its assignment at reception.
+            if assignment:
+                previous = db.query(Audit).filter_by(tenant_id=tenant.id, asset_id=assignment.asset_id,
+                    action='receiver_observation').order_by(Audit.created_at.desc()).first()
+                detail = {'state': state, 'contact_at': contact.isoformat(),
+                          'fix_at': observation.fix_at.isoformat() if observation.fix_at else None,
+                          'assignment_id': assignment.id, 'pending': observation.pending}
+                changed = not previous or any(previous.detail.get(k) != detail[k] for k in ('state','assignment_id'))
+                if changed or (state != 'no_contact' and contact.isoformat() != previous.detail.get('contact_at') and stamp-utc(previous.created_at) >= timedelta(seconds=60)):
+                    audit(db,ctx,'receiver_observation',detail,asset_id=assignment.asset_id)
             row.receiver_seen_at=observation.last_seen_at;row.receiver_error=observation.error;row.receiver_pending=observation.pending
         if observation.fix_at and observation.fix_received_at and observation.lat is not None and observation.lon is not None:
             if (not row.receiver_started_at or observation.fix_received_at>=utc(row.receiver_started_at)) and (not row.receiver_fix_at or observation.fix_at>=utc(row.receiver_fix_at)):

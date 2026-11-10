@@ -308,3 +308,25 @@ def test_asset_sources_are_manager_only_tenant_scoped_and_paginated(fleet):
     assert 'a2' not in sources                      # el activo del otro cliente no aparece
     other = client.get('/v1/asset-sources', headers=headers('test-two')).json()['items']
     assert [item['asset_id'] for item in other] == ['a2']
+
+
+def test_history_batch_seek_and_receipt_catchup(fleet):
+    client,factory=fleet
+    stamp=now()-timedelta(hours=12)
+    received=now()
+    with factory() as db:
+        db.add_all([Position(id='batch-'+str(i).zfill(5),tenant_id='t1',asset_id='a1',device_id='d1',assignment_id='as1',source_id='batch-'+str(i),recorded_at=stamp+timedelta(seconds=i//2),received_at=received if i==0 else stamp,lat=-33,lon=-70,speed_kmh=30,quality='gps') for i in range(6000)])
+        db.commit()
+    path='/v1/assets/a1/positions'
+    params={'since':(stamp-timedelta(seconds=1)).isoformat(),'until':received.isoformat(),'limit':5000}
+    first=client.get(path,params=params,headers=headers())
+    assert first.status_code==200
+    first=first.json();assert len(first['items'])==5000 and first['next_cursor']
+    second=client.get(path,params={**params,'before':first['next_cursor']},headers=headers()).json()
+    assert len(second['items'])==1000 and second['next_cursor'] is None
+    assert len({p['id'] for p in first['items']+second['items']})==6000
+    caught=client.get(path,params={**params,'received_since':(received-timedelta(seconds=5)).isoformat()},headers=headers()).json()
+    assert [p['id'] for p in caught['items']]==['batch-00000']
+    assert client.get(path,params={'limit':5000},headers=headers()).status_code==422
+    assert client.get(path,params={**params,'since':(received-timedelta(days=32)).isoformat()},headers=headers()).status_code==422
+    assert client.get('/v1/assets/a2/positions',params=params,headers=headers()).status_code==404

@@ -106,3 +106,46 @@ def test_extra_receiver_tenant_is_explicit_and_scoped(setup,tmp_path,monkeypatch
     assert client.post('/v1/receiver/poll',headers=auth('manager',1,'LAB_TAREAS'),json={'release':'qa'}).status_code==403
     policy.write_text('invalid')
     assert client.post('/v1/receiver/poll',headers=auth('ingestor',1,'LAB_TAREAS'),json={'release':'qa'}).status_code==403
+
+
+def test_receiver_history_records_evidence_without_inventing_positions(setup):
+    from app.models.fleet import Audit
+    from app.routers.fleet import utc
+    client,factory=setup
+    configure(client,'capture',1)
+    assert observe(client,error='no_valid_gps',fix_at=None,fix_received_at=None,lat=None,lon=None).status_code==200
+    assert observe(client,error='no_valid_gps',fix_at=None,fix_received_at=None,lat=None,lon=None).status_code==200
+    interval={'since':(now()-timedelta(hours=1)).isoformat(),'until':(now()+timedelta(seconds=2)).isoformat()}
+    path='/v1/assets/a1/receiver-history'
+    result=client.get(path,params=interval,headers=auth('viewer')).json()
+    assert len(result['items'])==1 and result['items'][0]['state']=='no_gps'
+    assert result['items'][0]['assignment_id']=='as1' and result['items'][0]['fix_at'] is None
+    assert 'lat' not in result['items'][0]
+    assert client.get(path,params=interval,headers=auth(company=2)).status_code==404
+    assert client.get(path,params=interval,headers=auth('ingestor')).status_code==403
+    assert client.get(path,params={**interval,'since':(now()-timedelta(days=32)).isoformat()},headers=auth()).status_code==422
+    assert observe(client).status_code==200
+    with factory() as db:
+        events=db.query(Audit).filter_by(action='receiver_observation').order_by(Audit.created_at).all()
+        assert [e.detail['state'] for e in events]==['no_gps','gps']
+        assert db.query(Position).count()==0
+        # Exact same receiver snapshot is not repeatedly stored, even after a minute.
+        events[-1].created_at=now()-timedelta(minutes=2)
+        row=db.get(DeviceRegistration,'r1')
+        stamp=utc(row.receiver_seen_at).isoformat()
+        db.commit()
+    observe(client,last_seen_at=stamp,fix_at=stamp,fix_received_at=stamp)
+    with factory() as db:assert db.query(Audit).filter_by(action='receiver_observation').count()==2
+
+
+def test_receiver_stale_contact_never_claims_present_connectivity(setup):
+    from app.models.fleet import Audit
+    client,factory=setup
+    configure(client,'capture',1)
+    old=now()-timedelta(minutes=10)
+    with factory() as db:
+        db.get(DeviceRegistration,'r1').receiver_started_at=old-timedelta(minutes=1);db.commit()
+    for _ in range(2):assert observe(client,last_seen_at=old.isoformat(),fix_at=old.isoformat(),fix_received_at=old.isoformat()).status_code==200
+    with factory() as db:
+        events=db.query(Audit).filter_by(action='receiver_observation').all()
+        assert len(events)==1 and events[0].detail['state']=='no_contact'

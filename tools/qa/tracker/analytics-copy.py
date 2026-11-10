@@ -72,6 +72,26 @@ with engine.connect() as connection:
     repaired=client.get(url,params=stream_params).json()['items'][0]
     assert repaired['complete'] and repaired['metrics']['point_count']==3 and repaired['metrics']['distance_m']>100
     assert rebuild(db,5000)==0
+    # 50,000 raw fixes verify bounded seek pages and receipt-time catchup.
+    db.execute(text("""INSERT INTO gps_positions(id,tenant_id,asset_id,device_id,assignment_id,source_id,recorded_at,received_at,lat,lon,speed_kmh,quality)
+      SELECT 'qa-history-'||n,:t,:a,:a,:a,'qa-history-'||n,
+      CAST(:start AS timestamptz)+n*interval '1 second',CAST(:end AS timestamptz),-33.4,-70.6,30,'gps'
+      FROM generate_series(1,50000) n"""),dict(t=tenant,a=stream,start=start,end=end))
+    db.flush()
+    history_params={'since':start.isoformat(),'until':end.isoformat(),'limit':5000}
+    history_started=time.perf_counter();cursor=None;loaded=set();pages=0
+    while True:
+        response=client.get('/v1/assets/'+stream+'/positions',params={**history_params,**({'before':cursor} if cursor else {})})
+        assert response.status_code==200,response.text
+        batch=response.json();assert len(batch['items'])<=5000
+        assert not loaded.intersection(p['id'] for p in batch['items'])
+        loaded.update(p['id'] for p in batch['items']);pages+=1;cursor=batch['next_cursor']
+        if not cursor:break
+        assert pages<20
+    assert len(loaded)==50003
+    history_elapsed=time.perf_counter()-history_started
+    assert history_elapsed<30,history_elapsed
+    print('GPS_HISTORY_COPY_OK '+json.dumps({'rows':len(loaded),'pages':pages,'seconds':history_elapsed}),flush=True)
     # Hundred-vehicle / 30-day cache load: 72,000 hourly buckets. These fixture
     # rows exist only in this private transaction and are rolled back below.
     ids=['qa-analytics-load-'+str(i).zfill(4) for i in range(100)]
