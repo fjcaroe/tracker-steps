@@ -31,6 +31,32 @@ simultáneas; las sesiones privadas se usan en el host donde fueron creadas.
 
 
 
+### Entrega verificada de historial
+
+API `59527f89585512f4e9dbc556fb6d1fba14eaf947` e interfaz
+`ca0629cc0f3e5556128bff49f736d65b3fee36bb` publicados en Desarrollo y Cerro.
+Cada API pasó 28 pruebas y una copia fresca con preservación de todas las filas;
+50.003 posiciones se leyeron en 11 páginas y 2,07 s en la copia de producción.
+La serialización directa conserva exactamente el contrato público de posiciones.
+
+Navegador real: Cerro, 17.639 posiciones de siete días en cuatro páginas y
+3,97 s; Desarrollo, 11.900 posiciones en tres páginas y 1,91 s. Recargas del día
+en Cerro: mediana 0,56 s y una solicitud frente a 0,93 s y seis solicitudes antes.
+Cuatro lecturas completas simultáneas y reproducción sin errores ni escrituras
+de negocio. Son muestras puntuales, no garantías de carga sostenida. Desarrollo
+verificó también falta de fix con contacto, mapa móvil y recuperación en vivo de
+una posición capturada mucho antes de recibirse. Google Maps cargó sus teselas.
+
+Se conservaron los enlaces TCP y su proceso; la cola terminó sin pendientes.
+La nueva evidencia se registra desde la instalación y no permite reconstruir
+el estado satelital de cortes anteriores. No se cambió el firmware ni se
+activaron comandos de memoria/reconexión en los equipos. PostgreSQL conserva
+los datos originales; no hubo migración a Firestore.
+
+Recibos/backups: `/opt/steps-validation/tracker-analytics/<API>/` y
+`/opt/steps-validation/tracker-parity-20261031/<UI>/`. Las revisiones privadas y
+mediciones están fuera del repositorio; las sesiones temporales se retiraron.
+
 ## Analítica escalable y recuperación GPS — 06-11-2026
 
 La comparación, Resumen y Analítica consultan `/v1/assets/analytics` en lotes

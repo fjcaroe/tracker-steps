@@ -70,6 +70,22 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 
   if(process.env.GPS_EXPECT_NEW){assert.ok(native.length<=2,'A daily history should use at most two position pages');assert.ok((await page.locator('body').innerText()).includes('diagnóstico'));}
 
+  let weekly;
+  if(process.env.GPS_EXPECT_NEW){
+   const started=Date.now();requests.length=0;measuring=true;
+   await page.getByRole('button',{name:'Últimos 7 días',exact:true}).click();
+   await page.waitForFunction(()=>!document.body.innerText.includes('Consultando posiciones del período'));
+   await page.locator('.trail-map-canvas').waitFor();
+   const more=page.getByRole('button',{name:'Cargar más muestras',exact:true});let pages=1;
+   while(await more.isVisible()){
+    assert.ok(pages<20,'Bound the native review');await more.click();
+    await page.waitForFunction(()=>!document.body.innerText.includes('Consultando posiciones del período'));
+    await page.locator('.trail-map-canvas').waitFor();pages++;
+   }
+   const text=await page.locator('.tracker-history').textContent();
+   weekly={ms:Date.now()-started,pages,position_requests:requests.length,samples:Number(text.match(/(\d+) muestras GPS cargadas/)?.[1]||0)};
+   assert.ok(weekly.samples>=samples);measuring=false;
+  }
   const replay=page.getByRole('button',{name:'Reproducir',exact:true});
 
   if(await replay.isVisible()){await replay.click();await page.waitForTimeout(2000);await page.getByRole('button',{name:'Pausar',exact:true}).click().catch(()=>{});}
@@ -84,7 +100,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 
   assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);assert.ok(native.every(r=>r.status===200));
 
-  const report={history_ms:elapsed,warm,position_requests:native.length,samples,concurrent_reads:concurrent,browser_errors:errors.length,business_writes:writes.length};
+  const report={history_ms:elapsed,warm,weekly,position_requests:native.length,samples,concurrent_reads:concurrent,browser_errors:errors.length,business_writes:writes.length};
 
   fs.writeFileSync(path.join(output,'result.json'),JSON.stringify(report,null,2));
   if(process.env.GPS_HISTORY_FIXTURE){
