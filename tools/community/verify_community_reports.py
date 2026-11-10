@@ -22,7 +22,7 @@ try:
  assert users,'No existing accounting business user for flow verification'
  environment=globals().get('ENVIRONMENT',MODE)
  if MODE!='community' and environment in ('cerro','qa-cerro'):
-  company=env['res.company'].search([('vat','=','76943293-0')])
+  company=env['res.company'].search([('vat','=','76943293-0'),('parent_id','=',False)])
   assert len(company)==1,'Canonical Cerro company must be unique'
   users=users.filtered(lambda u:company in u.company_ids)
   assert users,'No existing authorized report user for Cerro'

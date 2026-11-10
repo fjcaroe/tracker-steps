@@ -10,10 +10,14 @@ import re
 
 
 @contextmanager
-def clone_database_access(query, database, stage):
+def clone_database_access(query, database, stage, *, existing=False):
     assert os.geteuid() == 0
     assert re.fullmatch(r'MANAGEMENT_QA_QA-CERRO_[a-z0-9_]{1,24}', database)
-    assert not query('postgres', "SELECT 1 FROM pg_database WHERE datname='%s'" % database), 'Fresh clone required'
+    owner = query('postgres', "SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname='%s'" % database)
+    if existing:
+        assert owner == 'cerroqa_odoo18' and (stage / 'clone_hba_before.conf').is_file(), 'Prepared clone required'
+    else:
+        assert not owner, 'Fresh clone required'
     hba = Path(query('postgres', 'SHOW hba_file'))
     assert hba.name == 'pg_hba.conf' and str(hba).startswith('/etc/postgresql/')
     original = hba.read_text()

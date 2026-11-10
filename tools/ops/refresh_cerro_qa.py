@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import time
+import uuid
 from urllib.request import urlopen
 
 from customer_qa_clone_access import clone_database_access
@@ -54,12 +55,17 @@ def source_for(config, module):
     return next(root / module for root in roots if (root / module / '__manifest__.py').is_file())
 
 
-def freeze_addons(stage, prod, qa, production, existing):
+def retained_modules(production, existing):
     extras = existing.keys() - production.keys()
     upgrades = {name for name in production.keys() & existing.keys()
                 if existing[name] != production[name]
                 and tuple(map(int, existing[name].split('.'))) > tuple(map(int, production[name].split('.')))}
     assert extras <= QA_ONLY and upgrades <= QA_NEWER, 'Unreviewed QA-only module or version'
+    return extras, upgrades
+
+
+def freeze_addons(stage, prod, qa, production, existing):
+    extras, upgrades = retained_modules(production, existing)
     target = stage / 'addons'
     target.mkdir()
     hashes = {}
@@ -167,28 +173,71 @@ def prepare(stage, candidate):
                          "UPDATE ir_mail_server SET active=false WHERE active; "
                          "UPDATE fetchmail_server SET active=false WHERE active; "
                          "UPDATE mail_mail SET state='cancel' WHERE state IN ('outgoing','exception')")
-        after = business_snapshot(candidate)
-        assert all(after.get(table) == value for table, value in before.items()), [
-            table for table, value in before.items() if after.get(table) != value]
         expected = production | {name: existing[name] for name in install + upgrade}
-        assert versions(candidate) == expected
-        verify_neutralization(candidate)
-        assert query(candidate, "SELECT count(*) FROM res_company "
-                     "WHERE l10n_cl_dte_service_provider IS DISTINCT FROM 'SIITEST'") == '0'
-        verify_packing(candidate, config_file)
-        probe = "MODE='qa-cerro'\n" + (COMMUNITY / 'verify_community_reports.py').read_text()
-        result = run(*odoo(config_file, candidate, ['shell']), '--log-level=critical',
-                     input=probe, text=True, capture_output=True)
-        assert 'COMMUNITY_REPORTS_NATIVE_FLOW_OK' in result.stdout
-        print(result.stdout.strip(), flush=True)
-        attachments = verify_attachments(candidate, store)
-        assert business_snapshot(candidate) == after
+        certify_candidate(stage, candidate, production, existing, expected, hashes, before, snapshot_time)
+
+
+def certify_candidate(stage, candidate, production, existing, expected, hashes, before, snapshot_time):
+    config_file = stage / 'candidate.conf'
+    store = stage / 'data' / 'filestore' / candidate
+    after = business_snapshot(candidate)
+    changed = [table for table, value in before.items() if after.get(table) != value]
+    assert not changed, changed
+    assert versions(candidate) == expected
+    verify_neutralization(candidate)
+    assert query(candidate, "SELECT count(*) FROM res_company "
+                 "WHERE l10n_cl_dte_service_provider IS DISTINCT FROM 'SIITEST'") == '0'
+    verify_packing(candidate, config_file)
+    probe = "MODE='qa-cerro'\n" + (COMMUNITY / 'verify_community_reports.py').read_text()
+    result = subprocess.run(odoo(config_file, candidate, ['shell']) + ['--log-level=critical'],
+                            input=probe, text=True, capture_output=True)
+    assert result.returncode == 0 and 'COMMUNITY_REPORTS_NATIVE_FLOW_OK' in result.stdout, result.stderr[-3000:]
+    print(result.stdout.strip(), flush=True)
+    attachments = verify_attachments(candidate, store)
+    assert business_snapshot(candidate) == after
     proof = {'snapshot_time': snapshot_time, 'production_versions': production, 'qa_versions': existing,
              'versions': expected, 'sources': hashes, 'attachments': attachments, 'business_snapshot': after,
              'source_config': hashlib.sha256(SOURCE_CONF.read_bytes()).hexdigest(),
              'qa_config': hashlib.sha256(CONF.read_bytes()).hexdigest()}
     (stage / 'validated.json').write_text(json.dumps(proof))
     print(f'T192_PREPARED {stage} modules={len(expected)} attachments={attachments}', flush=True)
+
+
+def certify(stage, candidate):
+    # Repeat post-upgrade checks without changing the prepared database.
+    archive = stage / 'source.dump'
+    assert archive.is_file() and (stage / 'upgrade.log').is_file()
+    log = (stage / 'upgrade.log').read_text(errors='replace')
+    assert 'Modules loaded.' in log and not errors(log)
+    prod = configuration(SOURCE_CONF, SOURCE)
+    qa = configuration(CONF, DB)
+    production, existing = versions(SOURCE), versions(DB)
+    config = configuration(stage / 'candidate.conf', candidate)
+    qa_options = dict(qa['options'])
+    qa_options.update(db_name=candidate, dbfilter='^' + re.escape(candidate) + '$',
+                      addons_path=str(stage / 'addons'), data_dir=str(stage / 'data'))
+    assert dict(config['options']) == qa_options, 'QA configuration changed after snapshot'
+    extras, upgrades = retained_modules(production, existing)
+    retained = extras | upgrades
+    expected = production | {name: existing[name] for name in retained}
+    hashes = {}
+    for module in sorted(expected.keys() - {'studio_customization'}):
+        source = source_for(qa if module in retained else prod, module)
+        hashes[module] = tree_hash(stage / 'addons' / module)
+        assert hashes[module] == tree_hash(source), module
+    reference = 'T192_REF_' + uuid.uuid4().hex
+    run('sudo', '-u', 'postgres', 'createdb', reference)
+    try:
+        with archive.open('rb') as stream:
+            run('sudo', '-u', 'postgres', 'pg_restore', '--exit-on-error', '--no-owner', '--no-acl',
+                '-d', reference, stdin=stream)
+        assert versions(reference) == production, 'Production module versions changed after snapshot'
+        before = business_snapshot(reference)
+    finally:
+        run('sudo', '-u', 'postgres', 'dropdb', reference)
+    snapshot_time = datetime.fromtimestamp(archive.stat().st_mtime, timezone.utc).isoformat()
+    with clone_database_access(query, candidate, stage, existing=True):
+        certify_candidate(stage, candidate, production, existing, expected, hashes, before, snapshot_time)
 
 
 def verify_https():
@@ -262,7 +311,7 @@ def publish(stage, candidate, stamp):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('prepare', 'publish'))
+    parser.add_argument('action', choices=('prepare', 'certify', 'publish'))
     parser.add_argument('stamp')
     args = parser.parse_args()
     assert os.geteuid() == 0 and re.fullmatch(r'[0-9]{14}', args.stamp)
@@ -273,6 +322,8 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX)
         if args.action == 'prepare':
             prepare(stage, candidate)
+        elif args.action == 'certify':
+            certify(stage, candidate)
         else:
             publish(stage, candidate, args.stamp)
 

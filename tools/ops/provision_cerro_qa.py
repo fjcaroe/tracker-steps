@@ -94,7 +94,7 @@ def verify_packing(database, config):
 from native_business_profile import scoped_business_environment
 try:
     # The helper recognizes the canonical source identity for this copied DB.
-    company=env['res.company'].search([('vat','=','76943293-0')]);assert len(company)==1
+    company=env['res.company'].search([('vat','=','76943293-0'),('parent_id','=',False)]);assert len(company)==1
     users=env['res.users'].search([('active','=',True),('share','=',False),('id','!=',1),('company_ids','in',company.ids)]).filtered(lambda u:u.has_group('base.group_system') and u.has_group('account.group_account_manager'))
     assert users
     scoped=env(user=users[:1],su=False,context=dict(env.context,allowed_company_ids=company.ids))
@@ -112,8 +112,8 @@ try:
 finally:
     env.cr.rollback()
 """.replace('from native_business_profile import scoped_business_environment','')
-    result=run('sudo','-u',USER,'/usr/bin/python3.10','/opt/odoo18/odoo-bin','shell','-c',str(config),'-d',database,'--no-http','--log-level=critical',input=probe,text=True,capture_output=True)
-    assert 'CUSTOMER_QA_NATIVE_FLOW_OK' in result.stdout
+    result=subprocess.run(['sudo','-u',USER,'/usr/bin/python3.10','/opt/odoo18/odoo-bin','shell','-c',str(config),'-d',database,'--no-http','--log-level=critical'],input=probe,text=True,capture_output=True)
+    assert result.returncode == 0 and 'CUSTOMER_QA_NATIVE_FLOW_OK' in result.stdout, result.stderr[-3000:]
     print(result.stdout.strip(),flush=True)
 
 
