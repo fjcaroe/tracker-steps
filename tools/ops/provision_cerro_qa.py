@@ -81,12 +81,14 @@ host all {USER} ::/0 reject
         hba.write_bytes(original);query('postgres','SELECT pg_reload_conf()');raise
 
 
-def verify():
-    assert query(DB,"SELECT value FROM ir_config_parameter WHERE key='database.is_neutralized'")=='true'
-    assert query(DB,'SELECT count(*) FROM ir_cron WHERE active')=='0'
-    assert query(DB,"SELECT count(*) FROM ir_mail_server WHERE active AND smtp_host!='invalid'")=='0'
-    assert query(DB,'SELECT count(*) FROM fetchmail_server WHERE active')=='0'
-    run('systemctl','is-active','--quiet',SERVICE)
+def verify_neutralization(database):
+    assert query(database,"SELECT value FROM ir_config_parameter WHERE key='database.is_neutralized'")=='true'
+    assert query(database,'SELECT count(*) FROM ir_cron WHERE active')=='0'
+    assert query(database,"SELECT count(*) FROM ir_mail_server WHERE active AND smtp_host!='invalid'")=='0'
+    assert query(database,'SELECT count(*) FROM fetchmail_server WHERE active')=='0'
+
+
+def verify_packing(database, config):
     # Read forms and menus with the copied existing business user, no saves.
     probe="""from odoo.tools import config
 from native_business_profile import scoped_business_environment
@@ -110,9 +112,15 @@ try:
 finally:
     env.cr.rollback()
 """.replace('from native_business_profile import scoped_business_environment','')
-    result=run('sudo','-u',USER,'/usr/bin/python3.10','/opt/odoo18/odoo-bin','shell','-c',str(CONF),'-d',DB,'--no-http','--log-level=critical',input=probe,text=True,capture_output=True)
+    result=run('sudo','-u',USER,'/usr/bin/python3.10','/opt/odoo18/odoo-bin','shell','-c',str(config),'-d',database,'--no-http','--log-level=critical',input=probe,text=True,capture_output=True)
     assert 'CUSTOMER_QA_NATIVE_FLOW_OK' in result.stdout
     print(result.stdout.strip(),flush=True)
+
+
+def verify():
+    verify_neutralization(DB)
+    run('systemctl','is-active','--quiet',SERVICE)
+    verify_packing(DB, CONF)
     # Outbound production APIs must fail; localhost QA remains reachable.
     code="import socket; s=socket.socket(); s.settimeout(3); r=s.connect_ex(('35.222.25.110',443)); assert r!=0; print('CUSTOMER_QA_EGRESS_BLOCKED')"
     run('sudo','-u',USER,'/usr/bin/python3.10','-c',code)
@@ -129,15 +137,15 @@ else:
     print('CUSTOMER_QA_VERIFY_OK database='+DB,flush=True)
 
 
-def business_snapshot():
-    tables=query(DB,"SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_country','account_move','account_move_line','account_payment','account_journal','account_account','account_tax')) ORDER BY tablename").splitlines()
+def business_snapshot(database=DB):
+    tables=query(database,"SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_country','account_move','account_move_line','account_payment','account_journal','account_account','account_tax')) ORDER BY tablename").splitlines()
     import re
     entries=[]
     for table in tables:
         assert re.fullmatch('[a-z_][a-z0-9_]*',table)
         row="(to_jsonb(t)-'l10n_cl_dte_service_provider')" if table=='res_company' else 'to_jsonb(t)'
         entries.append("SELECT '%s' AS name,json_build_object('rows',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),''))) AS value FROM %s t"%(table,row,row,table))
-    return json.loads(query(DB,'SELECT json_object_agg(name,value) FROM ('+' UNION ALL '.join(entries)+') snapshots'))
+    return json.loads(query(database,'SELECT json_object_agg(name,value) FROM ('+' UNION ALL '.join(entries)+') snapshots'))
 
 
 def create():
@@ -208,6 +216,17 @@ def create():
     finish()
 
 
+def neutralize_copy(database, config):
+    run('sudo','-u',USER,'/usr/bin/python3.10','/opt/odoo18/odoo-bin','neutralize','-c',str(config),'-d',database,'--no-http','--log-level=critical')
+    # These copy-only changes do not alter documents, users or source credentials.
+    parameters={'web.base.url':'https://'+DOMAIN,'web.base.url.freeze':'True','report.url':'http://127.0.0.1:'+str(PORT),'database.uuid':str(uuid.uuid4()),'database.secret':secrets.token_urlsafe(48)}
+    # Values stay on stdin, never command arguments or console output.
+    sql="UPDATE ir_cron SET active=false; UPDATE mail_mail SET state='cancel' WHERE state IN ('outgoing','exception');"
+    for key,value in parameters.items():
+        sql+="INSERT INTO ir_config_parameter(key,value) VALUES('%s','%s') ON CONFLICT(key) DO UPDATE SET value=excluded.value;"%(key,value.replace("'","''"))
+    query(database,sql)
+
+
 def finish():
     assert not (ROOT/'published.json').exists(), 'Never reset a published training copy'
     prepared=json.loads((ROOT/'prepared.json').read_text())
@@ -221,14 +240,7 @@ def finish():
         opts['db_password']=password
         with CONF.open('w') as out:cfg.write(out)
         CONF.chmod(0o640)
-    run('sudo','-u',USER,'/usr/bin/python3.10','/opt/odoo18/odoo-bin','neutralize','-c',str(CONF),'-d',DB,'--no-http','--log-level=critical')
-    # These copy-only changes do not alter documents, users or source credentials.
-    parameters={'web.base.url':'https://'+DOMAIN,'web.base.url.freeze':'True','report.url':'http://127.0.0.1:'+str(PORT),'database.uuid':str(uuid.uuid4()),'database.secret':secrets.token_urlsafe(48)}
-    # Values stay on stdin, never command arguments or console output.
-    sql="UPDATE ir_cron SET active=false; UPDATE mail_mail SET state='cancel' WHERE state IN ('outgoing','exception');"
-    for key,value in parameters.items():
-        sql+="INSERT INTO ir_config_parameter(key,value) VALUES('%s','%s') ON CONFLICT(key) DO UPDATE SET value=excluded.value;"%(key,value.replace("'","''"))
-    query(DB,sql)
+    neutralize_copy(DB, CONF)
     assert business_snapshot()==before, 'Business history must be preserved'
     assert query(DB,"SELECT count(*) FROM res_company WHERE l10n_cl_dte_service_provider!='SIITEST'")=='0'
     (backup/'business-preserved.json').write_text(json.dumps(before))

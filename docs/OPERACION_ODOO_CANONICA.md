@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T192 solicita un refresco explícito de QA-Cerro desde Cerro El Plomo. Preparar
+una copia privada con el script `tools/ops/refresh_cerro_qa.py`, conservar las
+versiones vigentes de Tesorería y Multimoneda en QA, y validar formularios,
+informes y adjuntos. Antes de publicar, respaldar y archivar la base de
+capacitación anterior, su configuración y su filestore. Mantener la
+neutralización y el aislamiento de QA-Cerro. Desarrollo conserva el QA general.
+
 T191 autoriza `activities-accounting-list` en Desarrollo, Cerro y QA-Cerro.
 La acción nativa de Contabilización Personal Propio conserva sus vistas y
 limita los asientos a la empresa activa. Probar el cambio de empresa con
