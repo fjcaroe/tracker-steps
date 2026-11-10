@@ -33,7 +33,7 @@ class TicketRevisionCase(TransactionCase):
         arch=etree.fromstring(self.env['stock.picking'].get_view(view_id=self.env.ref('step_packing_reception_revision.view_process_reception_form').id,view_type='form')['arch'])
         columns=arch.xpath("//field[@name='fruit_tag_line_ids']/list/field")
         visible=[n.get('name') for n in columns if n.get('column_invisible') not in ('1','True') and n.get('optional')!='hide']
-        self.assertEqual(visible[:13],['sequence','tag_number','product_id','packaging_id','uom_id','caliber_id','category_id','brand','quantity','gross_kg','tare_kg','kilos','step_kg_per_box'])
+        self.assertEqual(visible[:14],['sequence','tag_number','product_id','variety_id','packaging_id','uom_id','caliber_id','category_id','brand','quantity','gross_kg','tare_kg','kilos','step_kg_per_box'])
         self.assertNotIn('net_kg',visible)
         for field in ('gross_kg','tare_kg','kilos'):
             self.assertTrue(arch.xpath("//field[@name='fruit_tag_line_ids']/list/field[@name='%s']/@sum"%field))
@@ -45,6 +45,8 @@ class TicketRevisionCase(TransactionCase):
         from odoo.osv import expression
         for code,label in [('fruit','1 fruta'),('materials','6 materiales de embalajes')]:
             root=self.env['product.category'].search(expression.OR([[('name','=ilike',label)], [('name','=ilike','6 materiales de embalaje')]])) if code=='materials' else self.env['product.category'].search([('name','=ilike',label)])
+            if not root:
+                root=self.env['product.category'].create({'name':label})
             self.assertEqual(len(root),1)
             child=self.env['product.category'].create({'name':'QA Packing child','parent_id':root.id})
             product=self.env['product.product'].create({'name':'QA Report stock','categ_id':child.id,'is_storable':True})

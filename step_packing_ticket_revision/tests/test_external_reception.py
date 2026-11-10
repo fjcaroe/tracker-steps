@@ -21,8 +21,9 @@ class ExternalReceiptCase(TransactionCase):
         })
         group = self.env['step.grupo.variedad'].create({'name': 'QA T189 grupo', 'especie_id': species.id})
         varieties = self.env['step.variedad'].create([
-            {'name': name, 'especie_id': species.id, 'grupo_variedad_id': group.id}
-            for name in ('QA T189 Azul', 'QA T189 Verde')
+            {'name': f'QA T189 {name}', 'cod_variedad': f'T189-{name}',
+             'especie_id': species.id, 'grupo_variedad_id': group.id}
+            for name in ('Azul', 'Verde')
         ])
         kg = self.env.ref('uom.product_uom_kgm')
         product = self.env['product.product'].create({'name': 'QA T189 Fruta',
