@@ -31,6 +31,7 @@ PAYROLL_CASE = None
 PAYROLL_COMPANY_KEY = None
 MONTHLY_FRUIT_PLAN = None
 PROFORMA_POLICY_PLAN = None
+SHARED_PRODUCER_RECEPTION = None
 PREVIRED_CASES = []
 PREVIRED_RULE_PLAN = []
 SETTINGS = False
@@ -327,6 +328,7 @@ def normalize_approved_account(base, options, database, args, commit):
 
 
 def main():
+    global SHARED_PRODUCER_RECEPTION
     global PROFORMA_POLICY_PLAN, PREVIRED_RULE_PLAN, PREVIRED_CASES, MONTHLY_FRUIT_PLAN, PACKING_ANALYTIC_PLAN_MAX, PACKING_INACTIVE_TYPES, PACKING_CONFIG_LIMITS, PROMOTION_COLUMNS, TRACEABILITY_INITIAL, SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
@@ -349,7 +351,13 @@ def main():
     parser.add_argument('--previred-retroactive-rules', type=Path, help='Private reviewed native salary rule identities for field 23')
     parser.add_argument('--payroll-case', '--payroll-layout-case', type=Path, help='Private company and batch approved for the payroll ticket')
     parser.add_argument('--proforma-policy-plan', type=Path, help='Private reviewed draft and unchanged configured taxes; Cerro review 1')
+    parser.add_argument('--shared-producer-reception', type=Path, help='Private T194 Cerro receipt and existing operator identities')
     args = parser.parse_args()
+    if args.shared_producer_reception:
+        assert args.kind == 'agriculture-multicompany' and args.environment == 'cerro'
+        SHARED_PRODUCER_RECEPTION = json.loads(args.shared_producer_reception.read_text())
+        assert set(SHARED_PRODUCER_RECEPTION) == {'receipt_id', 'company_id', 'farm_id', 'producer_id', 'user_id'}
+        assert all(type(value) is int and value > 0 for value in SHARED_PRODUCER_RECEPTION.values())
     if args.proforma_policy_plan:
         assert args.kind == 'packing-proforma-policy' and args.environment == 'cerro'
         PROFORMA_POLICY_PLAN = json.loads(args.proforma_policy_plan.read_text())
@@ -885,7 +893,7 @@ def main():
                     normalize_approved_account(base, clone_options, qa_db, args, False)
                     assert snapshot(qa_db) == before, 'Normalization dry run changed the clone'
             (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log), 'monthly_fruit_plan': MONTHLY_FRUIT_PLAN,
-                'proforma_policy_plan': PROFORMA_POLICY_PLAN,
+                'proforma_policy_plan': PROFORMA_POLICY_PLAN, 'shared_producer_reception': SHARED_PRODUCER_RECEPTION,
                 'proforma_policy_helper': digest(HERE / 'proforma_policy_case.py') if args.kind == 'packing-proforma-policy' else None,
                 'reception_lot_plan': digest(args.reception_lot_plan) if args.reception_lot_plan else None,
                 'packing_output_lot_plan': digest(args.packing_output_lot_plan) if args.packing_output_lot_plan else None,
@@ -911,6 +919,9 @@ def main():
     if args.kind == 'packing-proforma-policy':
         assert passed.get('proforma_policy_plan') == PROFORMA_POLICY_PLAN
         assert passed.get('proforma_policy_helper') == digest(HERE / 'proforma_policy_case.py')
+    if args.kind == 'agriculture-multicompany' and args.environment == 'cerro':
+        assert SHARED_PRODUCER_RECEPTION and passed.get('shared_producer_reception') == SHARED_PRODUCER_RECEPTION, (
+            'Certify the reported reception in a fresh Cerro copy before deployment')
     assert passed['commit'] == proof['commit'] and passed['release_sha256'] == release_sha
     release_root = Path('/opt/steps-managed/releases') / args.environment / proof['commit']
     if args.action == 'deploy':
@@ -1133,6 +1144,7 @@ def verify(base, options, database, source, opts, proof, stage, installed):
     header += 'RETROACTIVE_RULE_PLAN=' + repr(PREVIRED_RULE_PLAN) + '\n'
     header += 'CASES=' + repr(PREVIRED_CASES) + '\n'
     header += 'PROFORMA_POLICY_PLAN=' + repr(PROFORMA_POLICY_PLAN) + '\n'
+    header += 'SHARED_PRODUCER_RECEPTION=' + repr(SHARED_PRODUCER_RECEPTION) + '\n'
     if PAYROLL_CASE:
         header += 'PAYROLL_CASE=' + repr(PAYROLL_CASE) + '\n'
         header += 'PAYROLL_COMPANY_KEY=' + repr(PAYROLL_COMPANY_KEY) + '\n'

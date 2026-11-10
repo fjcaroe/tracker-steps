@@ -19,3 +19,7 @@ def post_init_hook(env):
         env.cr.execute(sql.SQL("""INSERT INTO {} (master_id, company_id)
             SELECT id, company_id FROM {} ON CONFLICT DO NOTHING""").format(sql.Identifier(relation), sql.Identifier(table)))
     env.invalidate_all()
+
+
+def uninstall_hook(env):
+    env.ref('base.res_partner_rule').write({'perm_read': True})

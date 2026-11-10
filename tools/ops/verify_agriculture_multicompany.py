@@ -59,8 +59,13 @@ try:
     menu = scoped.ref('step_agriculture_multicompany.packing_fundos')
     assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
     assert menu.parent_id == scoped.ref('step_packing_operations.menu_packing_operations_masters')
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [139, 140], 'versions': EXPECTED,
+    proof = {'tickets': [139, 140], 'versions': EXPECTED,
         'existing_profile': scoped.uid, 'company_id': scoped.company.id, 'native_menu_and_form': True,
-        'masters': checked, 'writes': False}))
+        'masters': checked, 'writes': False}
+    if env.ref('step_agriculture_multicompany.partner_company_read', raise_if_not_found=False):
+        from verify_shared_producer_reception import verify_shared_producer_reception
+        proof['tickets'].append(194)
+        proof['shared_producer'] = verify_shared_producer_reception(env, scoped, SHARED_PRODUCER_RECEPTION)
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps(proof))
 finally:
     env.cr.rollback()

@@ -167,3 +167,65 @@ class TestMasters(TransactionCase):
             self.assertFalse(arch.xpath("//field[@name='company_ids']"))
             result = scoped.web_read({'name': {}, 'company_id': {'fields': {'display_name': {}}}})
             self.assertEqual(result[0]['id'], record.id)
+
+    def test_receive_fruit_from_explicitly_shared_farm_with_only_destination_active(self):
+        self.a.step_fruit_inventory_enabled = True
+        producer = self.env['res.partner'].create({
+            'name': 'QA T194 producer', 'is_productor': True, 'company_id': self.b.id})
+        farm = self.make('step.fundo', company_id=self.b.id, partner_id=producer.id,
+                         company_ids=[Command.set((self.a | self.b).ids)])
+        private_producer = producer.copy({'name': 'QA T194 private producer'})
+        self.make('step.fundo', company_id=self.b.id, partner_id=private_producer.id)
+        scoped = self.env(user=self.user, context={**self.env.context, 'allowed_company_ids': self.a.ids})
+        self.assertEqual(producer.with_env(scoped).read(['name'])[0]['name'], producer.name)
+        self.assertFalse(private_producer.with_env(scoped).has_access('read'))
+        self.assertFalse(producer.with_env(scoped).has_access('write'))
+        self.assertFalse(producer.with_env(scoped).has_access('unlink'))
+        restricted = new_test_user(self.env(context={**self.env.context, 'no_reset_password': True}),
+            login='qa-t194-restricted', groups='stock.group_stock_user',
+            company_id=self.a.id, company_ids=[Command.set(self.a.ids)])
+        self.assertFalse(producer.with_user(restricted).with_context(allowed_company_ids=self.a.ids).has_access('read'))
+
+        warehouse = self.env['stock.warehouse'].search([('company_id', '=', self.a.id)], limit=1)
+        operation = warehouse.in_type_id
+        if 'auto_batch' in operation._fields:
+            operation.write({'auto_batch': True, 'batch_group_by_partner': True})
+        kg = self.env.ref('uom.product_uom_kgm')
+        species = self.env['step.especie'].create({
+            'name': 'QA T194 species', 'type_especie': 'frutal', 'group_especie': 'fruta_h'})
+        product = self.env['product.product'].create({
+            'name': 'QA T194 fruit', 'is_storable': True, 'uom_id': kg.id, 'uom_po_id': kg.id})
+        packaging = self.env['product.packaging'].create({
+            'name': 'QA T194 box', 'product_id': product.id, 'qty': 8})
+        values = {
+            'partner_id': producer.id, 'picking_type_id': operation.id,
+            'location_id': operation.default_location_src_id.id, 'location_dest_id': warehouse.lot_stock_id.id,
+        }
+        with self.assertRaises(UserError), self.cr.savepoint():
+            scoped['stock.picking'].create(values)
+        values.update({
+            'step_fruit_reception_kind': 'process', 'fruit_fundo_id': farm.id,
+            'fruit_species_id': species.id, 'step_fruit_type': 'conventional', 'step_fruit_gross_kg': 32,
+        })
+        picking = scoped['stock.picking'].create(values)
+        with self.assertRaises(UserError), self.cr.savepoint():
+            picking.write({'fruit_fundo_id': False})
+        move = scoped['stock.move'].create({
+            'name': product.name, 'picking_id': picking.id, 'product_id': product.id,
+            'product_uom': kg.id, 'product_uom_qty': 32, 'product_packaging_id': packaging.id,
+            'location_id': picking.location_id.id, 'location_dest_id': picking.location_dest_id.id,
+        })
+        move.quantity = 32
+        row = scoped['step.packing.picking.tag.line'].create({
+            'picking_id': picking.id, 'tag_number': 'QA-T194-%s' % picking.id,
+            'packaging_id': packaging.id, 'quantity': 4, 'kilos': 32,
+        })
+        picking.button_validate()
+        self.assertEqual(picking.state, 'done')
+        package = row.package_id
+        self.assertEqual(package.step_tag_state, 'validated')
+        self.assertEqual(package.fundo_id, farm)
+        self.assertEqual(package.quant_ids.company_id, self.a)
+        self.assertEqual(package.quant_ids.owner_id, producer)
+        self.assertEqual(sum(package.quant_ids.mapped('quantity')), 32)
+        self.assertFalse(move.stock_valuation_layer_ids)

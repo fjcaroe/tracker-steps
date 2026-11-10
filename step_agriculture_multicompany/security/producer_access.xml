@@ -1,0 +1,20 @@
+<odoo>
+  <!-- Keep the native rule for all mutations. A group rule alone cannot extend
+       the read scope of a global rule, so reads have their own global rule. -->
+  <function model="ir.rule" name="write" eval="([ref('base.res_partner_rule')], {'perm_read': False})"/>
+  <record id="partner_company_read" model="ir.rule">
+    <field name="name">Contactos por empresa y productores de fundos asignados</field>
+    <field name="model_id" ref="base.model_res_partner"/>
+    <field name="perm_write" eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+    <field name="domain_force">(['|'] if user.has_group('stock.group_stock_user') else []) + [
+        '|', '|', ('partner_share', '=', False), ('company_id', 'parent_of', company_ids),
+        ('company_id', '=', False)
+      ] + ([
+        '&amp;', '&amp;',
+        ('is_productor', '=', True), ('company_id', 'parent_of', user.company_ids.ids),
+        ('step_export_fundo_ids', 'any', [('company_ids', 'in', company_ids)])
+      ] if user.has_group('stock.group_stock_user') else [])</field>
+  </record>
+</odoo>

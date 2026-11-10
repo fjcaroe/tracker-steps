@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+T194 amplía `agriculture-multicompany` en Desarrollo, Cerro y QA-Cerro. Un
+usuario de Inventario con acceso al contacto de origen puede validar fruta de
+un fundo asignado a la sucursal receptora, sin activar la otra sucursal. La
+excepción de Inventario se limita al productor del mismo grupo de empresas y a
+su recepción y tarjas; conserva el contacto, el dueño de la fruta y las reglas
+de escritura. Probar en copia el caso reportado y el rechazo en transferencias
+ordinarias. Publicar con respaldo, bloqueo y paridad, sin validar documentos
+reales ni refrescar QA-Cerro.
+
 T192 solicita un refresco explícito de QA-Cerro desde Cerro El Plomo. Preparar
 una copia privada con el script `tools/ops/refresh_cerro_qa.py`, conservar las
 versiones vigentes de Tesorería y Multimoneda en QA, y validar formularios,
