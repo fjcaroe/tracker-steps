@@ -6,12 +6,13 @@ const fs = require('node:fs'), path = require('node:path'), assert = require('no
   assert(['desarrollo.stepsapp.cl','cerroelplomo.stepsapp.cl','qa-cerroelplomo.stepsapp.cl'].includes(proof.host));
   const origin = 'https://' + proof.host, out = process.env.T190_OUTPUT;
   fs.mkdirSync(out, { recursive: true });
+  const errors = [], denied = [];
   const browser = await chromium.launch({ headless: true });
   try {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, serviceWorkers: 'block' });
     await context.addCookies([{ name: 'session_id', value: proof.session_id, domain: proof.host, path: '/', secure: true, httpOnly: true },
       { name: 'cids', value: String(proof.company_id), domain: proof.host, path: '/', secure: true }]);
-    const page = await context.newPage(), errors = [], denied = [];
+    const page = await context.newPage();
     page.setDefaultTimeout(60000);
     page.on('pageerror', error => errors.push(error.message));
     await page.route(origin + '/web/dataset/call_kw/**', route => {
@@ -39,10 +40,20 @@ const fs = require('node:fs'), path = require('node:path'), assert = require('no
       await page.screenshot({ path: path.join(out, name + '-list.png'), fullPage: true });
       seen.push(name);
     }
+    await page.goto(origin + '/odoo/action-' + proof.actions.rfq);
+    await page.locator('.o_list_view').waitFor();
+    await page.locator('[data-menu-xmlid="step_packing_fruit_proforma.menu_purchase_fruit"]').click();
+    await page.locator('[data-menu-xmlid="step_packing_fruit_proforma.menu_purchase_prepare_fruit"]').waitFor();
+    await page.locator('[data-menu-xmlid="step_packing_fruit_proforma.menu_purchase_fruit_list"]').click();
+    await page.locator('.o_list_view').waitFor();
+    assert.equal(await page.locator('.o_list_button_add').count(), 0);
     assert.deepEqual(denied, []);
     assert.deepEqual(errors, []);
     fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify({ forms: seen, native_create_and_confirm: true,
-      separate_proformas: true, saved_live_documents: 0, browser_errors: errors.length }));
+      separate_proformas: true, purchase_proforma_menu: true, saved_live_documents: 0, browser_errors: errors.length }));
     console.log('T190_BROWSER_OK native_purchase=True proformas=True business_writes=0');
+  } catch (error) {
+    console.error(JSON.stringify({ denied, browser_errors: errors }));
+    throw error;
   } finally { await browser.close(); }
 })().catch(error => { console.error(error.message); process.exitCode = 1; });
