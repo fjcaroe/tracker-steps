@@ -57,7 +57,8 @@ def source_for(config, module):
 def freeze_addons(stage, prod, qa, production, existing):
     extras = existing.keys() - production.keys()
     upgrades = {name for name in production.keys() & existing.keys()
-                if tuple(map(int, existing[name].split('.'))) > tuple(map(int, production[name].split('.')))}
+                if existing[name] != production[name]
+                and tuple(map(int, existing[name].split('.'))) > tuple(map(int, production[name].split('.')))}
     assert extras <= QA_ONLY and upgrades <= QA_NEWER, 'Unreviewed QA-only module or version'
     target = stage / 'addons'
     target.mkdir()
@@ -122,6 +123,7 @@ def prepare(stage, candidate):
     gid = pwd.getpwnam(USER).pw_gid
     os.chown(stage, 0, gid)
     install, upgrade, hashes = freeze_addons(stage, prod, qa, production, existing)
+    print(f'T192_ADDONS_FROZEN modules={len(hashes)}', flush=True)
     data = stage / 'data'
     store = data / 'filestore' / candidate
     store.mkdir(parents=True)
@@ -147,8 +149,10 @@ def prepare(stage, candidate):
             run('sudo', '-u', 'postgres', 'pg_restore', '--no-owner', '--no-acl', '--no-comments',
                 '--exit-on-error', '--role', USER, '-d', candidate, stdin=stream)
         assert versions(candidate) == production
-        neutralize_copy(candidate, config_file)
         before = business_snapshot(candidate)
+        neutralize_copy(candidate, config_file)
+        assert business_snapshot(candidate) == before, 'Neutralization changed business history'
+        print('T192_SNAPSHOT_NEUTRALIZED', flush=True)
         log = stage / 'upgrade.log'
         command = odoo(config_file, candidate)
         if install or upgrade:
