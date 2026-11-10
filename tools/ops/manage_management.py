@@ -300,17 +300,16 @@ def packing_schema(action, database, root, stage):
     run('sudo','-u','postgres','/usr/bin/python3.10',str(root/'step_packing_ticket_revision/migrate_schema.py'),action,database,str(target))
 
 
-def extract(release, target, alternative_modules=()):
+def extract(release, target):
     with tarfile.open(release) as archive:
         proof = json.loads(archive.extractfile('release.json').read())
         assert re.fullmatch('[0-9a-f]{40}', proof['commit'])
-        modules = set(proof['versions'])
-        assert modules == set(MODULES) or (alternative_modules and modules == set(alternative_modules))
+        assert set(proof['versions']) == set(MODULES)
         found = set()
         for member in archive.getmembers():
             path = Path(member.name)
             assert member.isfile() and not path.is_absolute() and '..' not in path.parts
-            assert member.name == 'release.json' or path.parts[0] in modules
+            assert member.name == 'release.json' or path.parts[0] in MODULES
             assert member.name not in found
             found.add(member.name)
             if member.name != 'release.json':
@@ -602,11 +601,10 @@ def main():
     os.chown(stage, identity.pw_uid, identity.pw_gid)
     staged = stage / 'addons'
     staged.mkdir(exist_ok=True)
-    reception_modules = ('step_inventory_packing', 'step_packing_reception_revision')
-    proof = extract(args.release, staged, reception_modules if args.kind == 'reception-lots' else ())
-    if args.kind == 'reception-lots' and 'step_inventory_packing' in proof['versions']:
-        MODULES = reception_modules
-        if args.environment == 'cerro':
+    proof = extract(args.release, staged)
+    if args.kind == 'reception-lots' and args.environment == 'cerro':
+        version = tuple(map(int, proof['versions']['step_packing_reception_revision'].split('.')))
+        if version >= (18, 0, 1, 3, 7):
             assert args.reception_product_plan, 'T196 requires the private plan for the reported Cerro correction'
     if args.kind in ('previred-simpledigital', 'previred-revision') and tuple(map(int, proof['versions']['step_hr_previred_corrections'].split('.'))) >= (18, 0, 1, 1, 0):
         assert args.environment in ('development', 'sys'), 'T173 destinations only'

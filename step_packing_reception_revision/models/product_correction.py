@@ -1,5 +1,6 @@
 """Reclassify intact third-party fruit with native stock moves and keep the original receipt."""
 from odoo import _, api, fields, models
+from odoo.addons.step_inventory_packing.models.fruit_package import StepFruitPackageLine
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools.float_utils import float_compare
 
@@ -16,12 +17,21 @@ def _internal(records):
 class FruitPackageLine(models.Model):
     _inherit = 'step.fruit.package.line'
 
-    def _step_allow_validated_detail_write(self, values):
-        if (_internal(self) and set(values) == {'product_id', 'lot_id'}
-                and all(tag.step_tag_kind == 'C' and tag.step_tag_state == 'validated'
-                        for tag in self.package_id)):
-            return True
-        return super()._step_allow_validated_detail_write(values)
+    def _step_write_corrected_product(self, product, lot):
+        self.ensure_one()
+        self.check_access('write')
+        if (not _internal(self) or not self.env.user.has_group('stock.group_stock_manager')
+                or self.package_id.step_tag_kind != 'C' or self.package_id.step_tag_state != 'validated'):
+            raise AccessError(_('Use la corrección de producto de la recepción.'))
+        profiles = getattr(self.env.user, '_step_application_levels', None)
+        levels = profiles() if profiles else None
+        if levels is not None and levels.get('packing', 0) < 2 and not self.env.su:
+            raise AccessError(_('El perfil no permite modificar una tarja de Packing.'))
+        self._check_open_ot()
+        # The stock correction has already completed in this transaction.
+        # Skip the ordinary immutability guard for these two fields only;
+        # retain the ORM constraints, including the product of the lot.
+        return super(StepFruitPackageLine, self).write({'product_id': product.id, 'lot_id': lot.id})
 
 
 class ReceiptLine(models.Model):
@@ -228,7 +238,7 @@ class CorrectProduct(models.TransientModel):
                 or stock.lot_id != new_lot or stock.location_id != location or stock.reserved_quantity
                 or float_compare(stock.quantity, quantity, precision_rounding=target.uom_id.rounding)):
             raise ValidationError(_('La corrección no conservó íntegramente el stock de la tarja.'))
-        detail.with_context(_receipt_product_correction=_CORRECTION).write({'product_id': target.id, 'lot_id': new_lot.id})
+        detail.with_context(_receipt_product_correction=_CORRECTION)._step_write_corrected_product(target, new_lot)
         row.with_context(_receipt_product_correction=_CORRECTION).write({'product_id': target.id, 'stock_lot_id': new_lot.id})
         tag._check_step_tag()
         return moves
