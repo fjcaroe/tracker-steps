@@ -43,7 +43,10 @@ class ExternalReceiptCase(TransactionCase):
             sheet.append(['QA189-01', 'QA189-GUIA', f'QA189-TARJA-{index}', '05-11-2026  02:43',
                 species.name, variety.name, 'Cliente', 'Alias externo productor', 'Alias externo envase',
                 10 * index, 20.5 * index, 'GRANEL PROCESO', 'CONVENCIONAL', 'N', 'S', 'S' if index == 1 else 'N', 'PSJ'])
-        sheet.append([None] * 8 + ['>>Totales', 30, 61.5])
+        sheet.append(['QA189-01', 'QA189-GUIA', 'QA189-RECHAZADA', '05/11/2026 02:43',
+                      species.name, varieties[0].name, 'Cliente', 'Alias externo productor',
+                      'Alias externo envase', 5, 10, 'RECHAZADO', 'CONVENCIONAL', 'N', 'S', 'N', 'PSJ'])
+        sheet.append([None] * 8 + ['>>Totales', 35, 71.5])
         workbook.create_sheet('descripción')
         def attachment():
             binary = BytesIO()
@@ -63,6 +66,7 @@ class ExternalReceiptCase(TransactionCase):
         self.assertFalse(manual.target)
         manual.target = 'kilos'
         wizard.action_review()
+        self.assertIn('QA189-RECHAZADA', wizard.review_note)
         wizard.alias_ids.filtered(lambda line: line.kind == 'producer').fundo_id = fundo
         wizard.alias_ids.filtered(lambda line: line.kind == 'packaging').packaging_id = packaging
         action = wizard.action_import()

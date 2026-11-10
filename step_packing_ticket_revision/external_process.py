@@ -120,6 +120,24 @@ class ExternalPackingProcessImport(models.TransientModel):
     reviewed = fields.Boolean(readonly=True)
     preview = fields.Char(readonly=True)
 
+    @api.model
+    def default_get(self, names):
+        result = super().default_get(names)
+        template = self.env['step.external.fruit.reception.template']._default_for_company()
+        if template and 'template_id' in names and not result.get('template_id'):
+            result['template_id'] = template.id
+            if 'packing_id' in names and not result.get('packing_id'):
+                result['packing_id'] = template.packing_id.id
+        for field, model, domain in (
+            ('line_id', 'step.packing.line', [('company_id', '=', self.env.company.id)]),
+            ('process_type_id', 'step.packing.process.type', [('step_category', '=', 'packing')]),
+        ):
+            if field in names and not result.get(field):
+                records = self.env[model].search(domain, limit=2)
+                if len(records) == 1:
+                    result[field] = records.id
+        return result
+
     @api.onchange('template_id')
     def _onchange_template(self):
         if self.template_id:

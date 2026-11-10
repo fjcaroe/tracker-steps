@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime, time
 from io import BytesIO
 import base64
 import math
@@ -78,14 +78,24 @@ def excel_number(value):
 def reception_date(value):
     if isinstance(value, datetime):
         local = value
+    elif isinstance(value, date):
+        local = datetime.combine(value, time.min)
     else:
         text = ' '.join(str(value).split()).replace('/', '-')
-        try:
-            local = datetime.strptime(text, '%d-%m-%Y %H:%M')
-        except ValueError:
-            local = datetime.strptime(text, '%d-%m-%Y %H:%M:%S')
-    utc = pytz.timezone('America/Santiago').localize(local, is_dst=None).astimezone(pytz.UTC)
-    return local.date(), utc.replace(tzinfo=None)
+        if re.match(r'^\d{4}-', text):
+            local = datetime.fromisoformat(text)
+        else:
+            for pattern in ('%d-%m-%Y %H:%M', '%d-%m-%Y %H:%M:%S', '%d-%m-%Y'):
+                try:
+                    local = datetime.strptime(text, pattern)
+                    break
+                except ValueError:
+                    continue
+            else:
+                raise ValueError('invalid reception date')
+    timezone = pytz.timezone('America/Santiago')
+    local = timezone.localize(local, is_dst=None) if local.tzinfo is None else local.astimezone(timezone)
+    return local.date(), local.astimezone(pytz.UTC).replace(tzinfo=None)
 
 
 def open_excel(file, filename):
@@ -150,6 +160,12 @@ class ExternalReceptionImport(models.TransientModel):
     @api.model
     def default_get(self, names):
         result = super().default_get(names)
+        template = self.env['step.external.fruit.reception.template']._default_for_company()
+        if template and 'template_id' in names and not result.get('template_id'):
+            result['template_id'] = template.id
+            for field in _DEFAULTS:
+                if field in names and not result.get(field):
+                    result[field] = template[field].id
         for field, model, domain in (
             ('season_id', 'step.temporada', [('name', '=ilike', 'T2627')]),
             ('product_id', 'product.product', [('default_code', '=', 'AR01')]),
@@ -220,7 +236,7 @@ class ExternalReceptionImport(models.TransientModel):
             raise UserError(_('Indique la columna del Excel para: %s.', ', '.join(missing)))
         return columns
 
-    def _read_rows(self):
+    def _read_rows(self, rejected=None):
         book = self._open_workbook()
         try:
             sheet = book.worksheets[0]
@@ -241,11 +257,15 @@ class ExternalReceptionImport(models.TransientModel):
                     continue
                 if not row['folio'] and any(normalized(value).startswith('>>totales') for value in values):
                     continue
+                if normalized(row['kind']) == 'rechazado':
+                    if rejected is not None:
+                        rejected.append(reference(row['tag']))
+                    continue
                 rows.append((number, self._validate_row(row, number)))
         finally:
             book.close()
         if not rows:
-            raise UserError(_('La primera hoja debe contener al menos una tarja.'))
+            raise UserError(_('La primera hoja debe contener al menos una tarja aceptada para proceso.'))
         return rows
 
     def action_review(self):
@@ -258,15 +278,20 @@ class ExternalReceptionImport(models.TransientModel):
                 book.close()
             self.write({'reviewed_row': header, 'column_ids': [
                 Command.clear(), *(Command.create(line) for line in columns)]})
+        rejected = []
         try:
-            rows = self._read_rows()
+            rows = self._read_rows(rejected)
         except UserError as error:
             self.review_note = str(error)
         else:
             self._review_aliases(rows)
             folios = len({row['folio'] for _, row in rows})
-            self.review_note = _('%(folios)s recepciones y %(tags)s tarjas detectadas.',
+            self.review_note = _('%(folios)s recepciones y %(tags)s tarjas aceptadas.',
                                  folios=folios, tags=len(rows))
+            if rejected:
+                tags = ', '.join(rejected[:10])
+                self.review_note += _(' Se excluyen %(count)s tarjas rechazadas (%(tags)s).',
+                                      count=len(rejected), tags=tags)
         action = self.env.ref('step_packing_ticket_revision.action_external_fruit_reception_import').read()[0]
         action.update(res_id=self.id, views=[(action['view_id'][0], 'form')])
         return action

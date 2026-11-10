@@ -53,7 +53,7 @@
   <record id="view_external_packing_production_reference" model="ir.ui.view">
     <field name="name">step.packing.production.external.reference</field>
     <field name="model">step.packing.production</field>
-    <field name="inherit_id" ref="step_packing_operations.view_packing_production_form"/>
+    <field name="inherit_id" ref="step_packing_ot_layout.production_form_layout"/>
     <field name="arch" type="xml">
       <field name="step_packing_line_id" position="after">
         <field name="step_external_process_folio" invisible="not step_external_process_folio"/>

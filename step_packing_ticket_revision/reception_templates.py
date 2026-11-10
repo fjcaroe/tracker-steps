@@ -44,6 +44,11 @@ class ExternalReceptionTemplate(models.Model):
     ]
 
 
+    @api.model
+    def _default_for_company(self):
+        templates = self.search([('company_id', '=', self.env.company.id)], limit=2)
+        return templates if len(templates) == 1 else self.browse()
+
     def _remember_aliases(self, values):
         self.ensure_one()
         self.env.cr.execute('SELECT id FROM step_external_fruit_reception_template WHERE id=%s FOR UPDATE', [self.id])
