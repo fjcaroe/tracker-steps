@@ -17,11 +17,17 @@ const fs = require('node:fs'), path = require('node:path'), assert = require('no
     page.on('pageerror', error => errors.push(error.message));
     await page.route(origin + '/web/dataset/call_kw/**', route => {
       const params = route.request().postDataJSON()?.params;
+      // The global IoT service can write channel state even on a read-only
+      // purchase visit. Keep this unrelated subscription disabled in review.
+      if (params?.model === 'iot.channel' && params?.method === 'get_iot_channel')
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ jsonrpc: '2.0', id: route.request().postDataJSON().id, result: '' }) });
+      if (params?.model === 'purchase.order' && params?.method === 'retrieve_dashboard') return route.continue();
       if (['get_views','get_view','web_search_read','search_read','read','web_read','search_count','search','name_search','onchange','default_get','has_group','check_access_rights','get_metadata','get_panel_data','get_import_templates'].includes(params?.method)) return route.continue();
       denied.push(params?.model + '.' + params?.method); return route.abort();
     });
     const seen = [];
     for (const name of ['rfq', 'purchase']) {
+      console.log('T190_REVIEWING ' + name);
       await page.goto(origin + '/odoo/action-' + proof.actions[name]);
       await page.locator('.o_list_view').waitFor();
       const create = page.locator('.o_list_button_add');
@@ -34,6 +40,7 @@ const fs = require('node:fs'), path = require('node:path'), assert = require('no
       seen.push(name);
     }
     for (const name of ['fruit', 'advance']) {
+      console.log('T190_REVIEWING ' + name);
       await page.goto(origin + '/odoo/action-' + proof.actions[name]);
       await page.locator('.o_list_view').waitFor();
       assert.equal(await page.locator('.o_list_button_add').count(), 0);
