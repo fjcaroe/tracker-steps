@@ -1,5 +1,10 @@
 # Operación y publicación de Odoo
 
+T187 autoriza `activities-dashboard` en Desarrollo, Cerro y QA-Cerro.
+Validar el panel nativo, los cuatro períodos y los indicadores de costo
+con datos de la empresa activa. Publicar el mismo paquete con respaldo y
+bloqueo, conservando la versión instalada de Actividades por empresa.
+
 T188 amplía `reception-lots` en Desarrollo, Cerro y QA-Cerro. La pestaña
 Fruta incorpora las condiciones de recepción y la clasificación. Validar los
 dos menús de recepción y el guardado en copias frescas. Las selecciones

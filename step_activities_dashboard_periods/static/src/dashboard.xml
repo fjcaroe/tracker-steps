@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_activities_dashboard_periods.Dashboard" t-inherit="step_hr.ActivitiesDashboard" t-inherit-mode="extension">
+        <xpath expr="//div[@aria-label='Período']" position="replace">
+            <div class="btn-group" role="group" aria-label="Período">
+                <button t-foreach="[['day', 'Último día'], ['week', 'Semana'], ['month', 'Mes'], ['season', 'Temporada']]"
+                        t-as="period" t-key="period[0]" type="button"
+                        t-att-aria-pressed="state.period === period[0] ? 'true' : 'false'"
+                        t-att-class="'btn ' + (state.period === period[0] ? 'btn-light' : 'btn-outline-light')"
+                        t-on-click="() => this.loadDashboard(period[0])" t-esc="period[1]"/>
+            </div>
+        </xpath>
+        <xpath expr="//section[hasclass('o_step_activities_kpis')]" position="replace">
+            <section class="o_step_activities_kpis">
+                <article><span>Horas informadas</span><strong><t t-esc="formatNumber(state.data.kpis.hours, 1)"/> h</strong><small>Propias y contratistas</small></article>
+                <button t-on-click="() => this.openAction('step_hr.action_step_tarja')"><span>Labores registradas</span><strong t-esc="formatNumber(state.data.kpis.tasks)"/><small><t t-esc="state.data.tarja_types.propio"/> propias · <t t-esc="state.data.tarja_types.contratista"/> contratistas</small></button>
+                <article><span>Costo empresa</span><strong t-esc="formatCurrency(state.data.kpis.company_cost)"/></article>
+                <article><span>Costo contratista</span><strong t-esc="formatCurrency(state.data.kpis.contractor_cost)"/></article>
+                <article><span>Costo total</span><strong t-esc="formatCurrency(state.data.kpis.total_cost)"/></article>
+                <article class="is-accent"><span>Sueldo variable</span><strong t-esc="formatCurrency(state.data.kpis.variable_pay)"/><small>Tratos informados en tarjas</small></article>
+            </section>
+        </xpath>
+    </t>
+</templates>
