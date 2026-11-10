@@ -35,6 +35,35 @@ exacta y una prueba controlada conservando alimentación y recepción satelital,
 comparando las muestras antes/durante/después de perder solo la conectividad.
 No aplicar comandos save/load de modelos 303 al 401 por similitud de marca.
 
+### Verificación del ajuste por SMS
+
+Una medición pasiva de seis minutos observó latidos separados por 180,243 s,
+con acuses del servidor en aproximadamente 10 ms. Después de que el operador
+aplicara `heartbeat<clave> 60` desde su teléfono autorizado y recibiera la
+confirmación del equipo, otra medición de cuatro minutos observó cuatro
+latidos: tres intervalos de 60,250 a 60,498 s (mediana 60,300 s). Los cuatro
+acuses tardaron entre 9,722 y 11,209 ms; las cuatro posiciones de esa muestra
+llegaron con 1,453 a 1,560 s de atraso. Las capturas crudas no se guardaron.
+
+La revisión fue 401A-L-260306-V2.04, informada por el propio equipo en la
+consulta SMS. El operador ya había recibido confirmación de `online<clave>`;
+no se repitió esa orden. La muestra posterior no incluyó un mensaje status,
+por lo que no constituye una lectura independiente del modo configurado.
+
+El protocolo del fabricante citado abajo describe reconexión tras dos latidos
+sin respuesta. Reducir el intervalo de 180 a 60 s permite esperar detección
+más rápida de ese fallo (aproximadamente dos minutos en lugar de seis), pero
+esta prueba no provocó una interrupción ni midió una reconexión real. Tampoco
+elimina la falta de cobertura móvil o satelital.
+
+La revisión de mensajes ya recibidos encontró posiciones antiguas reenviadas
+con hasta unos doce minutos y medio de atraso antes de llegar al receptor.
+En los grupos revisados no hubo reintentos del API y el procesamiento posterior
+tardó menos de tres segundos. Esto acredita recuperación parcial de
+muestras retrasadas; no demuestra almacenamiento persistente del equipo ni
+recuperación completa de todos los recorridos. Los recibos y mediciones por
+activo quedan en archivos privados fuera del repositorio público.
+
 ## Continuidad y diagnóstico — 02-11-2026
 
 El límite de inactividad TCP pasa de 180 a 600 segundos. El protocolo reciente
