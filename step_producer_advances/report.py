@@ -26,12 +26,13 @@ class AdvanceReport(models.AbstractModel):
         weeks = [monday + timedelta(weeks=offset) for offset in
                  range((document.step_fruit_period_end - monday).days // 7 + 1)]
         received = sum(row['received_kg'] for row in rows)
-        exported = sum(row['quantity'] for row in rows)
+        quantity = sum(row['quantity'] for row in rows)
         partner = document.company_id.partner_id
         return {'rows': rows, 'fundos': ', '.join(sorted({row['fundo_name'] for row in rows})),
             'buyer_activity': partner.l10n_cl_activity_description if 'l10n_cl_activity_description' in partner._fields else '',
             'weeks': ', '.join('%s-S%02d' % day.isocalendar()[:2] for day in weeks),
-            'received': received, 'exported': exported, 'ratio': exported / received if received else 0,
+            'received': received, 'exported': quantity, 'ratio': quantity / received if received else 0,
+            'by_receipt': document.step_advance_basis == 'received',
             'source_total': sum(row['source_amount'] for row in rows)}
 
     @api.model

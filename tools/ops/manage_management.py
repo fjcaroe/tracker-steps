@@ -929,7 +929,10 @@ def main():
             assert args.pdf_review and args.pdf_review.is_file(), 'Review the T175 summary and large annex PDF pages before publication'
             review = json.loads(args.pdf_review.read_text(encoding='utf-8-sig'))
             assert review['reviewed'] is True
-            assert set(review['files']) == {'t175-smoke-advances.pdf', 't175-large-advance.pdf'}
+            expected = {'t175-smoke-advances.pdf', 't175-large-advance.pdf'}
+            if tuple(map(int, proof['versions']['step_producer_advances'].split('.'))) >= (18, 0, 1, 2, 0):
+                expected.add('t195-received-advance.pdf')
+            assert set(review['files']) == expected
             for filename, item in review['files'].items():
                 assert item['sha256'] == digest(stage / filename)
                 assert item['pages']

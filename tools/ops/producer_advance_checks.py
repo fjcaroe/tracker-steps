@@ -30,6 +30,10 @@ def verify_ui(business):
         view_id=ref('step_inventory_packing.view_quant_package_form_steps_fruit').id, view_type='form')['arch'])
     assert tag.xpath('//field[@name="step_advance_proforma_ids"]')
     assert tag.xpath('//field[@name="step_advance_market_id"]')
+    if 'basis' in business['step.producer.advance.prepare']._fields:
+        assert wizard.xpath('//field[@name="basis"]')
+        assert wizard.xpath('//field[@name="process_cutoff"]')[0].get('required') == "basis == 'processed'"
+        assert quote.xpath('//field[@name="step_advance_basis"]')
     purchase = verify_purchase_ui(business)
     return {'menus': True, 'native_pricelist': True, 'effective_forms': True,
             'tag_proforma_links': True, 'native_purchase': purchase}
@@ -196,9 +200,31 @@ def verify_advances(env, output):
     quotes.action_fruit_convert();wizard.action_prepare()
     assert quotes.invoice_ids==bills and counts()==stock
     assert not production.purchase_bill_id
-    return {'monthly_regression':monthly,'documents':['33','46'],'late_process':True,
+    proof = {'monthly_regression':monthly,'documents':['33','46'],'late_process':True,
         'packed_reception':True,'native_invoice_drafts':True,'two_payment_dates':True,
         'idempotent':True,'stock_preserved':True,'no_official_folio':True,'large_annex_rows':1000}
+    if 'basis' in wizard._fields:
+        received = tag('C', '33', 625, case['base'])
+        receipt(received, 'process')
+        business['product.pricelist.item'].create({
+            'pricelist_id': prices.id, 'product_tmpl_id': case['base'].product_tmpl_id.id,
+            'applied_on': '1_product', 'compute_price': 'fixed', 'fixed_price': 0.8,
+            'uom_id': admin.ref('uom.product_uom_kgm').id,
+        })
+        before = counts()
+        receipt_wizard = wizard.copy({'basis': 'received', 'process_cutoff': False})
+        prepared = business['purchase.order'].browse(receipt_wizard.action_prepare()['res_id'])
+        assert prepared.step_advance_basis == 'received' and not prepared.step_advance_cutoff
+        assert prepared.step_fruit_tag_ids == received and prepared.order_line.product_qty == 625
+        assert prepared.amount_untaxed == 500 and not prepared.step_fruit_production_ids
+        assert receipt_wizard.action_prepare()['res_id'] == prepared.id and counts() == before
+        html, _ = business['ir.actions.report']._render_qweb_html('step_producer_advances.report_advance', prepared.ids)
+        assert b'Anticipo por kilos recibidos' in html and b'Corte proceso' not in html and b'Kg export.' not in html
+        pdf, kind = business['ir.actions.report']._render_qweb_pdf('step_producer_advances.report_advance', prepared.ids)
+        assert kind == 'pdf' and pdf.startswith(b'%PDF') and len(pdf) > 10000
+        (Path(output) / 't195-received-advance.pdf').write_bytes(pdf)
+        proof['received_net_kilos'] = prepared.order_line.product_qty
+    return proof
 
 
 def verify_purchase_ui(business):

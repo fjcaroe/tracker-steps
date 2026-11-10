@@ -1,6 +1,6 @@
 {
     'name': 'Steps - Proforma mensual de fruta',
-    'version': '18.0.1.2.1',
+    'version': '18.0.1.2.2',
     'license': 'LGPL-3',
     'depends': ['step_packing_operations', 'step_packing_holding_contract',
                 'purchase_stock', 'l10n_cl'],

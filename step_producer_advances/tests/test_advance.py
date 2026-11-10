@@ -299,6 +299,74 @@ class TestProducerAdvances(FruitProformaCase):
         with self.assertRaises(UserError): self._advance()
         self.assertEqual(tag.step_fruit_proforma_id,monthly)
 
+    def _received_wizard(self):
+        self._rule(0.8, product_tmpl_id=self.base.product_tmpl_id.id)
+        return self._advance_wizard(basis='received', process_cutoff=False)
+
+    def test_received_kilos_use_net_receipt_without_ot_and_prepare_native_bill(self):
+        raw, receipt = self._raw(species=self.retained_species)
+        before = self._stock_counts()
+        wizard = self._received_wizard()
+        quote = self._advance(wizard)
+        self.assertEqual(quote.step_advance_basis, 'received')
+        self.assertFalse(quote.step_advance_cutoff or quote.step_fruit_production_ids)
+        self.assertEqual(quote.step_fruit_tag_ids, raw)
+        self.assertEqual(quote.step_fruit_receipt_ids, receipt)
+        self.assertEqual(quote.order_line.product_qty, 1000)
+        self.assertEqual(quote.amount_untaxed, 800)
+        self.assertEqual(self._advance(wizard), quote)
+        self._approve(quote)
+        bill = self._convert(quote)
+        self.assertEqual(bill.state, 'draft')
+        self.assertEqual(bill.l10n_latam_document_type_id.code, '46')
+        self.assertEqual(self._stock_counts(), before)
+        self._processed(raw=raw, species=self.retained_species)
+        with self.assertRaisesRegex(UserError, 'No hay kilos disponibles'):
+            self._advance()
+        with self.assertRaisesRegex(ValidationError, 'kilos recibidos'):
+            self._wizard().action_prepare_bills()
+
+    def test_closed_ot_and_split_raw_tag_do_not_duplicate_received_fruit(self):
+        raw, _receipt = self._raw()
+        child = self.env['stock.quant.package'].with_company(self.branch).create({
+            'name': 'QA195 split C', 'is_fruit_tag': True, 'step_tag_kind': 'C',
+            'especie_id': self.species.id, 'variedad_id': self.variety.id, 'fundo_id': self.fundo.id,
+            'step_producer_id': self.producer.id,
+            'step_tag_line_ids': [Command.create({
+                'source_package_id': raw.id, 'producer_id': self.producer.id,
+                'product_id': self.base.id, 'quantity': 500, 'kilos': 500,
+            })],
+        })
+        child.action_step_validate_tag()
+        self._processed(kilos=375, raw=child)
+        processed = self._advance()
+        self._approve(processed)
+        received = self._received_wizard()
+        with self.assertRaisesRegex(UserError, 'No hay kilos disponibles'):
+            self._advance(received)
+        processed.button_cancel()
+        self.assertEqual(self._advance(received).order_line.product_qty, 1000)
+
+    def test_a_validated_export_tag_cannot_be_approved_again_for_another_week(self):
+        first, _receipt = self._raw(1000, '2026-10-29 12:00:00')
+        second, _receipt = self._raw(2000, '2026-11-02 12:00:00')
+        self._processed(kilos=2250, raw=first | second)
+        first_quote = self._advance()
+        next_week = self._advance_wizard(date_from='2026-11-01', date_to='2026-11-04')
+        second_quote = self._advance(next_week)
+        self._approve(first_quote)
+        with self.assertRaisesRegex(UserError, 'otra proforma'):
+            self._approve(second_quote)
+        with self.assertRaisesRegex(UserError, 'otra proforma'):
+            self._advance(next_week)
+
+    def test_monthly_draft_claims_original_raw_tag(self):
+        raw, _receipt = self._raw()
+        ot, _tag = self._processed(raw=raw)
+        self._prepare(ot)
+        with self.assertRaisesRegex(UserError, 'No hay kilos disponibles'):
+            self._advance(self._received_wizard())
+
     def test_cancellation_releases_only_the_advance_allocation(self):
         order,tag = self._processed(); quote=self._advance()
         before=self._stock_counts()

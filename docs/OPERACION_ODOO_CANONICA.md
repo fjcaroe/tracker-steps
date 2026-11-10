@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+T195 amplía `producer-advances` en Desarrollo, Cerro y QA-Cerro. El
+asistente selecciona kilos procesados o los kilos netos de tarjas C y E de
+recepciones validadas. La fecha de corte aplica al cálculo procesado. Usar
+precios explícitos para los productos de cada modalidad en la lista nativa.
+Conservar los documentos históricos y evitar el doble uso de tarjas y del
+origen entre modalidades, incluso cuando la tarja C se dividió. Verificar el
+flujo 33/46, ambos informes, los permisos y la compra mensual en copias.
+Publicar el mismo paquete con respaldo, bloqueo y paridad.
+
 T194 amplía `agriculture-multicompany` en Desarrollo, Cerro y QA-Cerro. Un
 usuario de Inventario con acceso al contacto de origen puede validar fruta de
 un fundo asignado a la sucursal receptora, sin activar la otra sucursal. La

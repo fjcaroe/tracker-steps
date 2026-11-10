@@ -99,6 +99,9 @@ class MonthlyFruitProforma(models.TransientModel):
     def action_prepare_bills(self):
         return self._fruit_prepare()
 
+    def _fruit_monthly_draft_domain(self):
+        return []
+
     def _fruit_prepare(self, ignore_legacy=False, only_orders=None, reuse_draft=True):
         with self.env.cr.savepoint():
             return self._fruit_prepare_documents(ignore_legacy, only_orders, reuse_draft)
@@ -176,7 +179,7 @@ class MonthlyFruitProforma(models.TransientModel):
                       ('step_fruit_species_id', '=', species), ('step_fruit_dte_code', '=', code),
                       ('step_fruit_withholding_tax_id', '=', retention or False),
                       ('step_fruit_period_start', '=', self.date_start), ('step_fruit_period_end', '=', self.date_end),
-                      ('step_fruit_state', '=', 'draft')]
+                      ('step_fruit_state', '=', 'draft')] + self._fruit_monthly_draft_domain()
             quote = self.env['purchase.order'].search(domain, limit=1) if reuse_draft else self.env['purchase.order']
             if not quote:
                 quote = self.env['purchase.order'].with_company(self.company_id).with_context(_fruit_proforma=_FRUIT).create({
