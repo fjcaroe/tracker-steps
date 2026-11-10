@@ -130,7 +130,7 @@ def test_receiver_history_records_evidence_without_inventing_positions(setup):
         assert [e.detail['state'] for e in events]==['no_gps','gps']
         assert db.query(Position).count()==0
         # Exact same receiver snapshot is not repeatedly stored, even after a minute.
-        events[-1].created_at=now()-timedelta(minutes=2)
+        for event in events:event.created_at=utc(event.created_at)-timedelta(minutes=2)
         row=db.get(DeviceRegistration,'r1')
         stamp=utc(row.receiver_seen_at).isoformat()
         db.commit()
