@@ -972,3 +972,48 @@ bloqueo durante el navegador para evitar reinicios por otras publicaciones.
 Las sesiones efímeras se retiraron con su prueba privada exacta; no se altera
 ninguna sesión del usuario. cleanup_personal_sessions.py evita arrancar otro
 registro ORM únicamente para retirar la sesión. Handoff limpio y publicado.
+
+
+## Identificación y espacios de trabajo de Tracker — 10-11-2026
+
+Operaciones identifica al vehículo por patente y muestra el conductor asignado
+actual de Flota de Odoo en el selector, el encabezado y el CSV. La comparación y
+el historial también muestran esa asignación. No se infiere quién condujo un
+recorrido histórico ni se reemplazan relaciones nativas por texto editable.
+
+Inicio prioriza la flota real: búsqueda por patente/conductor, hasta ocho fichas
+con accesos al mapa, historial y Operaciones, resumen de conectividad y accesos a
+zonas, protección y configuración. Flota agrega filtros rápidos combinables,
+chips para quitar cada filtro, vista compacta y acciones del vehículo seleccionado.
+Las búsquedas y filtros reutilizan el snapshot; no disparan consultas adicionales.
+El modo demo conserva su aislamiento y no abre operaciones de activos sintéticos.
+
+Operaciones agrega períodos de 6/12 horas y 3 días, búsqueda en el selector y una
+ficha legible de vehículo/conductor. El historial conserva exactamente el período
+seleccionado. La lectura del mapa usa páginas de 5.000 y un máximo inicial de
+cuatro páginas; el resto conserva la acción explícita para continuar y la marca
+de historial parcial. Cambiar vehículo, período o pestaña aborta la consulta
+anterior. Los indicadores no muestran ceros provisionales durante su carga.
+
+El paquete de frontend es `13b8c530b1428768b684046efb3b002a37ed0a00`.
+Validación: compilación TypeScript/Vite, ocho pruebas de métricas/exportación y
+`tools/qa/tracker/workspace-native.cjs`, con navegación nativa de solo lectura,
+conductor, búsqueda, filtros, vista compacta y conservación de seis horas al
+abrir el historial. Revisión visual en 1440 px y 390 px, sin desborde horizontal.
+Los recibos de copia fresca y publicación están en
+`/opt/steps-validation/tracker-parity-20261031/<commit>/`; capturas y resultados
+privados en `/var/tmp/steps-workspace-review-20261110/`.
+
+La entrega usa `deploy_tracker_frontend.py`, con la raíz privada del API instalado
+indicada mediante `--runtime-api-root`. Se contrasta su código con el paquete,
+se valida una copia fresca y se publica el mismo dist primero en Desarrollo y
+luego en Cerro, con respaldo y bloqueo compartido. No requiere actualizar addons,
+API o receptor GPS. La revisión de navegador conserva las sesiones temporales en
+el servidor y las retira al terminar; nunca se exportan credenciales al cliente.
+
+Publicación comprobada en Desarrollo y Cerro con el mismo paquete y respaldos.
+El navegador real pasó las comprobaciones en ambos destinos sin errores ni
+escrituras de negocio. La identificación se verificó además visualmente en el
+vehículo solicitado de Cerro. Los recibos confirman API, receptor GPS y aplicación
+móvil intactos. Los archivos de resultado omiten nombres, patentes y sesiones;
+las capturas que contienen datos operativos permanecen privadas.
