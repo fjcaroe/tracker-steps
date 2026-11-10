@@ -30,7 +30,9 @@ def verify_ui(business):
         view_id=ref('step_inventory_packing.view_quant_package_form_steps_fruit').id, view_type='form')['arch'])
     assert tag.xpath('//field[@name="step_advance_proforma_ids"]')
     assert tag.xpath('//field[@name="step_advance_market_id"]')
-    return {'menus': True, 'native_pricelist': True, 'effective_forms': True, 'tag_proforma_links': True}
+    purchase = verify_purchase_ui(business)
+    return {'menus': True, 'native_pricelist': True, 'effective_forms': True,
+            'tag_proforma_links': True, 'native_purchase': purchase}
 
 
 def verify_reported_dates(env, plan, *, run_flow):
@@ -197,3 +199,41 @@ def verify_advances(env, output):
     return {'monthly_regression':monthly,'documents':['33','46'],'late_process':True,
         'packed_reception':True,'native_invoice_drafts':True,'two_payment_dates':True,
         'idempotent':True,'stock_preserved':True,'no_official_folio':True,'large_annex_rows':1000}
+
+
+def verify_purchase_ui(business):
+    """T190: native actions must resolve their default form without proforma context."""
+    from odoo.tools.safe_eval import safe_eval
+    ref = business.ref
+    native = ref('purchase.purchase_order_form')
+    model = business['purchase.order']
+    assert business['ir.ui.view'].default_view('purchase.order', 'form') == native.id
+    visible = business['ir.ui.menu']._visible_menu_ids()
+    for menu_id, action_id in (
+            ('purchase.menu_purchase_rfq', 'purchase.purchase_rfq'),
+            ('purchase.menu_purchase_form_action', 'purchase.purchase_form_action')):
+        menu = ref(menu_id)
+        assert menu.id in visible and menu.action == ref(action_id)
+        action = menu.action._get_action_dict()
+        form = next(view for view, kind in action['views'] if kind == 'form')
+        data = model.get_view(view_id=form, view_type='form')
+        assert data['id'] == native.id
+        arch = etree.fromstring(data['arch'])
+        assert arch.get('create') != '0'
+        assert arch.xpath("//button[@name='button_confirm']")
+        assert arch.xpath("//button[@name='action_create_invoice']")
+        assert not arch.xpath("//button[@name='action_fruit_approve']")
+        assert not safe_eval(action['context']).get('default_step_fruit_proforma')
+        assert ('step_fruit_proforma', '=', False) in safe_eval(action['domain'])
+    for menu_id, action_id in (
+            ('menu_purchase_prepare_fruit', 'step_packing_operations.action_monthly_fruit_bill'),
+            ('menu_purchase_fruit_list', 'step_packing_fruit_proforma.fruit_proforma_action')):
+        menu = ref('step_packing_fruit_proforma.' + menu_id)
+        assert menu.id in visible and menu.action == ref(action_id)
+        assert menu.parent_id.parent_id == ref('purchase.menu_purchase_root')
+    action = ref('step_packing_fruit_proforma.fruit_proforma_action')._get_action_dict()
+    assert next(view for view, kind in action['views'] if kind == 'form') == ref('step_packing_fruit_proforma.fruit_proforma_form').id
+    action = ref('step_producer_advances.action_advance_proformas')._get_action_dict()
+    assert next(view for view, kind in action['views'] if kind == 'form') == ref('step_producer_advances.advance_proforma_form').id
+    return {'menus': True, 'default_form': True, 'confirmation_and_billing': True,
+            'separate_proforma_actions': True, 'existing_records_preserved': True}

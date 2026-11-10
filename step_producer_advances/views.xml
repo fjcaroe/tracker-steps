@@ -19,6 +19,7 @@
         <field name="view_mode">form</field><field name="target">new</field><field name="view_id" ref="advance_prepare_form"/>
     </record>
     <record id="advance_proforma_form" model="ir.ui.view">
+        <field name="priority">95</field>
         <field name="name">purchase.order.advance.proforma.form</field><field name="model">purchase.order</field>
         <field name="inherit_id" ref="step_packing_fruit_proforma.fruit_proforma_form"/><field name="mode">primary</field>
         <field name="arch" type="xml">
@@ -43,6 +44,7 @@
         </field>
     </record>
     <record id="advance_proforma_list" model="ir.ui.view">
+        <field name="priority">95</field>
         <field name="name">purchase.order.advance.proforma.list</field><field name="model">purchase.order</field>
         <field name="arch" type="xml"><list string="Proforma anticipos" create="0" delete="0" decoration-muted="step_fruit_state == 'cancel'">
             <field name="name"/><field name="company_id"/><field name="partner_id" string="Productor"/>

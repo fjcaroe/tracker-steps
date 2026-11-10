@@ -1,5 +1,6 @@
 <odoo>
     <record id="fruit_proforma_list" model="ir.ui.view">
+        <field name="priority">90</field>
         <field name="name">purchase.order.fruit.proforma.list</field>
         <field name="model">purchase.order</field>
         <field name="arch" type="xml">
@@ -20,6 +21,7 @@
         </field>
     </record>
     <record id="fruit_proforma_form" model="ir.ui.view">
+        <field name="priority">90</field>
         <field name="name">purchase.order.fruit.proforma.form</field>
         <field name="model">purchase.order</field>
         <field name="arch" type="xml">
@@ -141,6 +143,7 @@
         </field>
     </record>
     <record id="fruit_proforma_search" model="ir.ui.view">
+        <field name="priority">90</field>
         <field name="name">purchase.order.fruit.proforma.search</field>
         <field name="model">purchase.order</field>
         <field name="arch" type="xml">

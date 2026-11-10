@@ -1,5 +1,13 @@
 # Operación y publicación de Odoo
 
+T190 autoriza recuperar el ciclo nativo de Compras en Desarrollo, Cerro y
+QA-Cerro, manteniendo proformas mensuales y anticipos como ciclos adicionales.
+El formulario primario de anticipos no debe ser predeterminado de purchase.order.
+Corregir prioridades y accesos en código, conservar los registros y probar
+solicitud, confirmación, recepción y factura en copia, junto a la regresión de
+proformas 33/46. Mismo paquete producer-advances, respaldo, bloqueo y paridad;
+no validar compras, stock ni facturas reales ni refrescar QA-Cerro.
+
 T189 autoriza `reception-excel` en Desarrollo, Cerro y QA-Cerro. Probar
 la primera hoja del Excel externo y el guardado en borrador de una recepción
 por folio. El usuario confirma los maestros cuando sus nombres difieren del

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Proformas share native storage, but have their own business cycle.
+         Preserve the native purchase actions, contexts, views and state domain. -->
+    <record id="purchase.purchase_rfq" model="ir.actions.act_window">
+        <field name="domain">[('step_fruit_proforma', '=', False)]</field>
+    </record>
+    <record id="purchase.purchase_form_action" model="ir.actions.act_window">
+        <field name="domain">[('state', 'in', ('purchase', 'done')), ('step_fruit_proforma', '=', False)]</field>
+    </record>
+    <record id="purchase.act_res_partner_2_purchase_order" model="ir.actions.act_window">
+        <field name="domain">[('step_fruit_proforma', '=', False)]</field>
+    </record>
+    <!-- Reuse the existing actions; no duplicate documents, models or permissions. -->
+    <menuitem id="menu_purchase_fruit" name="Proformas de fruta"
+              parent="purchase.menu_purchase_root" sequence="35" groups="account.group_account_user"/>
+    <menuitem id="menu_purchase_prepare_fruit" name="Preparar compra mensual"
+              parent="menu_purchase_fruit" sequence="10" groups="account.group_account_user"
+              action="step_packing_operations.action_monthly_fruit_bill"/>
+    <menuitem id="menu_purchase_fruit_list" name="Proformas de compra"
+              parent="menu_purchase_fruit" sequence="20" groups="account.group_account_user"
+              action="fruit_proforma_action"/>
+</odoo>
