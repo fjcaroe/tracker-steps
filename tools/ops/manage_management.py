@@ -300,16 +300,17 @@ def packing_schema(action, database, root, stage):
     run('sudo','-u','postgres','/usr/bin/python3.10',str(root/'step_packing_ticket_revision/migrate_schema.py'),action,database,str(target))
 
 
-def extract(release, target):
+def extract(release, target, alternative_modules=()):
     with tarfile.open(release) as archive:
         proof = json.loads(archive.extractfile('release.json').read())
         assert re.fullmatch('[0-9a-f]{40}', proof['commit'])
-        assert set(proof['versions']) == set(MODULES)
+        modules = set(proof['versions'])
+        assert modules == set(MODULES) or (alternative_modules and modules == set(alternative_modules))
         found = set()
         for member in archive.getmembers():
             path = Path(member.name)
             assert member.isfile() and not path.is_absolute() and '..' not in path.parts
-            assert member.name == 'release.json' or path.parts[0] in MODULES
+            assert member.name == 'release.json' or path.parts[0] in modules
             assert member.name not in found
             found.add(member.name)
             if member.name != 'release.json':
@@ -601,9 +602,10 @@ def main():
     os.chown(stage, identity.pw_uid, identity.pw_gid)
     staged = stage / 'addons'
     staged.mkdir(exist_ok=True)
-    proof = extract(args.release, staged)
+    reception_modules = ('step_inventory_packing', 'step_packing_reception_revision')
+    proof = extract(args.release, staged, reception_modules if args.kind == 'reception-lots' else ())
     if args.kind == 'reception-lots' and 'step_inventory_packing' in proof['versions']:
-        MODULES = ('step_inventory_packing', 'step_packing_reception_revision')
+        MODULES = reception_modules
         if args.environment == 'cerro':
             assert args.reception_product_plan, 'T196 requires the private plan for the reported Cerro correction'
     if args.kind in ('previred-simpledigital', 'previred-revision') and tuple(map(int, proof['versions']['step_hr_previred_corrections'].split('.'))) >= (18, 0, 1, 1, 0):
