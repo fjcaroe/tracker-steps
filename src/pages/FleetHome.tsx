@@ -1,27 +1,57 @@
+import { useMemo, useState } from 'react';
 import TrackerIcon from '../components/TrackerIcon';
-import { label, type FleetAsset, type FleetContext, type FleetFilters } from '../services/fleetApi';
-export type TrackerView = 'home' | 'live' | 'fleet' | 'protection' | 'settings' | 'zones';
-export default function FleetHome({ assets, context, demo, navigate, onCreate, onImport, onFilter, busy }: {
+import { assignedDriverLabel, assetSignalLabel, dateLabel, emptyFilters, filterFleet, type FleetAsset, type FleetContext, type FleetFilters } from '../services/fleetApi';
+export type TrackerView = 'home' | 'live' | 'fleet' | 'protection' | 'settings' | 'zones' | 'ops';
+export default function FleetHome({ assets, context, demo, navigate, onCreate, onImport, onFilter, onOpenAsset, busy }: {
   assets: FleetAsset[]; context: FleetContext; demo: boolean; navigate: (view: TrackerView) => void;
-  onCreate: () => void; onImport: () => void; onFilter: (filters: Partial<FleetFilters>, view?: TrackerView) => void; busy: boolean;
+  onCreate: () => void; onImport: () => void; onFilter: (filters: Partial<FleetFilters>, view?: TrackerView) => void;
+  onOpenAsset: (asset: FleetAsset, view: 'map' | 'history' | 'ops') => void; busy: boolean;
 }) {
-  const connected = assets.filter(a => a.signal_state === 'received').length;
+  const [query, setQuery] = useState('');
+  const connected = assets.filter(a => !a.position_stale).length;
   const moving = assets.filter(a => a.motion_state === 'moving').length;
   const pending = assets.filter(a => !a.device).length;
   const incidents = assets.filter(a => a.protection_state === 'incident_open').length;
-  const types = [...new Set(assets.map(a => a.type))];
-  return <div className="tracker-home">
-    <section className="tracker-hero">
-      <div className="tracker-hero-copy"><span className="tracker-kicker">TU MUNDO EN MOVIMIENTO</span><h1>Cerca de tu flota.<br/><em>Donde sea que vaya.</em></h1><p>Autos, transporte y maquinaria en un mismo lugar. Ubica tus vehículos y organiza la protección de lo que mueve tu empresa.</p><div className="tracker-hero-actions"><button onClick={() => navigate('live')}>Abrir mapa <TrackerIcon name="arrow" size={18}/></button><button className="tracker-hero-secondary" onClick={() => navigate('fleet')}>Administrar flota</button></div><div className="tracker-hero-tags"><span>Autos y particulares</span><span>Transporte</span><span>Maquinaria</span></div></div>
-      <div className="tracker-route-art" aria-hidden="true"><svg viewBox="0 0 480 320"><defs><pattern id="route-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0v40" fill="none" stroke="#ffffff" strokeOpacity=".08"/></pattern></defs><rect width="480" height="320" fill="url(#route-grid)"/><path d="M-30 260 120 130 240 230 420 70 510 150M-20 50 100 150 230 30 430 200 510 140" fill="none" stroke="#2d5c51" strokeWidth="26"/><path d="m58 250 100-105 95 75 145-132" fill="none" stroke="#cffa74" strokeWidth="3" strokeDasharray="7 7"/><circle cx="58" cy="250" r="10" fill="#cffa74"/><circle cx="253" cy="220" r="10" fill="#cffa74"/><circle cx="398" cy="88" r="10" fill="#cffa74"/></svg><div className="tracker-art-label tracker-art-label--car"><TrackerIcon name="fleet"/><span>Tu flota<strong>Siempre en contexto</strong></span></div><div className="tracker-art-label tracker-art-label--shield"><TrackerIcon name="protection"/><span>Steps Protección<strong>Alertas y seguimiento</strong></span></div><small>Ilustración del servicio · no representa posiciones reales</small></div>
+  const missingDrivers = assets.filter(a => a.driver_name === null).length;
+  const visible = useMemo(() => filterFleet(assets, { ...emptyFilters, q: query }), [assets, query]);
+  return <div className="tracker-home tracker-workbench">
+    <section className="tracker-workbench-intro">
+      <div><span className="fleet-eyebrow">Vista general · {context.company}</span><h1>Tu flota, lista para decidir.</h1><p>Ubica cada vehículo, identifica a su conductor y revisa su actividad.</p></div>
+      <div><button className="fleet-primary" onClick={() => navigate('live')}><TrackerIcon name="live" size={18}/> Abrir mapa</button><button disabled={demo} onClick={() => navigate('ops')}><TrackerIcon name="ops" size={18}/> Operaciones</button></div>
     </section>
     <section className="tracker-overview" aria-label="Resumen de la compañía">
-      {[{ n: assets.length, title: 'Vehículos y equipos', note: 'Tu flota registrada', icon: 'fleet', action: () => onFilter({}) }, { n: connected, title: 'Con señal reciente', note: 'Último dato recibido del GPS', icon: 'signal', action: () => onFilter({signal:'received'}, 'live') }, { n: moving, title: 'En movimiento', note: 'Posición reciente y velocidad', icon: 'live', action: () => onFilter({motion:'moving'}, 'live') }, { n: incidents, title: 'Requieren atención', note: 'Equipos con incidentes abiertos', icon: 'protection', action: () => onFilter({protection:'incident_open'}, 'protection') }].map(item => <button className="tracker-stat" key={item.title} onClick={item.action}><span className="tracker-stat-icon"><TrackerIcon name={item.icon}/></span><strong>{item.n}</strong><span>{item.title}</span><small>{item.note}</small></button>)}
+      {[
+        { n: assets.length, title: 'Vehículos y equipos', note: 'Flota de esta compañía', icon: 'fleet', action: () => onFilter({}) },
+        { n: connected, title: 'Ubicación reciente', note: 'Posiciones GPS vigentes', icon: 'signal', action: () => onFilter({ signal: 'received' }, 'live') },
+        { n: moving, title: 'En movimiento', note: 'Desplazamiento detectado', icon: 'live', action: () => onFilter({ motion: 'moving' }, 'live') },
+        { n: incidents, title: 'Incidentes abiertos', note: 'Revisa y da seguimiento', icon: 'protection', action: () => onFilter({ protection: 'incident_open' }, 'protection') },
+      ].map(item => <button className="tracker-stat" key={item.title} onClick={item.action}><span className="tracker-stat-icon"><TrackerIcon name={item.icon}/></span><strong>{item.n}</strong><span>{item.title}</span><small>{item.note}</small></button>)}
     </section>
-    <section className="tracker-home-card tracker-section-title"><div><span className="fleet-eyebrow">NUEVO · ZONAS Y ACTIVIDAD</span><h2>Entiende lo que pasa en cada lugar</h2><p>Delimita áreas en el mapa y compara tiempo, distancia y cruces dentro y fuera.</p></div><button className="fleet-primary" onClick={() => navigate('zones')}>Explorar zonas →</button></section>
-    <div className="tracker-home-grid">
-      <section className="tracker-home-card"><div className="tracker-section-title"><div><span className="fleet-eyebrow">SIGUIENTE PASO</span><h2>{pending ? 'Conecta tu flota' : assets.length ? 'Todo listo para revisar tu flota' : 'Comienza con tu primer vehículo'}</h2></div><TrackerIcon name="signal"/></div><p>{pending ? `${pending} vehículos o equipos aún no tienen un GPS asociado. Su registro está listo; la instalación y asociación del dispositivo completan la conexión.` : 'Registra autos particulares, vehículos de trabajo o maquinaria. Consulta su posición cuando el GPS esté instalado y asociado.'}</p><ol className="tracker-steps"><li><b>01</b><span>Registra tu vehículo<small>Nombre, patente y responsable.</small></span></li><li><b>02</b><span>Instala y asocia el GPS<small>Coordinación técnica por dispositivo.</small></span></li><li><b>03</b><span>Monitorea y protege<small>Mapa, historial y bandeja de incidentes.</small></span></li></ol>{context.role === 'manager' ? <div className="tracker-inline-actions"><button className="fleet-primary" onClick={onCreate}><TrackerIcon name="plus" size={17}/> Registrar vehículo</button><button disabled={demo || busy} onClick={onImport}>Traer desde Odoo</button><button onClick={() => navigate('settings')}>Configurar GPS y SIM</button></div> : <p className="fleet-note">Tu administrador puede registrar vehículos y coordinar la conexión del GPS.</p>}</section>
-      <section className="tracker-home-card"><div className="tracker-section-title"><div><span className="fleet-eyebrow">UNA PLATAFORMA, TODA TU FLOTA</span><h2>Lo que mueve a {context.company}</h2></div></div>{types.length ? <div className="tracker-types">{types.map(type => <button key={type} onClick={() => onFilter({type})}><TrackerIcon name={type === 'tractor' || type === 'machinery' ? 'tractor' : type === 'truck' ? 'truck' : 'fleet'}/><span>{label(type)}</span><strong>{assets.filter(a => a.type === type).length}</strong><TrackerIcon name="arrow" size={16}/></button>)}</div> : <div className="tracker-empty-types"><TrackerIcon name="fleet" size={42}/><p>Aquí verás tu flota, organizada por tipo de vehículo.</p></div>}<div className="tracker-protection-callout"><TrackerIcon name="protection"/><div><h3>Protección con trazabilidad</h3><p>Activa vigilancia digital y gestiona incidentes. La inhibición de arranque requiere equipo, instalación y pruebas aprobadas.</p><button onClick={() => navigate('protection')}>Conocer Protección →</button></div></div></section>
+    <div className="tracker-workbench-grid">
+      <section className="tracker-home-card tracker-fleet-overview">
+        <header className="tracker-section-title"><div><span className="fleet-eyebrow">Acceso por vehículo</span><h2>Patente y conductor, a la vista</h2></div><button onClick={() => navigate('fleet')}>Ver toda la flota →</button></header>
+        <label className="workbench-search">Buscar en mi flota<input type="search" placeholder="Patente, vehículo o conductor" value={query} onChange={e => setQuery(e.target.value)}/></label>
+        <div className="workbench-vehicle-list">{visible.slice(0, 8).map(asset => <article key={asset.asset_id}>
+          <div className="workbench-vehicle-title"><span><TrackerIcon name={asset.type === 'truck' ? 'truck' : 'fleet'} size={23}/></span><div><h3>{asset.plate || asset.name}</h3><p>{asset.name}</p><strong>{assignedDriverLabel(asset)}</strong></div></div>
+          <div className="workbench-vehicle-state"><span className={asset.position_stale ? 'is-caution' : 'is-connected'}>{assetSignalLabel(asset)}</span><small>{dateLabel(asset.last_position?.recorded_at)}</small></div>
+          <div className="workbench-vehicle-actions"><button aria-label={'Mapa de '+(asset.plate||asset.name)} onClick={() => onOpenAsset(asset, 'map')}>Mapa</button><button aria-label={'Historial de '+(asset.plate||asset.name)} onClick={() => onOpenAsset(asset, 'history')}>Historial</button><button disabled={demo} aria-label={'Operaciones de '+(asset.plate||asset.name)} onClick={() => onOpenAsset(asset, 'ops')}>Operaciones</button></div>
+        </article>)}</div>
+        {!visible.length && <div className="fleet-empty"><h3>{assets.length ? 'No hay coincidencias' : 'Todavía no hay vehículos en esta compañía'}</h3><p>{assets.length ? 'Prueba con otra patente o conductor.' : 'Revisa la compañía activa o incorpora tu flota desde Odoo.'}</p></div>}
+        {visible.length > 8 && <button className="workbench-show-all" onClick={() => onFilter({ q: query })}>Ver los {visible.length} resultados en Flota</button>}
+      </section>
+      <aside className="tracker-workbench-aside">
+        <section className="tracker-home-card"><span className="fleet-eyebrow">Atención de la flota</span><h2>Para revisar</h2><div className="workbench-attention">
+          <button onClick={() => onFilter({ signal: 'stale' }, 'live')}><TrackerIcon name="signal"/><span>Posiciones antiguas<small>Revisar conectividad y última ubicación</small></span><b>{assets.filter(a => a.signal_state === 'stale').length}</b></button>
+          <button onClick={() => onFilter({ signal: 'no_signal' }, 'live')}><TrackerIcon name="locate"/><span>Sin señal registrada<small>Comprobar instalación o asociación</small></span><b>{assets.filter(a => a.signal_state === 'no_signal').length}</b></button>
+          <div><TrackerIcon name="user"/><span>Sin conductor asignado<small>La asignación se gestiona en Flota de Odoo</small></span><b>{missingDrivers}</b></div>
+        </div>{missingDrivers > 0 && <a className="workbench-native-link" href="/odoo/action-fleet.fleet_vehicle_action" target="_blank" rel="noopener noreferrer">Revisar conductores en Odoo ↗</a>}</section>
+        <section className="tracker-home-card"><span className="fleet-eyebrow">Herramientas de trabajo</span><h2>Continúa desde aquí</h2><div className="workbench-shortcuts">
+          <button onClick={() => navigate('zones')}><TrackerIcon name="zones"/><span><strong>Zonas y actividad</strong><small>Entradas, salidas y permanencia</small></span><TrackerIcon name="arrow" size={17}/></button>
+          <button onClick={() => navigate('protection')}><TrackerIcon name="protection"/><span><strong>Protección e incidentes</strong><small>Revisar alertas y seguimiento</small></span><TrackerIcon name="arrow" size={17}/></button>
+          <button onClick={() => navigate('settings')}><TrackerIcon name="settings"/><span><strong>GPS y conectividad</strong><small>{pending ? `${pending} vehículos sin GPS asociado` : 'Equipos, SIM y ayuda'}</small></span><TrackerIcon name="arrow" size={17}/></button>
+        </div></section>
+      </aside>
     </div>
+    {context.role === 'manager' && <section className="workbench-fleet-management"><div><h2>Organiza tu flota</h2><p>Incorpora vehículos o actualiza los que ya tienes en Odoo.</p></div><button onClick={onCreate}><TrackerIcon name="plus" size={17}/> Registrar vehículo</button><button disabled={demo || busy} onClick={onImport}>Sincronizar con Odoo</button></section>}
   </div>;
 }

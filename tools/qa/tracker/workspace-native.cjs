@@ -1,0 +1,92 @@
+/* Native read-only review of the workspace. Session files stay on the server. */
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
+(async () => {
+  const proof = JSON.parse(fs.readFileSync(process.env.GPS_BROWSER_PROOF, 'utf8'));
+  assert(['desarrollo.stepsapp.cl', 'cerroelplomo.stepsapp.cl'].includes(proof.host));
+  const origin = 'https://' + proof.host, out = process.env.GPS_UI_OUTPUT;
+  fs.mkdirSync(out, { recursive: true });
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: 'America/Santiago', serviceWorkers: 'block', acceptDownloads: true });
+    await context.addCookies([{ name: 'session_id', value: proof.session_id, domain: proof.host, path: '/', secure: true, httpOnly: true }, { name: 'cids', value: String(proof.company_id), domain: proof.host, path: '/', secure: true }]);
+    const page = await context.newPage(), errors = [], writes = [], positions = [];
+    page.setDefaultTimeout(45000);
+    page.on('pageerror', error => errors.push(error.message));
+    await page.route(origin + '/**', async route => {
+      const request = route.request(), url = new URL(request.url());
+      if (url.pathname.endsWith('/positions')) positions.push(url);
+      if (process.env.GPS_REVIEW_DIST && (url.pathname === '/tracker' || url.pathname.startsWith('/web_tracker/'))) {
+        assert.equal(proof.host, 'desarrollo.stepsapp.cl');
+        const root = path.resolve(process.env.GPS_REVIEW_DIST);
+        const file = path.resolve(root, url.pathname === '/tracker' ? 'index.html' : url.pathname.slice('/web_tracker/'.length));
+        assert(file.startsWith(root + path.sep));
+        return route.fulfill({ path: file, contentType: ({ '.js': 'application/javascript', '.css': 'text/css', '.html': 'text/html' })[path.extname(file)] });
+      }
+      if (['GET', 'HEAD'].includes(request.method())) return route.continue();
+      if (url.pathname.startsWith('/web/dataset/call_kw/') && ['read', 'search_read', 'load_menus'].includes(request.postDataJSON()?.params?.method)) return route.continue();
+      writes.push(url.pathname); return route.abort();
+    });
+    await page.goto(origin + '/tracker#home');
+    const target = await page.evaluate(async plate => {
+      const fleet = await (await fetch('/steps_tracker/api/fleet/snapshot')).json();
+      const asset = plate ? fleet.items.find(a => a.plate === plate) : fleet.items[0];
+      if (!asset) throw Error('No asset available for native review');
+      return { id: asset.asset_id, plate: asset.plate, name: asset.name };
+    }, process.env.GPS_EXPECTED_PLATE || null);
+    await page.getByRole('searchbox', { name: 'Buscar en mi flota' }).fill(target.plate || target.name);
+    const card = page.locator('.workbench-vehicle-list article').filter({ hasText: target.plate || target.name });
+    await card.waitFor();
+    await page.screenshot({ path: path.join(out, 'home-desktop.png'), fullPage: true });
+    await card.getByRole('button', { name: 'Operaciones de ' + (target.plate || target.name), exact: true }).click();
+    assert.equal(new URL(page.url()).searchParams.get('asset'), target.id);
+    const identity = page.getByRole('region', { name: 'Vehículo y conductor seleccionados' });
+    await identity.getByText(target.plate || 'Sin patente', { exact: true }).waitFor();
+    await page.waitForFunction(() => !document.querySelector('.ops-vehicle-driver strong')?.textContent.includes('Chofer no disponible'));
+    const driver = await page.locator('.ops-vehicle-driver strong').innerText();
+    assert(driver.length > 0);
+    assert((await page.getByRole('combobox', { name: 'Vehículo de Operaciones' }).locator('option:checked').innerText()).includes(driver));
+    const search = page.getByRole('searchbox', { name: 'Buscar vehículo o conductor' });
+    await search.fill(driver.startsWith('Sin chofer') ? target.plate || target.name : driver);
+    assert(await page.getByRole('combobox', { name: 'Vehículo de Operaciones' }).locator('option').count() >= 1);
+    await search.fill('sin-coincidencias-qa');
+    await page.getByText('0 coincidencias · se conserva el vehículo seleccionado').waitFor();
+    assert.equal(await page.getByRole('combobox', { name: 'Vehículo de Operaciones' }).inputValue(), target.id);
+    await search.fill('');
+    const [analytics] = await Promise.all([page.waitForResponse(r => r.url().includes('/assets/analytics?') && r.status() === 200), page.getByRole('combobox', { name: 'Período GPS' }).selectOption('6')]);
+    assert.equal(analytics.status(), 200);
+    await page.screenshot({ path: path.join(out, 'operations-desktop.png'), fullPage: true });
+    await identity.getByRole('button', { name: 'Historial', exact: true }).click();
+    await page.locator('.trail-dialog[open]').waitFor();
+    await page.waitForFunction(() => !document.body.innerText.includes('Consultando posiciones del período'));
+    assert(positions.length > 0);
+    const query = positions.at(-1).searchParams;
+    assert.equal((Date.parse(query.get('until')) - Date.parse(query.get('since'))) / 3600000, 6);
+    assert.equal(query.get('limit'), '5000');
+    await page.getByRole('button', { name: 'Cerrar historial', exact: true }).click();
+    await page.getByRole('button', { name: 'Comparar vehículos', exact: true }).click();
+    await page.locator('.fleet-comparison-options').getByText('Chofer asignado: ' + driver, { exact: true }).or(page.locator('.fleet-comparison-options').getByText(driver, { exact: true })).first().waitFor();
+    await page.getByRole('button', { name: 'Resumen', exact: true }).click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'Operations fits mobile');
+    await page.screenshot({ path: path.join(out, 'operations-mobile.png'), fullPage: true });
+    await page.getByRole('button', { name: '← Volver a Tracker', exact: true }).click();
+    await page.getByRole('searchbox', { name: 'Buscar en mi flota' }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'Home fits mobile');
+    await page.screenshot({ path: path.join(out, 'home-mobile.png'), fullPage: true });
+    await page.getByRole('navigation', { name: 'Áreas Tracker' }).getByRole('button', { name: 'Flota', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Vista compacta' }).check();
+    await page.getByRole('navigation', { name: 'Áreas Tracker' }).waitFor();
+    await page.locator('.fleet-quick-filters').getByRole('button', { name: /^En movimiento/ }).click();
+    await page.getByRole('button', { name: 'Quitar filtro Movimiento' }).click();
+    await page.getByRole('searchbox', { name: 'Buscar equipo, patente o chofer' }).fill(target.plate || target.name);
+    await page.locator('.fleet-table tbody tr').first().waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'Fleet fits mobile');
+    await page.screenshot({ path: path.join(out, 'fleet-mobile.png'), fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.screenshot({ path: path.join(out, 'fleet-desktop.png'), fullPage: true });
+    assert.deepEqual(errors, []); assert.deepEqual(writes, []);
+    fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify({ native: true, driver_visible: true, driver_search: true, selected_vehicle_preserved: true, history_period_preserved: true, filters: true, compact_view: true, responsive: true, browser_errors: errors.length, business_writes: writes.length }));
+    console.log('TRACKER_WORKSPACE_NATIVE_OK driver=True period=True filters=True responsive=True writes=0');
+  } finally { await browser.close(); }
+})().catch(error => { console.error(error.message); process.exitCode = 1; });

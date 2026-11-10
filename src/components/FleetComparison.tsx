@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { type FleetAsset, type FleetContext } from "../services/fleetApi";
+import { assignedDriverLabel, type FleetAsset, type FleetContext } from "../services/fleetApi";
 import { operationsCsv } from "../services/operationsMetrics";
 import {useGpsAnalytics,emptyGpsMetric} from "../services/gpsAnalytics";
 import "./FleetComparison.css";
@@ -54,15 +54,15 @@ export default function FleetComparison({ assets, context, period, initialAssetI
   const toggle = (id: string) => setSelectedIds(ids => ids.includes(id) ? ids.filter(value => value !== id) : [...ids, id]);
   const exportComparison = () => {
     const csv = operationsCsv([
-      ["Vehículo", "Patente", "Desde UTC", "Hasta UTC", "Distancia GPS aproximada km",
+      ["Vehículo", "Patente", "Conductor asignado actual", "Desde UTC", "Hasta UTC", "Distancia GPS aproximada km",
         "Intervalos con desplazamiento min", "Muestras", "Paradas probables", "Estado"],
       ...items.map(({ asset, result, metrics }) => [
-        asset.name, asset.plate, new Date(period.from).toISOString(), new Date(period.to).toISOString(),
+        asset.name, asset.plate, assignedDriverLabel(asset), new Date(period.from).toISOString(), new Date(period.to).toISOString(),
         metrics.pointCount > 1 ? metrics.distanceM / 1000 : "",
         metrics.pointCount > 1 ? metrics.movingSeconds / 60 : "", metrics.pointCount, metrics.stopCount,
         result?.error || (result?.cursor ? "Estadísticas actualizándose" : metrics.pointCount < 2 ? "Muestras insuficientes" : "Consultado"),
       ]),
-      ["TOTAL DISPONIBLE", "", "", "", usable.length ? total.distanceKm : "",
+      ["TOTAL DISPONIBLE", "", "", "", "", usable.length ? total.distanceKm : "",
         usable.length ? total.movingMinutes : "", total.points, total.stops, incomplete ? "Cobertura incompleta" : "Consultado"],
       [],
       ["Día en Chile", "Vehículo", "Patente", "Distancia GPS aproximada km", "Intervalos con desplazamiento min"],
@@ -92,7 +92,7 @@ export default function FleetComparison({ assets, context, period, initialAssetI
         <input type="checkbox" checked={selectedIds.includes(asset.asset_id)} onChange={() => toggle(asset.asset_id)}
           aria-label={`Comparar ${asset.plate || asset.name}`} />
         <i style={{ background: colorFor(asset.asset_id) }} />
-        <span><strong>{asset.plate || asset.name}</strong><small>{asset.name}</small></span>
+        <span><strong>{asset.plate || asset.name}</strong><small>{asset.name}</small><small>{assignedDriverLabel(asset)}</small></span>
       </label>)}</div>
     </fieldset>
     {!selected.length ? <p role="status">Selecciona uno o más vehículos para calcular sus estadísticas.</p> : <>
@@ -106,7 +106,7 @@ export default function FleetComparison({ assets, context, period, initialAssetI
       <div className="real-ops-table-scroll"><table className="fleet-comparison-table">
         <thead><tr><th>Vehículo</th><th>Distancia GPS</th><th>Desplazamiento</th><th>Muestras</th><th>Paradas probables</th><th>Estado</th></tr></thead>
         <tbody>{items.map(({ asset, result, metrics }) => <tr key={asset.asset_id}>
-          <th scope="row"><i style={{ background: colorFor(asset.asset_id) }} />{asset.plate || asset.name}<small>{asset.name}</small></th>
+          <th scope="row"><i style={{ background: colorFor(asset.asset_id) }} />{asset.plate || asset.name}<small>{asset.name}</small><small>{assignedDriverLabel(asset)}</small></th>
           <td>{metrics.pointCount > 1 ? format(metrics.distanceM / 1000, 3) + " km" : "—"}</td>
           <td>{metrics.pointCount > 1 ? format(metrics.movingSeconds / 60) + " min" : "—"}</td>
           <td>{format(metrics.pointCount, 0)}</td><td>{metrics.pointCount ? metrics.stopCount : "—"}</td>

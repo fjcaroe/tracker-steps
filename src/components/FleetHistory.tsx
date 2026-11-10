@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { dateLabel, FleetApiError, fleetRequest, type FleetAsset, type FleetContext } from '../services/fleetApi';
+import { assignedDriverLabel, dateLabel, FleetApiError, fleetRequest, type FleetAsset, type FleetContext } from '../services/fleetApi';
 import {gapEvidence,type ReceiverObservation} from '../services/receiverHistory';
 import {buildTrail,nextTrailStep,type TrailGap} from '../services/fleetTrail';
 import './FleetHistory.css';
@@ -11,7 +11,7 @@ import './FleetHistoryWorkspace.css';
 import FleetTripExpense from './FleetTripExpense';
 const FleetTrailMap=lazy(()=>import('./FleetTrailMap'));
 type Position = NonNullable<FleetAsset['last_position']>;
-export default function FleetHistory({ asset, context, demo, onClose, embedded=false }: {asset:FleetAsset; context:FleetContext; demo:boolean; onClose:()=>void; embedded?:boolean}) {
+export default function FleetHistory({ asset, context, demo, onClose, embedded=false, initialPeriod }: {asset:FleetAsset; context:FleetContext; demo:boolean; onClose:()=>void; embedded?:boolean; initialPeriod?:{from:number;to:number}}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [live,setLive]=useState(false);
   const [liveEnd,setLiveEnd]=useState<number|null>(null);
@@ -19,7 +19,7 @@ export default function FleetHistory({ asset, context, demo, onClose, embedded=f
   const [rows,setRows] = useState<Position[]>([]);
   const [cursor,setCursor] = useState<string|null>(null);
   const [busy,setBusy] = useState(true); const [error,setError] = useState('');
-  const [period,setPeriod]=useState(()=>{const start=new Date();start.setHours(0,0,0,0);return {from:embedded?start.getTime():Date.now()-86400000,to:Date.now()};});
+  const [period,setPeriod]=useState(()=>{if(initialPeriod)return initialPeriod;const start=new Date();start.setHours(0,0,0,0);return {from:embedded?start.getTime():Date.now()-86400000,to:Date.now()};});
   const local=(value:number)=>{const d=new Date(value);return new Date(value-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
   const [from,setFrom]=useState(()=>local(period.from)),[to,setTo]=useState(()=>local(period.to));
   const [index,setIndex]=useState(0),[playing,setPlaying]=useState(false),[rate,setRate]=useState(750);
@@ -134,7 +134,7 @@ export default function FleetHistory({ asset, context, demo, onClose, embedded=f
   const plots:string[]=[];let speedLine:string[]=[];
   samples.forEach((p,i)=>{const t=Date.parse(p.recorded_at),previous=i?Date.parse(samples[i-1].recorded_at):t;if(p.speed_kmh==null||trail.gaps.some(g=>Date.parse(g.after.recorded_at)>previous&&Date.parse(g.after.recorded_at)<=t)){if(speedLine.length)plots.push(speedLine.join(' '));speedLine=[];if(p.speed_kmh==null)return;}speedLine.push(`${samples.length>1?i/(samples.length-1)*100:0},${38-Math.min(36,p.speed_kmh/Math.max(10,trail.maxSpeed)*36)}`);});
   if(speedLine.length)plots.push(speedLine.join(' '));
-  const content=<><header className="trail-header"><div><span className="fleet-eyebrow">RECORRIDOS · {asset.plate||'GPS'}</span><h2 id="history-title">{asset.name}</h2></div><button aria-label="Cerrar historial" onClick={onClose}>×</button></header>
+  const content=<><header className="trail-header"><div><span className="fleet-eyebrow">RECORRIDOS · {asset.plate||'GPS'}</span><h2 id="history-title">{asset.name}</h2><p className="trail-assigned-driver">{assignedDriverLabel(asset)} · asignación actual</p></div><button aria-label="Cerrar historial" onClick={onClose}>×</button></header>
   <form className="trail-period" onSubmit={apply}>{!demo&&<button type="button" className="trail-live-button" aria-pressed={live} onClick={()=>day(0,!live)}>{live?'Volver al historial':'Seguir en vivo'}</button>}<details className="trail-date-range"><summary>Elegir fechas</summary><div><label>Desde<input type="datetime-local" value={from} onChange={e=>setFrom(e.target.value)} required/></label><label>Hasta<input type="datetime-local" value={to} onChange={e=>setTo(e.target.value)} required/></label><button className="fleet-primary" disabled={busy}>Ver recorrido</button><button type="button" disabled={busy} onClick={()=>quick(24)}>Últimas 24 h</button><button type="button" disabled={busy} onClick={()=>quick(2)}>Últimas 2 h</button></div></details><button type="button" disabled={busy} onClick={()=>day(0)}>Hoy</button><button type="button" disabled={busy} onClick={()=>day(-1)}>Ayer</button><button type="button" disabled={busy} onClick={()=>quick(168)}>Últimos 7 días</button><small>{live?<span role="status">{liveError||(latest?`Última señal · ${dateLabel(latest.recorded_at)}${latest.speed_kmh==null?'':` · ${latest.speed_kmh.toFixed(1)} km/h`}`:'Esperando señal GPS…')}</span>:<>{dateLabel(new Date(period.from).toISOString())} → {dateLabel(new Date(period.to).toISOString())} · Hora de tu dispositivo</>}</small></form>
   {demo&&<p className="fleet-notice">Demostración de una posición. No representa un viaje real.</p>}{error&&<p role="alert" className="fleet-error">{error}</p>}{busy&&<p role="status">Consultando posiciones del período…</p>}{cursor&&!busy&&<p className="fleet-notice">Historial parcial: se alcanzó el límite de esta carga. Las cifras corresponden a las muestras cargadas.<button onClick={()=>void load(cursor)}>Cargar más muestras</button></p>}
   {!busy&&!trail.points.length&&!error&&<div className="fleet-empty">No hay posiciones en este período. Prueba con otro rango.</div>}
