@@ -43,17 +43,20 @@ const fs = require('node:fs'), path = require('node:path'), assert = require('no
       console.log('T190_REVIEWING ' + name);
       await page.goto(origin + '/odoo/action-' + proof.actions[name]);
       await page.locator('.o_list_view').waitFor();
+      await page.locator('.o_list_button_add').waitFor({ state: 'detached' });
       assert.equal(await page.locator('.o_list_button_add').count(), 0);
       await page.screenshot({ path: path.join(out, name + '-list.png'), fullPage: true });
       seen.push(name);
     }
+    console.log('T190_REVIEWING purchase_proforma_menu');
     await page.goto(origin + '/odoo/action-' + proof.actions.rfq);
     await page.locator('.o_list_view').waitFor();
     await page.locator('[data-menu-xmlid="step_packing_fruit_proforma.menu_purchase_fruit"]').click();
     await page.locator('[data-menu-xmlid="step_packing_fruit_proforma.menu_purchase_prepare_fruit"]').waitFor();
     await page.locator('[data-menu-xmlid="step_packing_fruit_proforma.menu_purchase_fruit_list"]').click();
     await page.locator('.o_list_view').waitFor();
-    assert.equal(await page.locator('.o_list_button_add').count(), 0);
+    await page.locator('.o_list_button_add').waitFor({ state: 'detached' });
+      assert.equal(await page.locator('.o_list_button_add').count(), 0);
     assert.deepEqual(denied, []);
     assert.deepEqual(errors, []);
     fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify({ forms: seen, native_create_and_confirm: true,
