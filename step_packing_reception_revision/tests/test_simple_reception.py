@@ -362,3 +362,60 @@ class SimpleReceptionCase(TransactionCase):
         self.assertAlmostEqual(row.step_kg_per_box,2.04)
         row.quantity=0
         self.assertEqual(row.step_kg_per_box,0)
+
+    def test_reclassify_received_c_tags_without_rewriting_the_receipt(self):
+        from odoo import Command
+        from odoo.exceptions import AccessError, UserError
+        from odoo.tests.common import new_test_user
+
+        self.product.tracking = 'lot'
+        picking = self.receipt((160, 240, 80), demand=480)
+        picking.fruit_lot = 'QA196'
+        picking.button_validate()
+        self.assert_received(picking)
+        target = self.env['product.product'].create({
+            'name': 'QA196 corrected fruit', 'is_storable': True, 'tracking': 'lot',
+            'uom_id': self.product.uom_id.id, 'uom_po_id': self.product.uom_id.id,
+        })
+        adjustment = self.env['stock.location'].create({
+            'name': 'QA196 inventory adjustment', 'usage': 'inventory', 'company_id': picking.company_id.id,
+        })
+        (target | self.product).with_company(picking.company_id).property_stock_inventory = adjustment
+        manager = new_test_user(self.env(context={**self.env.context, 'no_reset_password': True}),
+            login='qa196-stock-manager', groups='stock.group_stock_manager',
+            company_id=picking.company_id.id, company_ids=[Command.set(picking.company_id.ids)])
+        operator = new_test_user(self.env(context={**self.env.context, 'no_reset_password': True}),
+            login='qa196-stock-user', groups='stock.group_stock_user',
+            company_id=picking.company_id.id, company_ids=[Command.set(picking.company_id.ids)])
+        with self.assertRaises(AccessError):
+            picking.with_user(operator).action_step_correct_c_product()
+        rows = picking.fruit_tag_line_ids
+        tags = rows.package_id
+        old_lot = rows.stock_lot_id
+        original = picking.move_line_ids.read(['product_id', 'quantity', 'lot_id', 'owner_id', 'result_package_id'])
+        with self.assertRaises(UserError):
+            rows[:1].write({'product_id': target.id})
+        action = picking.with_user(manager).action_step_correct_c_product()
+        wizard = self.env[action['res_model']].with_user(manager).with_context(action['context']).create({
+            'line_ids': [Command.set(rows[:2].ids)], 'product_id': target.id, 'reason': 'QA196 reclasificación',
+        })
+        wizard.action_apply()
+        self.assertEqual(picking.state, 'done')
+        self.assertEqual(picking.move_line_ids.read(['product_id', 'quantity', 'lot_id', 'owner_id', 'result_package_id']), original)
+        self.assertEqual(rows.package_id, tags)
+        self.assertEqual(rows[:2].product_id, target)
+        self.assertEqual(rows[2].product_id, self.product)
+        self.assertEqual(rows[2].stock_lot_id, old_lot)
+        self.assertEqual(rows[:2].stock_lot_id.name, old_lot.name)
+        for row in rows[:2]:
+            current = row.package_id.quant_ids.filtered(lambda quant: quant.quantity)
+            self.assertEqual((current.product_id, current.owner_id, current.lot_id),
+                             (target, self.producer, row.stock_lot_id))
+            self.assertEqual(current.quantity, row.kilos)
+            self.assertEqual(row.package_id.step_tag_line_ids.product_id, target)
+        moves = self.env['stock.move'].search([('step_receipt_correction_id', '=', picking.id)])
+        self.assertEqual(len(moves), 4)
+        self.assertFalse(moves.stock_valuation_layer_ids)
+        self.assertEqual(set(moves.mapped('step_receipt_correction_direction')), {'remove', 'add'})
+        with self.assertRaises(ValidationError):
+            wizard.action_apply()

@@ -77,5 +77,14 @@ try:
     if version >= (18, 0, 1, 3, 6):
         result = verify_reception_conditions(scoped, env.cr.dbname.startswith('MANAGEMENT_QA_'))
         print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 188, 'receptions': result}))
+    if version >= (18, 0, 1, 3, 7):
+        action = scoped.ref('step_inventory_packing.menu_steps_fruit_process_reception').action
+        form_id = dict((kind, view) for view, kind in action.views)['form']
+        arch = etree.fromstring(picking.get_view(view_id=form_id, view_type='form')['arch'])
+        assert arch.xpath("//button[@name='action_step_correct_c_product']")
+        assert arch.xpath("//button[@name='action_step_view_product_corrections']")
+        wizard = scoped['step.reception.product.correction'].get_view(view_type='form')['arch']
+        assert all(name in wizard for name in ('line_ids', 'product_id', 'reason', 'action_apply'))
+        print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 196, 'native_form_and_wizard': True}))
 finally:
     env.cr.rollback()

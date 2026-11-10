@@ -1,0 +1,65 @@
+<odoo>
+    <record id="access_reception_product_correction_manager" model="ir.model.access">
+        <field name="name">Corrección de producto en recepción</field>
+        <field name="model_id" ref="model_step_reception_product_correction"/>
+        <field name="group_id" ref="stock.group_stock_manager"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+    <record id="reception_product_correction_form" model="ir.ui.view">
+        <field name="name">step.reception.product.correction.form</field>
+        <field name="model">step.reception.product.correction</field>
+        <field name="arch" type="xml">
+            <form string="Corregir producto de tarjas C">
+                <group>
+                    <field name="picking_id"/>
+                    <field name="line_ids" widget="many2many_tags" options="{'no_create': True}"
+                           domain="[('picking_id', '=', picking_id), ('package_id', '!=', False)]"/>
+                    <field name="product_id" domain="[('is_storable', '=', True)]" options="{'no_create': True}"/>
+                    <field name="reason" placeholder="Indique por qué corresponde cambiar el producto"/>
+                </group>
+                <p>La corrección deja registrados dos movimientos de inventario por tarja.</p>
+                <footer>
+                    <button name="action_apply" type="object" string="Aplicar corrección" class="btn-primary"/>
+                    <button string="Cancelar" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="receipt_product_correction_moves" model="ir.ui.view">
+        <field name="name">stock.move.receipt.product.correction.list</field>
+        <field name="model">stock.move</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="date"/>
+                <field name="step_receipt_correction_line_id" string="Tarja"/>
+                <field name="step_receipt_correction_direction" string="Cambio"/>
+                <field name="product_id"/>
+                <field name="quantity"/>
+                <field name="product_uom"/>
+                <field name="step_receipt_correction_reason"/>
+                <field name="create_uid" string="Registrado por"/>
+            </list>
+        </field>
+    </record>
+    <record id="process_reception_product_correction_form" model="ir.ui.view">
+        <field name="name">stock.picking.process.product.correction.form</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="view_process_reception_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_step_correct_c_product" type="object" string="Corregir producto"
+                        groups="stock.group_stock_manager"
+                        invisible="state != 'done' or step_fruit_reception_kind != 'process'"/>
+            </xpath>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_step_view_product_corrections" type="object" class="oe_stat_button"
+                        icon="fa-exchange" invisible="not step_product_correction_count">
+                    <field name="step_product_correction_count" widget="statinfo" string="Movimientos de corrección"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

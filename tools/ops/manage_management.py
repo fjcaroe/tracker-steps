@@ -103,6 +103,22 @@ def repair_receipt_lots(base, options, database, source, opts, stage, plan, outp
     print(next(line for line in result.stdout.splitlines() if line.startswith(marker)), flush=True)
 
 
+def run_receipt_product_case(base, options, database, source, opts, stage, plan, phase):
+    helper = HERE / 'receipt_product_case.py'
+    header = 'import json,sys\nsys.path.insert(0,%r)\nCASE=json.loads(%r)\nPHASE=%r\n' % (
+        str(HERE), plan.read_text(), phase)
+    data = ['--data-dir=' + str(stage / 'data')] if phase == 'rehearse' else []
+    command = base + ['shell'] + options + data + [
+        '-d', database, '--db-filter=^' + database + '$',
+        '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error',
+    ]
+    result = subprocess.run(command, input=header + helper.read_text(), text=True, capture_output=True)
+    (stage / ('t196-' + phase + '.log')).write_text(result.stdout + result.stderr)
+    marker = next((line for line in result.stdout.splitlines() if line.startswith('T196_CASE_OK ')), None)
+    assert result.returncode == 0 and marker, result.stderr[-4000:]
+    print(marker, flush=True)
+
+
 def agriculture_snapshot(database):
     command = ['/usr/bin/python3.10', str(AGRICULTURE_SOURCE / 'migrate_schema.py'), 'snapshot', database]
     if AGRICULTURE_COLUMNS.exists():
@@ -344,6 +360,7 @@ def main():
     parser.add_argument('--approval-dir', type=Path)
     parser.add_argument('--development-proof', type=Path)
     parser.add_argument('--reception-lot-plan', type=Path, help='T165 approved private receipt/lot mapping, Cerro only')
+    parser.add_argument('--reception-product-plan', type=Path, help='T196 approved private product and receipt correction, Cerro only')
     parser.add_argument('--packing-output-lot-plan', type=Path, help='T166 approved private OT/output-lot mapping, Cerro only')
     parser.add_argument('--resume-packing-split', action='store_true',
                         help='Reuse the verified Cerro overlay from the interrupted T154 deployment')
@@ -380,6 +397,10 @@ def main():
     if args.reception_lot_plan:
         assert args.kind == 'reception-lots' and args.environment == 'cerro'
         assert args.action in ('compatibility', 'deploy') and args.reception_lot_plan.is_file()
+    if args.reception_product_plan:
+        assert args.kind == 'reception-lots' and args.environment == 'cerro'
+        assert args.action in ('compatibility', 'deploy', 'verify') and args.reception_product_plan.is_file()
+        assert not args.reception_lot_plan
     assert args.environment != 'demo-sys' or args.kind in ('payroll-days', 'previred-simpledigital', 'previred-movement-dates', 'previred-revision'), 'Demo-SYS only for explicitly scoped payroll corrections'
     if args.kind == 'previred-movement-dates':
         assert args.environment in ('development', 'sys')
@@ -581,6 +602,10 @@ def main():
     staged = stage / 'addons'
     staged.mkdir(exist_ok=True)
     proof = extract(args.release, staged)
+    if args.kind == 'reception-lots' and 'step_inventory_packing' in proof['versions']:
+        MODULES = ('step_inventory_packing', 'step_packing_reception_revision')
+        if args.environment == 'cerro':
+            assert args.reception_product_plan, 'T196 requires the private plan for the reported Cerro correction'
     if args.kind in ('previred-simpledigital', 'previred-revision') and tuple(map(int, proof['versions']['step_hr_previred_corrections'].split('.'))) >= (18, 0, 1, 1, 0):
         assert args.environment in ('development', 'sys'), 'T173 destinations only'
         assert args.environment != 'sys' or PREVIRED_RULE_PLAN, 'Classify the reviewed retroactive rule'
@@ -877,6 +902,8 @@ def main():
             assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
             if args.reception_lot_plan:
                 repair_receipt_lots(base, options, qa_db, staged, opts, stage, args.reception_lot_plan)
+            if args.reception_product_plan:
+                run_receipt_product_case(base, options, qa_db, staged, opts, stage, args.reception_product_plan, 'rehearse')
             if args.packing_output_lot_plan:
                 repair_receipt_lots(base, options, qa_db, staged, opts, stage, args.packing_output_lot_plan, output=True)
             if PAYROLL_CASE:
@@ -896,6 +923,8 @@ def main():
                 'proforma_policy_plan': PROFORMA_POLICY_PLAN, 'shared_producer_reception': SHARED_PRODUCER_RECEPTION,
                 'proforma_policy_helper': digest(HERE / 'proforma_policy_case.py') if args.kind == 'packing-proforma-policy' else None,
                 'reception_lot_plan': digest(args.reception_lot_plan) if args.reception_lot_plan else None,
+                'reception_product_plan': digest(args.reception_product_plan) if args.reception_product_plan else None,
+                'reception_product_helper': digest(HERE / 'receipt_product_case.py') if args.reception_product_plan else None,
                 'packing_output_lot_plan': digest(args.packing_output_lot_plan) if args.packing_output_lot_plan else None,
                 'packing_output_lot_repair': {name: digest(HERE / name) for name in ('repair_packing_output_lots.py', 'repair_reception_lots.py')} if args.packing_output_lot_plan else None,
                 'reception_lot_repair': digest(HERE / 'repair_reception_lots.py') if args.reception_lot_plan else None}))
@@ -916,6 +945,9 @@ def main():
         assert passed['reception_lot_repair'] == digest(HERE / 'repair_reception_lots.py')
     else:
         assert not passed.get('reception_lot_plan'), 'Deploy the same approved lot repair tested in the clone'
+    if args.reception_product_plan:
+        assert passed['reception_product_plan'] == digest(args.reception_product_plan)
+        assert passed['reception_product_helper'] == digest(HERE / 'receipt_product_case.py')
     if args.kind == 'packing-proforma-policy':
         assert passed.get('proforma_policy_plan') == PROFORMA_POLICY_PLAN
         assert passed.get('proforma_policy_helper') == digest(HERE / 'proforma_policy_case.py')
@@ -1050,6 +1082,8 @@ def main():
                 assert snapshot(database) == before, 'Business migration check failed'
                 if args.reception_lot_plan:
                     repair_receipt_lots(base, options, database, release_root, opts, stage, args.reception_lot_plan)
+                if args.reception_product_plan:
+                    run_receipt_product_case(base, options, database, release_root, opts, stage, args.reception_product_plan, 'apply')
                 if args.packing_output_lot_plan:
                     repair_receipt_lots(base, options, database, release_root, opts, stage, args.packing_output_lot_plan, output=True)
                 if TICKET_REVISION == 'sale-format':
@@ -1080,6 +1114,8 @@ def main():
                 run('systemctl', 'start', service)
             print('MANAGEMENT_DEPLOY_OK backup=' + str(backup), flush=True)
     verify(base, options, database, release_root, opts, proof, stage, {*installed, *install})
+    if args.reception_product_plan:
+        run_receipt_product_case(base, options, database, release_root, opts, stage, args.reception_product_plan, 'verify')
     run('systemctl', 'is-active', '--quiet', service)
     with urllib.request.urlopen(target['url'] + '/web/login?db=' + database, timeout=30) as response:
         assert response.status == 200 and b'password' in response.read()

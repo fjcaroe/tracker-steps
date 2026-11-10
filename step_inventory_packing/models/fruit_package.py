@@ -182,9 +182,13 @@ class StepFruitPackageLine(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
-        if vals and any(line.package_id.step_tag_state not in ("created", "void") for line in self):
+        if (vals and any(line.package_id.step_tag_state not in ("created", "void") for line in self)
+                and not self._step_allow_validated_detail_write(vals)):
             raise UserError(_("No modifique el detalle de una tarja validada."))
         return super().write(vals)
+
+    def _step_allow_validated_detail_write(self, values):
+        return False
 
     def unlink(self):
         if any(line.package_id.step_tag_state not in ("created", "void") for line in self):

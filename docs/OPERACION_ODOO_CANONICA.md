@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+T196 amplía `reception-lots` en Desarrollo, Cerro y QA-Cerro. Inventario
+puede corregir el producto de tarjas C íntegras, sin reservas, procesos o
+documentos asociados, mediante dos movimientos nativos trazables. Mantener
+la recepción realizada, sus movimientos originales, los kilos, los envases
+y el propietario. El solicitante autorizó habilitar inventario y lotes en
+el AR11 existente y corregir solo las dos tarjas identificadas en Cerro.
+Ensayar ese mismo plan en una copia fresca antes de aplicarlo con respaldo
+y bloqueo. QA-Cerro conserva sus datos de capacitación.
+
 T194 amplía `agriculture-multicompany` en Desarrollo, Cerro y QA-Cerro. Un
 usuario de Inventario con acceso al contacto de origen puede validar fruta de
 un fundo asignado a la sucursal receptora, sin activar la otra sucursal. La
