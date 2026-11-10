@@ -1,0 +1,12 @@
+<odoo>
+  <record id="rule_external_reception_template_company" model="ir.rule">
+    <field name="name">Plantillas de recepción de la empresa activa</field>
+    <field name="model_id" ref="model_step_external_fruit_reception_template"/>
+    <field name="domain_force">[('company_id', '=', company_id)]</field>
+  </record>
+  <record id="rule_external_reception_template_alias_company" model="ir.rule">
+    <field name="name">Equivalencias de recepción de la empresa activa</field>
+    <field name="model_id" ref="model_step_external_fruit_reception_template_alias"/>
+    <field name="domain_force">[('company_id', '=', company_id)]</field>
+  </record>
+</odoo>

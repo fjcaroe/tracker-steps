@@ -45,14 +45,26 @@ class ExternalReceiptCase(TransactionCase):
                 10 * index, 20.5 * index, 'GRANEL PROCESO', 'CONVENCIONAL', 'N', 'S', 'S' if index == 1 else 'N', 'PSJ'])
         sheet.append([None] * 8 + ['>>Totales', 30, 61.5])
         workbook.create_sheet('descripción')
-        binary = BytesIO()
-        workbook.save(binary)
-        wizard = self.env['step.external.fruit.reception.import'].create({
+        def attachment():
+            binary = BytesIO()
+            workbook.save(binary)
+            return base64.b64encode(binary.getvalue())
+
+        model = self.env['step.external.fruit.reception.import']
+        defaults = {
             'picking_type_id': wh.in_type_id.id, 'packing_id': packing.id, 'season_id': season.id,
             'product_id': product.id, 'category_id': category.id, 'fruit_class_id': fruit_class.id,
-            'fallback_fundo_id': fundo.id, 'fallback_packaging_id': packaging.id,
-            'file': base64.b64encode(binary.getvalue()), 'filename': 'qa189.xlsx',
-        })
+            'filename': 'qa189.xlsx',
+        }
+        sheet.cell(2, 11, 'Peso del packing')
+        wizard = model.create(dict(defaults, file=attachment(), template_name='QA T193 externo'))
+        wizard.action_review()
+        manual = wizard.column_ids.filtered(lambda line: line.source == 'Peso del packing')
+        self.assertFalse(manual.target)
+        manual.target = 'kilos'
+        wizard.action_review()
+        wizard.alias_ids.filtered(lambda line: line.kind == 'producer').fundo_id = fundo
+        wizard.alias_ids.filtered(lambda line: line.kind == 'packaging').packaging_id = packaging
         action = wizard.action_import()
         receipt = self.env['stock.picking'].browse(action['res_id'])
         self.assertEqual(receipt.state, 'draft')
@@ -75,3 +87,27 @@ class ExternalReceiptCase(TransactionCase):
         self.assertEqual(sum(lines.package_id.quant_ids.mapped('quantity')), 61.5)
         self.assertEqual(lines.package_id.quant_ids.owner_id, producer)
         self.assertEqual(set(lines.package_id.quant_ids.lot_id.mapped('name')), {'QA189-TARJA-1', 'QA189-TARJA-2'})
+
+        template = self.env['step.external.fruit.reception.template'].search([('name', '=', 'QA T193 externo')])
+        self.assertEqual(template.columns['peso del packing'], 'kilos')
+        self.assertEqual(template.alias_ids.fundo_id, fundo)
+        self.assertEqual(template.alias_ids.packaging_id, packaging)
+        sheet.cell(2, 1, 'Referencia')
+        sheet.cell(2, 2, 'Número de guía')
+        sheet.cell(2, 8, 'Recibir de')
+        sheet.cell(2, 9, 'Embalaje')
+        for index in range(1, 3):
+            sheet.cell(index + 2, 1, 'QA193-02')
+            sheet.cell(index + 2, 2, 'QA193-GUIA')
+            sheet.cell(index + 2, 3, f'QA193-TARJA-{index}')
+        second = model.create(dict(defaults, file=attachment(), template_id=template.id))
+        second.action_review()
+        self.assertEqual(second.column_ids.filtered(lambda line: line.source == 'Referencia').target, 'folio')
+        self.assertEqual(second.column_ids.filtered(lambda line: line.source == 'Peso del packing').target, 'kilos')
+        self.assertEqual(second.alias_ids.fundo_id, fundo)
+        self.assertEqual(second.alias_ids.packaging_id, packaging)
+        another = self.env['stock.picking'].browse(second.action_import()['res_id'])
+        self.assertEqual(another.step_external_reception_folio, 'QA193-02')
+        self.assertEqual(another.fruit_guide_number, 'QA193-GUIA')
+        self.assertEqual(another.fruit_tag_line_ids.packaging_id, packaging)
+        self.assertEqual(another.state, 'draft')
