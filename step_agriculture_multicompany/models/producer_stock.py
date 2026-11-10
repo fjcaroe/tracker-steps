@@ -34,8 +34,6 @@ class Picking(models.Model):
     _inherit = 'stock.picking'
 
     def _check_company(self, fnames=None):
-        if fnames is not None and {'fruit_fundo_id', 'step_fruit_reception_kind'}.intersection(fnames):
-            fnames = [*fnames, 'partner_id']
         return _check_stock_company(self, fnames, 'partner_id',
             lambda picking: picking.step_fruit_reception_kind == 'process'
                 and picking.picking_type_code == 'incoming'

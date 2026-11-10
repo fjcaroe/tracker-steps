@@ -147,6 +147,15 @@ class TestMasters(TransactionCase):
         self.assertEqual(tag.company_id, self.b)
         order._create_packing_move(warehouse, warehouse.lot_stock_id, order._production_location(),
                                    [(product, 1, tag, False)])
+        self.assertFalse(any(q.quantity > 0 for q in tag.quant_ids))
+        if 'step_packing_company_id' in tag._fields:
+            # T185 retains the origin even after the last quant. Verify it
+            # first, then simulate a pre-T185 tag to exercise the fallback.
+            self.assertEqual(tag.company_id, self.b)
+            tag.flush_recordset(['step_packing_company_id'])
+            self.cr.execute('UPDATE stock_quant_package SET step_packing_company_id=NULL WHERE id=%s', [tag.id])
+            tag.invalidate_recordset(['step_packing_company_id'])
+            tag.modified(['step_packing_company_id'])
         self.assertFalse(tag.company_id)
         tag.with_company(self.a)._check_agricultural_masters()
 
@@ -202,7 +211,7 @@ class TestMasters(TransactionCase):
             'location_id': operation.default_location_src_id.id, 'location_dest_id': warehouse.lot_stock_id.id,
         }
         with self.assertRaises(UserError), self.cr.savepoint():
-            scoped['stock.picking'].create(values)
+            scoped['stock.picking'].create(values).action_confirm()
         values.update({
             'step_fruit_reception_kind': 'process', 'fruit_fundo_id': farm.id,
             'fruit_species_id': species.id, 'step_fruit_type': 'conventional', 'step_fruit_gross_kg': 32,
@@ -210,6 +219,7 @@ class TestMasters(TransactionCase):
         picking = scoped['stock.picking'].create(values)
         with self.assertRaises(UserError), self.cr.savepoint():
             picking.write({'fruit_fundo_id': False})
+            picking._check_company(['partner_id'])
         move = scoped['stock.move'].create({
             'name': product.name, 'picking_id': picking.id, 'product_id': product.id,
             'product_uom': kg.id, 'product_uom_qty': 32, 'product_packaging_id': packaging.id,

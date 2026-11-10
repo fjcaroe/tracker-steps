@@ -36,12 +36,16 @@ def verify_shared_producer_reception(env, reviewer, case):
     assert receipt.company_id in receipt.fruit_fundo_id.company_ids
     assert receipt.company_id != receipt.partner_id.sudo().company_id
     assert receipt.partner_id.read(['name']) and not receipt.partner_id.has_access('write')
+    data = receipt.web_read({'state': {}, 'fruit_fundo_id': {'fields': {'display_name': {}}},
+                             'partner_id': {'fields': {'display_name': {}}}})[0]
+    assert data['fruit_fundo_id']['id'] == case['farm_id'] and data['partner_id']['id'] == case['producer_id']
     receipt._check_company()
     state_before = receipt.state
     result['case'] = {'contact_read': True, 'stock_company_check': True, 'state_before': state_before}
     if env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_'):
         assert state_before in ('draft', 'confirmed', 'assigned')
-        expected = sum(receipt.move_ids.mapped('quantity'))
+        expected = sum(move.product_uom._compute_quantity(move.quantity, move.product_id.uom_id, round=False)
+                       for move in receipt.move_ids)
         assert expected > 0
         reply = receipt.button_validate()
         if isinstance(reply, dict) and reply.get('res_model') == 'stock.backorder.confirmation':
