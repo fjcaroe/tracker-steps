@@ -12,10 +12,10 @@
         <label>Hasta<input type="date" t-att-value="state.filters.date_to" t-on-change="(event) => this.changeDate('date_to', event)"/></label>
         <label>Especie<select t-model="state.filters.species_id" t-on-change="changeSpecies">
           <option value="">Todas las especies</option>
-          <option t-foreach="state.data?.species || []" t-as="species" t-key="species.id" t-att-value="species.id"><t t-esc="species.name"/></option>
+          <option t-foreach="state.data ? state.data.species : []" t-as="species" t-key="species.id" t-att-value="species.id"><t t-esc="species.name"/></option>
         </select></label>
         <button type="button" class="o_packing_apply_filters" t-on-click="loadDashboard" t-att-disabled="state.loading">Aplicar</button>
-        <span t-if="state.data?.period_label" t-esc="state.data.period_label"/>
+        <span t-if="state.data and state.data.period_label" t-esc="state.data.period_label"/>
       </div>
     </xpath>
     <xpath expr="//section[hasclass('o_packing_kpis')]" position="replace">

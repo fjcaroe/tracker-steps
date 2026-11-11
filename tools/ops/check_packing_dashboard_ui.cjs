@@ -17,10 +17,13 @@ const assert = require('node:assert/strict');
         page = await context.newPage();
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
+        const initialRpc = page.waitForResponse(res => res.url().includes('/call_kw/step.packing.order/get_dashboard_data'), { timeout: 120000 });
         await page.goto(`https://${proof.host}/web#action=${proof.actions.dashboard}&cids=${proof.company_id}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
         const cards = page.locator('.o_packing_kpis_seven > button');
         await cards.first().waitFor({ timeout: 120000 });
         assert.equal(await cards.count(), 7);
+        const initialData = (await (await initialRpc).json()).result;
+        await page.waitForFunction(count => document.querySelectorAll('.o_packing_period_filters select option').length === count, initialData.species.length + 1);
         assert.equal(await page.locator('.o_packing_hero h1').evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
         const labels = await cards.locator('span').allTextContents();
         for (const label of ['Último día', 'Semana', 'Mes', 'Temporada']) {
