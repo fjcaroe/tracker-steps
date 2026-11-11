@@ -1014,7 +1014,8 @@ def main():
     if args.kind == 'packing-proforma-policy':
         assert passed.get('proforma_policy_plan') == PROFORMA_POLICY_PLAN
         assert passed.get('proforma_policy_helper') == digest(HERE / 'proforma_policy_case.py')
-    if args.kind == 'agriculture-multicompany' and args.environment == 'cerro':
+    if (args.kind == 'agriculture-multicompany' and args.environment == 'cerro'
+            and proof['versions']['step_agriculture_multicompany'] == '18.0.1.0.4'):
         assert SHARED_PRODUCER_RECEPTION and passed.get('shared_producer_reception') == SHARED_PRODUCER_RECEPTION, (
             'Certify the reported reception in a fresh Cerro copy before deployment')
     assert passed['commit'] == proof['commit'] and passed['release_sha256'] == release_sha

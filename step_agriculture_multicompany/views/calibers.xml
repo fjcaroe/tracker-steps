@@ -1,0 +1,49 @@
+<odoo>
+  <record id="caliber_list" model="ir.ui.view">
+    <field name="name">step.fruit.caliber.shared.list</field>
+    <field name="model">step.management.fruit.caliber</field>
+    <field name="inherit_id" ref="step_management_costs.view_fruit_caliber_list"/>
+    <field name="priority">90</field>
+    <field name="arch" type="xml">
+      <field name="company_id" position="replace">
+        <field name="company_ids" widget="many2many_tags" groups="base.group_erp_manager" options="{'no_create': True}"/>
+        <field name="company_id" column_invisible="True" readonly="1"/>
+      </field>
+    </field>
+  </record>
+  <record id="caliber_group_list" model="ir.ui.view">
+    <field name="name">step.caliber.group.shared.list</field>
+    <field name="model">step.management.caliber.group</field>
+    <field name="inherit_id" ref="step_management_costs.view_caliber_group_list"/>
+    <field name="priority">90</field>
+    <field name="arch" type="xml">
+      <field name="company_id" position="replace">
+        <field name="company_ids" widget="many2many_tags" groups="base.group_erp_manager" options="{'no_create': True}"/>
+        <field name="company_id" column_invisible="True" readonly="1"/>
+      </field>
+    </field>
+  </record>
+  <record id="caliber_form" model="ir.ui.view">
+    <field name="name">step.fruit.caliber.shared.form</field>
+    <field name="model">step.management.fruit.caliber</field>
+    <field name="priority">8</field>
+    <field name="arch" type="xml"><form><sheet><group>
+      <field name="code"/><field name="name"/><field name="group_id"/>
+      <field name="company_ids" widget="many2many_tags" groups="base.group_erp_manager" options="{'no_create': True}"/>
+      <field name="company_id" invisible="1" readonly="1"/>
+      <field name="step_contract_caliber_id"/><field name="step_2j_plus"/>
+      <field name="sequence"/><field name="active"/>
+    </group></sheet></form></field>
+  </record>
+  <record id="caliber_group_form" model="ir.ui.view">
+    <field name="name">step.caliber.group.shared.form</field>
+    <field name="model">step.management.caliber.group</field>
+    <field name="priority">8</field>
+    <field name="arch" type="xml"><form><sheet><group>
+      <field name="code"/><field name="name"/>
+      <field name="company_ids" widget="many2many_tags" groups="base.group_erp_manager" options="{'no_create': True}"/>
+      <field name="company_id" invisible="1" readonly="1"/>
+      <field name="sequence"/><field name="active"/>
+    </group></sheet></form></field>
+  </record>
+</odoo>

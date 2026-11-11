@@ -128,7 +128,7 @@ class Color(models.Model):
 
 def check_document_masters(records, package_companies=None):
     targets = {'step.fundo', 'step.management.fruit.category', 'step.management.fruit.class',
-               'step.management.fruit.quality', 'step.fruit.color'}
+               'step.management.fruit.quality', 'step.fruit.color', 'step.management.fruit.caliber'}
     for record in records:
         company = record.company_id or (package_companies or {}).get(record.id) or record.env.company
         for name, field in record._fields.items():
@@ -148,7 +148,7 @@ def check_document_masters(records, package_companies=None):
 class Package(models.Model):
     _inherit = 'stock.quant.package'
 
-    @api.constrains('company_id', 'fundo_id', 'fruit_category_id', 'fruit_class_id', 'fruit_quality_id')
+    @api.constrains('company_id', 'fundo_id', 'fruit_category_id', 'fruit_class_id', 'fruit_quality_id', 'fruit_caliber_id')
     def _check_agricultural_masters(self):
         # Inventory clears the package company when its final stock is consumed.
         # Keep validating against the OT or the last completed stock movement.

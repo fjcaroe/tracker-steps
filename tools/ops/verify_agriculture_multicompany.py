@@ -6,6 +6,35 @@ from lxml import etree
 from odoo.tools import config
 from native_business_profile import scoped_business_environment
 
+
+def verify_calibers(env):
+    records = env['step.management.fruit.caliber'].with_context(active_test=False).search([])
+    groups = env['step.management.caliber.group'].with_context(active_test=False).search([])
+    assert all(r.company_id in r.company_ids for r in records | records.browse())
+    assert all(r.company_id in r.company_ids for r in groups)
+    assert all(not (r.company_ids - r.group_id.company_ids) for r in records)
+    sample = records.filtered('active')[:1]
+    business = scoped_business_environment(env, company=sample.company_id if sample else None)
+    model = business['step.management.fruit.caliber']
+    menu = business.ref('step_packing_operations.menu_packing_config_fruit_caliber')
+    assert menu.id in business['ir.ui.menu']._visible_menu_ids()
+    assert menu.action.res_model == model._name
+    for kind in ('list', 'form'):
+        arch = etree.fromstring(model.get_view(view_type=kind)['arch'])
+        assert arch.xpath("//field[@name='company_ids'][@widget='many2many_tags']")
+    for ref in ('step_management_costs.rule_fruit_caliber_company',
+                'step_management_costs.rule_caliber_group_company'):
+        assert "company_ids" in business.ref(ref).domain_force
+    if sample:
+        rows = model.browse(sample.id).web_read({
+            'name': {}, 'company_ids': {'fields': {'display_name': {}}},
+            'group_id': {'fields': {'display_name': {}}},
+            'step_contract_caliber_id': {'fields': {'display_name': {}}}})
+        assert rows[0]['id'] == sample.id
+        assert sample.id in model.search([('id', '=', sample.id)]).ids
+    return {'ticket': 200, 'native_menu_list_and_form': True,
+            'preserved_calibers': len(records), 'preserved_groups': len(groups)}
+
 try:
     for name, version in EXPECTED.items():
         module = env['ir.module.module'].search([('name', '=', name)])
@@ -66,6 +95,8 @@ try:
         from verify_shared_producer_reception import verify_shared_producer_reception
         proof['tickets'].append(194)
         proof['shared_producer'] = verify_shared_producer_reception(env, scoped, SHARED_PRODUCER_RECEPTION)
+    if 'company_ids' in env['step.management.fruit.caliber']._fields:
+        proof['shared_calibers'] = verify_calibers(env)
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps(proof))
 finally:
     env.cr.rollback()

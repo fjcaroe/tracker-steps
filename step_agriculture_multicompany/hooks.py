@@ -7,6 +7,8 @@ MASTERS = {
     'step.management.fruit.class': 'step_fruit_class_company_rel',
     'step.management.fruit.quality': 'step_fruit_quality_company_rel',
     'step.fruit.color': 'step_fruit_color_company_rel',
+    'step.management.caliber.group': 'step_caliber_group_company_rel',
+    'step.management.fruit.caliber': 'step_fruit_caliber_company_rel',
 }
 
 

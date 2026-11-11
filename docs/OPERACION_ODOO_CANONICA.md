@@ -1,5 +1,16 @@
 # Operación y publicación de Odoo
 
+T200 amplía `agriculture-multicompany` en Desarrollo, Cerro y QA-Cerro.
+Los calibres del catálogo de Inventario permiten asignar varias empresas,
+conservando su origen, identificadores y relaciones. Su grupo se habilita
+para las empresas agregadas con los permisos del editor. Migrar únicamente
+las asignaciones originales, sin fusionar calibres ni reasignar documentos.
+Probar el formulario, el selector de Excel y el guardado de una tarja desde
+otra sucursal, además de permisos y conservación de asignaciones utilizadas.
+El caso privado de recepción de T194 se exige para su versión 18.0.1.0.4;
+T200 mantiene sus pruebas de regresión sin repetir aquel documento real.
+Publicar el mismo paquete con respaldo, bloqueo y paridad.
+
 T199 usa `packing-output-lots` para publicar en Desarrollo, Cerro y
 QA-Cerro el menú de calibres de Packing. El acceso abre la acción del
 catálogo que ya usan las tarjas de proceso. Verificar el menú, el listado

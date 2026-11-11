@@ -1,4 +1,6 @@
 <odoo>
+<record id="step_management_costs.rule_caliber_group_company" model="ir.rule"><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
+<record id="step_management_costs.rule_fruit_caliber_company" model="ir.rule"><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
 <record id="step_producers.rule_step_producer_fundo_company" model="ir.rule"><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
 <record id="step_management_costs.rule_fruit_category_company" model="ir.rule"><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
 <record id="step_management_costs.rule_fruit_class_company" model="ir.rule"><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
