@@ -117,7 +117,10 @@ class CorrectProduct(models.TransientModel):
 
     picking_id = fields.Many2one('stock.picking', required=True, readonly=True)
     company_id = fields.Many2one(related='picking_id.company_id')
-    line_ids = fields.Many2many('step.packing.picking.tag.line', string='Tarjas C', required=True)
+    line_ids = fields.Many2many(
+        'step.packing.picking.tag.line', 'step_receipt_product_correction_tag_rel',
+        string='Tarjas C', required=True,
+    )
     product_id = fields.Many2one('product.product', string='Producto corregido', required=True)
     reason = fields.Char('Motivo', required=True)
 
