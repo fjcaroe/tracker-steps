@@ -77,7 +77,8 @@ def run_case(env, plan, phase):
     assert sum(receipt.move_ids.mapped('step_fruit_packaging_qty')) == sum(
         item['boxes'] for item, _line in entries + untouched)
     trace = moves.search(audit_domain)
-    assert len(trace) == 4 and set(trace.mapped('state')) == {'done'} and not trace.stock_valuation_layer_ids
+    assert len(trace) == 4 and set(trace.mapped('state')) == {'done'}
+    assert not trace.picking_id and not trace.stock_valuation_layer_ids
     assert set(trace.step_receipt_correction_line_id.ids) == set(rows.ids)
     for _plan, line in entries:
         pair = trace.filtered(lambda move: move.step_receipt_correction_line_id == line)

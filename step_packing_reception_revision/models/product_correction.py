@@ -3,6 +3,7 @@ from odoo import Command, _, api, fields, models
 from odoo.addons.step_inventory_packing.models.fruit_package import StepFruitPackageLine
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools.float_utils import float_compare
+from odoo.tools.misc import clean_context
 
 
 _CORRECTION = object()
@@ -221,8 +222,9 @@ class CorrectProduct(models.TransientModel):
                 raise UserError(_('Configure las ubicaciones de ajuste de inventario en la compañía receptora.'))
         if not loss or not gain:
             raise UserError(_('Configure las ubicaciones de ajuste de inventario de ambos productos.'))
-        Move = self.env['stock.move'].with_company(self.company_id).with_context(
-            _receipt_product_correction=_CORRECTION, inventory_mode=False)
+        Move = self.env['stock.move'].with_context(
+            clean_context(self.env.context), _receipt_product_correction=_CORRECTION,
+            inventory_mode=False).with_company(self.company_id)
         values = []
         for direction, product, lot, src, dst, source_tag, result_tag in (
                 ('remove', old, old_lot, location, loss, tag.id, False),
@@ -230,6 +232,7 @@ class CorrectProduct(models.TransientModel):
             values.append({
                 'name': _('Corrección de producto de tarja %s') % tag.name, 'origin': self.picking_id.name,
                 'company_id': self.company_id.id, 'product_id': product.id, 'product_uom': product.uom_id.id,
+                'picking_id': False,
                 'product_uom_qty': quantity, 'location_id': src.id, 'location_dest_id': dst.id,
                 'state': 'confirmed', 'is_inventory': True, 'picked': True, 'restrict_partner_id': owner.id,
                 'step_receipt_correction_line_id': row.id, 'step_receipt_correction_direction': direction,
@@ -243,7 +246,7 @@ class CorrectProduct(models.TransientModel):
             })
         moves = Move.create(values)
         moves._action_done(cancel_backorder=True)
-        if set(moves.mapped('state')) != {'done'} or moves.stock_valuation_layer_ids:
+        if set(moves.mapped('state')) != {'done'} or moves.picking_id or moves.stock_valuation_layer_ids:
             raise ValidationError(_('La corrección de stock de tercero no debe generar valoración.'))
         stock = tag.quant_ids.filtered(lambda item: item.quantity or item.reserved_quantity)
         if (len(stock) != 1 or stock.product_id != target or stock.owner_id != owner
