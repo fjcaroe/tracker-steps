@@ -333,6 +333,58 @@ def errors(text, allowed_missing=('steps_api',)):
     return found
 
 
+def verify_caliber_menu_baseline(reference, stage, baseline, log, database, allowed_missing):
+    """Certify the isolated menu redirect against the installed Packing suite."""
+    from xml.etree import ElementTree as ET
+
+    reference = reference.resolve()
+    assert reference.parent == stage.parent and reference != stage
+    assert re.fullmatch(r'management_development_[a-z0-9_]+', reference.name)
+    assert json.loads((reference / 'baseline.json').read_text()) == baseline
+    module = 'step_packing_operations'
+    old = reference / 'addons' / module
+    new = stage / 'addons' / module
+    installed = baseline['modules'][module]
+    assert tree_hash(old) == installed['sha256'] and installed['version'] == '18.0.2.12.0'
+    manifest = '__manifest__.py'
+    menu = 'views/packing_menu.xml'
+    old_manifest = ast.literal_eval((old / manifest).read_text())
+    new_manifest = ast.literal_eval((new / manifest).read_text())
+    assert old_manifest.pop('version') == installed['version']
+    assert new_manifest.pop('version') == '18.0.2.12.1'
+    assert old_manifest == new_manifest
+    old_proof = json.loads((old.parent / 'release.json').read_text())
+    new_proof = json.loads((new.parent / 'release.json').read_text())
+    assert old_proof['files'].keys() == new_proof['files'].keys()
+    assert {name for name in old_proof['files'] if old_proof['files'][name] != new_proof['files'][name]} == {
+        module + '/' + manifest, module + '/' + menu,
+    }
+    old_menu = ET.parse(old / menu).getroot()
+    new_menu = ET.parse(new / menu).getroot()
+    item = old_menu.find(".//menuitem[@id='menu_packing_config_fruit_caliber']")
+    assert item.attrib['action'] == 'step_packing.action_step_packing_fruit_caliber'
+    item.set('action', 'step_management_costs.action_fruit_caliber')
+    assert ET.tostring(old_menu) == ET.tostring(new_menu)
+
+    reference_log, = reference.glob('qa-*.log')
+    reference_db = 'MANAGEMENT_QA_DEVELOPMENT_' + reference.name.removeprefix('management_development_')
+    reports = []
+    for path, db in ((reference_log, reference_db), (log, database)):
+        text = path.read_text(errors='replace')
+        assert 'Modules loaded.' in text
+        assert "1 failed, 5 error(s) of 39 tests when loading database '%s'" % db in text
+        failures = [re.split(r' (?:ERROR|CRITICAL) ', line, maxsplit=1)[1].replace(db, 'DATABASE').strip()
+                    for line in errors(text, allowed_missing)]
+        assert len(failures) == 7 and sum('TestMonthlyFruitAccounting.' in line for line in failures) == 5
+        assert sum('TestPackingOperations.test_contract_value_monthly_bill_and_national_return'
+                   in line for line in failures) == 1
+        reports.append(sorted(failures))
+    assert reports[0] == reports[1], 'The menu change must not introduce a new failure'
+    assert snapshot(reference_db) == json.loads((reference / 'business_before.json').read_text())
+    return {'reference_log': str(reference_log), 'reference_sha256': digest(reference_log),
+            'identical_accounting_failures': 6, 'tests': 39}
+
+
 def normalize_approved_account(base, options, database, args, commit):
     header = ('APPROVED_USER_ID=' + repr(args.normalize_user_id) + '\nEXPECTED_USER_LOGIN=' + repr(args.expected_user_login)
         + '\nEXPECTED_DATABASE=' + repr(database) + '\nNORMALIZE_COMMIT=' + repr(commit) + '\n')
@@ -362,6 +414,8 @@ def main():
     parser.add_argument('--reception-lot-plan', type=Path, help='T165 approved private receipt/lot mapping, Cerro only')
     parser.add_argument('--reception-product-plan', type=Path, help='T196 approved private product and receipt correction, Cerro only')
     parser.add_argument('--packing-output-lot-plan', type=Path, help='T166 approved private OT/output-lot mapping, Cerro only')
+    parser.add_argument('--packing-caliber-baseline', type=Path,
+                        help='T199 Development copy run with the installed Packing version')
     parser.add_argument('--resume-packing-split', action='store_true',
                         help='Reuse the verified Cerro overlay from the interrupted T154 deployment')
     parser.add_argument('--previred-cases', type=Path, help='Private immutable reported payroll cases; read-only verification')
@@ -370,6 +424,8 @@ def main():
     parser.add_argument('--proforma-policy-plan', type=Path, help='Private reviewed draft and unchanged configured taxes; Cerro review 1')
     parser.add_argument('--shared-producer-reception', type=Path, help='Private T194 Cerro receipt and existing operator identities')
     args = parser.parse_args()
+    if args.packing_caliber_baseline:
+        assert (args.action, args.environment, args.kind) == ('certify', 'development', 'packing-output-lots')
     if args.shared_producer_reception:
         assert args.kind == 'agriculture-multicompany' and args.environment == 'cerro'
         SHARED_PRODUCER_RECEPTION = json.loads(args.shared_producer_reception.read_text())
@@ -773,10 +829,19 @@ def main():
         assert len(logs)==1
         text=logs[0].read_text(errors='replace')
         successful = 'Modules loaded.' in text if args.kind == 'homepage' else re.search(r"0 failed, 0 error\(s\) of [1-9][0-9]* tests when loading database '"+re.escape(qa_db)+"'",text)
-        assert successful and not errors(text, allowed_missing)
+        comparison = None
+        if args.packing_caliber_baseline:
+            comparison = verify_caliber_menu_baseline(
+                args.packing_caliber_baseline, stage, baseline, logs[0], qa_db, allowed_missing)
+            print('MANAGEMENT_PACKING_BASELINE_OK ' + json.dumps(comparison), flush=True)
+        else:
+            assert successful and not errors(text, allowed_missing)
         assert snapshot(qa_db)==json.loads((stage/'business_before.json').read_text())
         verify(base,options,qa_db,staged,opts,proof,stage,{*installed,*install})
-        (stage/'qa_passed.json').write_text(json.dumps({'commit':proof['commit'],'release_sha256':release_sha,'database':qa_db,'log':str(logs[0])}))
+        (stage/'qa_passed.json').write_text(json.dumps({
+            'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(logs[0]),
+            **({'packing_caliber_baseline': comparison} if comparison else {}),
+        }))
         print('MANAGEMENT_CERTIFY_OK '+args.environment,flush=True)
         return
     if args.action in ('qa', 'compatibility'):

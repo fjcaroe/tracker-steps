@@ -7,6 +7,12 @@ y la selección de un calibre existente en una tarja de prueba. Conservar
 los calibres y las relaciones de contratos e historial. Publicar el mismo
 paquete con respaldo y bloqueo, sin plan de reparación de lotes.
 
+Para T199, la comparación de Desarrollo conserva la suite amplia y
+contrasta el paquete con la versión instalada. Si ambas ejecuciones
+reproducen los mismos seis fallos contables, el certificador verifica
+que el único cambio funcional sea el enlace del menú y ejecuta la
+comprobación del catálogo antes de autorizar la publicación.
+
 T198 amplía `producer-advances` en Desarrollo, Cerro y QA-Cerro. El
 asistente omite los productos valorizados que se excluyan en cada
 preparación, antes de buscar tarifas y reservar kilos. Conservar las
