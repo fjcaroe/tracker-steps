@@ -22,7 +22,7 @@ try:
     assert len(result['actions']) == 7
     for key, action in result['actions'].items():
         records = scoped[action['res_model']].search(action['domain'])
-        assert all(row.company_id == scoped.company for row in records)
+        assert all(not row.company_id or row.company_id == scoped.company for row in records)
         expected = len(records) if key == 'open_productions' else sum(records.mapped('step_actual_kg'))
         assert abs(result['kpis'][key] - expected) < 0.000001
     branches = env['res.company'].search([('id', 'child_of', scoped.company.id)])
@@ -35,7 +35,7 @@ try:
             period='custom', date_from='2000-01-01', date_to='2099-12-31')
         for key, action in data['actions'].items():
             records = branch[action['res_model']].search(action['domain'])
-            assert all(record.company_id == company for record in records)
+            assert all(not record.company_id or record.company_id == company for record in records)
             expected = len(records) if key == 'open_productions' else sum(records.mapped('step_actual_kg'))
             assert abs(data['kpis'][key] - expected) < 0.000001
         branch_results.append({'company': company.id, 'kpis': data['kpis']})

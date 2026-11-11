@@ -29,13 +29,21 @@ class PackingDashboard(models.Model):
             raise ValidationError(_('Indique Desde y Hasta; Desde no puede ser posterior a Hasta.'))
         company = self.env.company
         company_domain = [('company_id', '=', company.id)]
-        tags = self.env['stock.quant.package'].search(company_domain + [
-            ('is_fruit_tag', '=', True), ('step_tag_kind', 'in', ['C', 'E']),
-            ('step_tag_state', 'not in', ['created', 'void'])])
         productions = self.env['step.packing.production'].search(company_domain, order='id desc')
         orders = self.search(company_domain, order='id desc')
         repack_lines = self.env['step.packing.repack.line'].search([
             ('repack_id.company_id', '=', company.id), ('repack_id.state', '=', 'done')])
+        receipt_lines = self.env['step.packing.picking.tag.line'].search(company_domain + [
+            ('picking_id.state', '=', 'done'), ('picking_id.picking_type_id.code', '=', 'incoming')])
+        # Historical empty packages can lose native company_id when their last
+        # quant is consumed. Attribute only packages proven by this company's
+        # actual documents; never include all unassigned packages or use sudo.
+        traced_tags = (productions.step_packing_input_tag_ids | productions.step_packing_output_tag_ids
+                       | repack_lines.source_package_id | repack_lines.target_package_id | receipt_lines.package_id)
+        tags = self.env['stock.quant.package'].search([
+            '|', ('company_id', '=', company.id), '&', ('company_id', '=', False), ('id', 'in', traced_tags.ids),
+            ('is_fruit_tag', '=', True), ('step_tag_kind', 'in', ['C', 'E']),
+            ('step_tag_state', 'not in', ['created', 'void'])])
         parents = {}
         for line in repack_lines:
             parents.setdefault(line.target_package_id.id, set()).add(line.source_package_id.id)

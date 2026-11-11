@@ -7,6 +7,9 @@ indicadores, períodos, rango manual, especie y empresa activa; comprobar
 repaletizado, consumo real y despacho en copia. Los flujos usan la fecha
 de recepción, proceso o salida. El stock muestra las tarjas actualmente
 validadas originadas en el período. No duplicar ingresos por repaletizado.
+Incluir las tarjas históricas vacías sin empresa solo cuando una recepción,
+OT o repaletizado de la empresa activa acredite su origen; no reasignarlas
+ni incluir paquetes sin trazabilidad.
 Verificar además el panel servido, título blanco, siete tarjetas, filtros,
 lista y formulario de detalle. Conservar el comparativo independiente.
 Publicar el mismo paquete con respaldo, bloqueo y paridad.

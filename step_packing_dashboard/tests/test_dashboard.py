@@ -76,6 +76,14 @@ class DashboardCase(TransactionCase):
         self.assertEqual(result['actions']['received_kg']['domain'], [('id', 'in', own.ids)])
         self.assertNotEqual(own.company_id, foreign.company_id)
 
+    def test_unassigned_package_without_company_trace_is_not_counted(self):
+        self.tag(25)
+        unassigned = self.tag(900)
+        self.env.cr.execute('UPDATE stock_quant_package SET company_id=NULL, step_packing_company_id=NULL WHERE id=%s', [unassigned.id])
+        unassigned.invalidate_recordset()
+        self.assertEqual(self.panel()['kpis']['received_kg'],25)
+        self.assertEqual(self.panel()['kpis']['stock_input_kg'],25)
+
     def test_receipt_utc_is_compared_in_user_timezone(self):
         tag = self.tag(10, state='created')
         tag.received_at = '2001-06-01 02:00:00'
@@ -128,6 +136,11 @@ class DashboardCase(TransactionCase):
         self.assertEqual(result['kpis']['received_kg'],100)
         self.assertEqual(result['kpis']['stock_input_kg'],100)
         self.assertEqual(set(result['actions']['stock_input_kg']['domain'][0][2]),set(targets.ids))
+        self.env.cr.execute('UPDATE stock_quant_package SET company_id=NULL, step_packing_company_id=NULL WHERE id=%s', [source.id])
+        source.invalidate_recordset()
+        self.assertFalse(source.company_id)
+        self.assertEqual(self.panel()['kpis']['received_kg'],100)
+        self.assertEqual(self.panel()['kpis']['stock_input_kg'],100)
 
     def test_real_close_and_dispatch_keep_event_dates(self):
         incoming = self.tag(100)
@@ -146,6 +159,11 @@ class DashboardCase(TransactionCase):
         ot.action_step_packing_close()
         result = self.panel()
         self.assertEqual([result['kpis'][k] for k in ('received_kg','processed_kg','stock_input_kg','export_kg','stock_export_kg')],[100,100,0,80,80])
+        self.env.cr.execute('UPDATE stock_quant_package SET company_id=NULL, step_packing_company_id=NULL WHERE id=%s', [incoming.id])
+        incoming.invalidate_recordset()
+        self.assertFalse(incoming.company_id)
+        self.assertEqual(self.panel()['kpis']['received_kg'],100)
+        self.assertEqual(self.panel()['kpis']['processed_kg'],100)
         self.assertEqual(self.panel(date_from='2001-06-15',date_to='2001-06-15')['kpis']['processed_kg'],100)
         self.assertEqual(self.panel(date_from='2001-06-10',date_to='2001-06-10')['kpis']['processed_kg'],0)
         from odoo.addons.step_packing_operations.models.material_tools import create_stock_transfer
