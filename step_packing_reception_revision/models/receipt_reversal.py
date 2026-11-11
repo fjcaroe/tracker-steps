@@ -100,8 +100,13 @@ class Picking(models.Model):
         # contents move. A correction returns the fruit and retains the tag.
         self = self.with_context(bypass_entire_pack=True)
         return_type = self.picking_type_id.return_picking_type_id or self.picking_type_id
+        supplier = self.partner_id
+        # The receipt may use a producer contact shared through its farm.
+        # Preserve that owner on the moves even when the return header cannot
+        # use a contact belonging to a sibling company.
+        return_partner = supplier.id if not supplier.company_id or supplier.company_id == self.company_id else False
         reversal = self.env['stock.picking'].create({
-            'picking_type_id': return_type.id, 'company_id': self.company_id.id, 'partner_id': self.partner_id.id,
+            'picking_type_id': return_type.id, 'company_id': self.company_id.id, 'partner_id': return_partner,
             'location_id': self.location_dest_id.id, 'location_dest_id': self.location_id.id,
             'return_id': self.id, 'origin': _('Corrección de %s', self.name), 'step_fruit_reception_kind': False,
         })
@@ -129,6 +134,11 @@ class Picking(models.Model):
                 or any(q.quantity or q.reserved_quantity for q in lines.result_package_id.quant_ids)):
             raise UserError(_('La devolución debe retirar todas las tarjas sin generar valoración de fruta de tercero.'))
         return reversal
+
+    def _is_auto_batchable(self, picking=None):
+        if self.env.context.get('_step_fruit_reverse') is _REVERSE and self.return_id:
+            return False
+        return super()._is_auto_batchable(picking)
 
     def _make_corrected_receipt(self, lines):
         rows = self.fruit_tag_line_ids.copy_data({'package_id': False, 'step_import_stock_quantity': 0})
