@@ -27,5 +27,18 @@ tarjas. La copia fresca reprodujo el bloqueo y el ensayo de cancelación
 mostró que el historial de la proforma se conserva. Se revirtió el ensayo.
 
 El asistente quedó publicado y verificado en Desarrollo, Cerro El Plomo
-y QA-Cerro El Plomo con el mismo paquete. En Cerro quedó pendiente la
-corrección de los datos hasta resolver el borrador activo.
+y QA-Cerro El Plomo con el mismo paquete.
+
+Con autorización expresa del solicitante se canceló el borrador completo
+mediante su acción nativa, conservando sus 13 tarjas, dos recepciones,
+detalle e importes. En la misma transacción se habilitaron inventario y lotes
+en el producto existente y se corrigieron las dos tarjas. Se aplicó el mismo
+plan y ejecutor que habían pasado el ensayo, con respaldo y bloqueo
+compartido.
+
+Una comprobación posterior confirmó el borrador cancelado, las dos tarjas
+por 701,10 kg con su producto corregido y la tercera con su producto
+anterior. El listado nativo mostró ambos productos, 385 envases, 861 kg
+netos y 2,24 kg por envase. Los dos módulos conservan paridad entre Cerro
+y QA-Cerro. Contabilidad puede preparar otro anticipo después de configurar
+la tarifa del producto corregido.
