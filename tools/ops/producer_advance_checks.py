@@ -216,7 +216,10 @@ def verify_advances(env, output):
         })
         values = {'basis': 'received', 'process_cutoff': False}
         if 'excluded_product_ids' in wizard._fields:
-            iqf = case['base'].with_env(admin).copy({'name': 'QA198 Comercial IQF sin tarifa'})
+            iqf = admin['product.product'].with_company(branch).create({
+                'name': 'QA198 Comercial IQF sin tarifa', 'is_storable': True,
+                'uom_id': case['base'].uom_id.id, 'uom_po_id': case['base'].uom_id.id,
+            })
             excluded = tag('C', '33', 150, iqf)
             receipt(excluded, 'process')
             values['excluded_product_ids'] = [Command.set(iqf.ids)]

@@ -304,9 +304,17 @@ class TestProducerAdvances(FruitProformaCase):
         self._rule(0.8, product_tmpl_id=self.base.product_tmpl_id.id)
         return self._advance_wizard(basis='received', process_cutoff=False)
 
+    def _commercial_product(self):
+        return self.env['product.product'].with_company(self.branch).create({
+            'name': 'QA198 Comercial IQF', 'default_code': 'QA198-IQF',
+            'is_storable': True, 'categ_id': self.category.id,
+            'uom_id': self.base.uom_id.id, 'uom_po_id': self.base.uom_id.id,
+            'property_account_expense_id': self.expense.id,
+        })
+
     def test_received_exclusion_preserves_unpriced_sources_and_the_selected_draft(self):
         included, _receipt = self._raw(species=self.retained_species)
-        iqf = self.base.copy({'name': 'QA198 Comercial IQF', 'default_code': 'QA198-IQF'})
+        iqf = self._commercial_product()
         excluded, _receipt = self._raw(300, when='2026-10-30 12:00:00',
                                       species=self.retained_species, product=iqf)
         before = self._stock_counts()
@@ -335,7 +343,7 @@ class TestProducerAdvances(FruitProformaCase):
 
     def test_received_exclusion_does_not_return_or_change_a_mixed_existing_draft(self):
         included, _receipt = self._raw()
-        iqf = self.base.copy({'name': 'QA198 Comercial IQF'})
+        iqf = self._commercial_product()
         excluded, _receipt = self._raw(300, when='2026-10-30 12:00:00', product=iqf)
         self._rule(0.5, product_tmpl_id=iqf.product_tmpl_id.id)
         wizard = self._received_wizard()
