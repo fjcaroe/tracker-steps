@@ -17,40 +17,48 @@ const assert = require('node:assert/strict');
         page = await context.newPage();
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
-        const initialRpc = page.waitForResponse(res => res.url().includes('/call_kw/step.packing.order/get_dashboard_data'), { timeout: 120000 });
-        await page.goto(`https://${proof.host}/web#action=${proof.actions.dashboard}&cids=${proof.company_id}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+        const dashboardResponse = () => page.waitForResponse(
+            res => res.url().includes('/call_kw/step.packing.order/get_dashboard_data'), { timeout: 60000 });
+        const [initialResponse] = await Promise.all([
+            dashboardResponse(),
+            page.goto(`https://${proof.host}/web#action=${proof.actions.dashboard}&cids=${proof.company_id}`,
+                { waitUntil: 'domcontentloaded', timeout: 120000 }),
+        ]);
+        const initialData = (await initialResponse.json()).result;
         const cards = page.locator('.o_packing_kpis_seven > button');
         await cards.first().waitFor({ timeout: 120000 });
         assert.equal(await cards.count(), 7);
-        const initialData = (await (await initialRpc).json()).result;
         await page.waitForFunction(count => document.querySelectorAll('.o_packing_period_filters select option').length === count, initialData.species.length + 1);
+        async function changeFilter(label, action) {
+            const started = Date.now();
+            console.log('T201_UI_CHECK ' + label);
+            const [response] = await Promise.all([dashboardResponse(), action()]);
+            const body = await response.json();
+            assert.ok(!body.error, label + ' RPC failed');
+            await page.waitForFunction(() => !document.querySelector('.o_packing_loading') &&
+                document.querySelectorAll('.o_packing_kpis_seven > button').length === 7);
+            console.log('T201_UI_FILTER_OK ' + label + ' ms=' + (Date.now() - started));
+            return body.result;
+        }
         assert.equal(await page.locator('.o_packing_hero h1').evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
         const labels = await cards.locator('span').allTextContents();
         for (const label of ['Último día', 'Semana', 'Mes', 'Temporada']) {
-            const response = page.waitForResponse(res => res.url().includes('/call_kw/step.packing.order/get_dashboard_data'));
-            await page.getByRole('button', { name: label, exact: true }).click();
-            const body = await (await response).json();
-            assert.ok(!body.error, 'Period RPC failed');
-            await cards.first().waitFor();
+            await changeFilter(label, () => page.getByRole('button', { name: label, exact: true }).click());
         }
-        const species = page.getByLabel('Especie', { exact: true });
+        const species = page.locator('.o_packing_period_filters select');
+        assert.equal(await species.count(), 1);
         const options = await species.locator('option').evaluateAll(rows => rows.map(row => row.value));
+        console.log('T201_UI_SPECIES ' + JSON.stringify({options, supplied: initialData.species}));
+        const expectedSpecies = process.env.T201_EXPECT_SPECIES_ID;
+        if (expectedSpecies) assert.ok(options.includes(expectedSpecies), 'Expected real species is absent');
         if (options.length > 1) {
-            const response = page.waitForResponse(res => res.url().includes('/call_kw/step.packing.order/get_dashboard_data'));
-            await species.selectOption(options[1]);
-            assert.ok(!(await (await response).json()).error, 'Species RPC failed');
-            await cards.first().waitFor();
+            await changeFilter('Especie', () => species.selectOption(options[1]));
             assert.equal(await species.inputValue(), options[1], 'Species selection must remain visible');
-            const reset = page.waitForResponse(res => res.url().includes('/call_kw/step.packing.order/get_dashboard_data'));
-            await species.selectOption('');
-            assert.ok(!(await (await reset).json()).error, 'All species RPC failed');
-            await cards.first().waitFor();
+            await changeFilter('Todas las especies', () => species.selectOption(''));
         }
         await page.getByLabel('Desde', { exact: true }).fill('2000-01-01');
         await page.getByLabel('Hasta', { exact: true }).fill('2099-12-31');
-        const filtered = page.waitForResponse(res => res.url().includes('/call_kw/step.packing.order/get_dashboard_data'));
-        await page.getByRole('button', { name: 'Aplicar', exact: true }).click();
-        const result = (await (await filtered).json()).result;
+        const result = await changeFilter('Rango manual', () => page.getByRole('button', { name: 'Aplicar', exact: true }).click());
         assert.equal(result.filters.date_from, '2000-01-01');
         assert.equal(result.filters.date_to, '2099-12-31');
         await cards.first().waitFor();
@@ -73,7 +81,7 @@ const assert = require('node:assert/strict');
         }
         assert.equal(errors.length, 0, errors.join('; '));
         const report = { host: proof.host, labels, periods: 4, speciesFilter: options.length > 1,
-            customDates: true, whiteHeading: true, mobileOverflow: false, drilldown: true, formOpened, errors };
+            availableSpecies: initialData.species.length, customDates: true, whiteHeading: true, mobileOverflow: false, drilldown: true, formOpened, errors };
         fs.writeFileSync(path.join(output, 'ui-result.json'), JSON.stringify(report, null, 2));
         console.log('PACKING_DASHBOARD_UI_OK ' + JSON.stringify(report));
     } catch (error) {

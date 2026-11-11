@@ -55,7 +55,7 @@ def cleanup(apply):
                     target.unlink()
             (stage/'intermediate_copy_removed.json').write_text(json.dumps(row,indent=2))
         result.append(row)
-    print(json.dumps({'ticket':201,'intermediate_copies':result,'final_e_copies_and_deployment_backups':'retained'},indent=2))
+    print(json.dumps({'ticket':201,'intermediate_copies':result,'copies_e_and_newer_and_deployment_backups':'retained'},indent=2))
 
 
 if __name__ == '__main__':
