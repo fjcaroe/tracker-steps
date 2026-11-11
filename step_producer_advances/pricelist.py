@@ -90,6 +90,10 @@ class Pricelist(models.Model):
                    -(rule.date_start.toordinal() if rule.date_start else 0))
             candidates.append((key, rule))
         if not candidates:
+            if self.env.context.get('advance_basis') == 'received':
+                raise UserError(_('La lista no tiene una tarifa aplicable a %(product)s recibido el %(date)s. '
+                                  'Configure un precio por kilo para el producto recibido y su embalaje si corresponde.',
+                                  product=product.display_name, date=day))
             raise UserError(_('No hay precio de anticipo para %(product)s, mercado %(market)s, embalaje %(packaging)s y fecha %(date)s. Revise la lista y el mercado de la tarja.',
                 product=product.display_name, market=market.display_name or '-',
                 packaging=packaging.display_name or '-', date=day))

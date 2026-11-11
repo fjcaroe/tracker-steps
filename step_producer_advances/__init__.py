@@ -1,1 +1,1 @@
-from . import pricelist, purchase, prepare, report
+from . import claims, pricelist, purchase, prepare, report

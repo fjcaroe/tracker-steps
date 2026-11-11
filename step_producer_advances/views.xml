@@ -5,11 +5,14 @@
             <group><group><field name="company_id"/><field name="producer_ids" widget="many2many_tags" options="{'no_create':True}"/>
                 <field name="species_ids" widget="many2many_tags" options="{'no_create':True}"/>
                 <field name="pricelist_id" options="{'no_create':True}"/>
-            </group><group><field name="date_from"/><field name="date_to"/><field name="process_cutoff"/>
+                <field name="basis"/>
+            </group><group><field name="date_from"/><field name="date_to"/>
+                <field name="process_cutoff" invisible="basis == 'received'" required="basis == 'processed'"/>
                 <field name="proforma_date"/><field name="net_due"/><field name="vat_due"/>
             </group></group>
-            <p>Deje productores o especies vacíos para incluir todos. Se usa la fecha de recepción del informe al productor.
-                Cada parte de una recepción se incluye una sola vez, aunque la OT procese fruta de distintas semanas.</p>
+            <p>Deje productores o especies vacíos para incluir todos. Se usa la fecha de recepción del informe al productor.</p>
+            <p invisible="basis != 'received'">Usa los kilos netos de las tarjas C o E de recepciones validadas.</p>
+            <p invisible="basis != 'processed'">Usa los kilos de exportación de las OT cerradas hasta la fecha de corte.</p>
             <footer><button name="action_prepare" type="object" string="Preparar proformas" class="btn-primary"/>
                 <button string="Cancelar" special="cancel"/></footer>
         </form></field>
@@ -33,7 +36,9 @@
             </xpath>
             <xpath expr="//field[@name='step_fruit_proforma']" position="after"><field name="step_advance_proforma" invisible="1"/></xpath>
             <xpath expr="//field[@name='step_fruit_period_end']" position="after">
-                <field name="step_advance_cutoff" readonly="1"/><field name="step_advance_pricelist_id" readonly="1"/>
+                <field name="step_advance_basis"/>
+                <field name="step_advance_cutoff" invisible="step_advance_basis == 'received'"/>
+                <field name="step_advance_pricelist_id" readonly="1"/>
                 <field name="step_advance_source_currency_id" readonly="1"/><field name="step_advance_exchange_rate" readonly="1"/>
                 <field name="step_advance_net_due" readonly="1"/><field name="step_advance_vat_due" readonly="1"/>
             </xpath>
@@ -49,7 +54,7 @@
         <field name="arch" type="xml"><list string="Proforma anticipos" create="0" delete="0" decoration-muted="step_fruit_state == 'cancel'">
             <field name="name"/><field name="company_id"/><field name="partner_id" string="Productor"/>
             <field name="step_fruit_species_id"/><field name="step_fruit_period_start"/><field name="step_fruit_period_end"/>
-            <field name="step_fruit_dte_code"/><field name="currency_id" column_invisible="True"/>
+            <field name="step_advance_basis"/><field name="step_fruit_dte_code"/><field name="currency_id" column_invisible="True"/>
             <field name="amount_untaxed"/><field name="amount_total"/><field name="step_advance_status" widget="badge"/>
             <field name="step_fruit_state" column_invisible="True"/>
         </list></field>

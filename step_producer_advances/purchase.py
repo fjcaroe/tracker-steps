@@ -5,16 +5,14 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import frozendict
 from odoo.addons.step_packing_fruit_proforma.purchase import PurchaseOrder as FruitOrder, _controlled, _internal
-
-
-def source_key(row):
-    return (row['tag_line_id'], row.get('input_tag_id') or 0, row['receipt_id'])
+from .claims import BASIS, lock_companies, source_key, source_rows
 
 
 class PurchaseOrder(models.Model):
     _inherit = 'purchase.order'
 
     step_advance_proforma = fields.Boolean('Proforma anticipo productor', readonly=True, copy=False, index=True)
+    step_advance_basis = fields.Selection(BASIS, string='Calcular por', readonly=True, copy=False)
     step_advance_pricelist_id = fields.Many2one('product.pricelist', string='Lista de precios', readonly=True)
     step_advance_cutoff = fields.Date('Fecha corte proceso', readonly=True)
     step_advance_net_due = fields.Date('Fecha de pago Neto', readonly=True)
@@ -26,7 +24,7 @@ class PurchaseOrder(models.Model):
         ('posted', 'Contabilizada'), ('cancel', 'Cancelada')],
         compute='_compute_advance_status', string='Estado anticipo')
     _FRUIT_SOURCE_FIELDS = FruitOrder._FRUIT_SOURCE_FIELDS | {
-        'step_advance_proforma', 'step_advance_pricelist_id', 'step_advance_cutoff',
+        'step_advance_proforma', 'step_advance_basis', 'step_advance_pricelist_id', 'step_advance_cutoff',
         'step_advance_net_due', 'step_advance_vat_due', 'step_advance_source_currency_id',
         'step_advance_exchange_rate',
         'step_fruit_receipt_ids',
@@ -58,28 +56,42 @@ class PurchaseOrder(models.Model):
             return super()._fruit_check_period()
         if (not self.step_fruit_period_start or not self.step_fruit_period_end
                 or self.step_fruit_period_end < self.step_fruit_period_start
-                or not self.step_advance_cutoff or self.step_advance_cutoff < self.step_fruit_period_end
                 or not self.step_advance_net_due or not self.step_advance_vat_due):
-            raise ValidationError(_('Revise el período de recepción, corte de proceso y ambas fechas de pago.'))
+            raise ValidationError(_('Revise el período de recepción y ambas fechas de pago.'))
+        if (self.step_advance_basis != 'received'
+                and (not self.step_advance_cutoff or self.step_advance_cutoff < self.step_fruit_period_end)):
+            raise ValidationError(_('Revise el corte de proceso.'))
         if self.currency_id.compare_amounts(self.amount_tax, 0) < 0:
             raise ValidationError(_('El IVA a pagar no puede producir una cuota negativa. Revise los impuestos seleccionados.'))
 
     def _fruit_check_tag_links(self):
         if not self.step_advance_proforma:
-            return super()._fruit_check_tag_links()
-        own = [row for line in self.order_line for row in (line.step_fruit_source_rows or [])]
+            super()._fruit_check_tag_links()
+            self._advance_check_monthly_inputs(self.company_id, self.step_fruit_production_ids)
+            return
+        own = source_rows(self)
         keys = [source_key(row) for row in own]
         if len(keys) != len(set(keys)) or {row['tag_id'] for row in own} != set(self.step_fruit_tag_ids.ids):
             raise ValidationError(_('La proforma contiene fuentes repetidas o tarjas sin detalle.'))
         if any(tag.step_fruit_proforma_id and tag.step_fruit_proforma_id.step_fruit_state != 'cancel'
                for tag in self.step_fruit_tag_ids):
             raise UserError(_('Una tarja ya pertenece a una compra mensual. Revise sus documentos antes del anticipo.'))
-        others = self.env['purchase.order'].search([
-            ('id', '!=', self.id), ('step_advance_proforma', '=', True),
-            ('step_fruit_state', '!=', 'cancel'), ('step_fruit_tag_ids', 'in', self.step_fruit_tag_ids.ids)])
-        reserved = {source_key(row) for line in others.order_line for row in (line.step_fruit_source_rows or [])}
-        if set(keys) & reserved:
+        exact, blocked_tags, blocked_roots, origins = self._advance_reservations(
+            self.company_id, self.step_advance_basis or 'processed', own, exclude=self)
+        if set(keys).intersection(exact):
             raise UserError(_('Estos kilos de recepción ya están incluidos en otro anticipo activo.'))
+        if self.step_fruit_state == 'draft' and any(
+                row['tag_id'] in blocked_tags
+                or blocked_roots.intersection(origins.get(row.get('input_tag_id') or row['tag_id'], ()))
+                for row in own):
+            raise UserError(_('Una tarja o su fruta de origen ya está incluida en otra proforma. Revise las proformas existentes.'))
+
+    def _fruit_lock(self):
+        fruit = self.filtered('step_fruit_proforma')
+        if fruit:
+            fruit.check_access('write')
+            lock_companies(fruit.company_id)
+        return super()._fruit_lock()
 
     def _fruit_sequence_code(self, dte_code):
         return 'step.producer.advance.' + dte_code if self.step_advance_proforma else super()._fruit_sequence_code(dte_code)
@@ -158,12 +170,21 @@ class MonthlyWizard(models.TransientModel):
     _inherit = 'step.packing.monthly.fruit.bill'
 
     def _fruit_orders(self):
+        self.ensure_one()
+        if self.company_id in self.env.companies and self.env.user.has_group('account.group_account_user'):
+            lock_companies(self.company_id)
         orders = super()._fruit_orders()
-        if self.env['purchase.order'].search_count([
+        purchases = self.env['purchase.order']
+        purchases._advance_check_monthly_inputs(self.company_id, orders)
+        if purchases.sudo().search_count([
+                ('company_id', '=', self.company_id.id),
                 ('step_advance_proforma', '=', True), ('step_fruit_state', '!=', 'cancel'),
                 ('step_fruit_tag_ids', 'in', orders.step_packing_output_tag_ids.ids)], limit=1):
             raise UserError(_('Hay anticipos activos sobre estas tarjas. Revise sus documentos; no se prepara otra compra mensual sobre los mismos kilos.'))
         return orders
+
+    def _fruit_monthly_draft_domain(self):
+        return super()._fruit_monthly_draft_domain() + [('step_advance_proforma', '=', False)]
 
 
 class AccountMove(models.Model):

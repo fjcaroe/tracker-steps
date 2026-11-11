@@ -7,9 +7,10 @@ import pytz
 from odoo import api, Command, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.osv import expression
+from odoo.tools import float_compare
 from odoo.addons.step_packing_fruit_proforma.purchase import _controlled
 from odoo.addons.step_packing_fruit_proforma.species import purchase_taxes
-from .purchase import source_key
+from .claims import BASIS, lock_companies, source_key
 
 
 class PrepareAdvance(models.TransientModel):
@@ -23,7 +24,8 @@ class PrepareAdvance(models.TransientModel):
         default=lambda self: fields.Date.context_today(self) - timedelta(days=6),
         help='Para cada recepción se considera la fecha más antigua entre la prevista y la efectiva.')
     date_to = fields.Date('Hasta recepción', required=True, default=fields.Date.context_today)
-    process_cutoff = fields.Date('Fecha corte proceso', required=True, default=fields.Date.context_today,
+    basis = fields.Selection(BASIS, string='Calcular por', default='processed', required=True)
+    process_cutoff = fields.Date('Fecha corte proceso', default=fields.Date.context_today,
         help='Incluye la exportación de OT cerradas según su Fecha de proceso (Date Packing), hasta este corte. En una OT mixta, los kilos exportados se distribuyen según los kilos de entrada de cada recepción.')
     proforma_date = fields.Date('Fecha proforma', required=True, default=fields.Date.context_today)
     net_due = fields.Date('Fecha de pago Neto', required=True)
@@ -37,8 +39,10 @@ class PrepareAdvance(models.TransientModel):
         if not self.env.user.has_group('account.group_account_user'):
             raise UserError(_('La preparación de anticipos requiere permisos de Contabilidad.'))
         if (self.company_id not in self.env.companies or self.date_to < self.date_from
-                or self.process_cutoff < self.date_to or not self.net_due or not self.vat_due):
-            raise ValidationError(_('Seleccione una compañía activa, un período válido, corte igual o posterior al Hasta y ambas fechas de pago.'))
+                or not self.net_due or not self.vat_due):
+            raise ValidationError(_('Seleccione una compañía activa, un período válido y ambas fechas de pago.'))
+        if self.basis == 'processed' and (not self.process_cutoff or self.process_cutoff < self.date_to):
+            raise ValidationError(_('El corte de proceso debe ser igual o posterior al Hasta de recepción.'))
         self.pricelist_id.check_access('read')
         if not self.pricelist_id.step_advance_price or self.company_id not in self.pricelist_id.step_advance_company_ids:
             raise ValidationError(_('La lista debe corresponder a anticipos y estar disponible para la compañía.'))
@@ -75,16 +79,6 @@ class PrepareAdvance(models.TransientModel):
             domain.append(('fruit_species_id', 'in', self.species_ids.ids))
         return self.env['stock.picking'].search(domain, order='scheduled_date,id')
 
-    def _raw_descendants(self, original):
-        seen, frontier = original, original
-        while frontier:
-            children = self.env['step.fruit.package.line'].search([
-                ('source_package_id', 'in', frontier.ids), ('package_id.company_id', '=', self.company_id.id),
-                ('package_id.step_tag_kind', '=', 'C')]).package_id
-            frontier = children - seen
-            seen |= frontier
-        return seen
-
     def _origin_receipts(self, tag, memo, visiting=None):
         if tag.id in memo:
             return memo[tag.id]
@@ -103,13 +97,16 @@ class PrepareAdvance(models.TransientModel):
 
     def _source_rows(self):
         receipts = self._receipt_sources()
+        if self.basis == 'received':
+            return self._received_rows(receipts)
         raw = receipts.filtered(lambda row: row.step_fruit_reception_kind == 'process').fruit_tag_line_ids.package_id
         # This native process date is also displayed on output tags as Date
         # Packing. Registration timestamps and the tag's generic pack date do
         # not determine the cutoff for the closed production order.
         orders = self.env['step.packing.production'].search([
             ('company_id', '=', self.company_id.id), ('state', 'in', ['closed', 'costed', 'accounted']),
-            ('date', '<=', self.process_cutoff), ('step_packing_input_tag_ids', 'in', self._raw_descendants(raw).ids)], order='id')
+            ('date', '<=', self.process_cutoff),
+            ('step_packing_input_tag_ids', 'in', raw._advance_raw_descendants(self.company_id).ids)], order='id')
         orders._lock_process()
         packed = receipts.filtered(lambda row: row.step_fruit_reception_kind == 'packed').fruit_tag_line_ids.package_id
         tags = orders.step_packing_output_tag_ids.filtered(lambda tag: tag.step_tag_kind == 'E') | packed.filtered(
@@ -155,6 +152,28 @@ class PrepareAdvance(models.TransientModel):
                 raise UserError(_('La fuente de una tarja aparece en más de una recepción u OT. Revise su trazabilidad.'))
             unique[key] = row
         return list(unique.values())
+
+    def _received_rows(self, receipts):
+        rows = []
+        for receipt in receipts:
+            kind = 'C' if receipt.step_fruit_reception_kind == 'process' else 'E'
+            for tag, receipt_lines in receipt.fruit_tag_line_ids.grouped('package_id').items():
+                if (not tag or tag.step_tag_kind != kind or tag.step_packing_production_id
+                        or tag.step_tag_state in ('created', 'void', 'liquidated')):
+                    continue
+                origins = tag.step_reception_tag_line_ids.picking_id.filtered(lambda picking:
+                    picking.state == 'done' and picking.company_id == self.company_id
+                    and picking.picking_type_code == 'incoming' and picking.step_fruit_reception_kind)
+                details = tag.step_tag_line_ids
+                if (origins != receipt or not details
+                        or float_compare(sum(details.mapped('kilos')), sum(receipt_lines.mapped('kilos')),
+                                         precision_digits=2)):
+                    raise UserError(_('La tarja %s debe identificar una única recepción validada y coincidir con sus kilos netos.') % tag.display_name)
+                for detail in details:
+                    row = self._row(tag, detail, receipt)
+                    row.update(quantity=detail.kilos, received_kg=detail.kilos, export_ratio=0.0)
+                    rows.append(row)
+        return rows
 
     def _row(self, tag, detail, receipt, production=None, source=None):
         # Native packages can lose their quant-derived company after shipment.
@@ -210,7 +229,8 @@ class PrepareAdvance(models.TransientModel):
             packaging = self.env['product.packaging'].browse(row['packaging_id'])
             species = self.env['step.especie'].browse(row['species_id'])
             variety = self.env['step.variedad'].browse(row['variety_id'])
-            price, rule = self.pricelist_id.with_context(advance_variety_group=variety.grupo_variedad_id.id)._advance_price(
+            price, rule = self.pricelist_id.with_context(
+                advance_variety_group=variety.grupo_variedad_id.id, advance_basis=self.basis)._advance_price(
                 product, market, packaging, row['quantity'], fields.Date.to_date(row['receipt_day']), species)
             base = product.product_tmpl_id.step_export_base_product_id
             if base and len(base.product_variant_ids) != 1:
@@ -236,29 +256,24 @@ class PrepareAdvance(models.TransientModel):
         # Keep every date/currency/company lookup in the selected legal company.
         wizard = self.with_company(self.company_id)
         with self.env.cr.savepoint():
-            wizard.env.cr.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',
-                                  ['step-producer-advance:%s' % self.company_id.id])
+            lock_companies(wizard.company_id)
             wizard.pricelist_id.flush_recordset()
             wizard.env.cr.execute('SELECT id FROM product_pricelist WHERE id=%s FOR SHARE', [self.pricelist_id.id])
             if wizard.pricelist_id.item_ids:
                 wizard.env.cr.execute('SELECT id FROM product_pricelist_item WHERE id=ANY(%s) ORDER BY id FOR SHARE',
                                       [wizard.pricelist_id.item_ids.ids])
             rows = wizard._source_rows()
-            tags = wizard.env['stock.quant.package'].browse(sorted({row['tag_id'] for row in rows}))
-            existing = wizard.env['purchase.order'].search([
-                ('company_id', '=', self.company_id.id), ('step_advance_proforma', '=', True),
-                ('step_fruit_state', '!=', 'cancel'), ('step_fruit_tag_ids', 'in', tags.ids)])
-            reserved = {source_key(row): order for order in existing for line in order.order_line
-                        for row in line.step_fruit_source_rows or []}
             result = wizard.env['purchase.order']
+            exact, blocked_tags, blocked_roots, origins = result._advance_reservations(
+                wizard.company_id, wizard.basis, rows)
             fresh = []
             for row in rows:
-                tag = wizard.env['stock.quant.package'].browse(row['tag_id'])
-                if tag.step_fruit_proforma_id and tag.step_fruit_proforma_id.step_fruit_state != 'cancel':
-                    continue
-                if source_key(row) in reserved:
-                    result |= reserved[source_key(row)]
-                else:
+                existing = result.browse(exact.get(source_key(row)))
+                if existing:
+                    if existing.has_access('read') and (existing.step_advance_basis or 'processed') == wizard.basis:
+                        result |= existing
+                elif (row['tag_id'] not in blocked_tags
+                        and not blocked_roots.intersection(origins.get(row.get('input_tag_id') or row['tag_id'], ()))):
                     fresh.append(row)
             groups = defaultdict(list)
             for row in wizard._price_rows(fresh):
@@ -266,13 +281,14 @@ class PrepareAdvance(models.TransientModel):
             for key, incoming in groups.items():
                 result |= wizard._prepare_group(key, incoming)
             if not result:
-                raise UserError(_('No hay kilos de exportación disponibles en las recepciones y corte seleccionados. Revise procesos pendientes, documentos mensuales y anticipos existentes.'))
+                raise UserError(_('No hay kilos disponibles para el cálculo seleccionado. Revise las recepciones, las proformas existentes y, si corresponde, el corte de proceso.'))
             result.filtered(lambda order: order.step_fruit_state == 'draft').action_fruit_refresh_taxes()
             return result._fruit_action()
 
     def _prepare_group(self, key, rows):
         producer, species, dte, retention = key
         company = self.company_id
+        cutoff = self.process_cutoff if self.basis == 'processed' else False
         warehouse = self.env['stock.warehouse'].search([('company_id', '=', company.id)], limit=1)
         if not warehouse:
             raise UserError(_('La compañía requiere su bodega nativa para preparar la compra sin movimientos de stock.'))
@@ -282,7 +298,8 @@ class PrepareAdvance(models.TransientModel):
             ('step_fruit_period_start', '=', self.date_from), ('step_fruit_period_end', '=', self.date_to),
             ('step_advance_pricelist_id', '=', self.pricelist_id.id), ('step_fruit_state', '=', 'draft'),
             ('step_advance_net_due', '=', self.net_due), ('step_advance_vat_due', '=', self.vat_due),
-            ('step_advance_cutoff', '=', self.process_cutoff), ('date_order', '=', fields.Datetime.to_datetime(self.proforma_date)),
+            ('step_advance_basis', '=', self.basis), ('step_advance_cutoff', '=', cutoff),
+            ('date_order', '=', fields.Datetime.to_datetime(self.proforma_date)),
             ('step_fruit_dte_code', '=', dte), ('step_fruit_withholding_tax_id', '=', retention or False)], limit=1)
         if not order:
             rate = self.pricelist_id.currency_id._convert(1, company.currency_id, company, self.proforma_date, round=False)
@@ -294,7 +311,8 @@ class PrepareAdvance(models.TransientModel):
                 'step_fruit_species_id': species, 'step_fruit_dte_code': dte,
                 'step_fruit_period_start': self.date_from, 'step_fruit_period_end': self.date_to,
                 'step_fruit_withholding_tax_id': retention or False,
-                'step_advance_pricelist_id': self.pricelist_id.id, 'step_advance_cutoff': self.process_cutoff,
+                'step_advance_pricelist_id': self.pricelist_id.id, 'step_advance_basis': self.basis,
+                'step_advance_cutoff': cutoff,
                 'step_advance_net_due': self.net_due, 'step_advance_vat_due': self.vat_due,
                 'step_advance_source_currency_id': self.pricelist_id.currency_id.id, 'step_advance_exchange_rate': rate})
         order._fruit_lock()
