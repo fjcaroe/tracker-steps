@@ -15,6 +15,12 @@ el AR11 existente y corregir solo las dos tarjas identificadas en Cerro.
 Ensayar ese mismo plan en una copia fresca antes de aplicarlo con respaldo
 y bloqueo. QA-Cerro conserva sus datos de capacitación.
 
+El solicitante autorizó cancelar el anticipo en borrador que pasó a incluir
+las tarjas durante la intervención y corregir ambas tarjas en Cerro. Usar
+la cancelación nativa y conservar el historial de la proforma. Ensayar y
+aplicar el mismo plan privado con el ejecutor versionado
+`tools/ops/apply_receipt_product_case.py`, con respaldo y bloqueo compartido.
+
 T195 amplía `producer-advances` en Desarrollo, Cerro y QA-Cerro. El
 asistente selecciona kilos procesados o los kilos netos de tarjas C y E de
 recepciones validadas. La fecha de corte aplica al cálculo procesado. Usar

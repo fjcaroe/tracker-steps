@@ -5,6 +5,35 @@ from odoo import Command
 from native_business_profile import scoped_business_environment
 
 
+def cancel_authorized_draft(business, plan, phase, receipt, tags):
+    expected = plan.get('cancel_draft')
+    if not expected:
+        return business['purchase.order']
+    order = business['purchase.order'].browse(expected['id']).exists().with_context(
+        tracking_disable=True, mail_notrack=True, mail_notify_force_send=False)
+    if phase != 'verify':
+        order._fruit_lock()
+    assert order.name == expected['name'] and order.company_id == receipt.company_id
+    assert order.step_advance_proforma and order.step_advance_basis == 'received'
+    assert set(order.step_fruit_tag_ids.ids) == set(expected['package_ids'])
+    assert set(order.step_fruit_receipt_ids.ids) == set(expected['receipt_ids'])
+    assert set(tags.ids) <= set(order.step_fruit_tag_ids.ids)
+    assert not (order.invoice_ids or order.step_fruit_legacy_move_ids
+                or order.picking_ids or order.order_line.move_ids)
+    if phase != 'verify':
+        assert order.state == 'draft' and order.step_fruit_state == 'draft'
+        assert order.write_date.isoformat(sep=' ') == expected['write_date']
+        fields = ['product_id', 'product_qty', 'price_unit', 'taxes_id', 'step_fruit_source_rows',
+                  'step_advance_priced_product_id', 'step_fruit_expense_account_id']
+        original_lines = order.order_line.read(fields)
+        original_amounts = (order.amount_untaxed, order.amount_tax, order.amount_total, order.currency_id)
+        order.button_cancel()
+        assert order.order_line.read(fields) == original_lines
+        assert (order.amount_untaxed, order.amount_tax, order.amount_total, order.currency_id) == original_amounts
+    assert order.state == 'cancel' and order.step_fruit_state == 'cancel'
+    return order
+
+
 def verify_rows(receipt, rows, expected_product, owner):
     for plan, line in rows:
         package = line.package_id
@@ -62,6 +91,7 @@ def run_case(env, plan, phase):
         assert not target.is_storable and target.tracking == 'none'
         for name in ('stock.move', 'stock.quant', 'account.move.line', 'purchase.order.line', 'sale.order.line'):
             assert not env[name].search_count([('product_id', '=', target.id)], limit=1), name
+        cancel_authorized_draft(business, plan, phase, receipt, rows.package_id)
         target.product_tmpl_id.write({'is_storable': True, 'tracking': 'lot'})
         action = receipt.action_step_correct_c_product()
         wizard = business[action['res_model']].with_context(
@@ -84,8 +114,11 @@ def run_case(env, plan, phase):
         pair = trace.filtered(lambda move: move.step_receipt_correction_line_id == line)
         assert {move.step_receipt_correction_direction: move.product_id for move in pair} == {
             'remove': source, 'add': target}
+    if phase == 'verify':
+        cancel_authorized_draft(business, plan, phase, receipt, rows.package_id)
     return {'phase': phase, 'tags': len(entries), 'kilos': sum(item['kilos'] for item, _line in entries),
-            'untouched': len(untouched), 'moves': len(trace), 'owner_and_lots_preserved': True}
+            'untouched': len(untouched), 'moves': len(trace), 'owner_and_lots_preserved': True,
+            'authorized_draft_cancelled': bool(plan.get('cancel_draft'))}
 
 
 if 'CASE' in globals():
