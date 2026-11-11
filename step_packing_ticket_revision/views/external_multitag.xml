@@ -1,0 +1,56 @@
+<odoo>
+  <record id="rule_external_packing_input_company" model="ir.rule">
+    <field name="name">Consumo parcial de tarjas de las empresas activas</field>
+    <field name="model_id" ref="model_step_external_packing_input"/>
+    <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+  </record>
+  <record id="view_external_packing_input_trace" model="ir.ui.view">
+    <field name="name">step.packing.production.external.input.trace</field>
+    <field name="model">step.packing.production</field>
+    <field name="inherit_id" ref="view_external_packing_production_reference"/>
+    <field name="arch" type="xml">
+      <xpath expr="//notebook" position="inside">
+        <page name="external_partial_inputs" string="Consumo parcial" invisible="not step_external_input_ids">
+          <field name="step_external_input_ids" readonly="1">
+            <list>
+              <field name="original_id"/>
+              <field name="source_id"/>
+              <field name="consumed_id"/>
+              <field name="boxes" sum="Cajas"/>
+              <field name="reported_kg" sum="Kilos Excel"/>
+              <field name="kilos" sum="Kilos calculados"/>
+            </list>
+          </field>
+        </page>
+      </xpath>
+    </field>
+  </record>
+  <record id="view_external_packing_pallet_trace" model="ir.ui.view">
+    <field name="name">stock.quant.package.external.pallet.trace</field>
+    <field name="model">stock.quant.package</field>
+    <field name="inherit_id" ref="step_inventory_packing.view_quant_package_form_steps_fruit"/>
+    <field name="arch" type="xml">
+      <field name="step_tag_line_ids" position="before">
+        <group string="Trazabilidad de procesos"
+               invisible="not (step_external_remainder_id or step_external_completion_of_id or step_external_completed_id or step_external_completion_source_ids)">
+          <field name="step_external_remainder_id" invisible="not step_external_remainder_id"/>
+          <field name="step_external_completion_of_id" invisible="not step_external_completion_of_id"/>
+          <field name="step_external_completed_id" invisible="not step_external_completed_id"/>
+          <field name="step_external_completion_source_ids" invisible="not step_external_completion_source_ids" readonly="1">
+            <list>
+              <field name="name"/>
+              <field name="step_packing_production_id"/>
+              <field name="variedad_id"/>
+              <field name="step_actual_boxes"/>
+              <field name="step_actual_kg"/>
+            </list>
+          </field>
+        </group>
+      </field>
+      <xpath expr="//field[@name='step_tag_line_ids']/list/field[@name='boxes']" position="after">
+        <field name="step_external_source_ot_id" column_invisible="not parent.step_external_completion_source_ids" readonly="1"/>
+        <field name="step_external_source_variety_id" column_invisible="not parent.step_external_completion_source_ids" readonly="1"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>

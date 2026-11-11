@@ -1,16 +1,19 @@
 from collections import defaultdict
 from datetime import date, datetime
+import re
 
 from odoo import _, api, Command, fields, models
 from odoo.exceptions import UserError
-from odoo.tools.float_utils import float_compare
+from odoo.tools.float_utils import float_compare, float_round
 
 from .external_reception import _SELECTIONS, excel_number, header_key, normalized, open_excel, reference
+from .external_multitag import IMPORT
 
 
 _COMMERCIAL = 'fruta iqf mermas bajo calibre'
 _YIELD = 'rendimiento'
 _OVERWEIGHT = {'excedente de fruta por deshidratacion', 'sobre peso'}
+_COMMERCIAL_YIELD = 'fruta comercial iqf'
 _SECTIONS = {
     'fruta procesada': {
         'n op': 'folio', 'n guia': 'guide', 'n lote': 'tag', 'linea op': 'line',
@@ -35,7 +38,7 @@ _SECTIONS = {
 def process_rows(file, filename):
     workbook = open_excel(file, filename)
     grouped = defaultdict(lambda: defaultdict(list))
-    overweight = {}
+    yield_kilos = {}
     try:
         sheet = workbook.worksheets[0]
         if sheet.max_row and sheet.max_row > 10050:
@@ -65,19 +68,17 @@ def process_rows(file, filename):
                 concept = header_key(row['concept'])
                 if concept == 'sobrepeso':
                     concept = 'sobre peso'
-                if concept in _OVERWEIGHT:
+                if concept in _OVERWEIGHT or concept == _COMMERCIAL_YIELD:
                     try:
-                        if concept in overweight:
+                        if concept in yield_kilos:
                             raise ValueError
-                        overweight[concept] = excel_number(row['kilos'])
+                        yield_kilos[concept] = excel_number(row['kilos'])
                     except (TypeError, ValueError) as error:
-                        raise UserError(_('Fila %s. Revise el valor o la repetición del concepto de sobrepeso.', number)) from error
+                        raise UserError(_('Fila %s. Revise el valor o la repetición del concepto de rendimiento.', number)) from error
                 continue
             required = set(columns) - {'reference'}
             if any(not reference(row[key]) for key in required):
                 raise UserError(_('Fila %s. Complete los datos de la tarja o pallet.', number))
-            if section == _COMMERCIAL and reference(row['kind']) != '5':
-                raise UserError(_('Fila %s. El tipo de fruta IQF debe ser 5 para importarlo como comercial.', number))
             for key in ('folio', 'line', 'tag'):
                 if key in row:
                     row[key] = reference(row[key])
@@ -102,9 +103,21 @@ def process_rows(file, filename):
     if not grouped or any(not (group.get('fruta procesada') and group.get('fruta embalada'))
                           for group in grouped.values()):
         raise UserError(_('Cada operación y línea debe contener fruta procesada y fruta embalada.'))
-    if len(grouped) != 1 and any(overweight.values()):
+    commercial = [row for group in grouped.values() for row in group.get(_COMMERCIAL, [])]
+    if _COMMERCIAL_YIELD in yield_kilos:
+        if float_compare(sum(row['kilos'] for row in commercial), yield_kilos[_COMMERCIAL_YIELD], precision_digits=2):
+            raise UserError(_('Los kilos netos de las tarjas comerciales deben coincidir con Fruta comercial IQF en Rendimiento.'))
+    elif any(reference(row['kind']) != '5' for row in commercial):
+        raise UserError(_('Incluya Fruta comercial IQF en Rendimiento para confirmar los kilos comerciales de este archivo.'))
+    overweight = [yield_kilos.get(concept, 0) for concept in _OVERWEIGHT]
+    if len(grouped) != 1 and any(overweight):
         raise UserError(_('El sobrepeso de Rendimiento corresponde a todo el archivo. Separe el Excel por OP y línea.'))
-    return grouped, sum(overweight.values())
+    return grouped, sum(overweight)
+
+
+def _pallet_base(name):
+    suffix = re.fullmatch(r'(\d+)-\d+', name)
+    return suffix[1] if suffix else name
 
 
 class ExternalPackingProduction(models.Model):
@@ -147,6 +160,9 @@ class ExternalPackingProcessImport(models.TransientModel):
     commercial_product_id = fields.Many2one('product.product', string='Producto de fruta comercial',
         check_company=True,
         domain="[('is_storable', '=', True), ('tracking', '!=', 'serial'), ('uom_id.category_id', '=', weight_category_id)]")
+    pallet_type_id = fields.Many2one('stock.package.type', string='Tipo de pallet',
+        check_company=True, domain="[('step_export_boxes_per_pallet', '>', 0)]",
+        help='Indique el tipo de pallet si la tarja E anterior no tiene capacidad configurada.')
     weight_category_id = fields.Many2one('uom.category', default=lambda self: self.env.ref('uom.product_uom_kgm').category_id)
     has_commercial = fields.Boolean(readonly=True)
     mapping_ids = fields.One2many('step.external.packing.process.mapping', 'wizard_id')
@@ -224,7 +240,8 @@ class ExternalPackingProcessImport(models.TransientModel):
         action.update(res_id=self.id, views=[(action['view_id'][0], 'form')])
         return action
 
-    def _check_input(self, tag, row):
+    def _check_input(self, tag, row, original=None):
+        original = original if original is not None else tag
         receipt = tag.step_process_reception_id
         detail = tag.step_tag_line_ids
         quantities = tag.quant_ids.filtered(lambda quant: quant.quantity > 0)
@@ -240,13 +257,55 @@ class ExternalPackingProcessImport(models.TransientModel):
                 or tag.step_tag_kind != 'C' or tag.step_tag_state != 'validated'
                 or normalized(tag.especie_id.name) != normalized(row['species'])
                 or normalized(tag.variedad_id.name) != normalized(row['variety'])
-                or float_compare(tag.step_actual_kg, row['kilos'], precision_digits=2)
-                or float_compare(sum(tag.step_tag_line_ids.mapped('boxes')), row['boxes'], precision_digits=2)
                 or not quantities or not stock_matches
                 or _SELECTIONS['fruit_type'].get(normalized(row['fruit_type'])) != tag.fruit_type
                 or any(tag.quant_ids.mapped('reserved_quantity'))):
             raise UserError(_('Fila %(row)s. La tarja %(tag)s debe coincidir con la guía, variedad, cajas y kilos de una recepción validada, y tener stock sin reservas.',
                               row=row['number'], tag=row['tag']))
+        boxes = tag.step_actual_boxes
+        if row['boxes'] > boxes:
+            raise UserError(_('Fila %(row)s. La tarja %(tag)s tiene solo %(boxes)s cajas disponibles.',
+                              row=row['number'], tag=row['tag'], boxes=boxes))
+        if row['boxes'] < boxes:
+            if len(detail) != 1 or len(quantities) != 1 or not original.step_actual_boxes:
+                raise UserError(_('El consumo parcial de %s requiere una tarja con un solo detalle y lote.', row['tag']))
+            kilos = float_round(original.step_actual_kg * row['boxes'] / original.step_actual_boxes, precision_digits=2)
+            if not 0 < kilos < tag.step_actual_kg:
+                raise UserError(_('La aplicación de %s debe dejar un saldo positivo de cajas y kilos.', row['tag']))
+            return kilos
+        if original == tag and float_compare(tag.step_actual_kg, row['kilos'], precision_digits=2):
+            raise UserError(_('Fila %(row)s. Los kilos de la tarja %(tag)s no coinciden con la recepción.',
+                              row=row['number'], tag=row['tag']))
+        return tag.step_actual_kg
+
+    def _find_input(self, row):
+        packages = self.env['stock.quant.package']
+        original = packages.search([('name', '=', row['tag']), ('company_id', '=', self.env.company.id),
+            ('step_process_reception_id.fruit_guide_number', '=', row['guide']),
+            ('is_fruit_tag', '=', True), ('step_tag_kind', '=', 'C')], limit=2)
+        if len(original) != 1:
+            raise UserError(_('Tarja %s no encontrada para la guía y empresa activas.', row['tag']))
+        current = original
+        current._lock_external_packages()
+        while current.step_external_remainder_id:
+            current = current.step_external_remainder_id
+            current._lock_external_packages()
+        return original, current
+
+    def _find_pallet(self, name):
+        packages = self.env['stock.quant.package']
+        company = self.env.company
+        domain = [('step_tag_state', '!=', 'void'), '|', ('company_id', '=', company.id),
+                  ('step_packing_production_id.company_id', '=', company.id)]
+        exact = packages.sudo().search([('name', '=', name), *domain])
+        records = exact or packages.sudo().search([('name', '=', _pallet_base(name)), *domain])
+        if not records:
+            return packages
+        targets = records.filtered(lambda tag: tag.is_fruit_tag and tag.step_tag_kind == 'E'
+                                   and not tag.step_external_completion_of_id and not tag.step_external_completed_id)
+        if len(targets) != 1:
+            raise UserError(_('El folio %s ya existe o no identifica un único pallet vigente.', name))
+        return targets.with_env(self.env)
 
     def _create_process(self, folio, line, group, mappings, overweight):
         raw, outputs = group['fruta procesada'], group['fruta embalada']
@@ -254,12 +313,18 @@ class ExternalPackingProcessImport(models.TransientModel):
         packages = self.env['stock.quant.package']
         company = self.env.company
         inputs = packages
+        applications = []
+        input_kg = 0
         for row in raw:
-            tag = packages.search([('name', '=', row['tag']), ('company_id', '=', company.id),
-                                   ('is_fruit_tag', '=', True), ('step_tag_kind', '=', 'C')], limit=2)
-            if len(tag) != 1:
-                raise UserError(_('Tarja %s no encontrada en la empresa activa. Valide primero su recepción.', row['tag']))
-            self._check_input(tag, row)
+            original, tag = self._find_input(row)
+            kilos = self._check_input(tag, row, original)
+            input_kg += kilos
+            if row['boxes'] < tag.step_actual_boxes or original != tag:
+                applications.append(Command.create({'original_id': original.id, 'source_id': tag.id,
+                    'boxes': row['boxes'], 'kilos': kilos, 'reported_kg': row['kilos'],
+                    'consumed_id': tag.id if row['boxes'] == tag.step_actual_boxes else False}))
+            if tag in inputs:
+                raise UserError(_('El archivo aplica más de una vez la misma tarja disponible.'))
             inputs |= tag
         dates = {row['date'] for row in outputs}
         identities = {tuple(normalized(row[key]) for key in ('producer', 'species', 'variety', 'fruit_type'))
@@ -270,7 +335,7 @@ class ExternalPackingProcessImport(models.TransientModel):
         for row in commercial:
             if tuple(normalized(row[key]) for key in ('producer', 'species', 'variety')) != identity:
                 raise UserError(_('Fila %s. La fruta comercial debe coincidir con el productor, especie y variedad de la OP.', row['number']))
-        if sum(row['kilos'] for row in outputs + commercial) > sum(row['kilos'] for row in raw) + 0.005:
+        if sum(row['kilos'] for row in outputs + commercial) > input_kg + 0.005:
             raise UserError(_('Los kilos de salida superan los kilos a proceso en la OP %s.', folio))
         if self.env['step.packing.production'].sudo().search_count([('company_id', '=', company.id),
                 ('step_packing_input_tag_ids', 'in', inputs.ids)], limit=1):
@@ -280,7 +345,7 @@ class ExternalPackingProcessImport(models.TransientModel):
         products = inputs.step_tag_line_ids.product_id
         if len(products) != 1:
             raise UserError(_('La OP %s debe tener un solo producto de materia prima.', folio))
-        ot = self.env['step.packing.production'].create({
+        ot = self.env['step.packing.production'].with_context(_external_multitag=IMPORT).create({
             'company_id': company.id, 'packing_partner_id': self.packing_id.id, 'date': next(iter(dates)),
             'process_type_id': self.process_type_id.id, 'step_packing_line_id': self.line_id.id,
             'step_packing_order_id': self.order_id.id, 'raw_product_id': products.id,
@@ -288,6 +353,7 @@ class ExternalPackingProcessImport(models.TransientModel):
             'fruit_species_id': first.especie_id.id, 'fruit_variety_id': first.variedad_id.id,
             'step_external_process_folio': folio, 'step_external_process_line': line,
             'step_packing_input_tag_ids': [Command.set(inputs.ids)],
+            'step_external_input_ids': applications,
             'step_packing_overweight_kg': overweight,
         })
         kg = self.env.ref('uom.product_uom_kgm')
@@ -304,8 +370,15 @@ class ExternalPackingProcessImport(models.TransientModel):
                 raise UserError(_('Seleccione un embalaje con producto almacenable y sin seguimiento por serie.'))
             quantity = (kg._compute_quantity(row['kilos'], product.uom_id, round=False)
                         if product.uom_id.category_id == kg.category_id else row['boxes'])
-            packages.create({
-                **tag_values, 'name': row['tag'], 'step_tag_kind': 'E', 'step_packing_result': 'export',
+            target = self._find_pallet(row['tag'])
+            pallet_type = target.package_type_id if target.package_type_id.step_export_boxes_per_pallet else self.pallet_type_id
+            if target:
+                ot._check_external_completion(target, pallet_type, row['boxes'], first.step_producer_id,
+                    first.especie_id, first.fruit_type, packaging, caliber)
+            name = f'{row["tag"]}-OT{ot.id}' if target and row['tag'] == target.name else row['tag']
+            packages.with_context(_external_multitag=IMPORT).create({
+                **tag_values, 'name': name, 'step_tag_kind': 'E', 'step_packing_result': 'export',
+                'package_type_id': pallet_type.id, 'step_external_completion_of_id': target.id,
                 'step_packaging_id': packaging.id, 'fruit_caliber_id': caliber.id, 'box_count': row['boxes'],
                 'step_external_pallet_reference': reference(row['reference']),
                 'step_external_pallet_export_kg': row['export_kilos'],
@@ -324,6 +397,7 @@ class ExternalPackingProcessImport(models.TransientModel):
                     'boxes': boxes, 'kilos': kilos})],
             })
         ot._packing_stock_location(inputs)
+        ot._check_external_completion_tags()
         ot._check_packing_tags()
         return ot
 
@@ -365,13 +439,12 @@ class ExternalPackingProcessImport(models.TransientModel):
                     raise UserError(_('Fila %s. Revise las equivalencias de embalaje y calibre.', row['number']))
         if out_names & commercial_names:
             raise UserError(_('Un folio de pallet coincide con el número de una tarja comercial en el Excel.'))
-        for name in sorted(seen | commercial_names):
+        for name in sorted(seen | commercial_names | {_pallet_base(name) for name in out_names}):
             self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))', ['steps-process-tag:' + name])
         if self.env['stock.quant.package'].sudo().search_count([
                 ('step_tag_state', '!=', 'void'),
                 '|', ('company_id', '=', company.id), ('step_packing_production_id.company_id', '=', company.id),
-                '|', ('name', 'in', list(out_names)),
-                '&', ('name', 'in', list(commercial_names)), ('step_tag_kind', 'in', ('E', 'N')),
+                ('name', 'in', list(commercial_names)), ('step_tag_kind', 'in', ('E', 'N')),
         ], limit=1):
             raise UserError(_('Un folio de salida ya existe. Revise el Excel para evitar duplicados.'))
         with self.env.cr.savepoint():

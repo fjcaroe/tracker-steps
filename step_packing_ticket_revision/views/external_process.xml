@@ -26,6 +26,7 @@
           <field name="preview" nolabel="1"/>
           <field name="commercial_product_id" invisible="not has_commercial" required="has_commercial"
                  options="{'no_create': True}"/>
+          <field name="pallet_type_id" options="{'no_create': True}"/>
         </group>
         <field name="mapping_ids" invisible="not reviewed">
           <list editable="bottom" create="0" delete="0">

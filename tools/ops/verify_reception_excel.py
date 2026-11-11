@@ -73,6 +73,13 @@ try:
         if installed_version >= (18, 0, 1, 2, 2):
             assert arch.xpath("//field[@name='commercial_product_id']")
             assert ot_arch.xpath("//field[@name='step_packing_overweight_kg']")
+        if installed_version >= (18, 0, 1, 2, 3):
+            assert arch.xpath("//field[@name='pallet_type_id']")
+            assert ot_arch.xpath("//page[@name='external_partial_inputs']/field[@name='step_external_input_ids']")
+            package = scoped.ref('step_inventory_packing.view_quant_package_form_steps_fruit')
+            package_arch = etree.fromstring(scoped[package.model].get_view(view_id=package.id, view_type='form')['arch'])
+            assert package_arch.xpath("//field[@name='step_external_completion_source_ids']")
+            assert package_arch.xpath("//field[@name='step_external_source_variety_id']")
         print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 193, 'version': version,
               'process_menu': True, 'reception_templates': True, 'operator': scoped.uid}))
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 189, 'version': version, 'menu': True, 'wizard': True,

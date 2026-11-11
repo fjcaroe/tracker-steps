@@ -243,3 +243,69 @@ class ExternalReceiptCase(TransactionCase):
         self.assertEqual(another_process.mapping_ids.packaging_id, export_packaging)
         with self.assertRaises(UserError), self.cr.savepoint():
             another_process.action_import()
+
+        company.step_packing_require_contract = False
+        self.env['mrp.bom'].create({'product_tmpl_id': result.product_tmpl_id.id})
+        order.action_step_packing_validate()
+        order.action_prepare_materials()
+        order.action_approve_materials()
+        order.action_step_packing_close()
+        self.assertEqual(output.step_tag_state, 'validated')
+        pallet_type = self.env['stock.package.type'].create({
+            'name': 'QA T202 pallet 10 cajas', 'step_export_boxes_per_pallet': 10,
+        })
+        process.delete_rows(7, process.max_row - 6)
+
+        def next_process(folio, boxes, reported_kg, pallet, output_boxes):
+            for col, value in {1: folio, 3: lines[1].package_id.name, 7: varieties[1].name,
+                               9: reported_kg, 10: boxes}.items():
+                process.cell(3, col, value)
+            for col, value in {1: folio, 2: pallet, 7: varieties[1].name, 11: output_boxes,
+                               12: output_boxes * 2.25, 13: output_boxes * 2.30}.items():
+                process.cell(6, col, value)
+            file = BytesIO()
+            process_book.save(file)
+            wizard = self.env['step.external.packing.process.import'].create(dict(
+                values, file=base64.b64encode(file.getvalue()), pallet_type_id=pallet_type.id))
+            wizard.action_review()
+            action = wizard.action_import()
+            return self.env[action['res_model']].search(action['domain'])
+
+        source = lines[1].package_id
+        with self.assertRaisesRegex(UserError, 'capacidad'), self.cr.savepoint():
+            next_process('QA202-OP6', 12, 25, output.name, 3)
+        self.assertFalse(source.step_external_remainder_id)
+        multi = next_process('QA202-OP6', 12, 25, output.name, 2)
+        application = multi.step_external_input_ids
+        self.assertEqual(application.original_id, source)
+        self.assertEqual(application.reported_kg, 25)
+        self.assertAlmostEqual(application.kilos, 24.6)
+        self.assertAlmostEqual(multi.step_packing_input_kg, 24.6)
+        self.assertEqual(source.quant_ids.quantity, 41)
+        self.assertEqual(output.step_actual_boxes, 8)
+        multi.action_step_packing_validate()
+        self.assertEqual(application.consumed_id, multi.step_packing_input_tag_ids)
+        self.assertEqual(source.step_external_remainder_id.step_actual_boxes, 8)
+        self.assertAlmostEqual(source.step_external_remainder_id.step_actual_kg, 16.4)
+        multi.action_prepare_materials()
+        multi.action_approve_materials()
+        multi.action_step_packing_close()
+        combined = output.step_external_completed_id
+        self.assertEqual(combined.name, output.name)
+        self.assertEqual(combined.step_tag_state, 'validated')
+        self.assertEqual(combined.step_filling, 'complete')
+        self.assertEqual(combined.step_actual_boxes, 10)
+        self.assertEqual(sum(combined.quant_ids.mapped('quantity')), 10)
+        self.assertEqual(combined.step_tag_line_ids.step_external_source_ot_id, order | multi)
+        self.assertEqual(combined.step_tag_line_ids.step_external_source_variety_id, varieties)
+        self.assertFalse(combined.variedad_id)
+        self.assertEqual(order.step_packing_export_kg, 18)
+        self.assertEqual(multi.step_packing_export_kg, 4.5)
+        self.assertEqual(output.step_tag_state, 'repalletized')
+        self.assertEqual(multi.step_packing_output_tag_ids.step_tag_state, 'repalletized')
+        self.assertAlmostEqual(source.step_external_remainder_id.quant_ids.quantity, 16.4)
+        with self.assertRaisesRegex(UserError, 'cajas disponibles'), self.cr.savepoint():
+            next_process('QA202-OP7', 9, 18, 'QA202-NUEVO', 1)
+        last = next_process('QA202-OP7', 8, 16, 'QA202-NUEVO', 1)
+        self.assertEqual(last.step_packing_input_tag_ids, source.step_external_remainder_id)
+        self.assertAlmostEqual(last.step_packing_input_kg, 16.4)

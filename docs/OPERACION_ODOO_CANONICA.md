@@ -1,5 +1,13 @@
 # Operación y publicación de Odoo
 
+T202 amplía `reception-excel` en Desarrollo, Cerro y QA-Cerro. Verificar en
+copia el consumo por cajas y kilos proporcionales, la reutilización del saldo
+C y la consolidación de pallets E de un mismo productor con distintas
+variedades. La importación conserva la OT abierta. La validación aplica la
+división C nativa y el cierre registra las contribuciones E por repaletizado
+con sus lotes y OT originales. Comprobar que una reimportación, una tarja
+reservada o un exceso de capacidad se rechacen sin afectar stock.
+
 T201 usa `packing-dashboard` para ampliar el panel nativo en Desarrollo,
 Cerro y QA-Cerro. El paquete contiene solo `step_packing_dashboard`, sin
 modificar operaciones, existencias ni documentos. Validar los siete
