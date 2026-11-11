@@ -23,13 +23,13 @@
   </record>
   <menuitem id="menu_step_user_masters" name="Maestros Steps" groups="base.group_user" sequence="61"/>
   <menuitem id="menu_step_user_farms" name="Fundos" parent="menu_step_user_masters"
-            action="step_agriculture_core.action_step_fundo" sequence="10"/>
+            action="step_hr.action_step_fundo" sequence="10"/>
   <menuitem id="menu_step_user_species" name="Especies" parent="menu_step_user_masters"
-            action="step_agriculture_core.action_step_especie" sequence="20"/>
+            action="step_hr.action_step_especie" sequence="20"/>
   <menuitem id="menu_step_user_varieties" name="Variedades" parent="menu_step_user_masters"
-            action="step_agriculture_core.action_step_variedad" sequence="30"/>
+            action="step_hr.action_step_variedad" sequence="30"/>
   <menuitem id="menu_step_user_variety_groups" name="Grupos de variedades" parent="menu_step_user_masters"
-            action="step_agriculture_core.action_step_grupo_variedad" sequence="40"/>
+            action="step_hr.action_step_grupo_variedad" sequence="40"/>
   <menuitem id="menu_step_user_seasons" name="Temporadas" parent="menu_step_user_masters"
-            action="step_agriculture_core.action_step_temporada" sequence="50"/>
+            action="step_hr.action_step_temporada" sequence="50"/>
 </odoo>
