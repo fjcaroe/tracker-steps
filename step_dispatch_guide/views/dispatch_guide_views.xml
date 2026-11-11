@@ -87,9 +87,7 @@
                         <group>
                             <field name="transfer_reason_id" required="1" options="{'no_create': True}" readonly="state != 'draft'"/>
                             <field name="transfer_reason" placeholder="Detalle opcional del motivo"/>
-                            <field name="company_id" invisible="1"/>
-                            <field name="dispatch_type_id" options="{'no_create': True}" readonly="state != 'draft'"
-                                   domain="['|', ('company_ids', '=', False), ('company_ids', 'in', [company_id])]"/>
+                            <field name="dispatch_type_id" options="{'no_create': True}" readonly="state != 'draft'"/>
                             <field name="departure_datetime"/>
                             <field name="arrival_datetime"/>
                             <field name="origin_address"/>

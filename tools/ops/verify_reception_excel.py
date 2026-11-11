@@ -60,7 +60,7 @@ try:
     arch = etree.fromstring(scoped['stock.picking'].get_view(view_id=view, view_type='form')['arch'])
     assert arch.xpath("//field[@name='step_external_reception_folio']")
     assert arch.xpath("//field[@name='fruit_tag_line_ids']/list/field[@name='step_fruit_palletized']")
-    if 'step_dispatch_guide' in EXPECTED:
+    if 'step_operations_ui' in EXPECTED:
         assert arch.xpath("//button[@name='action_step_reverse_fruit_receipt']")
         assert arch.xpath("//field[@name='step_fruit_correction_of_id']")
         env.cr.execute("SELECT to_regclass('step_external_active_reception_folio')")

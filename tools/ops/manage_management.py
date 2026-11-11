@@ -638,7 +638,7 @@ def main():
         BUSINESS += ('res_users', 'res_groups_users_rel', 'res_company_users_rel')
     if args.with_receipt_dispatch:
         assert args.environment in ('development', 'cerro', 'qa-cerro')
-        MODULES += ('step_packing_reception_revision', 'step_operations_ui', 'step_dispatch_guide')
+        MODULES += ('step_packing_reception_revision', 'step_operations_ui')
         BUSINESS += ('step_freight_dispatch_type', 'step_dispatch_guide')
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     registry = json.loads((HERE / 'environments.json').read_text())

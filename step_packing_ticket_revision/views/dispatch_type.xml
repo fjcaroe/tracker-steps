@@ -1,0 +1,15 @@
+<odoo>
+  <record id="view_dispatch_guide_type_companies" model="ir.ui.view">
+    <field name="name">step.dispatch.guide.type.companies</field>
+    <field name="model">step.dispatch.guide</field>
+    <field name="inherit_id" ref="step_dispatch_guide.view_dispatch_guide_form"/>
+    <field name="arch" type="xml">
+      <field name="dispatch_type_id" position="before">
+        <field name="company_id" invisible="1"/>
+      </field>
+      <field name="dispatch_type_id" position="attributes">
+        <attribute name="domain">['|', ('company_ids', '=', False), ('company_ids', 'in', [company_id])]</attribute>
+      </field>
+    </field>
+  </record>
+</odoo>

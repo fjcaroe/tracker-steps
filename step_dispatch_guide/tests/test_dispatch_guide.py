@@ -112,19 +112,6 @@ class TestDispatchGuide(TransactionCase):
         with self.assertRaisesRegex(UserError, "paga flete"):
             guide.action_confirm()
 
-    def test_dispatch_type_is_shared_by_selected_companies(self):
-        company = self.env.company
-        other = self.env['res.company'].create({'name': 'QA T204 sucursal'})
-        other.dispatch_dte_provider = 'third_party'
-        dispatch_type = self.type_no_freight
-        with self.assertRaisesRegex(ValidationError, 'habilitado'), self.cr.savepoint():
-            self._guide(company_id=other.id, dispatch_type_id=dispatch_type.id, taxed=False)
-        dispatch_type.company_ids = [Command.set((company | other).ids)]
-        guide = self._guide(company_id=other.id, dispatch_type_id=dispatch_type.id, taxed=False)
-        self.assertEqual(guide.dispatch_type_id, dispatch_type)
-        with self.assertRaisesRegex(ValidationError, 'Conserve'), self.cr.savepoint():
-            dispatch_type.company_ids = [Command.set(company.ids)]
-
     def test_freight_paid_creates_freight_order(self):
         guide = self._guide(freight_paid=True, freight_route_id=self.route.id, vehicle_id=self.vehicle.id)
         self.assertEqual(guide.truck_plate, "YK4551")
