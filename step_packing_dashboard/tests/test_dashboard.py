@@ -81,6 +81,8 @@ class DashboardCase(TransactionCase):
         unassigned = self.tag(900)
         self.env.cr.execute('UPDATE stock_quant_package SET company_id=NULL, step_packing_company_id=NULL WHERE id=%s', [unassigned.id])
         unassigned.invalidate_recordset()
+        self.env['step.packing.production'].create({'date':'2001-06-10', 'fruit_species_id':self.species.id,
+            'step_packing_input_tag_ids':[Command.set(unassigned.ids)]})
         self.assertEqual(self.panel()['kpis']['received_kg'],25)
         self.assertEqual(self.panel()['kpis']['stock_input_kg'],25)
 

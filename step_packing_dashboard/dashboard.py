@@ -38,7 +38,8 @@ class PackingDashboard(models.Model):
         # Historical empty packages can lose native company_id when their last
         # quant is consumed. Attribute only packages proven by this company's
         # actual documents; never include all unassigned packages or use sudo.
-        traced_tags = (productions.step_packing_input_tag_ids | productions.step_packing_output_tag_ids
+        completed_productions = productions.filtered(lambda p: p.state in ('closed', 'costed', 'accounted'))
+        traced_tags = (completed_productions.step_packing_input_tag_ids | completed_productions.step_packing_output_tag_ids
                        | repack_lines.source_package_id | repack_lines.target_package_id | receipt_lines.package_id)
         tags = self.env['stock.quant.package'].search([
             '|', ('company_id', '=', company.id), '&', ('company_id', '=', False), ('id', 'in', traced_tags.ids),
