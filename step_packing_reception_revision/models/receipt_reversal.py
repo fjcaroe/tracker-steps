@@ -175,6 +175,7 @@ class FruitReceiptReversal(models.TransientModel):
             reversal = picking._make_fruit_receipt_return(lines)
             tags.write({'step_tag_state': 'void'})
             picking.write({'step_fruit_reversal_id': reversal.id, 'step_fruit_reversal_reason': self.reason.strip()})
+            picking.flush_recordset(['step_fruit_reversal_id'])
             draft = picking._make_corrected_receipt(lines)
         return {'type': 'ir.actions.act_window', 'res_model': 'stock.picking', 'res_id': draft.id,
                 'views': [(self.env.ref('step_packing_reception_revision.view_process_reception_form').id, 'form')]}
