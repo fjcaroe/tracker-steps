@@ -29,7 +29,17 @@ la regresión del acceso a productores y de los otros maestros agrícolas.
 El verificador de destino coteja los menús, el listado, el formulario efectivo,
 la versión, el origen del código y las relaciones de todos los calibres.
 
-Desarrollo pasó las 23 pruebas y la comprobación del menú y formulario
-efectivos. La publicación del 11-11-2026 conservó sus registros comerciales,
-con respaldo legible en `management_development_20261111T160743Z` y comprobación
-del servicio activo. Las compatibilidades de Cerro y QA-Cerro siguen pendientes.
+Las copias de Desarrollo, Cerro y QA-Cerro pasaron 23 pruebas cada una. El
+11-11-2026 se publicó el mismo paquete en los tres destinos, con comprobación
+del menú, listado y formulario efectivos, conservación de registros comerciales
+y servicios activos. Se verificó que los tres respaldos son legibles:
+
+- Desarrollo: `management_development_20261111T160743Z`.
+- Cerro: `management_cerro_20261111T161548Z`.
+- QA-Cerro: `management_qa-cerro_20261111T161713Z`.
+
+Cerro y QA-Cerro ejecutan la misma versión y el mismo contenido del módulo,
+con SHA-256 `0d05a18f0e04b4d20d5e9aa9da2675d9422003efb17f3d3108e50d67651ab4de`.
+El verificador de QA confirmó la neutralización, el bloqueo de salida y la
+denegación de acceso a la base de producción. Sus datos de capacitación
+se conservaron y no se copió nuevamente la producción.
