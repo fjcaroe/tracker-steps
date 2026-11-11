@@ -4,6 +4,10 @@ from odoo.exceptions import ValidationError
 from odoo.tools.float_utils import float_compare
 
 
+ACTIVE_RECEPTION_TAG = ['|', ('step_tag_state', '!=', 'void'),
+                        ('step_process_reception_id.step_fruit_reversal_id', '=', False)]
+
+
 class Package(models.Model):
     _inherit = 'stock.quant.package'
 
@@ -166,7 +170,7 @@ class Picking(models.Model):
         packages = self.env['stock.quant.package']
         for row, name, move, quantity, lot in plans:
             # Serialize even when the package has not been created yet.
-            found = packages.sudo().search([('name', '=', name)]).with_env(self.env)
+            found = packages.sudo().search([('name', '=', name), *ACTIVE_RECEPTION_TAG]).with_env(self.env)
             if len(found) > 1 or row.package_id and row.package_id != found:
                 raise ValidationError(_('El número %s no identifica una única tarja compatible.') % name)
             package = found

@@ -11,6 +11,7 @@ import pytz
 from openpyxl import load_workbook
 
 from odoo import _, api, Command, fields, models
+from odoo.addons.step_packing_reception_revision.models.simple_reception import ACTIVE_RECEPTION_TAG
 from odoo.exceptions import UserError
 
 from .reception_templates import RECEPTION_COLUMNS
@@ -439,11 +440,17 @@ class ExternalReceptionImport(models.TransientModel):
         # confirmations cannot claim the same tag number.
         for tag in sorted(seen_tags):
             self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))', ['steps-process-tag:' + tag])
-        if (self.env['stock.quant.package'].sudo().search_count([('name', 'in', list(seen_tags))], limit=1)
+        if (self.env['stock.quant.package'].sudo().search_count([
+                ('name', 'in', list(seen_tags)), *ACTIVE_RECEPTION_TAG], limit=1)
                 or self.env['step.packing.picking.tag.line'].sudo().search_count([
-                    ('tag_number', 'in', list(seen_tags)), ('picking_id.state', '!=', 'cancel')], limit=1)):
+                    ('tag_number', 'in', list(seen_tags)), ('picking_id.state', '!=', 'cancel'),
+                    ('picking_id.step_fruit_reversal_id', '=', False)], limit=1)):
             raise UserError(_('El archivo contiene un número de tarja ya utilizado o reservado por otra recepción.'))
 
+        keys = {f'steps-receipt-folio:{company.id}:{self.packing_id.id}:{self.season_id.id}:{folio}' for folio in groups}
+        keys.update(f'steps-receipt-guide:{company.id}:{lines[0]["guide"]}' for lines in groups.values())
+        for key in sorted(keys):
+            self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))', [key])
         pickings = self.env['stock.picking']
         with self.env.cr.savepoint():
             for folio, lines in groups.items():
@@ -466,17 +473,21 @@ class ExternalReceptionImport(models.TransientModel):
         source, destination = operation.default_location_src_id, operation.default_location_dest_id
         product = self.product_id
         model = self.env['stock.picking']
-        if model.sudo().search_count([
-                ('company_id', '=', company.id), ('state', '!=', 'cancel'),
-                ('step_fruit_reception_kind', '=', 'process'), ('name', '=', folio)], limit=1):
+        active = [('company_id', '=', company.id), ('state', '!=', 'cancel'),
+                  ('step_fruit_reversal_id', '=', False), ('step_fruit_reception_kind', '=', 'process')]
+        if model.sudo().search_count([*active, '|', ('name', '=', folio),
+                '&', ('step_external_reception_folio', '=', folio),
+                '&', ('step_receiving_packing_id', '=', self.packing_id.id), ('fruit_season_id', '=', self.season_id.id)],
+                limit=1):
             raise UserError(_('La referencia %s ya existe en las recepciones de Odoo.', folio))
         if model.sudo().search_count([
-                ('company_id', '=', company.id), ('state', '!=', 'cancel'),
-                ('step_fruit_reception_kind', '=', 'process'),
-                ('partner_id', '=', first['fundo'].partner_id.id),
+                *active,
+                '|', ('fruit_fundo_id', '=', first['fundo'].id),
+                '&', ('fruit_fundo_id', '=', False), ('partner_id', '=', first['fundo'].partner_id.id),
                 ('fruit_guide_number', '=', first['guide']),
                 ('step_receiving_packing_id', 'in', [False, self.packing_id.id])], limit=1):
-            raise UserError(_('El folio %s corresponde a una guía que ya tiene recepción.', folio))
+            raise UserError(_('La guía %(guide)s ya tiene una recepción vigente para el fundo %(farm)s.',
+                              guide=first['guide'], farm=first['fundo'].display_name))
 
         quantities = defaultdict(float)
         details = []

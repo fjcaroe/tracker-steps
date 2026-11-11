@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+T204–T206 se entregan con `reception-excel --with-receipt-dispatch` en
+Desarrollo, Cerro y QA-Cerro. Los tipos de despacho reutilizan el maestro
+nativo, conservan las guías existentes y pueden compartirse entre empresas.
+En recepciones, la unicidad aplica a folios vigentes y la guía se comprueba
+por fundo. La corrección de una recepción a proceso realizada devuelve el
+stock intacto mediante movimientos nativos y abre un borrador vinculado.
+Verificar el Excel del folio 42 en copia y ensayar devolución y revalidación
+sin modificar una recepción realizada del cliente.
+
 T203 se entrega junto con T202 mediante `reception-excel --with-master-access`
 en Desarrollo, Cerro y QA-Cerro. El paquete contiene el importador y los
 perfiles de aplicación. Verificar en copia la pestaña Maestros Steps del

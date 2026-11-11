@@ -7,11 +7,13 @@ class Picking(models.Model):
     _inherit = 'stock.picking'
 
     step_external_reception_folio = fields.Char(string='Referencia externa', readonly=True, copy=False, index=True)
-    _sql_constraints = [
-        ('external_reception_folio_unique',
-         'UNIQUE(company_id, step_receiving_packing_id, fruit_season_id, step_external_reception_folio)',
-         'Ya existe una recepción con ese folio externo para el packing y la temporada.'),
-    ]
+    def init(self):
+        super().init()
+        self.env.cr.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS step_external_active_reception_folio
+                ON stock_picking (company_id, step_receiving_packing_id, fruit_season_id, step_external_reception_folio)
+             WHERE state <> 'cancel' AND step_fruit_reversal_id IS NULL AND step_external_reception_folio IS NOT NULL
+        """)
 
     step_receiving_packing_id = fields.Many2one(
         'res.partner', string='Packing', check_company=True,

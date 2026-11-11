@@ -159,6 +159,47 @@ class ExternalReceiptCase(TransactionCase):
         self.assertEqual(another.fruit_guide_number, 'QA193-GUIA')
         self.assertEqual(another.fruit_tag_line_ids.packaging_id, packaging)
         self.assertEqual(another.state, 'draft')
+        cancelled = another
+        cancelled.action_cancel()
+        another = self.env['stock.picking'].browse(second.action_import()['res_id'])
+        self.assertNotEqual(another, cancelled)
+        self.assertEqual(another.step_external_reception_folio, cancelled.step_external_reception_folio)
+        another.button_validate()
+        old_tags = another.fruit_tag_line_ids.package_id
+        action = self.env['step.fruit.receipt.reversal'].create({
+            'picking_id': another.id, 'reason': 'QA T206 ajuste de recepción',
+        }).action_apply()
+        corrected = self.env['stock.picking'].browse(action['res_id'])
+        self.assertEqual(another.state, 'done')
+        self.assertEqual(another.step_fruit_reversal_id.return_id, another)
+        self.assertEqual(another.step_fruit_reversal_id.state, 'done')
+        self.assertEqual(another.step_fruit_reversal_id.move_ids.origin_returned_move_id, another.move_ids)
+        self.assertEqual(corrected.step_fruit_correction_of_id, another)
+        self.assertEqual(corrected.step_external_reception_folio, another.step_external_reception_folio)
+        self.assertEqual(corrected.state, 'draft')
+        self.assertEqual(set(old_tags.mapped('step_tag_state')), {'void'})
+        self.assertFalse(old_tags.quant_ids.filtered('quantity'))
+        corrected.button_validate()
+        self.assertEqual(corrected.state, 'done')
+        fresh_tags = corrected.fruit_tag_line_ids.package_id
+        self.assertFalse(old_tags & fresh_tags)
+        self.assertEqual(set(old_tags.mapped('name')), set(fresh_tags.mapped('name')))
+        self.assertEqual(fresh_tags.quant_ids.owner_id, producer)
+        self.assertAlmostEqual(sum(fresh_tags.quant_ids.mapped('quantity')), 61.5)
+        with self.assertRaises(UserError):
+            another.action_step_reverse_fruit_receipt()
+
+        other_farm = self.env['step.fundo'].create({'name': 'QA T205 Otro fundo', 'partner_id': producer.id})
+        for index in range(1, 3):
+            sheet.cell(index + 2, 1, 'QA205-OTRO')
+            sheet.cell(index + 2, 3, f'QA205-TARJA-{index}')
+        separate = model.create(dict(defaults, file=attachment(), template_id=template.id))
+        separate.action_review()
+        separate.alias_ids.filtered(lambda line: line.kind == 'producer').fundo_id = other_farm
+        independent = self.env['stock.picking'].browse(separate.action_import()['res_id'])
+        self.assertEqual(independent.fruit_guide_number, corrected.fruit_guide_number)
+        self.assertEqual(independent.partner_id, corrected.partner_id)
+        self.assertEqual(independent.fruit_fundo_id, other_farm)
 
         process_type = self.env['step.packing.process.type'].create({'name': 'QA T193 Embalaje'})
         process_line = self.env['step.packing.line'].create({'name': 'QA T193 Línea'})

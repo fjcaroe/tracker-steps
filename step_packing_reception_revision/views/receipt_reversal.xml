@@ -1,0 +1,42 @@
+<odoo>
+  <record id="access_fruit_receipt_reversal" model="ir.model.access">
+    <field name="name">Corregir recepción realizada</field>
+    <field name="model_id" ref="model_step_fruit_receipt_reversal"/>
+    <field name="group_id" ref="stock.group_stock_manager"/>
+    <field name="perm_read" eval="True"/>
+    <field name="perm_write" eval="True"/>
+    <field name="perm_create" eval="True"/>
+    <field name="perm_unlink" eval="True"/>
+  </record>
+  <record id="view_fruit_receipt_reversal_wizard" model="ir.ui.view">
+    <field name="name">step.fruit.receipt.reversal.form</field>
+    <field name="model">step.fruit.receipt.reversal</field>
+    <field name="arch" type="xml">
+      <form>
+        <p>Se devolverá el stock de la recepción y se abrirá un borrador vinculado para corregirla.</p>
+        <group><field name="picking_id"/><field name="reason"/></group>
+        <footer>
+          <button name="action_apply" type="object" string="Revertir y abrir borrador" class="btn-primary"/>
+          <button string="Cancelar" special="cancel" class="btn-secondary"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+  <record id="view_process_receipt_reversal" model="ir.ui.view">
+    <field name="name">stock.picking.fruit.receipt.reversal</field>
+    <field name="model">stock.picking</field>
+    <field name="inherit_id" ref="view_process_reception_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//header" position="inside">
+        <button name="action_step_reverse_fruit_receipt" type="object" string="Corregir recepción realizada"
+                groups="stock.group_stock_manager"
+                invisible="state != 'done' or step_fruit_reversal_id or step_fruit_reception_kind != 'process'"/>
+      </xpath>
+      <field name="partner_id" position="after">
+        <field name="step_fruit_reversal_id" invisible="not step_fruit_reversal_id"/>
+        <field name="step_fruit_reversal_reason" invisible="not step_fruit_reversal_id"/>
+        <field name="step_fruit_correction_of_id" invisible="not step_fruit_correction_of_id"/>
+      </field>
+    </field>
+  </record>
+</odoo>

@@ -282,6 +282,7 @@ class ExternalPackingProcessImport(models.TransientModel):
         packages = self.env['stock.quant.package']
         original = packages.search([('name', '=', row['tag']), ('company_id', '=', self.env.company.id),
             ('step_process_reception_id.fruit_guide_number', '=', row['guide']),
+            ('step_process_reception_id.step_fruit_reversal_id', '=', False),
             ('is_fruit_tag', '=', True), ('step_tag_kind', '=', 'C')], limit=2)
         if len(original) != 1:
             raise UserError(_('Tarja %s no encontrada para la guía y empresa activas.', row['tag']))

@@ -60,6 +60,21 @@ try:
     arch = etree.fromstring(scoped['stock.picking'].get_view(view_id=view, view_type='form')['arch'])
     assert arch.xpath("//field[@name='step_external_reception_folio']")
     assert arch.xpath("//field[@name='fruit_tag_line_ids']/list/field[@name='step_fruit_palletized']")
+    if 'step_dispatch_guide' in EXPECTED:
+        assert arch.xpath("//button[@name='action_step_reverse_fruit_receipt']")
+        assert arch.xpath("//field[@name='step_fruit_correction_of_id']")
+        env.cr.execute("SELECT to_regclass('step_external_active_reception_folio')")
+        assert env.cr.fetchone()[0]
+        dispatch_menu = scoped.ref('step_dispatch_guide.menu_dispatch_types')
+        assert dispatch_menu.id in scoped['ir.ui.menu']._visible_menu_ids()
+        types = scoped[dispatch_menu.action.res_model]
+        dispatch_arch = etree.fromstring(types.get_view(view_type='form')['arch'])
+        assert dispatch_arch.xpath("//field[@name='company_ids']")
+        guide = scoped.ref('step_dispatch_guide.view_dispatch_guide_form')
+        guide_arch = etree.fromstring(scoped[guide.model].get_view(view_id=guide.id, view_type='form')['arch'])
+        assert guide_arch.xpath("//field[@name='dispatch_type_id' and contains(@domain, 'company_ids')]")
+        print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [204, 205, 206],
+              'dispatch_types': True, 'active_folio': True, 'reversal': True}))
     if installed_version >= (18, 0, 1, 2, 0):
         process_menu = scoped.ref('step_packing_ticket_revision.menu_external_packing_process_import')
         assert process_menu.id in scoped['ir.ui.menu']._visible_menu_ids()

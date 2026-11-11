@@ -22,9 +22,12 @@ def main():
     parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-attendance', 'payroll-days', 'payroll-review', 'payroll-parameters', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'previred-simpledigital', 'previred-movement-dates', 'previred-revision', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-fruit-proforma', 'producer-advances', 'packing-proforma-policy', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'reception-excel', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'activities-company', 'activities-dashboard', 'activities-accounting-list', 'payroll-steps-layout', 'payroll-simpledigital-base', 'holding-purchase', 'packing-company', 'packing-dashboard', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro', 'qa-cerro'))
     parser.add_argument('--with-master-access', action='store_true', help='Include the installed Steps application profiles')
+    parser.add_argument('--with-receipt-dispatch', action='store_true', help='Include the receipt correction and dispatch catalog modules')
     args = parser.parse_args()
     if args.with_master_access and args.kind != 'reception-excel':
         parser.error('--with-master-access requires --kind reception-excel')
+    if args.with_receipt_dispatch and args.kind != 'reception-excel':
+        parser.error('--with-receipt-dispatch requires --kind reception-excel')
     if args.kind == 'invoice-payments':
         assert args.environment in ('development', 'cerro', 'qa-cerro'), 'T123 is authorized only for Development, Cerro and customer QA'
     assert args.environment != 'qa-cerro' or args.kind in ('payroll-attendance', 'payroll-days', 'packing-fruit-proforma', 'producer-advances', 'packing-proforma-policy', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'reception-excel', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'activities-company', 'activities-dashboard', 'activities-accounting-list', 'holding-purchase', 'packing-company', 'packing-dashboard', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision','packing-tare'), 'Only explicit T117/T118/T119/T120/T121/T114/T122 packages are authorized for customer QA'
@@ -81,6 +84,8 @@ def main():
         modules = ('step_packing_ticket_revision',)
         if args.with_master_access:
             modules += ('step_application_profiles',)
+        if args.with_receipt_dispatch:
+            modules += ('step_packing_reception_revision', 'step_operations_ui', 'step_dispatch_guide')
     if args.kind == 'reception-lots':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         modules = ('step_packing_reception_revision',)

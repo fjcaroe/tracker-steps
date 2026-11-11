@@ -3,13 +3,16 @@
     <record id="freight_dispatch_type_retira_cliente" model="step.freight.dispatch.type">
         <field name="name">Retira cliente</field>
         <field name="paga_flete">no</field>
+        <field name="company_ids" eval="[(5, 0, 0)]"/>
     </record>
     <record id="freight_dispatch_type_despacho_cliente" model="step.freight.dispatch.type">
         <field name="name">Despacho a cliente</field>
         <field name="paga_flete">opcional</field>
+        <field name="company_ids" eval="[(5, 0, 0)]"/>
     </record>
     <record id="freight_dispatch_type_despacho_tercero" model="step.freight.dispatch.type">
         <field name="name">Despacho a tercero</field>
         <field name="paga_flete">opcional</field>
+        <field name="company_ids" eval="[(5, 0, 0)]"/>
     </record>
 </odoo>
