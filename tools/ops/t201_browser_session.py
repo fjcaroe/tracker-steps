@@ -20,6 +20,11 @@ if os.environ.get('T201_CLEANUP') == '1':
 else:
     assert not proof.exists()
     business = scoped_business_environment(env)
+    requested_company = int(os.environ.get('T201_COMPANY_ID') or 0)
+    if requested_company:
+        company = env['res.company'].search([('id', '=', requested_company), ('id', 'child_of', business.company.id)])
+        assert len(company) == 1, 'Review must remain inside the destination business'
+        business = scoped_business_environment(env, company=company)
     user = business.user
     session = http.root.session_store.new()
     session.update({'db': env.cr.dbname, 'uid': user.id, 'login': user.login,
