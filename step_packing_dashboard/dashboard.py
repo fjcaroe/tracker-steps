@@ -140,10 +140,10 @@ class PackingDashboard(models.Model):
         kpis['open_orders'] = len(selected_orders.filtered(lambda p: p.state in ('draft', 'validated')))
         kpis['input_kg'] = kpis['received_kg']
         actions = {key: {'type': 'ir.actions.act_window', 'name': _('Tarjas de Packing'),
-                        'res_model': 'stock.quant.package', 'view_mode': 'list,form',
+                        'res_model': 'stock.quant.package', 'view_mode': 'list,form', 'views': [(False, 'list'), (False, 'form')],
                         'domain': [('id', 'in', records.ids)]} for key, records in groups.items()}
         actions['open_productions'] = {'type': 'ir.actions.act_window', 'name': _('OT abiertas'),
-            'res_model': 'step.packing.production', 'view_mode': 'list,form',
+            'res_model': 'step.packing.production', 'view_mode': 'list,form', 'views': [(False, 'list'), (False, 'form')],
             'domain': [('id', 'in', open_productions.ids)]}
         return {
             'company_name': company.display_name, 'kpis': kpis, 'actions': actions,

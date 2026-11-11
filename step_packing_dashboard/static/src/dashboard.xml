@@ -10,7 +10,7 @@
         </div>
         <label>Desde<input type="date" t-att-value="state.filters.date_from" t-on-change="(event) => this.changeDate('date_from', event)"/></label>
         <label>Hasta<input type="date" t-att-value="state.filters.date_to" t-on-change="(event) => this.changeDate('date_to', event)"/></label>
-        <label>Especie<select t-att-value="state.filters.species_id" t-on-change="changeSpecies">
+        <label>Especie<select t-model="state.filters.species_id" t-on-change="changeSpecies">
           <option value="">Todas las especies</option>
           <option t-foreach="state.data?.species || []" t-as="species" t-key="species.id" t-att-value="species.id"><t t-esc="species.name"/></option>
         </select></label>

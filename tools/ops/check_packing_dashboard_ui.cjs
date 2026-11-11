@@ -8,12 +8,13 @@ const assert = require('node:assert/strict');
     const output = process.argv[3];
     fs.mkdirSync(output, { recursive: true });
     const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH });
+    let page;
     try {
         const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'es-CL' });
         await context.addCookies([{ name: 'session_id', value: proof.session_id,
             domain: proof.host, path: '/', httpOnly: true, secure: true, sameSite: 'Lax' },
             { name: 'cids', value: String(proof.company_id), domain: proof.host, path: '/', secure: true }]);
-        const page = await context.newPage();
+        page = await context.newPage();
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
         await page.goto(`https://${proof.host}/web#action=${proof.actions.dashboard}&cids=${proof.company_id}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
@@ -36,6 +37,7 @@ const assert = require('node:assert/strict');
             await species.selectOption(options[1]);
             assert.ok(!(await (await response).json()).error, 'Species RPC failed');
             await cards.first().waitFor();
+            assert.equal(await species.inputValue(), options[1], 'Species selection must remain visible');
         }
         await page.getByLabel('Desde', { exact: true }).fill('2000-01-01');
         await page.getByLabel('Hasta', { exact: true }).fill('2099-12-31');
@@ -47,7 +49,8 @@ const assert = require('node:assert/strict');
         await cards.first().waitFor();
         await page.screenshot({ path: path.join(output, 'desktop.png'), fullPage: true });
         await page.setViewportSize({ width: 390, height: 844 });
-        await page.screenshot({ path: path.join(output, 'mobile.png'), fullPage: true });
+        await page.waitForTimeout(500);
+        await page.locator('.o_packing_dashboard').screenshot({ path: path.join(output, 'mobile.png') });
         const overflow = await page.locator('.o_packing_kpis_seven').evaluate(el => el.scrollWidth > el.clientWidth + 1);
         assert.equal(overflow, false, 'Cards overflow on mobile');
         await page.setViewportSize({ width: 1440, height: 1000 });
@@ -66,5 +69,11 @@ const assert = require('node:assert/strict');
             customDates: true, whiteHeading: true, mobileOverflow: false, drilldown: true, formOpened, errors };
         fs.writeFileSync(path.join(output, 'ui-result.json'), JSON.stringify(report, null, 2));
         console.log('PACKING_DASHBOARD_UI_OK ' + JSON.stringify(report));
+    } catch (error) {
+        if (page) {
+            await page.screenshot({ path: path.join(output, 'failure.png'), fullPage: true }).catch(() => {});
+            fs.writeFileSync(path.join(output, 'failure.txt'), await page.locator('body').innerText().catch(() => ''));
+        }
+        throw error;
     } finally { await browser.close(); }
 })().catch(error => { console.error(error.message); process.exitCode = 1; });
