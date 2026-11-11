@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from lxml import etree
+from odoo.tools.float_utils import float_compare
 
 from native_business_profile import scoped_business_environment
 
@@ -42,13 +43,17 @@ try:
             ('step_fruit_reception_kind', '=', 'process'), ('state', '=', 'done'),
             ('fruit_tag_line_ids', '!=', False),
         ], limit=12)
+        precision = scoped['decimal.precision'].precision_get('Stock Weight')
+        container_precision = scoped['decimal.precision'].precision_get('Product Unit of Measure')
         for picking in pickings:
             lines = picking.fruit_tag_line_ids
             containers, kilos = sum(lines.mapped('quantity')), sum(lines.mapped('kilos'))
             if containers and kilos:
-                assert abs(picking.step_reception_container_qty - containers) < 1e-7
-                assert abs(picking.step_reception_net_kg - kilos) < 1e-7
-                assert abs(picking.step_reception_avg_kg - kilos / containers) < 1e-7
+                assert float_compare(picking.step_reception_container_qty, containers,
+                                     precision_digits=container_precision) == 0
+                assert float_compare(picking.step_reception_net_kg, kilos, precision_digits=precision) == 0
+                assert float_compare(picking.step_reception_avg_kg, kilos / containers,
+                                     precision_digits=precision) == 0
         print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 197, 'version': version,
               'process_reception_menu': True, 'list_columns_and_sums': True, 'existing_receipts_read': len(pickings)}))
     view = views['form']
