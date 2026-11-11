@@ -71,9 +71,17 @@ class ApplicationProfilesCase(TransactionCase):
 
     def test_profile_setup_is_idempotent_and_existing_user_memberships_are_unchanged(self):
         before={user.id:user.groups_id.ids for user in self.env['res.users'].with_context(active_test=False).search([])}
-        count=self.env['ir.model.access'].search_count([])
+        Access = self.env['ir.model.access']
+        existing = Access.search([])
+        columns = ['group_id', 'model_id', 'perm_read', 'perm_write', 'perm_create', 'perm_unlink']
+        permissions = existing.read(columns)
+        # Addons installed after the profiles may introduce additional models.
+        # First bring this isolated registry up to date, then replay the setup.
         post_init_hook(self.env)
-        self.assertEqual(self.env['ir.model.access'].search_count([]),count)
+        installed = Access.search([]).ids
+        post_init_hook(self.env)
+        self.assertEqual(Access.search([]).ids, installed)
+        self.assertEqual(existing.read(columns), permissions)
         self.assertEqual({user.id:user.groups_id.ids for user in self.env['res.users'].with_context(active_test=False).search([])},before)
 
     def test_unprofiled_legacy_users_keep_their_native_permissions(self):
