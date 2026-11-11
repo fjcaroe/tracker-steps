@@ -1,5 +1,6 @@
 """Remove only superseded T201 private copies; retain final tests and all backups."""
 import argparse
+import fcntl
 import json
 from pathlib import Path
 import shutil
@@ -19,6 +20,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply', action='store_true')
     args = parser.parse_args()
+    if args.apply:
+        with open('/run/lock/steps-environments.lock', 'a') as lease:
+            fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            cleanup(True)
+    else:
+        cleanup(False)
+
+
+def cleanup(apply):
     result = []
     for environment, suffix in PAIRS:
         database = 'MANAGEMENT_QA_' + environment.upper() + '_t201' + suffix
@@ -34,8 +44,8 @@ def main():
         files = [stage/'source.dump', stage/'data']
         for target in files:
             assert target.parent == stage and target.resolve() == target and not target.is_symlink()
-        row = {'database':database, 'database_bytes':size, 'applied':args.apply}
-        if args.apply:
+        row = {'database':database, 'database_bytes':size, 'applied':apply}
+        if apply:
             if exists:
                 subprocess.run(['sudo','-u','postgres','dropdb','--',database],check=True)
             for target in files:
