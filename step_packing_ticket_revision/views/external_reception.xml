@@ -80,6 +80,13 @@
       <field name="name" position="after">
         <field name="step_external_reception_folio" string="Referencia del Excel" optional="hide"/>
       </field>
+      <field name="partner_id" position="after">
+        <field name="step_reception_product_ids" widget="many2many_tags" optional="show"/>
+        <field name="step_reception_packaging_ids" widget="many2many_tags" optional="show"/>
+        <field name="step_reception_container_qty" sum="Total envases" optional="show"/>
+        <field name="step_reception_net_kg" sum="Total kg" optional="show"/>
+        <field name="step_reception_avg_kg" optional="show"/>
+      </field>
     </field>
   </record>
   <record id="step_packing_reception_revision.process_reception_list_action"
