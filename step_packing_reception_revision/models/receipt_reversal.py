@@ -96,6 +96,9 @@ class Picking(models.Model):
 
     def _make_fruit_receipt_return(self, lines):
         self.ensure_one()
+        # Stock normally carries a disposable package forward if all of its
+        # contents move. A correction returns the fruit and retains the tag.
+        self = self.with_context(bypass_entire_pack=True)
         return_type = self.picking_type_id.return_picking_type_id or self.picking_type_id
         reversal = self.env['stock.picking'].create({
             'picking_type_id': return_type.id, 'company_id': self.company_id.id, 'partner_id': self.partner_id.id,
@@ -117,9 +120,10 @@ class Picking(models.Model):
                 'move_id': move.id, 'picking_id': reversal.id, 'company_id': self.company_id.id,
                 'product_id': line.product_id.id, 'product_uom_id': line.product_uom_id.id,
                 'quantity': line.quantity, 'lot_id': line.lot_id.id, 'owner_id': line.owner_id.id,
-                'package_id': line.result_package_id.id, 'picked': True,
+                'package_id': line.result_package_id.id, 'result_package_id': False, 'picked': True,
                 'location_id': reversal.location_id.id, 'location_dest_id': reversal.location_dest_id.id,
             } for line in details])
+        reversal.move_line_ids.write({'result_package_id': False})
         reversal.button_validate()
         if (reversal.state != 'done' or reversal.move_ids.stock_valuation_layer_ids
                 or any(q.quantity or q.reserved_quantity for q in lines.result_package_id.quant_ids)):
