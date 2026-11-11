@@ -3,6 +3,7 @@ from io import BytesIO
 
 from openpyxl import Workbook
 
+from odoo import Command
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 
@@ -274,6 +275,13 @@ class ExternalReceiptCase(TransactionCase):
         source = lines[1].package_id
         with self.assertRaisesRegex(UserError, 'capacidad'), self.cr.savepoint():
             next_process('QA202-OP6', 12, 25, output.name, 3)
+        quant = output.quant_ids
+        self.env['stock.quant']._update_reserved_quantity(
+            quant.product_id, quant.location_id, 1, lot_id=quant.lot_id, package_id=output, strict=True)
+        with self.assertRaisesRegex(UserError, 'sin reservas'), self.cr.savepoint():
+            next_process('QA202-OP6', 12, 25, output.name, 2)
+        self.env['stock.quant']._update_reserved_quantity(
+            quant.product_id, quant.location_id, -1, lot_id=quant.lot_id, package_id=output, strict=True)
         self.assertFalse(source.step_external_remainder_id)
         multi = next_process('QA202-OP6', 12, 25, output.name, 2)
         application = multi.step_external_input_ids
@@ -283,6 +291,8 @@ class ExternalReceiptCase(TransactionCase):
         self.assertAlmostEqual(multi.step_packing_input_kg, 24.6)
         self.assertEqual(source.quant_ids.quantity, 41)
         self.assertEqual(output.step_actual_boxes, 8)
+        with self.assertRaisesRegex(UserError, 'Conserve'):
+            multi.step_packing_input_tag_ids = [Command.unlink(source.id)]
         multi.action_step_packing_validate()
         self.assertEqual(application.consumed_id, multi.step_packing_input_tag_ids)
         self.assertEqual(source.step_external_remainder_id.step_actual_boxes, 8)

@@ -115,9 +115,15 @@ class ExternalPackingProduction(models.Model):
         string='Consumo parcial de tarjas C', copy=False, readonly=True)
 
     def write(self, vals):
-        if 'step_external_input_ids' in vals and self.env.context.get('_external_multitag') is not IMPORT:
+        internal = self.env.context.get('_external_multitag') is IMPORT
+        if 'step_external_input_ids' in vals and not internal:
             raise UserError(_('Las aplicaciones de tarjas C se registran en el importador de procesos.'))
-        return super().write(vals)
+        if internal or 'step_packing_input_tag_ids' not in vals or not self.step_external_input_ids:
+            return super().write(vals)
+        with self.env.cr.savepoint():
+            result = super().write(vals)
+            self._check_external_inputs()
+            return result
 
     @api.depends('step_external_input_ids.kilos', 'step_external_input_ids.consumed_id')
     def _compute_packing_balance(self):
@@ -137,11 +143,14 @@ class ExternalPackingProduction(models.Model):
             boxes -= sum(row.source_id.step_actual_boxes - row.boxes for row in pending)
             order.average_harvest_box_kg = order.step_packing_input_kg / boxes if boxes else 0
 
-    def _check_packing_tags(self):
+    def _check_external_inputs(self):
         for order in self:
             if any((row.consumed_id or row.source_id) not in order.step_packing_input_tag_ids
                    for row in order.step_external_input_ids):
                 raise UserError(_('Conserve en la OT las tarjas C incluidas en el consumo parcial.'))
+
+    def _check_packing_tags(self):
+        self._check_external_inputs()
         return super()._check_packing_tags()
 
     def _check_external_completion(self, target, pallet_type, boxes, producer, species, fruit_type, packaging, caliber):
@@ -190,7 +199,7 @@ class ExternalPackingProduction(models.Model):
             for order in self:
                 order._check_external_completion_tags()
                 for row in order.step_external_input_ids.filtered(lambda line: not line.consumed_id):
-                    split = self.env['step.packing.tag.split'].create({
+                    split = self.env['step.packing.tag.split'].with_context(_external_multitag=IMPORT).create({
                         'production_id': order.id, 'source_id': row.source_id.id,
                         'process_boxes': row.boxes, 'process_kg': row.kilos,
                     })
