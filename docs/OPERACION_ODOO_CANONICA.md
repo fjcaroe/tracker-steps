@@ -1,5 +1,11 @@
 # Operación y publicación de Odoo
 
+T197 amplía `reception-excel` en Desarrollo, Cerro y QA-Cerro. El listado
+nativo de Fruta a proceso muestra producto, embalaje, envases, kilos netos
+y kilos por envase. Totaliza los envases y kilos visibles. Usar las tarjas
+registradas y consultar las operaciones cuando falte el dato. Verificar el
+menú y la lectura de recepciones existentes en copias antes de publicar.
+
 T196 amplía `reception-lots` en Desarrollo, Cerro y QA-Cerro. Inventario
 puede corregir el producto de tarjas C íntegras, sin reservas, procesos o
 documentos asociados, mediante dos movimientos nativos trazables. Mantener

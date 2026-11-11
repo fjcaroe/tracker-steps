@@ -17,6 +17,47 @@ class Picking(models.Model):
         'res.partner', string='Packing', check_company=True,
         domain="[('step_export_packing','=',True)]")
 
+    step_reception_product_ids = fields.Many2many(
+        'product.product', string='Producto', compute='_compute_step_reception_summary')
+    step_reception_packaging_ids = fields.Many2many(
+        'product.packaging', string='Embalaje', compute='_compute_step_reception_summary')
+    step_reception_container_qty = fields.Float(
+        string='Cantidad de envases', digits='Product Unit of Measure', compute='_compute_step_reception_summary')
+    step_reception_net_kg = fields.Float(
+        string='Cantidad (kg)', digits='Stock Weight', compute='_compute_step_reception_summary')
+    step_reception_avg_kg = fields.Float(
+        string='Peso promedio (kg/envase)', digits='Stock Weight', compute='_compute_step_reception_summary')
+
+    @api.depends('state', 'fruit_tag_line_ids.product_id', 'fruit_tag_line_ids.packaging_id.product_id',
+                 'fruit_tag_line_ids.quantity', 'fruit_tag_line_ids.kilos', 'move_ids.state',
+                 'move_ids.product_id', 'move_ids.product_packaging_id', 'move_ids.step_fruit_packaging_qty',
+                 'move_ids.quantity', 'move_ids.product_uom_qty', 'move_ids.product_uom')
+    def _compute_step_reception_summary(self):
+        kg = self.env.ref('uom.product_uom_kgm')
+        for picking in self:
+            rows = picking.fruit_tag_line_ids
+            moves = picking.move_ids.filtered(lambda move: move.state != 'cancel')
+            products = self.env['product.product']
+            for row in rows:
+                products |= row.product_id or row.packaging_id.product_id
+            if not products or any(not (row.product_id or row.packaging_id) for row in rows):
+                products |= moves.product_id
+            packaging = rows.packaging_id
+            if not packaging or any(not row.packaging_id for row in rows):
+                packaging |= moves.product_packaging_id
+
+            containers = sum(rows.mapped('quantity')) or sum(moves.mapped('step_fruit_packaging_qty'))
+            kilos = sum(rows.mapped('kilos'))
+            if not kilos:
+                kilos = sum(move.product_uom._compute_quantity(
+                    move.quantity or (move.product_uom_qty if picking.state != 'done' else 0), kg, round=False)
+                    for move in moves if move.product_uom.category_id == kg.category_id)
+            picking.step_reception_product_ids = products
+            picking.step_reception_packaging_ids = packaging
+            picking.step_reception_container_qty = containers
+            picking.step_reception_net_kg = kilos
+            picking.step_reception_avg_kg = kilos / containers if containers else 0
+
 
 class Production(models.Model):
     _inherit = 'step.packing.production'

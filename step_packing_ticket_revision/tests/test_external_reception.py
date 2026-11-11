@@ -9,6 +9,46 @@ from odoo.tests import TransactionCase, tagged
 
 @tagged('post_install', '-at_install')
 class ExternalReceiptCase(TransactionCase):
+    def test_process_list_totals_from_tags_and_existing_operations(self):
+        wh = self.env['stock.warehouse'].search([('company_id', '=', self.env.company.id)], limit=1)
+        picking_model = self.env['stock.picking']
+        defaults = {
+            'picking_type_id': wh.in_type_id.id, 'location_id': wh.in_type_id.default_location_src_id.id,
+            'location_dest_id': wh.lot_stock_id.id, 'step_fruit_reception_kind': 'process',
+        }
+        with_tags, with_operations, empty = picking_model.create([defaults.copy() for _ in range(3)])
+        kg = self.env.ref('uom.product_uom_kgm')
+        products = self.env['product.product'].create([
+            {'name': name, 'is_storable': True, 'uom_id': kg.id, 'uom_po_id': kg.id}
+            for name in ('QA197 arándano', 'QA197 frambuesa')])
+        packagings = self.env['product.packaging'].create([
+            {'name': name, 'product_id': product.id, 'qty': 10}
+            for name, product in zip(('QA197 caja', 'QA197 bandeja'), products)])
+        move_values = {
+            'name': 'QA197 operación', 'product_id': products[0].id, 'product_uom': kg.id,
+            'product_packaging_id': packagings[0].id, 'product_uom_qty': 70,
+            'location_id': wh.in_type_id.default_location_src_id.id, 'location_dest_id': wh.lot_stock_id.id,
+            'step_fruit_manual_container_qty': 7,
+        }
+        self.env['stock.move'].create([
+            dict(move_values, picking_id=picking.id) for picking in (with_tags, with_operations)])
+        self.env['step.packing.picking.tag.line'].create([
+            {'picking_id': with_tags.id, 'tag_number': 'QA197-%s' % i, 'product_id': product.id,
+             'packaging_id': packaging.id, 'quantity': containers, 'kilos': kilos}
+            for i, (product, packaging, containers, kilos) in enumerate(
+                zip(products, packagings, (2, 3), (40.0, 42.5)), start=1)])
+        columns = [
+            'step_reception_product_ids', 'step_reception_packaging_ids', 'step_reception_container_qty',
+            'step_reception_net_kg', 'step_reception_avg_kg',
+        ]
+        rows = {row['id']: row for row in (with_tags | with_operations | empty).read(columns)}
+        for picking, expected in (
+            (with_tags, (products.ids, packagings.ids, 5, 82.5, 16.5)),
+            (with_operations, (products[:1].ids, packagings[:1].ids, 7, 70, 10)),
+            (empty, ([], [], 0, 0, 0)),
+        ):
+            self.assertEqual(tuple(rows[picking.id][field] for field in columns), expected)
+
     def test_external_file_creates_native_draft_and_stock_only_on_validation(self):
         company = self.env.company
         company.step_fruit_inventory_enabled = True
