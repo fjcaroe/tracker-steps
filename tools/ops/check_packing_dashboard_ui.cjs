@@ -38,6 +38,10 @@ const assert = require('node:assert/strict');
             assert.ok(!(await (await response).json()).error, 'Species RPC failed');
             await cards.first().waitFor();
             assert.equal(await species.inputValue(), options[1], 'Species selection must remain visible');
+            const reset = page.waitForResponse(res => res.url().includes('/call_kw/step.packing.order/get_dashboard_data'));
+            await species.selectOption('');
+            assert.ok(!(await (await reset).json()).error, 'All species RPC failed');
+            await cards.first().waitFor();
         }
         await page.getByLabel('Desde', { exact: true }).fill('2000-01-01');
         await page.getByLabel('Hasta', { exact: true }).fill('2099-12-31');
