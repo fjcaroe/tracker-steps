@@ -1,4 +1,29 @@
 <odoo>
+  <record id="rule_dispatch_type_companies" model="ir.rule">
+    <field name="name">Tipos de despacho por empresas asignadas</field>
+    <field name="model_id" ref="step_operations_ui.model_step_freight_dispatch_type"/>
+    <field name="domain_force">['|', ('company_ids', '=', False), ('company_ids', 'in', company_ids)]</field>
+  </record>
+  <record id="view_dispatch_type_company_form" model="ir.ui.view">
+    <field name="name">step.freight.dispatch.type.companies.form</field>
+    <field name="model">step.freight.dispatch.type</field>
+    <field name="inherit_id" ref="step_operations_ui.view_freight_dispatch_type_form"/>
+    <field name="arch" type="xml">
+      <field name="company_id" position="replace">
+        <field name="company_ids" widget="many2many_tags" options="{'no_create': True}"/>
+      </field>
+    </field>
+  </record>
+  <record id="view_dispatch_type_company_list" model="ir.ui.view">
+    <field name="name">step.freight.dispatch.type.companies.list</field>
+    <field name="model">step.freight.dispatch.type</field>
+    <field name="inherit_id" ref="step_operations_ui.view_freight_dispatch_type_list"/>
+    <field name="arch" type="xml">
+      <field name="company_id" position="replace">
+        <field name="company_ids" widget="many2many_tags" optional="show"/>
+      </field>
+    </field>
+  </record>
   <record id="view_dispatch_guide_type_companies" model="ir.ui.view">
     <field name="name">step.dispatch.guide.type.companies</field>
     <field name="model">step.dispatch.guide</field>

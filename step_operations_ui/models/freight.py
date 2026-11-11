@@ -150,21 +150,6 @@ class FreightDispatchType(models.Model):
     )
     active = fields.Boolean(string="Activo", default=True)
     company_id = fields.Many2one("res.company", required=True, default=lambda self: self.env.company)
-    company_ids = fields.Many2many(
-        "res.company", "step_freight_dispatch_type_company_rel", "dispatch_type_id", "company_id",
-        string="Empresas", default=lambda self: self.env.company,
-        help="Deje vacío para que el tipo de despacho esté disponible en todas las empresas.",
-    )
-
-    @api.constrains("company_ids")
-    def _check_dispatch_type_companies(self):
-        for record in self:
-            if not self.env.su and record.company_ids - self.env.user.company_ids:
-                raise ValidationError("Seleccione empresas autorizadas para su usuario.")
-            if record.company_ids and "step.dispatch.guide" in self.env and self.env["step.dispatch.guide"].sudo().search_count([
-                ("dispatch_type_id", "=", record.id), ("company_id", "not in", record.company_ids.ids),
-            ], limit=1):
-                raise ValidationError("Conserve las empresas de las guías que ya usan este tipo de despacho.")
 
 
 class FreightPlan(models.Model):

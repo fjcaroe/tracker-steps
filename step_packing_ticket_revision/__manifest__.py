@@ -5,4 +5,4 @@
              'step_packing_overweight', 'step_packing_tag_split', 'step_dispatch_guide'],
  'data': ['ir.model.access.csv', 'views/packing.xml', 'views/reports.xml', 'views/reception_template_security.xml',
           'views/external_reception.xml', 'views/external_process.xml', 'views/external_multitag.xml',
-          'views/dispatch_type.xml'], 'installable': True}
+          'views/dispatch_type.xml'], 'post_init_hook': 'post_init_hook', 'installable': True}

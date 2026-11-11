@@ -85,7 +85,7 @@ def main():
         if args.with_master_access:
             modules += ('step_application_profiles',)
         if args.with_receipt_dispatch:
-            modules += ('step_packing_reception_revision', 'step_operations_ui')
+            modules += ('step_packing_reception_revision',)
     if args.kind == 'reception-lots':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         modules = ('step_packing_reception_revision',)

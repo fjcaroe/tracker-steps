@@ -1,4 +1,4 @@
-def migrate(cr, version):
+def assign_dispatch_type_companies(cr):
     cr.execute("""
         INSERT INTO step_freight_dispatch_type_company_rel (dispatch_type_id, company_id)
         SELECT t.id, t.company_id
@@ -11,14 +11,16 @@ def migrate(cr, version):
          )
         ON CONFLICT DO NOTHING
     """)
-    cr.execute("SELECT to_regclass('step_dispatch_guide')")
-    if cr.fetchone()[0]:
-        cr.execute("""
-            INSERT INTO step_freight_dispatch_type_company_rel (dispatch_type_id, company_id)
-            SELECT DISTINCT g.dispatch_type_id, g.company_id
-              FROM step_dispatch_guide g
-             WHERE g.company_id IS NOT NULL AND g.dispatch_type_id IN (
-                 SELECT dispatch_type_id FROM step_freight_dispatch_type_company_rel
-             )
-            ON CONFLICT DO NOTHING
-        """)
+    cr.execute("""
+        INSERT INTO step_freight_dispatch_type_company_rel (dispatch_type_id, company_id)
+        SELECT DISTINCT g.dispatch_type_id, g.company_id
+          FROM step_dispatch_guide g
+         WHERE g.company_id IS NOT NULL AND g.dispatch_type_id IN (
+             SELECT dispatch_type_id FROM step_freight_dispatch_type_company_rel
+         )
+        ON CONFLICT DO NOTHING
+    """)
+
+
+def post_init_hook(env):
+    assign_dispatch_type_companies(env.cr)
