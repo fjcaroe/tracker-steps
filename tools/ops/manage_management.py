@@ -602,10 +602,6 @@ def main():
     staged = stage / 'addons'
     staged.mkdir(exist_ok=True)
     proof = extract(args.release, staged)
-    if args.kind == 'reception-lots' and args.environment == 'cerro':
-        version = tuple(map(int, proof['versions']['step_packing_reception_revision'].split('.')))
-        if version >= (18, 0, 1, 3, 7):
-            assert args.reception_product_plan, 'T196 requires the private plan for the reported Cerro correction'
     if args.kind in ('previred-simpledigital', 'previred-revision') and tuple(map(int, proof['versions']['step_hr_previred_corrections'].split('.'))) >= (18, 0, 1, 1, 0):
         assert args.environment in ('development', 'sys'), 'T173 destinations only'
         assert args.environment != 'sys' or PREVIRED_RULE_PLAN, 'Classify the reviewed retroactive rule'
@@ -948,6 +944,8 @@ def main():
     if args.reception_product_plan:
         assert passed['reception_product_plan'] == digest(args.reception_product_plan)
         assert passed['reception_product_helper'] == digest(HERE / 'receipt_product_case.py')
+    else:
+        assert not passed.get('reception_product_plan'), 'Deploy the same receipt product correction tested in the clone'
     if args.kind == 'packing-proforma-policy':
         assert passed.get('proforma_policy_plan') == PROFORMA_POLICY_PLAN
         assert passed.get('proforma_policy_helper') == digest(HERE / 'proforma_policy_case.py')

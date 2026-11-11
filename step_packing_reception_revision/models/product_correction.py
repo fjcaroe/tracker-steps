@@ -1,5 +1,5 @@
 """Reclassify intact third-party fruit with native stock moves and keep the original receipt."""
-from odoo import _, api, fields, models
+from odoo import Command, _, api, fields, models
 from odoo.addons.step_inventory_packing.models.fruit_package import StepFruitPackageLine
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools.float_utils import float_compare
@@ -172,7 +172,8 @@ class CorrectProduct(models.TransientModel):
             raise ValidationError(_('Elija otro producto almacenable con la misma unidad de peso y seguimiento.'))
         if (quant.company_id != self.company_id or quant.location_id != self.picking_id.location_dest_id
                 or quant.location_id.usage != 'internal' or quant.reserved_quantity or quant.quantity <= 0
-                or quant.owner_id != detail.producer_id or quant.owner_id == self.company_id.partner_id
+                or not quant.owner_id or quant.owner_id != detail.producer_id
+                or quant.owner_id == self.company_id.partner_id
                 or quant.lot_id != detail.lot_id or quant.lot_id != row.stock_lot_id
                 or (old.tracking == 'lot' and not quant.lot_id)
                 or float_compare(quant.quantity, detail.quantity, precision_rounding=old.uom_id.rounding)
@@ -211,28 +212,27 @@ class CorrectProduct(models.TransientModel):
                 raise UserError(_('Configure las ubicaciones de ajuste de inventario en la compañía receptora.'))
         if not loss or not gain:
             raise UserError(_('Configure las ubicaciones de ajuste de inventario de ambos productos.'))
-        moves = self.env['stock.move'].with_company(self.company_id)
-        Move = moves.with_context(_receipt_product_correction=_CORRECTION)
+        Move = self.env['stock.move'].with_company(self.company_id).with_context(
+            _receipt_product_correction=_CORRECTION, inventory_mode=False)
+        values = []
         for direction, product, lot, src, dst, source_tag, result_tag in (
                 ('remove', old, old_lot, location, loss, tag.id, False),
                 ('add', target, new_lot, gain, location, False, tag.id)):
-            move = Move.create({
+            values.append({
                 'name': _('Corrección de producto de tarja %s') % tag.name, 'origin': self.picking_id.name,
                 'company_id': self.company_id.id, 'product_id': product.id, 'product_uom': product.uom_id.id,
                 'product_uom_qty': quantity, 'location_id': src.id, 'location_dest_id': dst.id,
+                'state': 'confirmed', 'is_inventory': True, 'picked': True, 'restrict_partner_id': owner.id,
                 'step_receipt_correction_line_id': row.id, 'step_receipt_correction_direction': direction,
                 'step_receipt_correction_reason': self.reason.strip(),
+                'move_line_ids': [Command.create({
+                    'company_id': self.company_id.id, 'product_id': product.id,
+                    'product_uom_id': product.uom_id.id, 'quantity': quantity, 'lot_id': lot.id,
+                    'location_id': src.id, 'location_dest_id': dst.id, 'owner_id': owner.id,
+                    'package_id': source_tag, 'result_package_id': result_tag, 'picked': True,
+                })],
             })
-            move._action_confirm(merge=False)
-            move._do_unreserve()
-            self.env['stock.move.line'].with_company(self.company_id).create({
-                'move_id': move.id, 'company_id': self.company_id.id, 'product_id': product.id,
-                'product_uom_id': product.uom_id.id, 'quantity': quantity, 'lot_id': lot.id,
-                'location_id': src.id, 'location_dest_id': dst.id, 'owner_id': owner.id,
-                'package_id': source_tag, 'result_package_id': result_tag, 'picked': True,
-            })
-            move.picked = True
-            moves |= move
+        moves = Move.create(values)
         moves._action_done(cancel_backorder=True)
         if set(moves.mapped('state')) != {'done'} or moves.stock_valuation_layer_ids:
             raise ValidationError(_('La corrección de stock de tercero no debe generar valoración.'))

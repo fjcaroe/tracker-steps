@@ -138,8 +138,10 @@ class ReceptionCase(TransactionCase):
     def test_menu_opens_existing_receptions_list_before_form(self):
         from odoo.tools.safe_eval import safe_eval
         action = self.env.ref('step_inventory_packing.action_steps_fruit_process_reception')
+        list_view = self.env.ref('step_packing_ticket_revision.view_external_process_reception_list',
+                                 raise_if_not_found=False) or self.env.ref('stock.vpicktree')
         self.assertEqual(action.views[:2], [
-            (self.env.ref('stock.vpicktree').id, 'list'), (self.env.ref(VIEW).id, 'form')])
+            (list_view.id, 'list'), (self.env.ref(VIEW).id, 'form')])
         picking = self.picking()
         domain = safe_eval(action.domain)
         self.assertIn(picking, self.env['stock.picking'].search(domain))
