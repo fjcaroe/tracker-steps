@@ -1,5 +1,13 @@
 # Operación y publicación de Odoo
 
+T203 se entrega junto con T202 mediante `reception-excel --with-master-access`
+en Desarrollo, Cerro y QA-Cerro. El paquete contiene el importador y los
+perfiles de aplicación. Verificar en copia la pestaña Maestros Steps del
+usuario, los menús elegidos, la consulta y edición de fundos, la revocación
+sin reiniciar y el rechazo de cambios en empresas ajenas. La personalización
+es optativa, conserva los selectores de lectura y no modifica las asignaciones
+existentes de usuarios, grupos y empresas.
+
 T202 amplía `reception-excel` en Desarrollo, Cerro y QA-Cerro. Verificar en
 copia el consumo por cajas y kilos proporcionales, la reutilización del saldo
 C y la consolidación de pallets E de un mismo productor con distintas

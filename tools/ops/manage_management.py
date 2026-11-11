@@ -405,6 +405,7 @@ def main():
     parser.add_argument('run_id')
     parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-attendance', 'payroll-days', 'payroll-review', 'payroll-parameters', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'previred-simpledigital', 'previred-movement-dates', 'previred-revision', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'packing-fruit-proforma', 'producer-advances', 'packing-proforma-policy', 'packing-holding-contract', 'journal-branches', 'packing-material-rules', 'packing-output-lots', 'reception-lots', 'reception-excel', 'packing-tag-folio', 'packing-material-consumption', 'packing-document-corrections', 'packing-producer-documents', 'packing-process-report', 'packing-tag-split', 'reception-packaging-match', 'reception-variety', 'agriculture-holding', 'reception-report', 'bpa-masters', 'export-branches', 'activities-company', 'activities-dashboard', 'activities-accounting-list', 'payroll-steps-layout', 'payroll-simpledigital-base', 'holding-purchase', 'packing-company', 'packing-dashboard', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
     parser.add_argument('--monthly-fruit-plan', type=Path, help='Private unchanged customer case; required for Cerro T170 accounting validation')
+    parser.add_argument('--with-master-access', action='store_true', help='Include Steps application profiles with reception-excel')
     parser.add_argument('--wait-for-lease', action='store_true', help='Queue this authorized ticket operation before reading its source baseline')
     parser.add_argument('--normalize-user-id', type=int)
     parser.add_argument('--expected-user-login')
@@ -424,6 +425,8 @@ def main():
     parser.add_argument('--proforma-policy-plan', type=Path, help='Private reviewed draft and unchanged configured taxes; Cerro review 1')
     parser.add_argument('--shared-producer-reception', type=Path, help='Private T194 Cerro receipt and existing operator identities')
     args = parser.parse_args()
+    if args.with_master_access and args.kind != 'reception-excel':
+        parser.error('--with-master-access requires --kind reception-excel')
     if args.packing_caliber_baseline:
         assert (args.action, args.environment, args.kind) == ('certify', 'development', 'packing-output-lots')
     if args.shared_producer_reception:
@@ -626,6 +629,10 @@ def main():
         BUSINESS = ('hr_payslip', 'hr_payslip_line', 'hr_payslip_run', 'hr_salary_rule',
                     'hr_contract', 'account_move', 'account_move_line')
     assert args.environment != 'sys' or args.kind in ('payroll-attendance', 'payroll-days', 'payroll-review', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'previred-simpledigital', 'previred-movement-dates', 'previred-revision')
+    if args.with_master_access:
+        assert args.environment in ('development', 'cerro', 'qa-cerro')
+        MODULES += ('step_application_profiles',)
+        BUSINESS += ('res_users', 'res_groups_users_rel', 'res_company_users_rel')
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     registry = json.loads((HERE / 'environments.json').read_text())
     assert args.action != 'qa' or args.environment == registry['policy']['qa'], 'Only Desarrollo is QA'

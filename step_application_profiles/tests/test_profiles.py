@@ -1,3 +1,4 @@
+from odoo import Command
 from odoo.tests import TransactionCase, tagged
 from odoo.tests.common import new_test_user
 from odoo.exceptions import AccessError
@@ -95,3 +96,59 @@ class ApplicationProfilesCase(TransactionCase):
             self.env['stock.picking'].with_user(user).create({'picking_type_id':wh.in_type_id.id,
                 'location_id':wh.in_type_id.default_location_src_id.id,'location_dest_id':wh.lot_stock_id.id,
                 'step_fruit_reception_kind':'process'})
+
+    def test_master_menu_levels_are_independent_of_application_profiles(self):
+        user = self.users['packing', 'read']
+        menu = self.env['ir.ui.menu'].with_user(user)
+        root = self.env.ref('step_application_profiles.menu_step_user_masters')
+        farm_menu = self.env.ref('step_application_profiles.menu_step_user_farms')
+        species_menu = self.env.ref('step_application_profiles.menu_step_user_species')
+        variety_menu = self.env.ref('step_application_profiles.menu_step_user_varieties')
+        packing_farm_menu = self.env.ref('step_agriculture_multicompany.packing_fundos', raise_if_not_found=False)
+        self.assertNotIn(root.id, menu._visible_menu_ids())
+        menu.load_menus(False)
+        user.write({'step_customize_master_access': True, 'step_farm_master_access': 'read',
+                    'step_species_master_access': 'edit'})
+        visible = menu._visible_menu_ids()
+        self.assertIn(root.id, visible)
+        self.assertIn(farm_menu.id, visible)
+        self.assertIn(species_menu.id, visible)
+        self.assertNotIn(variety_menu.id, visible)
+        self.assertIn(farm_menu.id, menu.load_menus(False))
+        self.assertTrue(self.acl('packing', 'read', 'step.especie', 'write'))
+        self.assertFalse(self.acl('packing', 'read', 'step.variedad.line', 'write'))
+        self.assertFalse(self.acl('packing', 'read', 'step.packing.production', 'write'))
+        self.assertFalse(self.acl('packing', 'read', 'res.partner', 'write'))
+        user.step_farm_master_access = 'hidden'
+        visible = menu._visible_menu_ids()
+        self.assertNotIn(farm_menu.id, visible)
+        if packing_farm_menu:
+            self.assertNotIn(packing_farm_menu.id, visible)
+        self.assertNotIn(farm_menu.id, menu.load_menus(False))
+        self.assertTrue(self.acl('packing', 'read', 'step.fundo', 'read'))
+        user.step_customize_master_access = False
+        self.assertNotIn(root.id, menu._visible_menu_ids())
+
+    def test_farm_permission_applies_to_real_record_operations(self):
+        company = self.env.company
+        other = self.env['res.company'].create({'name': 'QA T203 otra empresa'})
+        farm = self.env['step.fundo'].create({'name': 'QA T203 fundo'})
+        outside = self.env['step.fundo'].with_company(other).create({'name': 'QA T203 fundo externo'})
+        user = self.users['producers', 'operation']
+        user.write({'company_id': company.id, 'company_ids': [Command.set(company.ids)],
+                    'step_customize_master_access': True, 'step_farm_master_access': 'read'})
+        record = farm.with_user(user).with_context(allowed_company_ids=company.ids)
+        self.assertEqual(record.name, 'QA T203 fundo')
+        with self.assertRaises(AccessError):
+            record.write({'name': 'Consulta no edita'})
+        with self.assertRaises(AccessError):
+            user.with_user(user).write({'step_farm_master_access': 'edit'})
+        user.step_farm_master_access = 'edit'
+        record.write({'name': 'QA T203 fundo editado'})
+        self.assertEqual(farm.name, 'QA T203 fundo editado')
+        created = record.create({'name': 'QA T203 nuevo fundo'})
+        self.assertEqual(created.company_id, company)
+        with self.assertRaises(AccessError):
+            record.unlink()
+        with self.assertRaises(AccessError):
+            outside.with_user(user).with_context(allowed_company_ids=company.ids).write({'name': 'Fuera de empresa'})

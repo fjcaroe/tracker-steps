@@ -1,0 +1,35 @@
+<odoo>
+  <record id="view_user_master_access" model="ir.ui.view">
+    <field name="name">res.users.steps.master.access</field>
+    <field name="model">res.users</field>
+    <field name="inherit_id" ref="base.view_users_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//notebook" position="inside">
+        <page name="step_master_access" string="Maestros Steps" groups="base.group_system">
+          <group>
+            <field name="step_customize_master_access"/>
+            <group invisible="not step_customize_master_access">
+              <field name="step_farm_master_access"/>
+              <field name="step_species_master_access"/>
+              <field name="step_variety_master_access"/>
+              <field name="step_variety_group_master_access"/>
+              <field name="step_season_master_access"/>
+            </group>
+          </group>
+          <p invisible="not step_customize_master_access">Consulta habilita el menú. Edición habilita la creación y modificación. Los selectores de los documentos conservan sus permisos de lectura y se aplican las empresas autorizadas del usuario.</p>
+        </page>
+      </xpath>
+    </field>
+  </record>
+  <menuitem id="menu_step_user_masters" name="Maestros Steps" groups="base.group_user" sequence="61"/>
+  <menuitem id="menu_step_user_farms" name="Fundos" parent="menu_step_user_masters"
+            action="step_agriculture_core.action_step_fundo" sequence="10"/>
+  <menuitem id="menu_step_user_species" name="Especies" parent="menu_step_user_masters"
+            action="step_agriculture_core.action_step_especie" sequence="20"/>
+  <menuitem id="menu_step_user_varieties" name="Variedades" parent="menu_step_user_masters"
+            action="step_agriculture_core.action_step_variedad" sequence="30"/>
+  <menuitem id="menu_step_user_variety_groups" name="Grupos de variedades" parent="menu_step_user_masters"
+            action="step_agriculture_core.action_step_grupo_variedad" sequence="40"/>
+  <menuitem id="menu_step_user_seasons" name="Temporadas" parent="menu_step_user_masters"
+            action="step_agriculture_core.action_step_temporada" sequence="50"/>
+</odoo>

@@ -84,5 +84,19 @@ try:
               'process_menu': True, 'reception_templates': True, 'operator': scoped.uid}))
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 189, 'version': version, 'menu': True, 'wizard': True,
           'native_reception': True, 'business_profile': scoped.uid}))
+    if 'step_application_profiles' in EXPECTED:
+        name = 'step_application_profiles'
+        profiles = env['ir.module.module'].search([('name', '=', name), ('state', '=', 'installed')])
+        assert profiles.latest_version == EXPECTED[name]
+        assert Path(importlib.import_module('odoo.addons.' + name).__file__).resolve().parent == Path(ROOT) / name
+        users = scoped.ref('base.view_users_form')
+        users_arch = etree.fromstring(scoped['res.users'].get_view(view_id=users.id, view_type='form')['arch'])
+        assert users_arch.xpath("//page[@name='step_master_access']//field[@name='step_farm_master_access']")
+        root = scoped.ref('step_application_profiles.menu_step_user_masters')
+        farm_menu = scoped.ref('step_application_profiles.menu_step_user_farms')
+        assert farm_menu.parent_id == root and farm_menu.action.res_model == 'step.fundo'
+        assert root.id not in scoped['ir.ui.menu']._visible_menu_ids()
+        print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 203, 'version': profiles.latest_version,
+              'user_profile_form': True, 'native_farm_action': True, 'opt_in': True}))
 finally:
     env.cr.rollback()
