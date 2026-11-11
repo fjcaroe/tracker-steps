@@ -10,6 +10,9 @@
                 <field name="process_cutoff" invisible="basis == 'received'" required="basis == 'processed'"/>
                 <field name="proforma_date"/><field name="net_due"/><field name="vat_due"/>
             </group></group>
+            <group string="Exclusiones">
+                <field name="excluded_product_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </group>
             <p>Deje productores o especies vacíos para incluir todos. Se usa la fecha de recepción del informe al productor.</p>
             <p invisible="basis != 'received'">Usa los kilos netos de las tarjas C o E de recepciones validadas.</p>
             <p invisible="basis != 'processed'">Usa los kilos de exportación de las OT cerradas hasta la fecha de corte.</p>
@@ -39,6 +42,8 @@
                 <field name="step_advance_basis"/>
                 <field name="step_advance_cutoff" invisible="step_advance_basis == 'received'"/>
                 <field name="step_advance_pricelist_id" readonly="1"/>
+                <field name="step_advance_excluded_product_ids" widget="many2many_tags"
+                       invisible="not step_advance_excluded_product_ids"/>
                 <field name="step_advance_source_currency_id" readonly="1"/><field name="step_advance_exchange_rate" readonly="1"/>
                 <field name="step_advance_net_due" readonly="1"/><field name="step_advance_vat_due" readonly="1"/>
             </xpath>

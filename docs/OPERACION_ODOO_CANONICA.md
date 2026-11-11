@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T198 amplía `producer-advances` en Desarrollo, Cerro y QA-Cerro. El
+asistente omite los productos valorizados que se excluyan en cada
+preparación, antes de buscar tarifas y reservar kilos. Conservar las
+proformas existentes y evitar que preparaciones con distintas exclusiones
+agreguen líneas al mismo borrador. Probar ambos modos de cálculo y el
+flujo de factura en copia. Publicar el mismo paquete con respaldo y bloqueo.
+
 T197 amplía `reception-excel` en Desarrollo, Cerro y QA-Cerro. El listado
 nativo de Fruta a proceso muestra producto, embalaje, envases, kilos netos
 y kilos por envase. Totaliza los envases y kilos visibles. Usar las tarjas

@@ -14,6 +14,9 @@ class PurchaseOrder(models.Model):
     step_advance_proforma = fields.Boolean('Proforma anticipo productor', readonly=True, copy=False, index=True)
     step_advance_basis = fields.Selection(BASIS, string='Calcular por', readonly=True, copy=False)
     step_advance_pricelist_id = fields.Many2one('product.pricelist', string='Lista de precios', readonly=True)
+    step_advance_excluded_product_ids = fields.Many2many(
+        'product.product', 'step_adv_order_excluded_product_rel', string='Productos excluidos',
+        readonly=True, copy=False)
     step_advance_cutoff = fields.Date('Fecha corte proceso', readonly=True)
     step_advance_net_due = fields.Date('Fecha de pago Neto', readonly=True)
     step_advance_vat_due = fields.Date('Fecha de pago IVA', readonly=True)
@@ -26,7 +29,7 @@ class PurchaseOrder(models.Model):
     _FRUIT_SOURCE_FIELDS = FruitOrder._FRUIT_SOURCE_FIELDS | {
         'step_advance_proforma', 'step_advance_basis', 'step_advance_pricelist_id', 'step_advance_cutoff',
         'step_advance_net_due', 'step_advance_vat_due', 'step_advance_source_currency_id',
-        'step_advance_exchange_rate',
+        'step_advance_exchange_rate', 'step_advance_excluded_product_ids',
         'step_fruit_receipt_ids',
     }
 

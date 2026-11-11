@@ -34,6 +34,9 @@ def verify_ui(business):
         assert wizard.xpath('//field[@name="basis"]')
         assert wizard.xpath('//field[@name="process_cutoff"]')[0].get('required') == "basis == 'processed'"
         assert quote.xpath('//field[@name="step_advance_basis"]')
+    if 'excluded_product_ids' in business['step.producer.advance.prepare']._fields:
+        assert wizard.xpath('//group[@string="Exclusiones"]/field[@name="excluded_product_ids"]')
+        assert quote.xpath('//field[@name="step_advance_excluded_product_ids"]')
     purchase = verify_purchase_ui(business)
     return {'menus': True, 'native_pricelist': True, 'effective_forms': True,
             'tag_proforma_links': True, 'native_purchase': purchase}
@@ -211,8 +214,14 @@ def verify_advances(env, output):
             'applied_on': '1_product', 'compute_price': 'fixed', 'fixed_price': 0.8,
             'uom_id': admin.ref('uom.product_uom_kgm').id,
         })
+        values = {'basis': 'received', 'process_cutoff': False}
+        if 'excluded_product_ids' in wizard._fields:
+            iqf = case['base'].with_env(admin).copy({'name': 'QA198 Comercial IQF sin tarifa'})
+            excluded = tag('C', '33', 150, iqf)
+            receipt(excluded, 'process')
+            values['excluded_product_ids'] = [Command.set(iqf.ids)]
         before = counts()
-        receipt_wizard = wizard.copy({'basis': 'received', 'process_cutoff': False})
+        receipt_wizard = wizard.copy(values)
         prepared = business['purchase.order'].browse(receipt_wizard.action_prepare()['res_id'])
         assert prepared.step_advance_basis == 'received' and not prepared.step_advance_cutoff
         assert prepared.step_fruit_tag_ids == received and prepared.order_line.product_qty == 625
@@ -220,6 +229,11 @@ def verify_advances(env, output):
         assert receipt_wizard.action_prepare()['res_id'] == prepared.id and counts() == before
         html, _ = business['ir.actions.report']._render_qweb_html('step_producer_advances.report_advance', prepared.ids)
         assert b'Anticipo por kilos recibidos' in html and b'Corte proceso' not in html and b'Kg export.' not in html
+        if 'excluded_product_ids' in wizard._fields:
+            assert prepared.step_advance_excluded_product_ids == iqf
+            assert not excluded.step_advance_proforma_ids
+            assert b'QA198 Comercial IQF sin tarifa' not in html
+            proof['excludes_unpriced_product'] = True
         pdf, kind = business['ir.actions.report']._render_qweb_pdf('step_producer_advances.report_advance', prepared.ids)
         assert kind == 'pdf' and pdf.startswith(b'%PDF') and len(pdf) > 10000
         (Path(output) / 't195-received-advance.pdf').write_bytes(pdf)

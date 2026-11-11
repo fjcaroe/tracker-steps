@@ -56,17 +56,18 @@ class TestProducerAdvances(FruitProformaCase):
         return picking
 
     def _raw(self, kilos=1000, when='2026-10-29 12:00:00', species=None,
-             actual='2026-11-10 12:00:00', has_fundo=True):
+             actual='2026-11-10 12:00:00', has_fundo=True, product=None):
         species = species or self.species
+        product = product or self.base
         variety = self.retained_variety if species == self.retained_species else self.variety
         tag = self.env['stock.quant.package'].with_company(self.branch).create({
             'name':'QA175 Raw %s'%when,'company_id':self.branch.id,'is_fruit_tag':True,
             'step_tag_kind':'C','step_producer_id':self.producer.id,
             'especie_id':species.id,'variedad_id':variety.id,'fruit_type':'conventional',
-            'step_tag_line_ids':[Command.create({'producer_id':self.producer.id,'product_id':self.base.id,
+            'step_tag_line_ids':[Command.create({'producer_id':self.producer.id,'product_id':product.id,
                 'quantity':kilos,'kilos':kilos})]})
         self.env['stock.quant'].with_company(self.branch)._update_available_quantity(
-            self.base,self.warehouse.lot_stock_id,kilos,package_id=tag,owner_id=self.producer)
+            product,self.warehouse.lot_stock_id,kilos,package_id=tag,owner_id=self.producer)
         if has_fundo:
             tag.write({'fundo_id':self.fundo.id})
         receipt = self._receipt(tag,when,actual=actual,has_fundo=has_fundo)
@@ -302,6 +303,56 @@ class TestProducerAdvances(FruitProformaCase):
     def _received_wizard(self):
         self._rule(0.8, product_tmpl_id=self.base.product_tmpl_id.id)
         return self._advance_wizard(basis='received', process_cutoff=False)
+
+    def test_received_exclusion_preserves_unpriced_sources_and_the_selected_draft(self):
+        included, _receipt = self._raw(species=self.retained_species)
+        iqf = self.base.copy({'name': 'QA198 Comercial IQF', 'default_code': 'QA198-IQF'})
+        excluded, _receipt = self._raw(300, when='2026-10-30 12:00:00',
+                                      species=self.retained_species, product=iqf)
+        before = self._stock_counts()
+        unrestricted = self._received_wizard()
+        wizard = unrestricted.copy({'excluded_product_ids': [Command.set(iqf.ids)]})
+        quote = self._advance(wizard)
+        self.assertEqual(quote.step_advance_excluded_product_ids, iqf)
+        self.assertEqual(quote.step_fruit_tag_ids, included)
+        self.assertEqual(quote.order_line.product_qty, 1000)
+        self.assertEqual(self._advance(wizard), quote)
+        self.assertFalse(excluded.step_advance_proforma_ids)
+        with self.assertRaisesRegex(UserError, 'No hay precio de anticipo'):
+            self._advance(unrestricted)
+        self._rule(0.5, product_tmpl_id=iqf.product_tmpl_id.id)
+        second = self._advance(unrestricted) - quote
+        self.assertEqual(second.step_fruit_tag_ids, excluded)
+        self.assertFalse(second.step_advance_excluded_product_ids)
+        self.assertEqual(quote.step_fruit_tag_ids, included)
+        self._approve(quote)
+        bill = self._convert(quote)
+        self.assertEqual(bill.state, 'draft')
+        self.assertEqual(bill.l10n_latam_document_type_id.code, '46')
+        self.assertEqual(bill.invoice_line_ids.product_id, self.base)
+        self.assertEqual(bill.invoice_line_ids.quantity, 1000)
+        self.assertEqual(self._stock_counts(), before)
+
+    def test_received_exclusion_does_not_return_or_change_a_mixed_existing_draft(self):
+        included, _receipt = self._raw()
+        iqf = self.base.copy({'name': 'QA198 Comercial IQF'})
+        excluded, _receipt = self._raw(300, when='2026-10-30 12:00:00', product=iqf)
+        self._rule(0.5, product_tmpl_id=iqf.product_tmpl_id.id)
+        wizard = self._received_wizard()
+        quote = self._advance(wizard)
+        wizard.excluded_product_ids = iqf
+        with self.assertRaisesRegex(UserError, 'proformas que incluyen productos excluidos'):
+            self._advance(wizard)
+        self.assertEqual(quote.step_fruit_tag_ids, included | excluded)
+        self.assertEqual(sum(quote.order_line.mapped('product_qty')), 1300)
+        self.assertEqual(quote.step_fruit_state, 'draft')
+
+    def test_processed_exclusion_can_omit_the_entire_export_cohort(self):
+        _order, tag = self._processed()
+        wizard = self._advance_wizard(excluded_product_ids=[Command.set(self.finished.ids)])
+        with self.assertRaisesRegex(UserError, 'después de excluir'):
+            self._advance(wizard)
+        self.assertFalse(tag.step_advance_proforma_ids)
 
     def test_received_kilos_use_net_receipt_without_ot_and_prepare_native_bill(self):
         raw, receipt = self._raw(species=self.retained_species)

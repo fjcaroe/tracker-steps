@@ -32,6 +32,10 @@ class PrepareAdvance(models.TransientModel):
     vat_due = fields.Date('Fecha de pago IVA', required=True)
     pricelist_id = fields.Many2one('product.pricelist', string='Lista de precios', required=True,
         domain="[('step_advance_price','=',True),('step_advance_company_ids','in',company_id)]")
+    excluded_product_ids = fields.Many2many(
+        'product.product', 'step_adv_prepare_excluded_product_rel', string='Productos excluidos',
+        domain="['|', ('company_id', '=', False), ('company_id', 'parent_of', company_id)]",
+        help='Se omiten los productos valorizados seleccionados al preparar este anticipo.')
 
     def _validate_selection(self):
         self.ensure_one()
@@ -46,6 +50,10 @@ class PrepareAdvance(models.TransientModel):
         self.pricelist_id.check_access('read')
         if not self.pricelist_id.step_advance_price or self.company_id not in self.pricelist_id.step_advance_company_ids:
             raise ValidationError(_('La lista debe corresponder a anticipos y estar disponible para la compañía.'))
+        self.excluded_product_ids.check_access('read')
+        if any(product.company_id and not self.company_id.parent_path.startswith(product.company_id.parent_path)
+               for product in self.excluded_product_ids):
+            raise ValidationError(_('Seleccione productos disponibles para la compañía del anticipo.'))
 
     def _bounds(self):
         zone = pytz.timezone(self.env.context.get('tz') or self.env.user.tz or 'UTC')
@@ -262,25 +270,35 @@ class PrepareAdvance(models.TransientModel):
             if wizard.pricelist_id.item_ids:
                 wizard.env.cr.execute('SELECT id FROM product_pricelist_item WHERE id=ANY(%s) ORDER BY id FOR SHARE',
                                       [wizard.pricelist_id.item_ids.ids])
-            rows = wizard._source_rows()
+            sources = wizard._source_rows()
+            excluded = set(wizard.excluded_product_ids.ids)
+            rows = [row for row in sources if row['priced_product_id'] not in excluded]
+            if sources and not rows:
+                raise UserError(_('No quedan kilos para preparar después de excluir los productos seleccionados.'))
             result = wizard.env['purchase.order']
             exact, blocked_tags, blocked_roots, origins = result._advance_reservations(
                 wizard.company_id, wizard.basis, rows)
             fresh = []
+            existing_with_exclusions = False
             for row in rows:
                 existing = result.browse(exact.get(source_key(row)))
                 if existing:
                     if existing.has_access('read') and (existing.step_advance_basis or 'processed') == wizard.basis:
-                        result |= existing
+                        if excluded.intersection(existing.order_line.step_advance_priced_product_id.ids):
+                            existing_with_exclusions = True
+                        else:
+                            result |= existing
                 elif (row['tag_id'] not in blocked_tags
                         and not blocked_roots.intersection(origins.get(row.get('input_tag_id') or row['tag_id'], ()))):
                     fresh.append(row)
             groups = defaultdict(list)
-            for row in wizard._price_rows(fresh):
+            for row in wizard._price_rows(fresh) if fresh else []:
                 groups[(row['producer_id'], row['species_id'], row['dte'], row['retention_id'])].append(row)
             for key, incoming in groups.items():
                 result |= wizard._prepare_group(key, incoming)
             if not result:
+                if existing_with_exclusions:
+                    raise UserError(_('Los kilos disponibles ya están en proformas que incluyen productos excluidos. Revise esas proformas antes de volver a preparar los kilos.'))
                 raise UserError(_('No hay kilos disponibles para el cálculo seleccionado. Revise las recepciones, las proformas existentes y, si corresponde, el corte de proceso.'))
             result.filtered(lambda order: order.step_fruit_state == 'draft').action_fruit_refresh_taxes()
             return result._fruit_action()
@@ -292,7 +310,7 @@ class PrepareAdvance(models.TransientModel):
         warehouse = self.env['stock.warehouse'].search([('company_id', '=', company.id)], limit=1)
         if not warehouse:
             raise UserError(_('La compañía requiere su bodega nativa para preparar la compra sin movimientos de stock.'))
-        order = self.env['purchase.order'].search([
+        drafts = self.env['purchase.order'].search([
             ('step_advance_proforma', '=', True), ('company_id', '=', company.id),
             ('partner_id', '=', producer), ('step_fruit_species_id', '=', species),
             ('step_fruit_period_start', '=', self.date_from), ('step_fruit_period_end', '=', self.date_to),
@@ -300,7 +318,8 @@ class PrepareAdvance(models.TransientModel):
             ('step_advance_net_due', '=', self.net_due), ('step_advance_vat_due', '=', self.vat_due),
             ('step_advance_basis', '=', self.basis), ('step_advance_cutoff', '=', cutoff),
             ('date_order', '=', fields.Datetime.to_datetime(self.proforma_date)),
-            ('step_fruit_dte_code', '=', dte), ('step_fruit_withholding_tax_id', '=', retention or False)], limit=1)
+            ('step_fruit_dte_code', '=', dte), ('step_fruit_withholding_tax_id', '=', retention or False)])
+        order = drafts.filtered(lambda draft: draft.step_advance_excluded_product_ids == self.excluded_product_ids)[:1]
         if not order:
             rate = self.pricelist_id.currency_id._convert(1, company.currency_id, company, self.proforma_date, round=False)
             order = _controlled(self.env['purchase.order']).create({
@@ -312,6 +331,7 @@ class PrepareAdvance(models.TransientModel):
                 'step_fruit_period_start': self.date_from, 'step_fruit_period_end': self.date_to,
                 'step_fruit_withholding_tax_id': retention or False,
                 'step_advance_pricelist_id': self.pricelist_id.id, 'step_advance_basis': self.basis,
+                'step_advance_excluded_product_ids': [Command.set(self.excluded_product_ids.ids)],
                 'step_advance_cutoff': cutoff,
                 'step_advance_net_due': self.net_due, 'step_advance_vat_due': self.vat_due,
                 'step_advance_source_currency_id': self.pricelist_id.currency_id.id, 'step_advance_exchange_rate': rate})
