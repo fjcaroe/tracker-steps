@@ -38,6 +38,15 @@ class ReceiptLine(models.Model):
     _inherit = 'step.packing.picking.tag.line'
     _rec_name = 'tag_number'
 
+    step_product_correction_move_ids = fields.One2many(
+        'stock.move', 'step_receipt_correction_line_id', readonly=True)
+
+    def _matching_reception_moves(self, moves):
+        self.ensure_one()
+        if self.picking_id.state == 'done' and self.step_product_correction_move_ids:
+            return moves.move_line_ids.filtered(lambda line: line.result_package_id == self.package_id).move_id
+        return super()._matching_reception_moves(moves)
+
     def write(self, values):
         if not _internal(self) and {'product_id', 'stock_lot_id'}.intersection(values) and any(
                 line.picking_id.state == 'done' and line.picking_id.step_fruit_reception_kind == 'process'

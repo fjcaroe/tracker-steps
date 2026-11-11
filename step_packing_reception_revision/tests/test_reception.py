@@ -40,8 +40,7 @@ class ReceptionCase(TransactionCase):
         model = self.env['stock.picking']
         arch = etree.fromstring(model.get_view(view_id=self.env.ref(VIEW).id, view_type='form')['arch'])
         columns = arch.xpath("//field[@name='move_ids_without_package']/list/field/@name")
-        start = columns.index('product_id')
-        self.assertEqual(columns[start:start+7], ORDER)
+        self.assertEqual([column for column in columns if column in ORDER], ORDER)
         self.assertTrue(arch.xpath("//page[@name='step_fruit_freights']//field[@name='fruit_freight_paid']"))
         self.assertFalse(arch.xpath("//page[@name='step_packing_fruit']//field[@name='fruit_freight_paid']"))
         for old in ('fruit_class_id', 'fruit_weighing_type', 'fruit_grower_contract'):

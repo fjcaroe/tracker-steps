@@ -48,6 +48,8 @@ def run_case(env, plan, phase):
     verify_rows(receipt, untouched, source, owner)
     stock_fields = ['product_id', 'quantity', 'owner_id', 'lot_id', 'location_id', 'location_dest_id', 'result_package_id']
     original = receipt.move_line_ids.read(stock_fields)
+    move_fields = ['product_id', 'quantity', 'product_uom_qty', 'product_packaging_id', 'step_fruit_packaging_qty']
+    original_moves = receipt.move_ids.read(move_fields)
     audit_domain = [('step_receipt_correction_id', '=', receipt.id)]
     moves = business['stock.move']
     if phase != 'verify':
@@ -71,6 +73,9 @@ def run_case(env, plan, phase):
     verify_rows(receipt, entries, target, owner)
     verify_rows(receipt, untouched, source, owner)
     assert receipt.move_line_ids.read(stock_fields) == original and receipt.state == 'done'
+    assert receipt.move_ids.read(move_fields) == original_moves
+    assert sum(receipt.move_ids.mapped('step_fruit_packaging_qty')) == sum(
+        item['boxes'] for item, _line in entries + untouched)
     trace = moves.search(audit_domain)
     assert len(trace) == 4 and set(trace.mapped('state')) == {'done'} and not trace.stock_valuation_layer_ids
     assert set(trace.step_receipt_correction_line_id.ids) == set(rows.ids)

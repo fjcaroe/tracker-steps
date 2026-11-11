@@ -393,6 +393,7 @@ class SimpleReceptionCase(TransactionCase):
         tags = rows.package_id
         old_lot = rows.stock_lot_id
         original = picking.move_line_ids.read(['product_id', 'quantity', 'lot_id', 'owner_id', 'result_package_id'])
+        original_containers = picking.move_ids.step_fruit_packaging_qty
         with self.assertRaises(UserError):
             rows[:1].write({'product_id': target.id})
         action = picking.with_user(manager).action_step_correct_c_product()
@@ -402,6 +403,7 @@ class SimpleReceptionCase(TransactionCase):
         wizard.action_apply()
         self.assertEqual(picking.state, 'done')
         self.assertEqual(picking.move_line_ids.read(['product_id', 'quantity', 'lot_id', 'owner_id', 'result_package_id']), original)
+        self.assertEqual(picking.move_ids.step_fruit_packaging_qty, original_containers)
         self.assertEqual(rows.package_id, tags)
         self.assertEqual(rows[:2].product_id, target)
         self.assertEqual(rows[2].product_id, self.product)
