@@ -326,7 +326,7 @@ class TestProducerAdvances(FruitProformaCase):
         self.assertEqual(quote.order_line.product_qty, 1000)
         self.assertEqual(self._advance(wizard), quote)
         self.assertFalse(excluded.step_advance_proforma_ids)
-        with self.assertRaisesRegex(UserError, 'No hay precio de anticipo'):
+        with self.assertRaisesRegex(UserError, 'QA198-IQF'):
             self._advance(unrestricted)
         self._rule(0.5, product_tmpl_id=iqf.product_tmpl_id.id)
         second = self._advance(unrestricted) - quote
