@@ -96,7 +96,7 @@
         action="step_packing.action_step_packing_caliber_group" sequence="40"/>
     <menuitem id="menu_packing_config_fruit_caliber" name="Calibre de fruta"
         parent="menu_packing_config_fruit"
-        action="step_packing.action_step_packing_fruit_caliber" sequence="50"/>
+        action="step_management_costs.action_fruit_caliber" sequence="50"/>
     <menuitem id="menu_packing_config_fruit_category" name="Categoría de fruta"
         parent="menu_packing_config_fruit"
         action="step_packing.action_step_packing_fruit_category" sequence="60"/>

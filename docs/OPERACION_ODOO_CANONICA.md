@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T199 usa `packing-output-lots` para publicar en Desarrollo, Cerro y
+QA-Cerro el menú de calibres de Packing. El acceso abre la acción del
+catálogo que ya usan las tarjas de proceso. Verificar el menú, el listado
+y la selección de un calibre existente en una tarja de prueba. Conservar
+los calibres y las relaciones de contratos e historial. Publicar el mismo
+paquete con respaldo y bloqueo, sin plan de reparación de lotes.
+
 T198 amplía `producer-advances` en Desarrollo, Cerro y QA-Cerro. El
 asistente omite los productos valorizados que se excluyan en cada
 preparación, antes de buscar tarifas y reservar kilos. Conservar las
