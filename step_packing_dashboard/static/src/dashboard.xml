@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+  <t t-name="step_packing_dashboard.Filters" t-inherit="step_packing_operations.Dashboard" t-inherit-mode="extension">
+    <xpath expr="//div[hasclass('o_packing_hero_actions')]" position="after">
+      <div class="o_packing_period_filters">
+        <div class="o_packing_period_buttons" role="group" aria-label="Período del panel">
+          <button t-foreach="[['day', 'Último día'], ['week', 'Semana'], ['month', 'Mes'], ['season', 'Temporada']]" t-as="period" t-key="period[0]"
+            type="button" t-att-class="state.filters.period === period[0] ? 'active' : ''"
+            t-att-aria-pressed="state.filters.period === period[0]" t-on-click="() => this.selectPeriod(period[0])"><t t-esc="period[1]"/></button>
+        </div>
+        <label>Desde<input type="date" t-att-value="state.filters.date_from" t-on-change="(event) => this.changeDate('date_from', event)"/></label>
+        <label>Hasta<input type="date" t-att-value="state.filters.date_to" t-on-change="(event) => this.changeDate('date_to', event)"/></label>
+        <label>Especie<select t-att-value="state.filters.species_id" t-on-change="changeSpecies">
+          <option value="">Todas las especies</option>
+          <option t-foreach="state.data?.species || []" t-as="species" t-key="species.id" t-att-value="species.id"><t t-esc="species.name"/></option>
+        </select></label>
+        <button type="button" class="o_packing_apply_filters" t-on-click="loadDashboard" t-att-disabled="state.loading">Aplicar</button>
+        <span t-if="state.data?.period_label" t-esc="state.data.period_label"/>
+      </div>
+    </xpath>
+    <xpath expr="//section[hasclass('o_packing_kpis')]" position="replace">
+      <div t-if="state.data.notice" class="alert alert-info" role="status"><t t-esc="state.data.notice"/></div>
+      <section class="o_packing_kpis o_packing_kpis_seven" aria-label="Indicadores de Packing">
+        <button t-foreach="dashboardKpis" t-as="metric" t-key="metric[0]" type="button" class="o_packing_kpi" t-on-click="() => this.openKpi(metric[0])">
+          <span t-esc="metric[1]"/>
+          <strong t-esc="formatNumber(state.data.kpis[metric[0]], metric[0] === 'open_productions' ? 0 : 2)"/>
+          <small t-esc="metric[2]"/>
+        </button>
+      </section>
+      <p class="o_packing_stock_hint">Stock actual de las tarjas del período seleccionado. Los repaletizados no duplican los kilos recibidos ni producidos.</p>
+      <p t-if="state.data.undated_shipments" class="alert alert-warning" role="status"><t t-esc="state.data.undated_shipments"/> tarjas despachadas no tienen fecha de salida comprobable y no se incluyen en kilos embarcados.</p>
+    </xpath>
+  </t>
+</templates>
