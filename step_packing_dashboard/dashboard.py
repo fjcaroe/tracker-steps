@@ -96,7 +96,8 @@ class PackingDashboard(models.Model):
             # Do not accept inaccessible company/species combinations from RPC.
             raise ValidationError(_('La especie no tiene registros visibles en esta empresa.'))
         selected_productions = productions.filtered(lambda p: selected_day(p.date)
-            and (not species_id or p.fruit_species_id.id == species_id))
+            and (not species_id or p.fruit_species_id.id == species_id
+                 or species_id in p.step_packing_input_tag_ids.especie_id.ids))
         selected_orders = orders.filtered(lambda p: selected_day(p.week_start)
             and (not species_id or species_id in p.line_ids.species_id.ids))
         cohort = tags.filtered(lambda t: selected_tag(t) and selected_day(origin_dates[t.id]))
@@ -123,7 +124,7 @@ class PackingDashboard(models.Model):
         for tag in dispatched:
             if tag.id not in dispatch_days:
                 shipments = tag.step_export_shipment_ids.filtered(
-                    lambda s: s.company_id == company and s.state in ('shipped', 'invoiced', 'settled'))
+                    lambda s: s.company_id == company and s.state in ('dispatched', 'shipped', 'invoiced', 'settled'))
                 dates = [day for day in shipments.mapped('date') if day]
                 if dates:
                     dispatch_days[tag.id] = max(dates)

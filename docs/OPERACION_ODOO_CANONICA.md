@@ -1,5 +1,16 @@
 # Operación y publicación de Odoo
 
+T201 usa `packing-dashboard` para ampliar el panel nativo en Desarrollo,
+Cerro y QA-Cerro. El paquete contiene solo `step_packing_dashboard`, sin
+modificar operaciones, existencias ni documentos. Validar los siete
+indicadores, períodos, rango manual, especie y empresa activa; comprobar
+repaletizado, consumo real y despacho en copia. Los flujos usan la fecha
+de recepción, proceso o salida. El stock muestra las tarjas actualmente
+validadas originadas en el período. No duplicar ingresos por repaletizado.
+Verificar además el panel servido, título blanco, siete tarjetas, filtros,
+lista y formulario de detalle. Conservar el comparativo independiente.
+Publicar el mismo paquete con respaldo, bloqueo y paridad.
+
 T200 amplía `agriculture-multicompany` en Desarrollo, Cerro y QA-Cerro.
 Los calibres del catálogo de Inventario permiten asignar varias empresas,
 conservando su origen, identificadores y relaciones. Su grupo se habilita

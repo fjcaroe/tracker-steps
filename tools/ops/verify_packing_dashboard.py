@@ -11,7 +11,7 @@ try:
         assert module.state == 'installed' and module.latest_version == version
         assert Path(importlib.import_module('odoo.addons.'+name).__file__).resolve().parent == Path(ROOT)/name
     scoped = scoped_business_environment(env)
-    menu = scoped.ref('step_packing_operations.menu_packing_dashboard')
+    menu = scoped.ref('step_packing_operations.menu_packing_operations_dashboard')
     assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
     assert menu.action.tag == 'step_packing_operations.dashboard'
     for model in ('step.packing.production','stock.quant.package'):
