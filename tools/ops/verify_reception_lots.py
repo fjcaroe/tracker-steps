@@ -26,7 +26,8 @@ def verify_reception_conditions(scoped, is_copy):
         view_id = dict((view_type, view) for view, view_type in action['views'])['form']
         form = etree.fromstring(model.get_view(view_id=view_id, view_type='form')['arch'])
         for name in selections:
-            node, = form.xpath("//page[@name='step_packing_fruit']//field[@name=$name]", name=name)
+            node, = form.xpath(
+                "//page[@name='step_packing_fruit']//field[@name=$name and not(ancestor::list)]", name=name)
             invisible = node.get('invisible')
             readonly = node.get('readonly')
             assert not safe_eval(invisible, {'picking_type_code': 'incoming', 'step_fruit_reception_kind': kind})
