@@ -310,6 +310,7 @@ class TestProducerAdvances(FruitProformaCase):
             'is_storable': True, 'categ_id': self.category.id,
             'uom_id': self.base.uom_id.id, 'uom_po_id': self.base.uom_id.id,
             'property_account_expense_id': self.expense.id,
+            'supplier_taxes_id': [Command.set(self.vat.ids)],
         })
 
     def test_received_exclusion_preserves_unpriced_sources_and_the_selected_draft(self):
