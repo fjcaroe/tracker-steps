@@ -18,10 +18,14 @@
             <field name="file" filename="filename"/>
             <field name="filename" invisible="1"/>
             <field name="reviewed" invisible="1"/>
+            <field name="has_commercial" invisible="1"/>
+            <field name="weight_category_id" invisible="1"/>
           </group>
         </group>
         <group invisible="not reviewed">
           <field name="preview" nolabel="1"/>
+          <field name="commercial_product_id" invisible="not has_commercial" required="has_commercial"
+                 options="{'no_create': True}"/>
         </group>
         <field name="mapping_ids" invisible="not reviewed">
           <list editable="bottom" create="0" delete="0">

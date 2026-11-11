@@ -68,7 +68,11 @@ try:
         assert arch.xpath("//field[@name='mapping_ids']") and arch.xpath("//button[@name='action_import']")
         ot = scoped['step.packing.production']
         ot_view = scoped.ref('step_packing_operations.view_packing_production_form')
-        assert 'step_external_process_folio' in ot.get_view(view_id=ot_view.id, view_type='form')['arch']
+        ot_arch = etree.fromstring(ot.get_view(view_id=ot_view.id, view_type='form')['arch'])
+        assert ot_arch.xpath("//field[@name='step_external_process_folio']")
+        if installed_version >= (18, 0, 1, 2, 2):
+            assert arch.xpath("//field[@name='commercial_product_id']")
+            assert ot_arch.xpath("//field[@name='step_packing_overweight_kg']")
         print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 193, 'version': version,
               'process_menu': True, 'reception_templates': True, 'operator': scoped.uid}))
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 189, 'version': version, 'menu': True, 'wizard': True,

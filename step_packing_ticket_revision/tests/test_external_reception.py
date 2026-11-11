@@ -174,13 +174,13 @@ class ExternalReceiptCase(TransactionCase):
         process.append(['FRUTA PROCESADA'])
         process.append(['Nº OP', 'Nº GUÍA', 'Nº LOTE', 'LINEA OP', 'PRODUCTOR', 'ESPECIE', 'VARIEDAD',
                         'CONCEPTO FRUTA', 'KILOS', 'CANT BANDEJAS'])
-        process.append([5, 'QA189-GUIA', 'QA189-TARJA-1', 1, 'Alias externo productor', species.name,
+        process.append(['QA193-OP5', 'QA189-GUIA', 'QA189-TARJA-1', 1, 'Alias externo productor', species.name,
                         varieties[0].name, 'CONVENCIONAL', 20.5, 10])
         process.append(['FRUTA EMBALADA'])
         process.append(['Nº OP', 'FOLIO PALLET', 'F.EMBALAJE', 'LINEA', 'PRODUCTOR', 'ESPECIE', 'VARIEDAD',
                         'CONCEPTO FRUTA', 'EMBALAJE', 'TIPO', 'CANT CAJAS', 'KG EMBALADO', 'KG DE EXPORTACIÓN',
                         'CALIBRE', 'REFERENCIA'])
-        process.append([5, 'T193-PALLET', '2026-11-07', 1, 'Alias externo productor', species.name,
+        process.append(['QA193-OP5', 'T193-PALLET', '2026-11-07', 1, 'Alias externo productor', species.name,
                         varieties[0].name, 'CONVENCIONAL', 'Caja externa', 'PALLET', 8, 18, 18.36,
                         caliber.name, 'Cliente externo'])
         stream = BytesIO()
@@ -189,20 +189,56 @@ class ExternalReceiptCase(TransactionCase):
                   'file': base64.b64encode(stream.getvalue()), 'filename': 'process.xlsx', 'template_id': template.id}
         process_wizard = self.env['step.external.packing.process.import'].create(values)
         process_wizard.action_review()
+        self.assertFalse(process_wizard.has_commercial)
+        process.append(['FRUTA IQF / MERMAS / BAJO CALIBRE'])
+        process.append(['TIPO', None, 'Nº OP', 'LINEA', 'ESPECIE', 'VARIEDAD', 'PRODUCTOR',
+                        None, 'Nº BANDEJAS', 'KG BRUTO', 'KG NETO'])
+        process.append([5, None, 'QA193-OP5', 1, species.name, varieties[0].name, 'Alias externo productor',
+                        None, 2, 1.2, 0.75])
+        process.append([5, None, 'QA193-OP5', 1, species.name, varieties[0].name, 'Alias externo productor',
+                        None, 1, 0.6, 0.25])
+        process.append([None] * 6 + ['>>> TOTAL GENERAL:', None, 3, 1.8, 1])
+        process.append([None] * 4 + ['RENDIMIENTO', None, 'ITEM', 'DESCRIPCIÓN', None, 'KILOS', '% RENDIMIENTO'])
+        process.append([None] * 6 + [4, 'EXCEDENTE DE FRUTA POR DESHIDRATACIÓN', None, 0.36])
+        process.append([None] * 6 + [5, 'SOBRE PESO', None, 0.14])
+        stream = BytesIO()
+        process_book.save(stream)
+        values['file'] = base64.b64encode(stream.getvalue())
+        process_wizard.file = values['file']
+        process_wizard.action_review()
+        self.assertTrue(process_wizard.has_commercial)
         process_wizard.mapping_ids.filtered(lambda line: line.kind == 'packaging').packaging_id = export_packaging
+        with self.assertRaises(UserError), self.cr.savepoint():
+            process_wizard.action_import()
+        commercial_product = self.env['product.product'].create({
+            'name': 'QA T193 Comercial IQF', 'is_storable': True,
+            'uom_id': kg.id, 'uom_po_id': kg.id, 'tracking': 'lot',
+        })
+        process_wizard.commercial_product_id = commercial_product
         process_wizard.action_import()
-        order = self.env['step.packing.production'].search([('step_external_process_folio', '=', '5'),
+        order = self.env['step.packing.production'].search([('step_external_process_folio', '=', 'QA193-OP5'),
                                                             ('packing_partner_id', '=', packing.id)])
         self.assertEqual(order.state, 'created')
         self.assertEqual(order.step_packing_input_tag_ids, lines[0].package_id)
-        output = order.step_packing_output_tag_ids
+        output = order.step_packing_output_tag_ids.filtered(lambda tag: tag.step_tag_kind == 'E')
         self.assertEqual(output.name, 'T193-PALLET')
         self.assertEqual(output.step_tag_line_ids.boxes, 8)
         self.assertEqual(output.step_tag_line_ids.kilos, 18)
         self.assertEqual(output.step_external_pallet_export_kg, 18.36)
         self.assertFalse(output.quant_ids)
+        commercial = order.step_packing_output_tag_ids.filtered(lambda tag: tag.step_tag_kind == 'N')
+        self.assertEqual(commercial.name, 'QA193-OP5')
+        self.assertEqual(commercial.step_packing_result, 'commercial')
+        self.assertEqual(commercial.step_tag_line_ids.product_id, commercial_product)
+        self.assertEqual(commercial.step_tag_line_ids.boxes, 3)
+        self.assertEqual(commercial.step_tag_line_ids.quantity, 1)
+        self.assertEqual(commercial.step_tag_line_ids.kilos, 1)
+        self.assertFalse(commercial.quant_ids)
         self.assertEqual(order.step_packing_input_kg, 20.5)
-        another_process = process_wizard.copy(values)
+        self.assertEqual(order.step_packing_commercial_kg, 1)
+        self.assertEqual(order.step_packing_overweight_kg, 0.5)
+        self.assertEqual(order.step_packing_loss_kg, 1)
+        another_process = process_wizard.copy(dict(values, commercial_product_id=commercial_product.id))
         another_process.action_review()
         self.assertEqual(another_process.mapping_ids.packaging_id, export_packaging)
         with self.assertRaises(UserError), self.cr.savepoint():
