@@ -648,6 +648,7 @@ def main():
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         MODULES += ('step_packing_interplant',)
         BUSINESS += ('step_dispatch_guide', 'stock_picking', 'stock_move_line', 'stock_quant')
+        BUSINESS += ('step_export_export', 'step_dispatch_guide_step_export_export_rel')
     if args.with_master_access:
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         MODULES += ('step_application_profiles',)

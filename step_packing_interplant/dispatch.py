@@ -11,7 +11,8 @@ _INTERNAL = object()
 class DispatchType(models.Model):
     _inherit = 'step.freight.dispatch.type'
     step_recipient_kind = fields.Selection([('customer', 'Cliente'), ('producer', 'Productor'),
-        ('interplant', 'Empresa / sucursal relacionada')], string='Tipo de destinatario')
+        ('interplant', 'Empresa / sucursal relacionada'), ('shipment', 'Contacto de exportación')],
+        string='Tipo de destinatario')
 
 
 class Guide(models.Model):
@@ -34,7 +35,8 @@ class Guide(models.Model):
             guide.step_recipient_domain = ([('id', 'in',
                 (branch_companies(self.env, guide.company_id) - guide.company_id).partner_id.ids)]
                 if kind == 'interplant' else [('customer_rank', '>', 0)] if kind == 'customer'
-                else [('is_productor', '=', True)] if kind == 'producer' else [])
+                else [('is_productor', '=', True)] if kind == 'producer'
+                else [('step_export', '=', True)] if kind == 'shipment' else [])
 
     @api.depends('partner_id', 'dispatch_type_id', 'company_id')
     def _compute_destination(self):
@@ -149,6 +151,9 @@ class Guide(models.Model):
                 if guide.state == 'confirmed':
                     continue
                 guide._check_recipient()
+                if guide.step_recipient_kind == 'shipment':
+                    scoped = guide._with_shipment_companies()
+                    scoped._validated_shipment(guide.step_export_shipment_id.id)
                 guide._validate_load()
                 if guide.load_tag_ids and not guide.dispatch_instruction_id:
                     guide._check_pallet_detail()

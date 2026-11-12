@@ -1,0 +1,47 @@
+<odoo>
+    <record id="shipment_dispatch_guide_form" model="ir.ui.view">
+        <field name="name">step.dispatch.guide.shipment.scope</field>
+        <field name="model">step.dispatch.guide</field>
+        <field name="inherit_id" ref="step_packing_interplant.guide_form"/>
+        <field name="arch" type="xml">
+            <field name="step_export_shipment_id" position="before">
+                <field name="step_shipment_company_id" invisible="1"/>
+            </field>
+            <field name="step_export_shipment_id" position="attributes">
+                <attribute name="domain">([('company_id', '=', step_shipment_company_id), ('state', '=', 'validated')] if step_shipment_company_id else [('id', '=', 0)]) if step_recipient_kind == 'shipment' else [('company_id', '=', company_id)]</attribute>
+                <attribute name="context">{'allowed_company_ids': [step_shipment_company_id]} if step_recipient_kind == 'shipment' and step_shipment_company_id else {}</attribute>
+                <attribute name="readonly">step_recipient_kind == 'shipment' and state != 'draft'</attribute>
+            </field>
+        </field>
+    </record>
+    <record id="shipment_branch_dispatches" model="ir.ui.view">
+        <field name="name">step.export.export.dispatch.branches</field>
+        <field name="model">step.export.export</field>
+        <field name="inherit_id" ref="step_export_branch_consolidation.shipment_branch_sources"/>
+        <field name="arch" type="xml">
+            <field name="dispatch_guide_ids" position="attributes">
+                <attribute name="widget"/>
+                <attribute name="options">{'no_create': True}</attribute>
+            </field>
+            <field name="dispatch_guide_ids" position="inside">
+                <list default_order="date desc,id desc">
+                    <field name="name"/>
+                    <field name="external_folio"/>
+                    <field name="company_id" string="Sucursal del despacho"/>
+                    <field name="date"/>
+                    <field name="state"/>
+                </list>
+            </field>
+        </field>
+    </record>
+    <record id="shipment_packing_list_branch" model="ir.ui.view">
+        <field name="name">step.export.packing.list.dispatch.branch</field>
+        <field name="model">step.export.packing.list</field>
+        <field name="inherit_id" ref="step_export.view_export_packing_list_list"/>
+        <field name="arch" type="xml">
+            <field name="guide_id" position="after">
+                <field name="step_dispatch_branch_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

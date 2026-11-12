@@ -1,5 +1,15 @@
 # Operación y publicación de Odoo
 
+T212 amplía `reception-excel --with-interplant` en Desarrollo, Cerro y QA-Cerro.
+En Packing → Despacho → Despacho, el tipo Embarque ofrece contactos marcados
+para Exportación y embarques validados de la matriz autorizada del usuario.
+Conservar la compañía de origen de la guía y el vínculo nativo con el embarque.
+Mostrar la sucursal en Tarjas y despachos, tanto en las guías como en los
+Packing Lists. Reutilizar el tipo Embarque y habilitarlo en las sucursales
+de la misma empresa cuando su asignación existente esté acotada a ella.
+Probar selector, guardado y confirmación en copia, sin confirmar o reasignar
+guías existentes durante la publicación.
+
 T211 amplía `agriculture-multicompany` en Desarrollo, Cerro y QA-Cerro.
 Grupo del contacto relaciona contactos existentes. La pestaña Productor
 permite seleccionar otro productor visible de una compañía compatible,

@@ -1,4 +1,4 @@
-from odoo import _
+from odoo import _, Command
 from odoo.exceptions import ValidationError
 
 
@@ -23,6 +23,26 @@ def preserve_legacy_tag_companies(env):
     env.flush_all()
 
 
+def configure_shipment_dispatch_types(env):
+    dispatch_types = env['step.freight.dispatch.type'].with_context(active_test=False)
+    named = dispatch_types.search([('name', '=ilike', 'Embarque')])
+    if not named and not dispatch_types.search_count([('step_recipient_kind', '=', 'shipment')], limit=1):
+        company = env.ref('base.main_company')
+        named = dispatch_types.create({'name': 'Embarque', 'company_id': company.id,
+            'company_ids': [Command.set(company.ids)], 'step_recipient_kind': 'shipment'})
+    for dispatch_type in named.filtered(lambda record: record.active and record.step_recipient_kind in (False, 'customer', 'shipment')):
+        values = {'step_recipient_kind': 'shipment'}
+        company = dispatch_type.company_id
+        assigned = dispatch_type.company_ids
+        if assigned and assigned.root_id == company.root_id:
+            same_group = env['res.company'].search([('id', 'child_of', company.root_id.id)])
+            missing = same_group - assigned
+            if missing:
+                values['company_ids'] = [Command.link(branch.id) for branch in missing]
+        if dispatch_type.step_recipient_kind != 'shipment' or 'company_ids' in values:
+            dispatch_type.write(values)
+
+
 def post_init_hook(env):
     preserve_legacy_tag_companies(env)
     mapping = {'Despacho a cliente': 'customer', 'Retira cliente': 'customer',
@@ -36,3 +56,4 @@ def post_init_hook(env):
             env.cr.execute('UPDATE step_freight_dispatch_type SET step_recipient_kind=%s WHERE id IN %s',
                 [kind, tuple(records.ids)])
             records.invalidate_recordset(['step_recipient_kind'])
+    configure_shipment_dispatch_types(env)

@@ -130,6 +130,70 @@ class InterplantCase(DispatchCase):
         self.assertEqual(receipt.state, 'done')
         self.assertEqual(receipt.step_interplant_tag_ids.quant_ids.owner_id, self.producer)
         self.assertEqual(sum(receipt.step_interplant_tag_ids.quant_ids.mapped('quantity')), 10)
+
+    def test_branch_dispatch_uses_only_validated_matrix_shipments(self):
+        self.interplant_fixture()
+        matrix = self.env.company
+        branch = self.branch
+        branch.dispatch_dte_provider = 'third_party'
+        self.receiver.step_export = True
+        self.shipment.state = 'validated'
+        shipments = self.env['step.export.export']
+        draft, local = shipments.create([
+            {'name': 'QA212 matrix draft', 'company_id': matrix.id, 'shipment_number': 'QA212-DRAFT'},
+            {'name': 'QA212 branch validated', 'company_id': branch.id,
+             'shipment_number': 'QA212-BRANCH', 'state': 'validated'},
+        ])
+        kind = self.env['step.freight.dispatch.type'].create({
+            'name': 'QA212 shipment type', 'company_id': branch.id,
+            'company_ids': [Command.set(branch.ids)], 'step_recipient_kind': 'shipment',
+        })
+        operator = self.env['res.users'].with_context(no_reset_password=True).create({
+            'name': 'QA212 branch dispatcher', 'login': 'qa212-branch',
+            'company_id': branch.id, 'company_ids': [Command.set((branch | matrix).ids)],
+            'groups_id': [Command.set([self.env.ref('stock.group_stock_user').id])],
+        })
+        guides = self.env['step.dispatch.guide'].with_user(operator).with_context(allowed_company_ids=branch.ids)
+        guide = guides.create({
+            'external_folio': 'QA212', 'dispatch_type_id': kind.id,
+            'partner_id': self.receiver.id, 'carrier_id': self.receiver.id, 'driver_partner_id': self.driver.id,
+            'origin_address': 'QA branch', 'destination_address': 'QA port', 'truck_plate': 'QA2120',
+            'transfer_reason_id': self.env['step.dispatch.transfer.reason'].search([], limit=1).id,
+            'line_ids': [Command.create({'product_id': self.product.id, 'description': self.product.name,
+                'product_uom_id': self.product.uom_id.id, 'quantity': 10, 'quantity_kg': 50})],
+        })
+        view = etree.fromstring(guides.get_view(view_type='form')['arch'])
+        field, = view.xpath("//field[@name='step_export_shipment_id']")
+        values = {'step_recipient_kind': 'shipment', 'company_id': branch.id,
+                  'step_shipment_company_id': guide.step_shipment_company_id.id}
+        domain = safe_eval(field.get('domain'), values)
+        context = safe_eval(field.get('context'), values)
+        self.assertEqual(context['allowed_company_ids'], matrix.ids)
+        choices = guides.env[shipments._name].with_context(**context).name_search(args=domain, limit=0)
+        self.assertIn(self.shipment.id, {choice[0] for choice in choices})
+        self.assertFalse({draft.id, local.id} & {choice[0] for choice in choices})
+        self.assertIn(self.receiver, guides.env['res.partner'].search(guide.step_recipient_domain))
+        self.assertNotIn(self.producer, guides.env['res.partner'].search(guide.step_recipient_domain))
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            guide.partner_id = self.producer
+        for unavailable in (draft, local):
+            with self.assertRaises(ValidationError), self.cr.savepoint():
+                guide.step_export_shipment_id = unavailable
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            guide.action_confirm()
+        spec = {'step_export_shipment_id': {'fields': {'display_name': {}}}}
+        saved, = guide.web_save({'step_export_shipment_id': self.shipment.id}, spec)
+        self.assertEqual(saved['step_export_shipment_id']['id'], self.shipment.id)
+        self.assertEqual(self.shipment.dispatch_guide_ids, guide)
+        self.assertEqual(guide.company_id, branch)
+        self.assertEqual(guides.env.companies, branch)
+        guide.action_confirm()
+        self.assertEqual(guide.state, 'confirmed')
+        self.assertEqual(self.shipment.dispatch_guide_ids, guide)
+        self.assertEqual(guide.step_export_shipment_id, self.shipment)
+        self.assertEqual(operator.company_ids, branch | matrix)
+        matrix_view = etree.fromstring(shipments.get_view(view_type='form')['arch'])
+        self.assertTrue(matrix_view.xpath("//field[@name='dispatch_guide_ids']/list/field[@name='company_id']"))
         self.assertFalse(receipt.move_ids.stock_valuation_layer_ids)
 
     def test_customer_and_producer_domains_and_unrelated_destination(self):
