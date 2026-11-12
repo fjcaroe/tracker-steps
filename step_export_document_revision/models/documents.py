@@ -101,7 +101,7 @@ class OrderLine(models.Model):
         compute='_compute_document_packaging', store=True, precompute=True,
         help='Peso del embalaje al seleccionarlo; conserva el precio acordado ante cambios posteriores del maestro.')
 
-    @api.depends('product_id', 'product_uom_qty', 'product_uom', 'order_id.step_box_pricing')
+    @api.depends('product_id', 'product_uom_qty', 'product_uom')
     def _compute_product_packaging_id(self):
         box_lines = self.filtered(lambda line: line.order_id.step_box_pricing)
         super(OrderLine, self - box_lines)._compute_product_packaging_id()
