@@ -14,6 +14,11 @@ reproducción de la guía reportada mediante `run_interplant_draft_probe.py`
 en una copia certificada de Cerro, siempre revertida. No confirmar una guía
 real del cliente como prueba. Publicar y verificar el mismo paquete en
 Desarrollo, Cerro y QA-Cerro, con respaldo y aislamiento intactos.
+Si QA-Cerro aún no tiene el tipo nativo de traslado, usar
+`configure_interplant_qa_type.py` con las dos plantas autorizadas: exige
+prueba revertida en su copia, respaldo nuevo y conservación de guías y stock.
+La revisión visual de guías nuevas espera cada respuesta de cálculo antes
+de continuar y comprueba la propuesta automática del almacén único.
 
 
 T207–T208 se entregan con `reception-excel --with-interplant` en Desarrollo,
