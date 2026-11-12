@@ -107,3 +107,45 @@ class TestNursery(TransactionCase):
         for model in ("step.nursery.plan", "step.nursery.cycle", "stock.lot", "mrp.production"):
             self.assertTrue(self.env[model].get_view(view_type="form")["arch"])
         self.assertTrue(self.env.ref("step_nursery_operations.menu_nursery_plan").action)
+
+    def test_sales_schedule_uses_four_native_pickings(self):
+        plan = self._plan(quantity=100000)
+        line = plan.sale_line_id
+        for day in range(4):
+            self.env["step.nursery.delivery"].create({
+                "line_id": line.id, "quantity": 25000, "delivery_at": self.delivery + timedelta(weeks=day),
+            })
+        line.order_id.action_confirm()
+        moves = line.move_ids.filtered(lambda m: m.location_dest_id.usage == "customer")
+        self.assertEqual(len(moves.picking_id), 4)
+        self.assertEqual(moves.picking_id, line.order_id.picking_ids)
+        self.assertEqual(sorted(moves.mapped("date_deadline")),
+                         [self.delivery + timedelta(weeks=day) for day in range(4)])
+        self.assertEqual(sum(moves.mapped("product_uom_qty")), 100000)
+
+    def test_partial_return_reduces_tray_loan_from_native_moves(self):
+        custody = self.env["stock.location"].create({
+            "name": "QA Custodia fuera del origen", "company_id": self.company.id,
+            "location_id": self.warehouse.view_location_id.id, "usage": "internal",
+        })
+        self.env["stock.quant"]._update_available_quantity(self.tray, self.warehouse.lot_stock_id, 10)
+        loan = self.env["step.nursery.tray.loan"].create({
+            "partner_id": self.customer.id, "product_id": self.tray.id, "quantity": 10,
+            "due_date": self.delivery.date(), "transfer_type_id": self.warehouse.int_type_id.id,
+            "origin_id": self.warehouse.lot_stock_id.id, "custody_id": custody.id,
+        })
+        loan.action_create_dispatch()
+        picking = loan.dispatch_id
+        picking.action_assign()
+        picking.move_ids.picked = True
+        picking.button_validate()
+        self.assertEqual((loan.quantity_out, loan.quantity_pending), (10, 10))
+        self.assertEqual(loan.action_create_dispatch()["res_id"], picking.id)
+        form = loan.action_return_trays()
+        wizard = self.env["stock.return.picking"].with_context(**form["context"]).create({})
+        wizard.product_return_moves.quantity = 3
+        returned = self.env["stock.picking"].browse(wizard.action_create_returns()["res_id"])
+        returned.action_assign()
+        returned.move_ids.picked = True
+        returned.button_validate()
+        self.assertEqual((loan.quantity_returned, loan.quantity_pending), (3, 7))

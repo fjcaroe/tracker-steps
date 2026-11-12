@@ -1,0 +1,75 @@
+<odoo>
+    <record id="view_nursery_sale_order" model="ir.ui.view">
+        <field name="name">sale.order.form.nursery.deliveries</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='order_line']/form//field[@name='product_uom_qty']" position="after">
+                <field name="step_nursery_delivery_ids" readonly="parent.state not in ['draft', 'sent']">
+                    <list editable="bottom">
+                        <field name="delivery_at"/><field name="quantity"/><field name="uom_id"/>
+                    </list>
+                </field>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_nursery_tray_loan_list" model="ir.ui.view">
+        <field name="name">step.nursery.tray.loan.list</field>
+        <field name="model">step.nursery.tray.loan</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="overdue">
+                <field name="partner_id"/><field name="product_id"/><field name="due_date"/>
+                <field name="quantity_out"/><field name="quantity_returned"/><field name="quantity_pending"/>
+                <field name="overdue"/><field name="shipment_id"/><field name="dispatch_id"/><field name="invoice_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_nursery_tray_loan_form" model="ir.ui.view">
+        <field name="name">step.nursery.tray.loan.form</field>
+        <field name="model">step.nursery.tray.loan</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_create_dispatch" type="object" string="Preparar traslado" class="oe_highlight" invisible="dispatch_id"/>
+                    <button name="action_return_trays" type="object" string="Registrar devolución" invisible="not quantity_pending"/>
+                    <button name="action_draft_charge" type="object" string="Preparar cobro"
+                            groups="account.group_account_invoice" invisible="not overdue or invoice_id"/>
+                </header>
+                <sheet>
+                    <group><group string="Préstamo">
+                        <field name="company_id" groups="base.group_multi_company" readonly="dispatch_id"/>
+                        <field name="partner_id" readonly="dispatch_id"/><field name="product_id" readonly="dispatch_id"/>
+                        <field name="quantity" readonly="dispatch_id"/><field name="due_date" readonly="invoice_id"/>
+                        <field name="shipment_id" readonly="dispatch_id"/>
+                    </group><group string="Traslado">
+                        <field name="transfer_type_id" readonly="dispatch_id" domain="[('code', '=', 'internal')]"/>
+                        <field name="origin_id" readonly="dispatch_id" domain="[('usage', '=', 'internal')]"/>
+                        <field name="custody_id" readonly="dispatch_id" domain="[('usage', '=', 'internal')]"/>
+                        <field name="dispatch_id"/>
+                    </group></group>
+                    <group><group string="Saldo">
+                        <field name="quantity_out"/><field name="quantity_returned"/><field name="quantity_pending"/><field name="overdue"/>
+                    </group><group string="Cobro">
+                        <field name="charge_product_id" readonly="invoice_id" domain="[('type', '=', 'service')]"/>
+                        <field name="currency_id" invisible="1"/><field name="charge_price" readonly="invoice_id"/>
+                        <field name="invoice_id"/>
+                    </group></group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_nursery_tray_loans" model="ir.actions.act_window">
+        <field name="name">Préstamos de bandejas</field><field name="res_model">step.nursery.tray.loan</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <menuitem id="menu_nursery_tray_loan" name="Bandejas prestadas" parent="menu_nursery_root"
+              action="action_nursery_tray_loans" sequence="25"/>
+    <record id="cron_nursery_overdue_trays" model="ir.cron">
+        <field name="name">Vivero: preparar cobro por bandejas vencidas</field>
+        <field name="model_id" ref="model_step_nursery_tray_loan"/>
+        <field name="state">code</field><field name="code">model._cron_draft_overdue_charges()</field>
+        <field name="interval_number">1</field><field name="interval_type">days</field>
+        <field name="active" eval="False"/>
+    </record>
+</odoo>

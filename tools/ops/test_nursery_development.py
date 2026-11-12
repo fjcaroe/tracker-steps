@@ -45,7 +45,8 @@ def check(run_id):
     role = cfg["options"]["db_user"]
     cfg["options"].update({"db_name": db, "dbfilter": "^" + db + "$", "db_host": "127.0.0.1",
                            "data_dir": str(data), "workers": "0", "max_cron_threads": "0",
-                           "list_db": "False", "proxy_mode": "False"})
+                           "list_db": "False", "proxy_mode": "False",
+                           "http_interface": "127.0.0.1", "http_port": "0"})
     put_overlay(cfg, stage_addons)
     conf = stage / "copy.conf"
     write_config(cfg, conf)

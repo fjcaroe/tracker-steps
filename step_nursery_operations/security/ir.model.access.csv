@@ -7,3 +7,6 @@ access_nursery_slot_user,nursery.slot.user,model_step_nursery_slot,group_nursery
 access_nursery_slot_manager,nursery.slot.manager,model_step_nursery_slot,group_nursery_manager,1,1,1,1
 access_nursery_event_user,nursery.event.user,model_step_nursery_event,group_nursery_operator,1,1,1,0
 access_nursery_event_manager,nursery.event.manager,model_step_nursery_event,group_nursery_manager,1,1,1,1
+access_nursery_delivery_sales,nursery.delivery.sales,model_step_nursery_delivery,sales_team.group_sale_salesman,1,1,1,1
+access_nursery_tray_loan_user,nursery.tray.loan.user,model_step_nursery_tray_loan,group_nursery_operator,1,1,1,0
+access_nursery_tray_loan_manager,nursery.tray.loan.manager,model_step_nursery_tray_loan,group_nursery_manager,1,1,1,1
