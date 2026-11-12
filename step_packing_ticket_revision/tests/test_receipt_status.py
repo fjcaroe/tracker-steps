@@ -26,3 +26,4 @@ class ReceiptStatusCase(TransactionCase):
             self.assertIn(('picking_id.step_has_fruit_return', '=', False), safe_eval(report.domain))
             action = self.env.ref('step_inventory_packing.action_steps_fruit_' + suffix + '_reception')
             self.assertEqual(safe_eval(action.context)['search_default_fruit_current'], 1)
+            self.assertIn(('step_has_fruit_return', '=', False), safe_eval(action.domain))

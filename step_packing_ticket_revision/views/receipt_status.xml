@@ -5,14 +5,16 @@
     <field name="arch" type="xml"><xpath expr="//search" position="inside">
       <separator/>
       <filter name="fruit_current" string="Recepciones vigentes" domain="[('step_has_fruit_return','=',False)]"/>
-      <filter name="fruit_returned" string="Recepciones con devolución" domain="[('step_has_fruit_return','=',True)]"/>
+      <filter name="fruit_returned" string="Recepciones con devolución" invisible="context.get('packing_current_receipts')" domain="[('step_has_fruit_return','=',True)]"/>
     </xpath></field>
   </record>
   <record id="step_inventory_packing.action_steps_fruit_process_reception" model="ir.actions.act_window">
-    <field name="context">{'default_step_fruit_reception_kind':'process','restricted_picking_type_code':'incoming','search_default_fruit_current':1}</field>
+    <field name="domain">[('picking_type_code','=','incoming'),('step_fruit_reception_kind','=','process'),('step_has_fruit_return','=',False)]</field>
+    <field name="context">{'default_step_fruit_reception_kind':'process','restricted_picking_type_code':'incoming','search_default_fruit_current':1,'packing_current_receipts':True}</field>
   </record>
   <record id="step_inventory_packing.action_steps_fruit_packed_reception" model="ir.actions.act_window">
-    <field name="context">{'default_step_fruit_reception_kind':'packed','restricted_picking_type_code':'incoming','search_default_fruit_current':1}</field>
+    <field name="domain">[('picking_type_code','=','incoming'),('step_fruit_reception_kind','=','packed'),('step_has_fruit_return','=',False)]</field>
+    <field name="context">{'default_step_fruit_reception_kind':'packed','restricted_picking_type_code':'incoming','search_default_fruit_current':1,'packing_current_receipts':True}</field>
   </record>
   <record id="step_producer_fruit_reports.action_process" model="ir.actions.act_window">
     <field name="domain">[('reception_kind','=','process'),('picking_id.step_has_fruit_return','=',False)]</field>

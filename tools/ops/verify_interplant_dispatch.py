@@ -31,6 +31,7 @@ for suffix in ('process', 'packed'):
     assert not scoped[action.res_model].search(domain + [('picking_id', 'in', returned.ids)])
     receipt_action = scoped.ref('step_inventory_packing.action_steps_fruit_' + suffix + '_reception')
     assert safe_eval(receipt_action.context)['search_default_fruit_current'] == 1
+    assert ('step_has_fruit_return', '=', False) in safe_eval(receipt_action.domain)
 print('INTERPLANT_REGISTRY_OK ' + json.dumps({'version': module.latest_version,
     'native_form_menu_selector': True, 'pending_receipt_form': True, 'returned_receipts_excluded': len(returned)}))
 
