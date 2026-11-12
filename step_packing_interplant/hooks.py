@@ -30,6 +30,9 @@ def configure_shipment_dispatch_types(env):
         company = env.ref('base.main_company')
         named = dispatch_types.create({'name': 'Embarque', 'company_id': company.id,
             'company_ids': [Command.set(company.ids)], 'step_recipient_kind': 'shipment'})
+        env['ir.model.data'].create({'module': 'step_packing_interplant',
+            'name': 'default_shipment_dispatch_type', 'model': named._name,
+            'res_id': named.id, 'noupdate': True})
     for dispatch_type in named.filtered(lambda record: record.active and record.step_recipient_kind in (False, 'customer', 'shipment')):
         values = {'step_recipient_kind': 'shipment'}
         company = dispatch_type.company_id

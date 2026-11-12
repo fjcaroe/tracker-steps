@@ -21,6 +21,12 @@ def verify_shipment_dispatch(env, scoped):
     assert packing_arch.xpath("//field[@name='step_dispatch_branch_id']")
     active = shipments.search_count([('company_id', '=', matrix.id), ('state', '=', 'validated')])
     assert scoped['step.freight.dispatch.type'].search_count([('step_recipient_kind', '=', 'shipment')])
+    for kind in env['step.freight.dispatch.type'].search([('name', '=ilike', 'Embarque'),
+            ('step_recipient_kind', '=', 'shipment')]):
+        source = kind.company_id.root_id
+        if kind.company_ids and kind.company_ids.root_id == source:
+            holding = env['res.company'].search([('id', 'child_of', source.id)])
+            assert not (holding - kind.company_ids), 'An existing dispatch type is missing an authorized branch'
     print('T212_REGISTRY_OK ' + json.dumps({'menu': True, 'guide_form': True,
         'branch_column_in_guides_and_packing_lists': True, 'validated_matrix_shipments': active}))
     if not env.cr.dbname.startswith('MANAGEMENT_QA_QA-CERRO_'):

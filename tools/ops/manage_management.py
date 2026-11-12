@@ -288,6 +288,10 @@ def snapshot(database):
             if MODULES == ('step_export',) and EXPORT_PORT_ADDITIONS and table == 'step_export_export':
                 row = "(to_jsonb(t)-ARRAY['origin_port_id','destination_port_id'])"
             condition = " WHERE key <> 'web.base.url'" if (SETTINGS or PRODUCERS) and table == 'ir_config_parameter' else ''
+            if 'step_packing_interplant' in MODULES and table in (
+                    'step_freight_dispatch_type', 'step_freight_dispatch_type_company_rel'):
+                from shipment_dispatch_snapshot import snapshot_dispatch_type
+                row, condition = snapshot_dispatch_type(table, row)
             if TICKET_REVISION == 'packing-stock':
                 from packing_stock_setup import snapshot_filter
                 row, condition = snapshot_filter(table, row, PACKING_CONFIG_LIMITS, PACKING_INACTIVE_TYPES)
