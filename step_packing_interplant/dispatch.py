@@ -258,8 +258,11 @@ class Guide(models.Model):
                 if line.lot_id.id not in lots:
                     existing = scoped.env['stock.lot'].search([('name', '=', line.lot_id.name),
                         ('product_id', '=', product.id), ('company_id', '=', company.id)])
-                    if existing and (len(existing) != 1 or existing.step_interplant_origin_lot_id != line.lot_id):
-                        raise UserError(_('El lote %s ya existe en destino con otro origen; revise su trazabilidad.', line.lot_id.name))
+                    if len(existing) > 1:
+                        raise UserError(_('Hay varios lotes %s para el mismo producto y planta; revise el maestro.', line.lot_id.name))
+                    # Odoo identifies a lot by code, product and company. Reuse that
+                    # native identity on repeat arrivals/returns. Each movement keeps
+                    # its immutable source line; never rewrite the lot's first origin.
                     lots[line.lot_id.id] = existing or scoped.env['stock.lot'].create({'name': line.lot_id.name,
                         'product_id': product.id, 'company_id': company.id, 'step_interplant_origin_lot_id': line.lot_id.id})
                 lot = lots[line.lot_id.id]

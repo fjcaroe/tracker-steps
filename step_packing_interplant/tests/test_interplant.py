@@ -249,3 +249,53 @@ class InterplantCase(DispatchCase):
         self.assertFalse(scoped._destination_warehouses())
         with self.assertRaises(ValidationError), self.cr.savepoint():
             scoped._check_recipient()
+
+
+    def test_existing_native_destination_lot_and_return_keep_both_move_origins(self):
+        self.interplant_fixture()
+        source = self.env.company
+        self.product.tracking = 'lot'
+        original_lot = self.env['stock.lot'].create({'name':'QA209-EXISTING',
+            'product_id':self.product.id,'company_id':source.id})
+        existing_lot = self.env['stock.lot'].with_company(self.branch).create({'name':original_lot.name,
+            'product_id':self.product.id,'company_id':self.branch.id})
+        tag = self.env['stock.quant.package'].create({'name':'QA209-REUSE','is_fruit_tag':True,
+            'step_tag_kind':'C','step_producer_id':self.producer.id,'box_count':10,
+            'step_packaging_id':self.packaging.id,'especie_id':self.species.id,
+            'step_tag_line_ids':[Command.create({'producer_id':self.producer.id,
+                'product_id':self.product.id,'lot_id':original_lot.id,'quantity':10,'boxes':10,'kilos':50})]})
+        self.env['stock.quant']._update_available_quantity(self.product,self.location,10,package_id=tag,lot_id=original_lot)
+        tag.action_step_validate_tag()
+        guide = self.source_only_operator(self.transfer_guide(tag))
+        guide.action_confirm()
+        receipt = guide.with_company(self.branch).step_destination_picking_id
+        self.assertEqual(receipt.move_line_ids.lot_id,existing_lot)
+        self.assertFalse(existing_lot.step_interplant_origin_lot_id)
+        self.assertEqual(receipt.move_line_ids.step_interplant_origin_line_id.lot_id,original_lot)
+        wrong = self.env['stock.lot'].with_company(self.branch).create({'name':'QA209-WRONG',
+            'product_id':self.product.id,'company_id':self.branch.id})
+        receipt.move_line_ids.lot_id = wrong
+        with self.assertRaises(UserError), self.cr.savepoint():
+            receipt.button_validate()
+        receipt.move_line_ids.lot_id = existing_lot
+        receipt.button_validate()
+        self.assertEqual(receipt.state,'done')
+        received = receipt.step_interplant_tag_ids
+        returned = guide.with_company(self.branch).copy({'external_folio':'QA209-RETURN','state':'draft',
+            'company_id':self.branch.id,'partner_id':source.partner_id.id,
+            'step_source_warehouse_id':self.destination.id,
+            'step_destination_warehouse_id':self.location.warehouse_id.id,
+            'picking_id':False,'step_destination_picking_id':False,
+            'load_tag_ids':[Command.set(received.ids)],'line_ids':[Command.clear()]})
+        returned.action_load_pallet_detail()
+        returned.action_confirm()
+        arrival = returned.with_company(source).step_destination_picking_id
+        self.assertEqual(arrival.move_line_ids.lot_id,original_lot)
+        self.assertFalse(original_lot.step_interplant_origin_lot_id)
+        self.assertNotEqual(arrival.state,'done')
+        self.assertFalse(arrival.step_interplant_tag_ids.quant_ids.filtered(lambda q:q.quantity > 0))
+        arrival.button_validate()
+        self.assertEqual(arrival.state,'done')
+        self.assertEqual(arrival.move_line_ids.step_interplant_origin_line_id.lot_id,existing_lot)
+        self.assertEqual(sum(arrival.step_interplant_tag_ids.quant_ids.mapped('quantity')),10)
+        self.assertEqual(arrival.step_interplant_tag_ids.step_interplant_origin_tag_id,received)

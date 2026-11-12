@@ -71,8 +71,8 @@ class Picking(models.Model):
                             or abs(line.quantity_product_uom - origin.quantity_product_uom) > 0.000001
                             or line.result_package_id.step_interplant_origin_tag_id != origin.package_id
                             or bool(line.lot_id) != bool(origin.lot_id)
-                            or line.lot_id and (line.lot_id.step_interplant_origin_lot_id != origin.lot_id
-                                or line.lot_id.name != origin.lot_id.name
+                            or line.lot_id and (line.lot_id.name != origin.lot_id.name
+                                or line.lot_id.product_id != origin.lot_id.product_id
                                 or line.lot_id.company_id != picking.company_id)):
                         raise UserError(_('Conserve producto, cantidad, lote, propietario y tarja del traslado.'))
                 picking.step_interplant_tag_ids._check_interplant_content()
@@ -127,11 +127,14 @@ class Package(models.Model):
                      'fruit_category_id', 'fruit_class_id', 'fruit_quality_id', 'fruit_caliber_id')
             if any(tag[name] != origin[name] for name in names):
                 raise UserError(_('Conserve los datos de la tarja de origen del traslado.'))
-            expected = sorted((row.producer_id.id, row.product_id.id, row.lot_id.id or 0,
+            expected = sorted((row.producer_id.id, row.product_id.id, row.lot_id.name or '',
                 row.quantity, row.boxes, row.kilos) for row in origin.step_tag_line_ids)
             actual = sorted((row.producer_id.id, row.product_id.id,
-                row.lot_id.step_interplant_origin_lot_id.id or 0, row.quantity, row.boxes, row.kilos)
+                row.lot_id.name or '', row.quantity, row.boxes, row.kilos)
                 for row in tag.step_tag_line_ids)
+            if any(row.lot_id and (row.lot_id.product_id != row.product_id or row.lot_id.company_id != tag.company_id)
+                   for row in tag.step_tag_line_ids):
+                raise UserError(_('El lote de la tarja debe corresponder al producto y la planta de destino.'))
             if actual != expected:
                 raise UserError(_('El detalle de las tarjas debe conservar lotes, cantidades, cajas y kilos de origen.'))
 

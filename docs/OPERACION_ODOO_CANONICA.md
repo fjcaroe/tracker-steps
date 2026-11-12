@@ -1,13 +1,15 @@
 # Operación y publicación de Odoo
 
-T209 actualiza `step_packing_interplant` a 18.0.1.0.1 con el mismo paquete
+T209 actualiza `step_packing_interplant` a 18.0.1.0.2 con el mismo paquete
 `reception-excel --with-interplant`. El almacén de destino se consulta con
 el contexto de la planta destinataria autorizada, aunque solo esté activa
 la sucursal de origen. Un único almacén se propone automáticamente; varios
 requieren selección. Las guías existentes sin selección resuelven el almacén
 único al confirmar. No modificar las membresías del usuario ni su compañía
 activa y conservar la recepción pendiente de validación en destino.
-Exigir 22 pruebas por copia, selector visual con una sola sucursal activa y
+Reutilizar lotes nativos de igual código, producto y empresa al retornar o
+recibir fruta nuevamente; conservar los vínculos de origen de cada movimiento
+y el origen inicial del lote, sin sobrescribirlo. Exigir 23 pruebas por copia, selector visual con una sola sucursal activa y
 reproducción de la guía reportada mediante `run_interplant_draft_probe.py`
 en una copia certificada de Cerro, siempre revertida. No confirmar una guía
 real del cliente como prueba. Publicar y verificar el mismo paquete en

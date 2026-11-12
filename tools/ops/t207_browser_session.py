@@ -30,7 +30,6 @@ else:
     session.update({'db': env.cr.dbname, 'uid': user.id, 'login': user.login,
         'context': dict(user.with_user(user).context_get(), allowed_company_ids=business.company.ids),
         'session_token': user._compute_session_token(session.sid)})
-    http.root.session_store.save(session)
     actions = {name: business.ref(xmlid).id for name, xmlid in {
         'guides':'step_dispatch_guide.action_dispatch_guides',
         'receipts':'step_inventory_packing.action_steps_fruit_process_reception',
@@ -60,6 +59,7 @@ else:
         data['warehouse_case'] = {'guide_id':guide.id, 'type':kind.display_name,
             'partner':destination.partner_id.display_name,'source_name':business.company.display_name,
             'destination':destination.id,'warehouses':warehouses.mapped('display_name')}
+    http.root.session_store.save(session)
     proof.write_text(json.dumps(data))
     proof.chmod(0o600)
     print('T207_BROWSER_SESSION_READY')
