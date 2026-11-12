@@ -45,15 +45,21 @@ class Picking(models.Model):
                 guide = picking.step_interplant_guide_id
                 original = guide.picking_id
                 lines = picking.move_line_ids
-                if (picking != guide.step_destination_picking_id or original.state != 'done'
-                        or guide.state != 'confirmed' or picking.company_id != guide.step_destination_company_id
-                        or picking.picking_type_code != 'incoming' or picking.location_id.usage != 'supplier'
-                        or picking.location_dest_id != guide.step_destination_warehouse_id.lot_stock_id
-                            and guide.step_destination_warehouse_id
-                        or picking.step_fruit_reception_kind
-                        or Counter(lines.step_interplant_origin_line_id.ids) != Counter(original.move_line_ids.ids)
-                        or len(lines) != len(original.move_line_ids)):
-                    raise UserError(_('La recepción debe conservar el destino y el detalle exacto de la guía interplanta.'))
+                checks = {
+                    'recepción vinculada': picking == guide.step_destination_picking_id,
+                    'salida realizada': original.state == 'done',
+                    'guía confirmada': guide.state == 'confirmed',
+                    'empresa de destino': picking.company_id == guide.step_destination_company_id,
+                    'tipo de operación': picking.picking_type_code == 'incoming',
+                    'ubicación de origen': picking.location_id.usage == 'supplier',
+                    'almacén de destino': not guide.step_destination_warehouse_id or picking.location_dest_id == guide.step_destination_warehouse_id.lot_stock_id,
+                    'tipo de recepción': not picking.step_fruit_reception_kind,
+                    'origen de las líneas': Counter(lines.step_interplant_origin_line_id.ids) == Counter(original.move_line_ids.ids),
+                    'cantidad de líneas': len(lines) == len(original.move_line_ids),
+                }
+                invalid = [label for label, valid in checks.items() if not valid]
+                if invalid:
+                    raise UserError(_('La recepción difiere de la guía interplanta: %s.', ', '.join(invalid)))
                 for line in lines:
                     origin = line.step_interplant_origin_line_id
                     if (line.product_id != origin.product_id or line.owner_id != origin.owner_id
