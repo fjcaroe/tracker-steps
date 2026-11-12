@@ -71,7 +71,9 @@ class Picking(models.Model):
                             or abs(line.quantity_product_uom - origin.quantity_product_uom) > 0.000001
                             or line.result_package_id.step_interplant_origin_tag_id != origin.package_id
                             or bool(line.lot_id) != bool(origin.lot_id)
-                            or line.lot_id and line.lot_id.step_interplant_origin_lot_id != origin.lot_id):
+                            or line.lot_id and (line.lot_id.step_interplant_origin_lot_id != origin.lot_id
+                                or line.lot_id.name != origin.lot_id.name
+                                or line.lot_id.company_id != picking.company_id)):
                         raise UserError(_('Conserve producto, cantidad, lote, propietario y tarja del traslado.'))
                 picking.step_interplant_tag_ids._check_interplant_content()
                 lines.write({'picked': True})
@@ -93,6 +95,11 @@ class Package(models.Model):
     _inherit = ['stock.quant.package', 'step.interplant.audit.mixin']
     _interplant_audit_fields = ('step_interplant_origin_tag_id',)
     step_interplant_origin_tag_id = fields.Many2one('stock.quant.package', string='Tarja de origen', readonly=True, copy=False, ondelete='restrict')
+
+    def write(self, values):
+        if any(tag.step_interplant_origin_tag_id for tag in self) and set(values) & {'step_process_reception_id', 'is_fruit_tag', 'name'}:
+            raise AccessError(_('Conserve el folio y la recepción de origen de la tarja trasladada.'))
+        return super().write(values)
 
     @api.constrains('company_id', 'fundo_id', 'fruit_category_id', 'fruit_class_id',
                     'fruit_quality_id', 'fruit_caliber_id', 'step_interplant_origin_tag_id')
@@ -139,6 +146,11 @@ class Lot(models.Model):
     _inherit = ['stock.lot', 'step.interplant.audit.mixin']
     _interplant_audit_fields = ('step_interplant_origin_lot_id',)
     step_interplant_origin_lot_id = fields.Many2one('stock.lot', string='Lote de origen interplanta', readonly=True, copy=False, ondelete='restrict')
+
+    def write(self, values):
+        if any(lot.step_interplant_origin_lot_id for lot in self) and set(values) & {'name', 'product_id', 'company_id'}:
+            raise AccessError(_('Conserve el código, producto y empresa del lote trasladado.'))
+        return super().write(values)
 
 
 def owner_matches(record, package):

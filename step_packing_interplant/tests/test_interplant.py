@@ -83,6 +83,8 @@ class InterplantCase(DispatchCase):
         receipt = guide.step_destination_picking_id
         with self.assertRaises(AccessError), self.cr.savepoint():
             receipt.step_interplant_guide_id = False
+        with self.assertRaises(AccessError), self.cr.savepoint():
+            receipt.step_interplant_tag_ids.step_process_reception_id = False
         receipt.move_line_ids.quantity = 9
         with self.assertRaises(UserError), self.cr.savepoint():
             receipt.with_company(self.branch).button_validate()
@@ -121,6 +123,8 @@ class InterplantCase(DispatchCase):
         self.assertEqual(receipt.move_line_ids.lot_id.name, lot.name)
         self.assertEqual(receipt.move_line_ids.lot_id.step_interplant_origin_lot_id, lot)
         self.assertEqual(receipt.move_line_ids.lot_id.company_id, self.branch)
+        with self.assertRaises(AccessError), self.cr.savepoint():
+            receipt.move_line_ids.lot_id.name = 'ALTERED'
         receipt.with_company(self.branch).button_validate()
         self.assertEqual(receipt.state, 'done')
         self.assertEqual(receipt.step_interplant_tag_ids.quant_ids.owner_id, self.producer)
