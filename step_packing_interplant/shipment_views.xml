@@ -9,7 +9,7 @@
             </field>
             <field name="step_export_shipment_id" position="attributes">
                 <attribute name="domain">([('company_id', '=', step_shipment_company_id), ('state', '=', 'validated')] if step_shipment_company_id else [('id', '=', 0)]) if step_recipient_kind == 'shipment' else [('company_id', '=', company_id)]</attribute>
-                <attribute name="context">{'allowed_company_ids': [step_shipment_company_id]} if step_recipient_kind == 'shipment' and step_shipment_company_id else {}</attribute>
+                <attribute name="context">{'allowed_company_ids': [step_shipment_company_id] if step_recipient_kind == 'shipment' and step_shipment_company_id else context.get('allowed_company_ids', [])}</attribute>
                 <attribute name="readonly">step_recipient_kind == 'shipment' and state != 'draft'</attribute>
             </field>
         </field>
