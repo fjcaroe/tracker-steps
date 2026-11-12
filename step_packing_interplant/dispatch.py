@@ -204,6 +204,7 @@ class Guide(models.Model):
             'product_uom_qty': quantity, 'location_id': picking.location_id.id,
             'location_dest_id': picking.location_dest_id.id})
         move._action_confirm(merge=False)
+        move._do_unreserve()
         return move
 
     def _create_destination_receipt(self, outgoing):

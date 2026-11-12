@@ -34,6 +34,7 @@ class InterplantCase(DispatchCase):
         receipt = guide.step_destination_picking_id
         self.assertTrue(receipt)
         self.assertNotIn(receipt.state, ('done', 'cancel'))
+        self.assertEqual(sum(receipt.move_line_ids.mapped('quantity_product_uom')), 30)
         self.assertFalse(receipt.step_interplant_tag_ids.quant_ids.filtered(lambda q: q.quantity > 0))
         self.assertEqual(set(receipt.step_interplant_tag_ids.mapped('name')), set(tags.mapped('name')))
         self.assertEqual(receipt.step_interplant_tag_ids.step_interplant_origin_tag_id, tags)
@@ -99,3 +100,43 @@ class InterplantCase(DispatchCase):
         for field in ('step_tag_kind', 'name', 'step_producer_id', 'box_count', 'step_actual_kg'):
             self.assertIn(field, self.env.ref('step_packing_interplant.tag_list').arch_db)
         self.assertEqual(self.env.ref('step_packing_interplant.receipts_menu').action.res_model, 'stock.picking')
+
+    def test_lot_and_cross_branch_owner_are_preserved(self):
+        self.interplant_fixture()
+        self.producer.company_id = self.env.company
+        self.product.tracking = 'lot'
+        lot = self.env['stock.lot'].create({'name': 'QA207-LOT', 'product_id': self.product.id, 'company_id': self.env.company.id})
+        tag = self.env['stock.quant.package'].create({'name': 'QA207-OWNED', 'is_fruit_tag': True,
+            'step_tag_kind': 'C', 'step_producer_id': self.producer.id, 'box_count': 10,
+            'step_packaging_id': self.packaging.id, 'especie_id': self.species.id,
+            'step_tag_line_ids': [Command.create({'producer_id': self.producer.id,
+                'product_id': self.product.id, 'lot_id': lot.id, 'quantity': 10, 'boxes': 10, 'kilos': 50})]})
+        self.env['stock.quant']._update_available_quantity(self.product, self.location, 10,
+            package_id=tag, lot_id=lot, owner_id=self.producer)
+        tag.action_step_validate_tag()
+        guide = self.transfer_guide(tag)
+        guide.action_confirm()
+        receipt = guide.step_destination_picking_id
+        self.assertEqual(receipt.move_line_ids.owner_id, self.producer)
+        self.assertEqual(receipt.move_line_ids.lot_id.name, lot.name)
+        self.assertEqual(receipt.move_line_ids.lot_id.step_interplant_origin_lot_id, lot)
+        self.assertEqual(receipt.move_line_ids.lot_id.company_id, self.branch)
+        receipt.with_company(self.branch).button_validate()
+        self.assertEqual(receipt.state, 'done')
+        self.assertEqual(receipt.step_interplant_tag_ids.quant_ids.owner_id, self.producer)
+        self.assertEqual(sum(receipt.step_interplant_tag_ids.quant_ids.mapped('quantity')), 10)
+        self.assertFalse(receipt.move_ids.stock_valuation_layer_ids)
+
+    def test_customer_and_producer_domains_and_unrelated_destination(self):
+        self.interplant_fixture()
+        guide = self.transfer_guide(self.tag('QA207-DOMAIN'))
+        customer_type = self.env['step.freight.dispatch.type'].create({'name': 'QA customer', 'step_recipient_kind': 'customer'})
+        producer_type = self.env['step.freight.dispatch.type'].create({'name': 'QA producer', 'step_recipient_kind': 'producer'})
+        self.receiver.customer_rank = 1
+        guide.write({'dispatch_type_id': customer_type.id, 'partner_id': self.receiver.id, 'step_destination_warehouse_id': False})
+        self.assertIn(self.receiver, self.env['res.partner'].search(guide.step_recipient_domain))
+        self.assertNotIn(self.producer, self.env['res.partner'].search(guide.step_recipient_domain))
+        guide.write({'dispatch_type_id': producer_type.id, 'partner_id': self.producer.id})
+        self.assertIn(self.producer, self.env['res.partner'].search(guide.step_recipient_domain))
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            guide.write({'dispatch_type_id': self.kind.id, 'partner_id': self.receiver.id})

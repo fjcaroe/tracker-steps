@@ -10,7 +10,7 @@ from native_business_profile import scoped_business_environment
 
 try:
     if 'step_packing_interplant' in EXPECTED:
-        exec(compile((Path(__file__).parent / 'verify_interplant_dispatch.py').read_text(), 'verify_interplant_dispatch.py', 'exec'))
+        exec(compile((Path(PROBE_TOOLS) / 'verify_interplant_dispatch.py').read_text(), 'verify_interplant_dispatch.py', 'exec'))
     name = 'step_packing_ticket_revision'
     version = EXPECTED[name]
     module = env['ir.module.module'].search([('name', '=', name), ('state', '=', 'installed')])

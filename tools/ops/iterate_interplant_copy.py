@@ -5,6 +5,7 @@ import fcntl
 import json
 import re
 import subprocess
+import socket
 from pathlib import Path
 import manage_management
 
@@ -31,10 +32,14 @@ subprocess.run(['chown', '-R', user, str(source)], check=True)
 log = source / 'tests.log'
 with open('/run/lock/steps-environments.lock', 'a') as lock:
     fcntl.flock(lock, fcntl.LOCK_EX)
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1', 0))
+        port = listener.getsockname()[1]
     result = subprocess.run(['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin',
         '-c', target['config'], '-d', database, '--db-filter=^' + database + '$',
         '--addons-path=' + str(source) + ',' + config['options']['addons_path'],
         '--data-dir=' + str(stage / 'data'), '--no-http', '--workers=0', '--max-cron-threads=0',
+        '--http-interface=127.0.0.1', '--http-port=' + str(port), '--gevent-port=0',
         '--without-demo=all', '-i', 'step_packing_interplant', '-u', 'step_packing_ticket_revision,step_packing_interplant',
         '--test-enable', '--test-tags=/step_packing_interplant,/step_packing_ticket_revision:ReceiptStatusCase',
         '--stop-after-init', '--logfile=' + str(log)], capture_output=True, text=True)
