@@ -28,7 +28,8 @@ try:
             selected |= tags.filtered(lambda tag: tag.step_tag_kind == kind)[:1]
         if set(selected.mapped('step_tag_kind')) != {'C', 'E', 'N'}:
             continue
-        destination = (branches - company)[:1]
+        candidates = branches - company
+        destination = (candidates.filtered('parent_id') or candidates)[:1]
         dest_warehouse = scoped['stock.warehouse'].search([('company_id', '=', destination.id)], limit=1)
         if not dest_warehouse:
             continue
