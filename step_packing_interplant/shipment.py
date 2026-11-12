@@ -61,6 +61,13 @@ class Guide(models.Model):
             if target - previous:
                 target.write({'dispatch_guide_ids': [Command.link(guide.id)]})
 
+    @api.constrains('step_export_shipment_id', 'company_id')
+    def _check_holding_shipment(self):
+        branch_guides = self.filtered(lambda guide: guide.step_recipient_kind == 'shipment')
+        super(Guide, self - branch_guides)._check_holding_shipment()
+        for guide in branch_guides.filtered('step_export_shipment_id'):
+            super(Guide, guide._with_shipment_companies())._check_holding_shipment()
+
     @api.model_create_multi
     def create(self, values):
         guides = super().create(values)
