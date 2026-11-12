@@ -130,6 +130,7 @@ class InterplantCase(DispatchCase):
         self.assertEqual(receipt.state, 'done')
         self.assertEqual(receipt.step_interplant_tag_ids.quant_ids.owner_id, self.producer)
         self.assertEqual(sum(receipt.step_interplant_tag_ids.quant_ids.mapped('quantity')), 10)
+        self.assertFalse(receipt.move_ids.stock_valuation_layer_ids)
 
     def test_branch_dispatch_uses_only_validated_matrix_shipments(self):
         self.interplant_fixture()
@@ -194,7 +195,6 @@ class InterplantCase(DispatchCase):
         self.assertEqual(operator.company_ids, branch | matrix)
         matrix_view = etree.fromstring(shipments.get_view(view_type='form')['arch'])
         self.assertTrue(matrix_view.xpath("//field[@name='dispatch_guide_ids']/list/field[@name='company_id']"))
-        self.assertFalse(receipt.move_ids.stock_valuation_layer_ids)
 
     def test_customer_and_producer_domains_and_unrelated_destination(self):
         self.interplant_fixture()
