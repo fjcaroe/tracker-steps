@@ -15,6 +15,7 @@
         "views/offline_views.xml",
         "views/batch_cost_views.xml",
         "views/maquila_views.xml",
+        "views/dispatch_views.xml",
     ],
     "application": True,
     "installable": True,

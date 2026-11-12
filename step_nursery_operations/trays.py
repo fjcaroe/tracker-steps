@@ -178,3 +178,21 @@ class NurseryTrayLoan(models.Model):
             with self.env.cr.savepoint():
                 loan._lock_loan()
                 loan._draft_charge()
+
+
+
+class StockPicking(models.Model):
+    _inherit = "stock.picking"
+
+    step_nursery_tray_loan_ids = fields.One2many("step.nursery.tray.loan", "shipment_id",
+                                                string="Préstamos de bandejas")
+
+    def action_step_nursery_dispatch_summary(self):
+        self.ensure_one()
+        self.check_access("read")
+        self.step_nursery_tray_loan_ids.check_access("read")
+        if self.state != "done" or self.picking_type_id.code != "outgoing":
+            raise UserError(_("Valide el despacho de plantines antes de preparar el comprobante."))
+        if not self.step_nursery_tray_loan_ids.filtered(lambda loan: loan.quantity_out > 0):
+            raise UserError(_("Valide el traslado de bandejas asociado antes de emitir el comprobante."))
+        return self.env.ref("step_nursery_operations.action_nursery_dispatch_summary").report_action(self)

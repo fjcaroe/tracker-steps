@@ -1,0 +1,60 @@
+<odoo>
+    <record id="view_nursery_dispatch" model="ir.ui.view">
+        <field name="name">stock.picking.form.nursery.trays</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="Bandejas de vivero" name="step_nursery_tray_dispatch"
+                      groups="step_nursery_operations.group_nursery_operator"
+                      invisible="not step_nursery_tray_loan_ids">
+                    <group>
+                        <button name="action_step_nursery_dispatch_summary" type="object"
+                                string="Comprobante de plantines y bandejas" class="btn-primary" invisible="state != 'done'"/>
+                    </group>
+                    <field name="step_nursery_tray_loan_ids" readonly="1">
+                        <list><field name="product_id"/><field name="dispatch_id"/><field name="quantity_out"/>
+                            <field name="quantity_returned"/><field name="quantity_pending"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    <record id="action_nursery_dispatch_summary" model="ir.actions.report">
+        <field name="name">Comprobante de plantines y bandejas</field>
+        <field name="model">stock.picking</field><field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_nursery_operations.nursery_dispatch_summary</field>
+        <field name="groups_id" eval="[(4, ref('group_nursery_operator'))]"/>
+    </record>
+    <template id="nursery_dispatch_summary">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Comprobante de plantines y bandejas</h2>
+                        <p>Respaldo operativo del despacho. No es un DTE.</p>
+                        <p>Despacho: <span t-field="o.name"/> · Fecha: <span t-field="o.date_done"/></p>
+                        <p>Cliente: <span t-field="o.partner_id"/></p>
+                        <h3>Plantines y productos del despacho</h3>
+                        <table class="table table-sm">
+                            <thead><tr><th>Producto</th><th>Lote</th><th>Cantidad</th><th>Unidad</th></tr></thead>
+                            <tbody><tr t-foreach="o.move_line_ids.filtered(lambda row: row.state == 'done' and row.quantity &gt; 0)" t-as="row">
+                                <td><span t-field="row.product_id"/></td><td><span t-field="row.lot_id"/></td>
+                                <td><span t-field="row.quantity"/></td><td><span t-field="row.product_uom_id"/></td>
+                            </tr></tbody>
+                        </table>
+                        <h3>Bandejas prestadas</h3>
+                        <table class="table table-sm">
+                            <thead><tr><th>Tipo</th><th>Traslado</th><th>Cantidad entregada</th><th>Vence</th></tr></thead>
+                            <tbody><tr t-foreach="o.step_nursery_tray_loan_ids.filtered(lambda loan: loan.quantity_out &gt; 0)" t-as="loan">
+                                <td><span t-field="loan.product_id"/></td><td><span t-field="loan.dispatch_id"/></td>
+                                <td><span t-field="loan.quantity_out"/></td><td><span t-field="loan.due_date"/></td>
+                            </tr></tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

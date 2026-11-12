@@ -243,3 +243,90 @@ class TestNursery(TransactionCase):
         self.assertEqual(native.move_raw_ids.quantity, 60)
         self.assertEqual(custody.available, 60)
         self.assertFalse(receipt.move_ids.stock_valuation_layer_ids)
+        self.env["stock.quant"]._update_available_quantity(
+            self.seed, custody_location, 68, lot_id=seed_lot, owner_id=self.customer)
+        native.action_assign()
+        self.assertEqual(native.move_raw_ids.quantity, 128)
+        native.lot_producing_id = self.env["stock.lot"].create({
+            "name": "QA-PLT-CUST", "product_id": self.plant.id, "company_id": self.company.id,
+        })
+        native.qty_producing = 128
+        native.move_raw_ids.picked = True
+        native.button_mark_done()
+        self.assertEqual(native.state, "done")
+        self.assertEqual(custody.consumed, 128)
+        self.assertFalse(native.move_raw_ids.stock_valuation_layer_ids)
+        package = self.env["stock.quant.package"].create({"step_nursery_production_id": native.id})
+        self.assertEqual(package.step_nursery_package_customer_id, self.customer)
+        html, _ = self.env["ir.actions.report"]._render_qweb_html(
+            "step_nursery_operations.action_nursery_package_label", package.ids)
+        self.assertIn(b"QA-PLT-CUST", html)
+        self.assertIn(b"MAQUILA", html)
+
+    def test_combined_dispatch_uses_actual_plant_and_tray_movements(self):
+        plan = self._plan(quantity=25)
+        plan.sale_line_id.order_id.action_confirm()
+        picking = plan.sale_line_id.order_id.picking_ids
+        lot = self.env["stock.lot"].create({
+            "name": "QA-SAL-LOT", "product_id": self.plant.id, "company_id": self.company.id,
+        })
+        self.env["stock.quant"]._update_available_quantity(self.plant, picking.location_id, 25, lot_id=lot)
+        picking.action_assign()
+        picking.move_ids.picked = True
+        picking.button_validate()
+        custody = self.env["stock.location"].create({
+            "name": "QA Bandejas en cliente", "company_id": self.company.id,
+            "location_id": self.warehouse.view_location_id.id, "usage": "internal",
+        })
+        self.env["stock.quant"]._update_available_quantity(self.tray, self.warehouse.lot_stock_id, 2)
+        loan = self.env["step.nursery.tray.loan"].create({
+            "partner_id": self.customer.id, "product_id": self.tray.id, "quantity": 2,
+            "due_date": self.delivery.date(), "transfer_type_id": self.warehouse.int_type_id.id,
+            "origin_id": self.warehouse.lot_stock_id.id, "custody_id": custody.id, "shipment_id": picking.id,
+        })
+        loan.action_create_dispatch()
+        loan.dispatch_id.action_assign()
+        loan.dispatch_id.move_ids.picked = True
+        loan.dispatch_id.button_validate()
+        action = picking.action_step_nursery_dispatch_summary()
+        self.assertEqual(action["report_name"], "step_nursery_operations.nursery_dispatch_summary")
+        html, _ = self.env["ir.actions.report"]._render_qweb_html(
+            "step_nursery_operations.action_nursery_dispatch_summary", picking.ids)
+        self.assertIn(b"QA-SAL-LOT", html)
+        self.assertIn(b"QA Bandeja 128", html)
+
+    def test_overdue_loan_creates_one_draft_for_remaining_quantity(self):
+        custody = self.env["stock.location"].create({
+            "name": "QA Vencidos en cliente", "company_id": self.company.id,
+            "location_id": self.warehouse.view_location_id.id, "usage": "internal",
+        })
+        if not self.env["account.journal"].search_count([
+            ("company_id", "=", self.company.id), ("type", "=", "sale"),
+        ]):
+            self.env["account.journal"].create({
+                "name": "QA Diario de ventas", "code": "QASAL", "type": "sale", "company_id": self.company.id,
+            })
+        income = self.env["account.account"].create({
+            "name": "QA Recuperación de bandejas", "code": "98765123", "account_type": "income",
+            "company_ids": [Command.set(self.company.ids)],
+        })
+        charge = self.env["product.product"].create({
+            "name": "QA Cargo por bandeja", "type": "service", "property_account_income_id": income.id,
+        })
+        self.env["stock.quant"]._update_available_quantity(self.tray, self.warehouse.lot_stock_id, 3)
+        loan = self.env["step.nursery.tray.loan"].create({
+            "partner_id": self.customer.id, "product_id": self.tray.id, "quantity": 3,
+            "due_date": "2020-01-01", "transfer_type_id": self.warehouse.int_type_id.id,
+            "origin_id": self.warehouse.lot_stock_id.id, "custody_id": custody.id,
+            "charge_product_id": charge.id, "charge_price": 20,
+        })
+        loan.action_create_dispatch()
+        loan.dispatch_id.action_assign()
+        loan.dispatch_id.move_ids.picked = True
+        loan.dispatch_id.button_validate()
+        action = loan.action_draft_charge()
+        self.assertEqual(action["res_id"], loan.invoice_id.id)
+        self.assertEqual(loan.action_draft_charge()["res_id"], action["res_id"])
+        self.assertEqual(loan.invoice_id.state, "draft")
+        self.assertEqual(loan.invoice_id.invoice_line_ids.quantity, 3)
+        self.assertEqual(loan.invoice_id.invoice_line_ids.price_unit, 20)

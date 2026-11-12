@@ -7,6 +7,7 @@ from pathlib import Path
 import pwd
 import re
 import shutil
+import socket
 import subprocess
 
 from move_ecoplantas_to_development import (
@@ -43,10 +44,13 @@ def check(run_id):
     data.mkdir(mode=0o700)
     os.chown(data, user.pw_uid, user.pw_gid)
     role = cfg["options"]["db_user"]
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        private_port = listener.getsockname()[1]
     cfg["options"].update({"db_name": db, "dbfilter": "^" + db + "$", "db_host": "127.0.0.1",
                            "data_dir": str(data), "workers": "0", "max_cron_threads": "0",
                            "list_db": "False", "proxy_mode": "False",
-                           "http_interface": "127.0.0.1", "http_port": "0"})
+                           "http_interface": "127.0.0.1", "http_port": str(private_port)})
     put_overlay(cfg, stage_addons)
     conf = stage / "copy.conf"
     write_config(cfg, conf)
