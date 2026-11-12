@@ -33,9 +33,20 @@ try:
     assert receipt.location_dest_id == selected.lot_stock_id
     assert not receipt.step_interplant_tag_ids.quant_ids.filtered(lambda q:q.quantity > 0)
     assert business.companies == source and business.user.company_ids == memberships
+    boxes = sum(tags.mapped('box_count')); kilos = sum(tags.mapped('step_actual_kg'))
+    assert sum(receipt.step_interplant_tag_ids.mapped('box_count')) == boxes
+    assert abs(sum(receipt.step_interplant_tag_ids.mapped('step_actual_kg'))-kilos) < 0.01
+    for line in receipt.move_line_ids:
+        origin = line.step_interplant_origin_line_id
+        assert line.owner_id == origin.owner_id and line.lot_id.name == origin.lot_id.name
+        assert abs(line.quantity_product_uom-origin.quantity_product_uom) < 0.000001
+    receipt.button_validate()
+    assert receipt.state == 'done'
+    assert abs(sum(receipt.step_interplant_tag_ids.quant_ids.mapped('quantity'))-sum(guide.picking_id.move_line_ids.mapped('quantity_product_uom'))) < 0.000001
     print('REPORTED_DRAFT_COPY_OK ' + json.dumps({'guide':guide.name,'source':source.id,
         'destination':destination.id,'warehouse':selected.id,'source_departed':True,
-        'destination_pending':True,'source_scope_unchanged':True,'tag_count':len(tags)}))
+        'destination_pending':True,'destination_validation_done':True,'source_scope_unchanged':True,
+        'tag_count':len(tags),'boxes':boxes,'kilos':kilos}))
 finally:
     env.cr.rollback()
     print('PROBE_ROLLBACK_OK')

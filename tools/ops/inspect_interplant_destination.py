@@ -15,6 +15,9 @@ try:
         'warehouses_current':business['stock.warehouse'].search(domain).ids,
         'warehouses_destination':business['stock.warehouse'].with_company(company).search(domain).read(['name','company_id']),
         'selected_warehouse':guide.step_destination_warehouse_id.id,'source_picking':guide.picking_id.id,
-        'destination_picking':guide.step_destination_picking_id.id}))
+        'destination_picking':guide.step_destination_picking_id.id,
+        'tags':guide.load_tag_ids.read(['name','step_tag_kind','step_tag_state','box_count','step_actual_kg']),
+        'destination_same_folios':business['stock.quant.package'].with_company(company).search([('company_id','=',company.id),('name','in',guide.load_tag_ids.mapped('name'))]).read(['name','step_tag_state','box_count','step_actual_kg']),
+        'source_lots':guide.load_tag_ids.quant_ids.lot_id.read(['name','product_id','company_id','step_interplant_origin_lot_id'])}))
 finally:
     env.cr.rollback()
