@@ -35,7 +35,7 @@ for origin,target in ((source,destination),(destination,source)):
     scoped=business['step.dispatch.guide'].with_company(origin)
     guide=scoped.new({'company_id':origin.id,'partner_id':target.partner_id.id,'dispatch_type_id':kind.id})
     guide._onchange_interplant_destination()
-    assert guide.step_destination_company_id==target and guide.step_destination_warehouse_id.company_id==target
+    assert guide.step_destination_company_id==target and guide.step_destination_warehouse_id.with_company(target).company_id==target
     guide._check_recipient()
     guide._check_dispatch_type_company()
 print('NATIVE_QA_TYPE_CHECK_OK '+json.dumps({'type':kind.id,'companies':kind.company_ids.ids,'both_directions':True,'apply':APPLY}))
