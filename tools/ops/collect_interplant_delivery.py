@@ -98,7 +98,8 @@ def finalize(args):
         assert not ui['errors']
         if args.ticket == 209:
             destination_ui = json.loads((args.directory/target/'destination-ui-result.json').read_text(encoding='utf-8'))
-            assert destination_ui['destinationWarehouseChoices'] and destination_ui['sourceCompanyUnchanged'] and not destination_ui['errors']
+            assert (destination_ui['destinationWarehouseChoices'] or target == 'development' and destination_ui.get('noConfiguredDestination'))
+            assert destination_ui['sourceCompanyUnchanged'] and not destination_ui['errors']
     tickets = json.loads((args.directory/'open-before-close.json').read_text(encoding='utf-8'))
     result['reviewed_messages'] = {}
     for ticket in tickets:

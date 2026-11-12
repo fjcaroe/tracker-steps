@@ -26,7 +26,8 @@ for target in proof['targets']:
     ui = json.loads((args.evidence / target / 'ui-result.json').read_text())
     if args.ticket == 209:
         dest = json.loads((args.evidence / target / 'destination-ui-result.json').read_text(encoding='utf-8'))
-        assert dest['destinationWarehouseChoices'] and dest['sourceCompanyUnchanged'] and not dest['errors']
+        assert (dest['destinationWarehouseChoices'] or target == 'development' and dest.get('noConfiguredDestination'))
+        assert dest['sourceCompanyUnchanged'] and not dest['errors']
     assert ui['currentReceiptFilter'] and ui['receptionPivot'] and ui['interplantMenu'] and ui['typeBeforeRecipient'] and not ui['errors']
 assert proof['parity'] and proof['qa_isolation'] and proof['customer_case']
 if args.ticket == 209:

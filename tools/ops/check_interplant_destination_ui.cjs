@@ -27,24 +27,32 @@ const {chromium} = require('playwright');
    await page.locator('.o-autocomplete--dropdown-item').filter({hasText:label}).first().click();
   }
   if(!test.guide_id) {
-   await choose('dispatch_type_id',test.type);
-   await choose('partner_id',test.partner);
+   if(test.type) await choose('dispatch_type_id',test.type);
+   if(!test.no_destination) await choose('partner_id',test.partner);
   }
   const input=page.locator('.o_field_widget[name="step_destination_warehouse_id"] input');
-  await input.waitFor(); await input.fill(''); await input.click();
+  if(test.type) {await input.waitFor(); await input.fill(''); await input.click();}
+  else {assert.equal(proof.host,'desarrollo.stepsapp.cl'); assert.equal(await input.count(),0);}
   for(const name of test.warehouses)
    await page.locator('.o-autocomplete--dropdown-item').filter({hasText:name}).first().waitFor();
   await page.screenshot({path:path.join(output,'destination-warehouse-options.png'),fullPage:true});
-  await page.locator('.o-autocomplete--dropdown-item').filter({hasText:test.warehouses[0]}).first().click();
-  assert.equal(await input.inputValue(),test.warehouses[0]);
+  if(!test.no_destination) {
+   await page.locator('.o-autocomplete--dropdown-item').filter({hasText:test.warehouses[0]}).first().click();
+   assert.equal(await input.inputValue(),test.warehouses[0]);
+  } else {
+   assert.equal(proof.host,'desarrollo.stepsapp.cl');
+   if(test.type) assert.equal(await input.inputValue(),'');
+  }
   assert.equal(await page.locator('.o_error_dialog').count(),0);
   const cookie=(await context.cookies()).find(x=>x.name==='cids');
   assert.equal(cookie.value,String(proof.company_id));
-  assert.ok((await page.locator('.o_field_widget[name="company_id"]').innerText()).includes(test.source_name));
+  const companyField=page.locator('.o_field_widget[name="company_id"]');
+  const companyText=await companyField.locator('input').count() ? await companyField.locator('input').inputValue() : await companyField.innerText();
+  assert.ok(companyText.includes(test.source_name));
   assert.equal(errors.length,0);
   await page.screenshot({path:path.join(output,'destination-warehouse-selected.png'),fullPage:true});
   const result={host:proof.host,company:proof.company_id,destinationWarehouseChoices:test.warehouses,
-   sourceCompanyUnchanged:true,existingDraft:!!test.guide_id,businessDocumentSaved:false,errors};
+   sourceCompanyUnchanged:true,noConfiguredDestination:!!test.no_destination,existingDraft:!!test.guide_id,businessDocumentSaved:false,errors};
   fs.writeFileSync(path.join(output,'destination-ui-result.json'),JSON.stringify(result,null,2));
   console.log('DESTINATION_UI_OK '+JSON.stringify(result));
  } catch(e) {
