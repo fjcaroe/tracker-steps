@@ -10,6 +10,26 @@ import subprocess
 PROBE = '''
 import json
 from native_business_profile import scoped_business_environment
+if DIAGNOSE:
+    from functools import wraps
+    from odoo.addons.step_packing_interplant.stock import Package
+    original_check = Package._check_agricultural_masters
+    @wraps(original_check)
+    def diagnostic_check(records):
+        try:
+            return original_check(records)
+        except Exception:
+            for tag in records.sudo().filtered('step_interplant_origin_tag_id'):
+                origin = tag.step_interplant_origin_tag_id
+                receipt = tag.step_process_reception_id
+                guide = receipt.step_interplant_guide_id
+                print('PROVENANCE_DIAGNOSTIC '+json.dumps({'tag':tag.id,'tag_company':tag.company_id.id,
+                    'origin':origin.id,'origin_company':origin.company_id.id,'receipt':receipt.id,
+                    'receipt_company':receipt.company_id.id,'guide':guide.id,'guide_company':guide.company_id.id,
+                    'guide_tags':guide.load_tag_ids.ids,'guide_root':guide.company_id.root_id.id,
+                    'tag_root':tag.company_id.root_id.id,'source_quants':origin.quant_ids.ids}))
+            raise
+    Package._check_agricultural_masters = diagnostic_check
 try:
     assert env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_')
     original = env['step.dispatch.guide'].search([('name','=',GUIDE_NAME)])
@@ -54,6 +74,7 @@ finally:
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('run_id'); parser.add_argument('guide_name')
+parser.add_argument('--diagnose', action='store_true')
 args = parser.parse_args()
 assert re.fullmatch(r't209[a-z]+',args.run_id)
 root = Path(__file__).resolve().parent
@@ -63,7 +84,7 @@ assert qa['database'] == 'MANAGEMENT_QA_CERRO_' + args.run_id
 entry = json.loads((root/'environments.json').read_text())['environments']['cerro']
 config = configparser.ConfigParser(interpolation=None); config.read(entry['config'])
 user = subprocess.check_output(['systemctl','show','--value','--property=User',entry['service']],text=True).strip()
-header = 'import sys\nsys.path.insert(0,' + repr(str(root)) + ')\nGUIDE_NAME=' + repr(args.guide_name) + '\n'
+header = 'import sys\nsys.path.insert(0,' + repr(str(root)) + ')\nGUIDE_NAME=' + repr(args.guide_name) + '\nDIAGNOSE=' + repr(args.diagnose) + '\n'
 with open('/run/lock/steps-environments.lock','a') as lock:
     fcntl.flock(lock,fcntl.LOCK_EX)
     result = subprocess.run(['sudo','-u',user,'/usr/bin/python3.10','/opt/odoo18/odoo-bin','shell',

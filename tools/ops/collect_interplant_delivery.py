@@ -30,7 +30,7 @@ def server(args):
             result.setdefault('commit', qa['commit'])
             assert result['commit'] == qa['commit']
             counts = re.findall(r'0 failed, 0 error\(s\) of (\d+) tests', Path(qa['log']).read_text())
-            assert counts and int(counts[-1]) >= (23 if versions['step_packing_interplant'] == '18.0.1.0.2' else 22 if versions['step_packing_interplant'] == '18.0.1.0.1' else 19)
+            assert counts and int(counts[-1]) >= (24 if versions['step_packing_interplant'] == '18.0.1.0.3' else 23 if versions['step_packing_interplant'] == '18.0.1.0.2' else 22 if versions['step_packing_interplant'] == '18.0.1.0.1' else 19)
             result['tests'] += int(counts[-1])
             copy_log = (stage/('verify-' + qa['database'] + '.log')).read_text()
             live_log = (stage/('verify-' + entry['database'] + '.log')).read_text()

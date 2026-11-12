@@ -300,3 +300,28 @@ class InterplantCase(DispatchCase):
         self.assertEqual(arrival.move_line_ids.step_interplant_origin_line_id.lot_id,existing_lot)
         self.assertEqual(sum(arrival.step_interplant_tag_ids.quant_ids.mapped('quantity')),10)
         self.assertEqual(arrival.step_interplant_tag_ids.step_interplant_origin_tag_id,received)
+
+
+    def test_legacy_tag_company_survives_migration_and_departure(self):
+        from odoo.addons.step_packing_interplant.hooks import preserve_legacy_tag_companies
+        self.interplant_fixture()
+        tag = self.tag('QA209-LEGACY', step_tag_kind='C')
+        source = tag.company_id
+        self.env.flush_all()
+        self.cr.execute('UPDATE stock_quant_package SET step_packing_company_id=NULL WHERE id=%s', [tag.id])
+        tag.invalidate_recordset(['step_packing_company_id'])
+        self.assertFalse(tag.step_packing_company_id)
+        self.assertEqual(tag.company_id, source)
+        preserve_legacy_tag_companies(self.env)
+        preserve_legacy_tag_companies(self.env)  # Safe on an already migrated database.
+        self.assertEqual(tag.step_packing_company_id, source)
+        guide = self.source_only_operator(self.transfer_guide(tag))
+        guide.action_confirm()
+        self.assertFalse(tag.quant_ids.filtered(lambda q: q.quantity > 0))
+        self.assertEqual(tag.company_id, source)
+        receipt = guide.with_company(self.branch).step_destination_picking_id
+        self.assertNotIn(receipt.state, ('done', 'cancel'))
+        receipt.button_validate()
+        self.assertEqual(receipt.state, 'done')
+        self.assertEqual(receipt.step_interplant_tag_ids.step_interplant_origin_tag_id, tag)
+        self.assertEqual(sum(receipt.step_interplant_tag_ids.quant_ids.mapped('quantity')), 10)
