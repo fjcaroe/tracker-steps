@@ -36,8 +36,31 @@ else:
         'receipts':'step_inventory_packing.action_steps_fruit_process_reception',
         'report':'step_producer_fruit_reports.action_process',
         'interplant':'step_packing_interplant.receipts'}.items()}
-    proof.write_text(json.dumps({'session_id': session.sid, 'company_id': business.company.id,
-        'host': hosts[env.cr.dbname], 'actions': actions}))
+    data = {'session_id': session.sid, 'company_id': business.company.id,
+        'host': hosts[env.cr.dbname], 'actions': actions}
+    if os.environ.get('T209_WAREHOUSE_CASE'):
+        from odoo.addons.step_export_branch_consolidation.models import branch_companies
+        branches = branch_companies(business,business.company) - business.company
+        requested = int(os.environ.get('T209_DESTINATION_ID') or 0)
+        if requested:
+            branches = branches.filtered(lambda c:c.id == requested)
+        cases = []
+        for destination in branches:
+            warehouses = business['stock.warehouse'].with_company(destination).search([('company_id','=',destination.id)])
+            if warehouses:
+                cases.append((destination,warehouses))
+        assert cases, 'Expected an authorized destination with an existing warehouse'
+        destination, warehouses = cases[0]
+        kind = business['step.freight.dispatch.type'].search([('step_recipient_kind','=','interplant')],limit=1)
+        assert kind
+        guide = business['step.dispatch.guide'].search([('name','=',os.environ.get('T209_GUIDE_NAME','')),
+            ('company_id','=',business.company.id),('state','=','draft')],limit=1)
+        if guide:
+            assert guide.step_destination_company_id == destination
+        data['warehouse_case'] = {'guide_id':guide.id, 'type':kind.display_name,
+            'partner':destination.partner_id.display_name,'source_name':business.company.display_name,
+            'destination':destination.id,'warehouses':warehouses.mapped('display_name')}
+    proof.write_text(json.dumps(data))
     proof.chmod(0o600)
     print('T207_BROWSER_SESSION_READY')
 env.cr.rollback()

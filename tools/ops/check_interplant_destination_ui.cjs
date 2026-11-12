@@ -1,0 +1,55 @@
+/* Native destination selector acceptance; all edits remain unsaved. */
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const {chromium} = require('playwright');
+(async()=>{
+ const proof = JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+ const output = process.argv[3]; fs.mkdirSync(output,{recursive:true});
+ const test = proof.warehouse_case; assert.ok(test);
+ const browser = await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
+ let page;
+ try {
+  const context = await browser.newContext({viewport:{width:1440,height:1100},locale:'es-CL'});
+  await context.addCookies([{name:'session_id',value:proof.session_id,domain:proof.host,path:'/',httpOnly:true,secure:true,sameSite:'Lax'},
+   {name:'cids',value:String(proof.company_id),domain:proof.host,path:'/',secure:true}]);
+  page=await context.newPage(); const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+  const record = test.guide_id ? `&id=${test.guide_id}&model=step.dispatch.guide&view_type=form` : '';
+  await page.goto(`https://${proof.host}/web?t209_review=destination#action=${proof.actions.guides}&cids=${proof.company_id}${record}`,{waitUntil:'domcontentloaded',timeout:120000});
+  if(!test.guide_id) {
+   await page.locator('.o_list_view').waitFor({timeout:120000});
+   await page.getByRole('button',{name:/^(Nuevo|New)$/}).click();
+  }
+  await page.locator('.o_form_view').waitFor({timeout:120000});
+  async function choose(field,label) {
+   const input=page.locator(`.o_field_widget[name="${field}"] input`);
+   await input.fill(label);
+   await page.locator('.o-autocomplete--dropdown-item').filter({hasText:label}).first().click();
+  }
+  if(!test.guide_id) {
+   await choose('dispatch_type_id',test.type);
+   await choose('partner_id',test.partner);
+  }
+  const input=page.locator('.o_field_widget[name="step_destination_warehouse_id"] input');
+  await input.waitFor(); await input.fill(''); await input.click();
+  for(const name of test.warehouses)
+   await page.locator('.o-autocomplete--dropdown-item').filter({hasText:name}).first().waitFor();
+  await page.screenshot({path:path.join(output,'destination-warehouse-options.png'),fullPage:true});
+  await page.locator('.o-autocomplete--dropdown-item').filter({hasText:test.warehouses[0]}).first().click();
+  assert.equal(await input.inputValue(),test.warehouses[0]);
+  assert.equal(await page.locator('.o_error_dialog').count(),0);
+  const cookie=(await context.cookies()).find(x=>x.name==='cids');
+  assert.equal(cookie.value,String(proof.company_id));
+  assert.ok((await page.locator('.o_field_widget[name="company_id"]').innerText()).includes(test.source_name));
+  assert.equal(errors.length,0);
+  await page.screenshot({path:path.join(output,'destination-warehouse-selected.png'),fullPage:true});
+  const result={host:proof.host,company:proof.company_id,destinationWarehouseChoices:test.warehouses,
+   sourceCompanyUnchanged:true,existingDraft:!!test.guide_id,businessDocumentSaved:false,errors};
+  fs.writeFileSync(path.join(output,'destination-ui-result.json'),JSON.stringify(result,null,2));
+  console.log('DESTINATION_UI_OK '+JSON.stringify(result));
+ } catch(e) {
+  if(page) {await page.screenshot({path:path.join(output,'destination-failure.png'),fullPage:true}).catch(()=>{});
+   fs.writeFileSync(path.join(output,'destination-failure.txt'),await page.locator('body').innerText().catch(()=>''));}
+  throw e;
+ } finally {await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});
