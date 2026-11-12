@@ -95,3 +95,49 @@ class NurseryEvent(models.Model):
                     not event.material_id or not event.uom_id or not isfinite(event.quantity)
                     or event.quantity <= 0 or event.uom_id.category_id != event.material_id.uom_id.category_id):
                 raise ValidationError(_("Indique insumo, dosis positiva y unidad compatible."))
+
+
+
+class StockMoveLine(models.Model):
+    _inherit = "stock.move.line"
+
+    step_nursery_net_seed_g = fields.Float(string="Peso neto de semilla (g)", digits=(16, 4), copy=False)
+    step_nursery_seed_rate_used = fields.Float(string="Semillas por gramo aplicadas", digits=(16, 4),
+                                               readonly=True, copy=False)
+    step_nursery_can_convert_seed = fields.Boolean(compute="_compute_can_convert_seed")
+
+    @api.depends("lot_id.step_nursery_seed", "picking_id.picking_type_id.code", "state")
+    def _compute_can_convert_seed(self):
+        for line in self:
+            line.step_nursery_can_convert_seed = (
+                line.lot_id.step_nursery_seed and line.picking_id.picking_type_id.code == "incoming"
+                and line.state not in ("done", "cancel"))
+
+    @api.constrains("step_nursery_net_seed_g")
+    def _check_seed_weight(self):
+        if any(not isfinite(line.step_nursery_net_seed_g) or line.step_nursery_net_seed_g < 0 for line in self):
+            raise ValidationError(_("El peso neto de semilla debe ser un número no negativo."))
+
+    def action_step_nursery_apply_seed_weight(self):
+        self.ensure_one()
+        self.check_access("write")
+        if not self.step_nursery_can_convert_seed or self.step_nursery_net_seed_g <= 0:
+            raise ValidationError(_("Indique el peso y un lote de semilla en una recepción pendiente."))
+        uom = self.product_uom_id
+        gram = self.env.ref("uom.product_uom_gram")
+        unit = self.env.ref("uom.product_uom_unit")
+        rate = 0
+        if uom.category_id == unit.category_id:
+            lot = self.lot_id
+            if not lot.step_nursery_weight_g or not lot.step_nursery_sample:
+                raise ValidationError(_("Registre una muestra pesada en este lote antes de estimar unidades."))
+            rate = lot.step_nursery_sample / lot.step_nursery_weight_g
+            qty = unit._compute_quantity(self.step_nursery_net_seed_g * rate, uom, rounding_method="DOWN")
+        elif uom.category_id == gram.category_id:
+            qty = gram._compute_quantity(self.step_nursery_net_seed_g, uom, rounding_method="HALF-UP")
+        else:
+            raise ValidationError(_("La unidad de la recepción debe ser de peso o de unidades."))
+        if qty <= 0:
+            raise ValidationError(_("El peso no alcanza la mínima cantidad de la unidad de inventario."))
+        self.write({"quantity": qty, "step_nursery_seed_rate_used": rate})
+        return True

@@ -86,9 +86,28 @@ class NurseryPlan(models.Model):
                     or (plan.bom_id.product_id and plan.bom_id.product_id != plan.product_id)):
                 raise ValidationError(_("La receta debe fabricar el producto de la línea de venta."))
 
+    @api.model_create_multi
+    def create(self, values_list):
+        if self.env.context.get("default_production_id") or any(vals.get("production_id") for vals in values_list):
+            raise UserError(_("Genere la orden desde el plan de siembra."))
+        for vals in values_list:
+            line = self.env["sale.order.line"].browse(vals.get("sale_line_id"))
+            line.check_access("read")
+            if line.order_id.commitment_date:
+                vals.setdefault("promised_at", line.order_id.commitment_date)
+        return super().create(values_list)
+
+    def write(self, vals):
+        if "production_id" in vals or (
+            {"sale_line_id", "cycle_id", "bom_id", "promised_at"} & vals.keys() and self.filtered("production_id")
+        ):
+            raise UserError(_("El plan conserva su pedido, ciclo y receta después de crear la orden."))
+        return super().write(vals)
+
     def action_create_production(self):
         self.ensure_one()
         self.check_access("write")
+        self.sale_line_id.check_access("read")
         self.env.cr.execute("SELECT id FROM step_nursery_plan WHERE id = %s FOR UPDATE", (self.id,))
         self.invalidate_recordset(["production_id"])
         if self.production_id:
@@ -114,7 +133,7 @@ class NurseryPlan(models.Model):
             "date_start": self.sowing_at,
             "date_deadline": self.promised_at,
         })
-        self.production_id = native
+        super(NurseryPlan, self).write({"production_id": native.id})
         return self._production_action()
 
     def _production_action(self):

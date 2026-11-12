@@ -37,6 +37,9 @@
                 <field name="step_nursery_packages">
                     <list><field name="name"/><field name="step_nursery_package_lot_id"/>
                         <field name="step_nursery_package_customer_id"/>
+                        <field name="step_nursery_sown_at"/>
+                        <button name="action_step_nursery_mark_sown" type="object" string="Confirmar siembra"
+                                invisible="step_nursery_sown_at"/>
                         <button name="action_step_nursery_package_label" type="object" string="Imprimir etiqueta"/>
                     </list>
                     <form><group><field name="name"/><field name="step_nursery_package_lot_id"/>

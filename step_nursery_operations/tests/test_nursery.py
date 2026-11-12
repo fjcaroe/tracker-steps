@@ -254,14 +254,28 @@ class TestNursery(TransactionCase):
         native.move_raw_ids.picked = True
         native.button_mark_done()
         self.assertEqual(native.state, "done")
+        self.assertEqual(native.move_raw_ids.move_line_ids.owner_id, self.customer)
+        self.assertEqual(native.move_raw_ids.move_line_ids.lot_id, seed_lot)
         self.assertEqual(custody.consumed, 128)
+        self.assertEqual(custody.available, 0)
         self.assertFalse(native.move_raw_ids.stock_valuation_layer_ids)
         package = self.env["stock.quant.package"].create({"step_nursery_production_id": native.id})
         self.assertEqual(package.step_nursery_package_customer_id, self.customer)
+        package.action_step_nursery_mark_sown()
+        self.assertTrue(package.step_nursery_sown_at)
         html, _ = self.env["ir.actions.report"]._render_qweb_html(
             "step_nursery_operations.action_nursery_package_label", package.ids)
         self.assertIn(b"QA-PLT-CUST", html)
         self.assertIn(b"MAQUILA", html)
+        service = self.env["product.product"].create({"name": "QA Servicio de siembra", "type": "service"})
+        bill = self.env["step.nursery.service.bill"].create({
+            "production_id": native.id, "basis": "trays", "service_id": service.id, "price": 1000,
+        })
+        bill.action_create_invoice()
+        self.assertEqual(bill.invoice_id.state, "draft")
+        self.assertEqual(bill.invoice_id.partner_id, self.customer)
+        self.assertEqual(bill.invoice_id.invoice_line_ids.quantity, 1)
+        self.assertEqual(bill.action_create_invoice()["res_id"], bill.invoice_id.id)
 
     def test_combined_dispatch_uses_actual_plant_and_tray_movements(self):
         plan = self._plan(quantity=25)
@@ -330,3 +344,33 @@ class TestNursery(TransactionCase):
         self.assertEqual(loan.invoice_id.state, "draft")
         self.assertEqual(loan.invoice_id.invoice_line_ids.quantity, 3)
         self.assertEqual(loan.invoice_id.invoice_line_ids.price_unit, 20)
+
+    def test_seed_weight_converts_at_lot_rate_without_overstating_units(self):
+        lot = self.env["stock.lot"].create({
+            "name": "QA-SEM-PESO", "product_id": self.seed.id, "company_id": self.company.id,
+            "step_nursery_seed": True, "step_nursery_sample": 50, "step_nursery_weight_g": 12.5,
+        })
+        receipt = self.env["stock.picking"].create({
+            "partner_id": self.customer.id, "picking_type_id": self.warehouse.in_type_id.id,
+            "location_id": self.env.ref("stock.stock_location_suppliers").id,
+            "location_dest_id": self.warehouse.lot_stock_id.id,
+            "move_ids": [Command.create({
+                "name": self.seed.name, "product_id": self.seed.id, "product_uom_qty": 40,
+                "product_uom": self.unit.id,
+            })],
+        })
+        receipt.action_confirm()
+        receipt.move_line_ids.unlink()
+        line = self.env["stock.move.line"].create({
+            "move_id": receipt.move_ids.id, "picking_id": receipt.id, "product_id": self.seed.id,
+            "product_uom_id": self.unit.id, "lot_id": lot.id,
+            "location_id": receipt.location_id.id, "location_dest_id": receipt.location_dest_id.id,
+            "step_nursery_net_seed_g": 10.24, "company_id": self.company.id, "picked": True,
+        })
+        line.action_step_nursery_apply_seed_weight()
+        self.assertEqual((line.quantity, line.step_nursery_seed_rate_used), (40, 4))
+        receipt.button_validate()
+        self.assertEqual(line.state, "done")
+        self.assertEqual(line.quantity, 40)
+        with self.assertRaises(ValidationError):
+            line.action_step_nursery_apply_seed_weight()

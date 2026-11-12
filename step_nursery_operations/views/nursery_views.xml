@@ -151,4 +151,37 @@
     <menuitem id="menu_nursery_slot" name="Ocupación" parent="menu_nursery_root" action="action_nursery_slot" sequence="20"/>
     <menuitem id="menu_nursery_cycle" name="Ciclos de siembra" parent="menu_nursery_root" action="action_nursery_cycle"
               groups="group_nursery_manager" sequence="30"/>
+    <record id="view_nursery_seed_receipt_weight" model="ir.ui.view">
+        <field name="name">stock.move.line.form.nursery.seed.weight</field>
+        <field name="model">stock.move.line</field>
+        <field name="inherit_id" ref="stock.view_move_line_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/group[1]" position="after">
+                <group string="Peso de semilla" groups="step_nursery_operations.group_nursery_operator">
+                    <field name="step_nursery_can_convert_seed" invisible="1"/>
+                    <field name="step_nursery_net_seed_g" invisible="not step_nursery_can_convert_seed and not step_nursery_net_seed_g"
+                           readonly="not step_nursery_can_convert_seed"/>
+                    <field name="step_nursery_seed_rate_used" invisible="not step_nursery_seed_rate_used"/>
+                    <button name="action_step_nursery_apply_seed_weight" type="object" string="Aplicar peso a cantidad"
+                            invisible="not step_nursery_can_convert_seed or not step_nursery_net_seed_g"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_nursery_seed_receipt_operation" model="ir.ui.view">
+        <field name="name">stock.move.line.list.nursery.seed.weight</field>
+        <field name="model">stock.move.line</field>
+        <field name="inherit_id" ref="stock.view_stock_move_line_operation_tree"/>
+        <field name="arch" type="xml">
+            <field name="quantity" position="after">
+                <field name="step_nursery_can_convert_seed" column_invisible="True"/>
+                <field name="step_nursery_net_seed_g" optional="hide" readonly="not step_nursery_can_convert_seed"
+                       invisible="not step_nursery_can_convert_seed and not step_nursery_net_seed_g"
+                       groups="step_nursery_operations.group_nursery_operator"/>
+                <button name="action_step_nursery_apply_seed_weight" type="object" string="Aplicar peso"
+                        invisible="not step_nursery_can_convert_seed or not step_nursery_net_seed_g"
+                        groups="step_nursery_operations.group_nursery_operator"/>
+            </field>
+        </field>
+    </record>
 </odoo>

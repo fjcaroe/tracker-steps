@@ -50,6 +50,10 @@ class NurseryCustody(models.Model):
             raise UserError(_("La custodia conserva su recepción de origen."))
         return super().write(vals)
 
+    @api.depends("receipt_line_id", "lot_id.step_nursery_stock_line_ids.state",
+                 "lot_id.step_nursery_stock_line_ids.quantity", "lot_id.step_nursery_stock_line_ids.owner_id",
+                 "lot_id.step_nursery_stock_line_ids.location_id", "lot_id.step_nursery_stock_line_ids.location_dest_id",
+                 "lot_id.step_nursery_quant_ids.quantity")
     def _compute_totals(self):
         line_model = self.env["stock.move.line"]
         quant_model = self.env["stock.quant"]
@@ -72,6 +76,13 @@ class NurseryCustody(models.Model):
             row.available = sum(quant_model.search(common + [
                 ("location_id", "=", row.location_id.id),
             ]).mapped("quantity"))
+
+
+class StockLot(models.Model):
+    _inherit = "stock.lot"
+
+    step_nursery_stock_line_ids = fields.One2many("stock.move.line", "lot_id")
+    step_nursery_quant_ids = fields.One2many("stock.quant", "lot_id")
 
 
 class MrpProduction(models.Model):
@@ -136,6 +147,7 @@ class StockMove(models.Model):
             need, location_id, custody.lot_id, package_id, custody.owner_id, strict)
 
     def _action_done(self, cancel_backorder=False):
+        totals = {}
         for move in self.filtered(lambda row: row.state not in ("done", "cancel") and row.picked):
             custody = move._step_seed_custody()
             if not custody:
@@ -145,13 +157,21 @@ class StockMove(models.Model):
                                   or line.location_id != custody.location_id for line in consumed):
                 raise UserError(_("El consumo de maquila debe usar solo el lote y dueño de la orden."))
             for package in {line.package_id for line in consumed}:
-                taken = sum(line.quantity_product_uom for line in consumed if line.package_id == package)
+                key = (move.company_id.id, move.product_id.id, custody.lot_id.id,
+                       custody.owner_id.id, custody.location_id.id, package.id)
+                taken = totals.get(key, 0) + sum(
+                    line.quantity_product_uom for line in consumed if line.package_id == package)
+                totals[key] = taken
                 quants = self.env["stock.quant"].search([
                     ("company_id", "=", move.company_id.id), ("product_id", "=", move.product_id.id),
                     ("lot_id", "=", custody.lot_id.id), ("owner_id", "=", custody.owner_id.id),
                     ("location_id", "=", custody.location_id.id), ("package_id", "=", package.id or False),
                 ])
-                if float_compare(taken, sum(quants.mapped("quantity")), precision_rounding=move.product_id.uom_id.rounding) > 0:
+                if quants:
+                    self.env.cr.execute("SELECT id FROM stock_quant WHERE id IN %s ORDER BY id FOR UPDATE",
+                                        (tuple(quants.ids),))
+                if float_compare(taken, sum(quants.mapped("quantity")),
+                                 precision_rounding=move.product_id.uom_id.rounding) > 0:
                     raise UserError(_("La semilla del cliente es insuficiente. No se permite dejar custodia negativa."))
         return super()._action_done(cancel_backorder=cancel_backorder)
 
@@ -174,6 +194,18 @@ class StockPackage(models.Model):
             if (order.company_id not in self.env.companies or (pack.company_id and order.company_id != pack.company_id)
                     or not (order.step_nursery_plan_ids or order.step_nursery_custody_id)):
                 raise ValidationError(_("Seleccione una orden de vivero de la misma empresa autorizada."))
+
+    step_nursery_sown_at = fields.Datetime(string="Siembra confirmada", readonly=True, copy=False)
+
+    def action_step_nursery_mark_sown(self):
+        self.ensure_one()
+        self.check_access("write")
+        self.step_nursery_production_id.check_access("read")
+        if self.step_nursery_production_id.state not in ("progress", "to_close", "done"):
+            raise UserError(_("Inicie la siembra de la orden antes de confirmar esta bandeja."))
+        if not self.step_nursery_sown_at:
+            self.step_nursery_sown_at = fields.Datetime.now()
+        return True
 
     def action_step_nursery_package_label(self):
         self.ensure_one()
@@ -254,7 +286,7 @@ class NurseryServiceBill(models.Model):
         if order.state != "done" or not order.lot_producing_id:
             raise UserError(_("Termine la orden y registre el lote de salida."))
         if self.basis == "trays":
-            return len(order.step_nursery_packages)
+            return len(order.step_nursery_packages.filtered("step_nursery_sown_at"))
         if self.shipment_id.state != "done":
             raise UserError(_("Valide el despacho antes de preparar el cobro por planta entregada."))
         lines = self.shipment_id.move_line_ids.filtered(lambda row:
@@ -271,7 +303,7 @@ class NurseryServiceBill(models.Model):
             self._check_billing()
             qty = self._get_service_qty()
             if not qty:
-                raise UserError(_("Registre las bandejas etiquetadas o el despacho del lote antes de facturar."))
+                raise UserError(_("Confirme las bandejas sembradas o registre el despacho del lote antes de facturar."))
             if self.basis == "plants" and self.search_count([
                 ("production_id", "=", self.production_id.id), ("basis", "=", "trays"), ("invoice_id", "!=", False),
             ]):
