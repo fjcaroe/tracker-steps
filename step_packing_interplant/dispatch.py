@@ -140,12 +140,27 @@ class Guide(models.Model):
                     continue
                 guide._check_recipient()
                 guide._validate_load()
+                if guide.load_tag_ids and not guide.dispatch_instruction_id:
+                    guide._check_pallet_detail()
                 if guide.step_recipient_kind == 'interplant' and guide.dispatch_instruction_id:
                     raise UserError(_('Use el traslado interplanta sin instructivo de exportación.'))
                 super(Guide, guide).action_confirm()
                 if not guide.dispatch_instruction_id and (guide.load_tag_ids or guide.step_recipient_kind == 'interplant'):
                     guide._dispatch_stock()
         return True
+
+    def _check_pallet_detail(self):
+        expected, actual = defaultdict(lambda: [0.0, 0.0]), defaultdict(lambda: [0.0, 0.0])
+        for row in self.load_tag_ids.step_tag_line_ids:
+            expected[row.product_id.id][0] += row.quantity
+            expected[row.product_id.id][1] += row.kilos
+        for row in self.line_ids:
+            actual[row.product_id.id][0] += row.product_uom_id._compute_quantity(row.quantity, row.product_id.uom_id, round=False)
+            actual[row.product_id.id][1] += row.quantity_kg
+        if expected.keys() != actual.keys() or any(
+                float_compare(qty[0], actual[product][0], precision_rounding=self.env['product.product'].browse(product).uom_id.rounding)
+                or float_compare(qty[1], actual[product][1], precision_digits=2) for product, qty in expected.items()):
+            raise UserError(_('El detalle de la guía debe coincidir con las cantidades y kilos de las tarjas seleccionadas. Use «Traer detalle de pallets».'))
 
     def _dispatch_stock(self):
         self.ensure_one()
@@ -269,7 +284,7 @@ class Guide(models.Model):
                 'step_interplant_origin_tag_id': original.id})
         names = ['name', 'package_type_id', 'step_tag_kind', 'step_producer_id', 'fundo_id', 'especie_id',
             'variedad_id', 'step_export_season_id', 'box_count', 'step_packaging_id', 'harvest_date',
-            'fruit_type', 'fruit_category_id', 'fruit_caliber_id', 'label']
+            'fruit_type', 'fruit_category_id', 'fruit_class_id', 'fruit_quality_id', 'fruit_caliber_id', 'label']
         values = {name: original[name].id if original._fields[name].type == 'many2one' else original[name] for name in names}
         values.update(is_fruit_tag=True, step_tag_state='created', company_id=incoming.company_id.id,
             step_process_reception_id=incoming.id, step_interplant_origin_tag_id=original.id)

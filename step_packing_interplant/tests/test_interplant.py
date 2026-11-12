@@ -143,7 +143,9 @@ class InterplantCase(DispatchCase):
 
     def test_destination_operator_can_receive_without_source_membership(self):
         self.interplant_fixture()
-        guide = self.transfer_guide(self.tag('QA207-RECEIVER'))
+        farm = self.env['step.fundo'].create({'name': 'QA origin farm', 'partner_id': self.producer.id,
+            'company_id': self.env.company.id})
+        guide = self.transfer_guide(self.tag('QA207-RECEIVER', fundo_id=farm.id))
         guide.action_confirm()
         receipt = guide.step_destination_picking_id
         user = self.env['res.users'].with_context(no_reset_password=True).create({
@@ -154,3 +156,29 @@ class InterplantCase(DispatchCase):
         scoped.button_validate()
         self.assertEqual(receipt.state, 'done')
         self.assertEqual(user.company_ids, self.branch)
+        self.assertNotIn(self.branch, farm.company_ids)
+        self.assertEqual(receipt.step_interplant_tag_ids.fundo_id, farm)
+
+    def test_dispatch_detail_must_equal_stock_and_generic_stock_can_transfer(self):
+        self.interplant_fixture()
+        tag = self.tag('QA207-DETAIL')
+        guide = self.transfer_guide(tag)
+        guide.line_ids.quantity = 9
+        with self.assertRaises(UserError), self.cr.savepoint():
+            guide.action_confirm()
+        self.assertEqual(sum(tag.quant_ids.mapped('quantity')), 10)
+        guide.action_cancel()
+        plain = self.env['product.product'].create({'name': 'QA207 material', 'is_storable': True})
+        self.env['stock.quant']._update_available_quantity(plain, self.location, 6)
+        generic = self.guide(dispatch_instruction_id=False, partner_id=self.branch.partner_id.id,
+            dispatch_type_id=self.kind.id, step_destination_warehouse_id=self.destination.id,
+            step_source_warehouse_id=self.location.warehouse_id.id, driver_partner_id=self.driver.id,
+            transfer_reason_id=self.env['step.dispatch.transfer.reason'].search([], limit=1).id,
+            line_ids=[Command.create({'product_id': plain.id, 'description': plain.name,
+                'product_uom_id': plain.uom_id.id, 'quantity': 6})])
+        generic.action_confirm()
+        receipt = generic.step_destination_picking_id
+        self.assertNotEqual(receipt.state, 'done')
+        receipt.with_company(self.branch).button_validate()
+        self.assertEqual(receipt.state, 'done')
+        self.assertEqual(self.env['stock.quant']._get_available_quantity(plain, self.destination.lot_stock_id), 6)

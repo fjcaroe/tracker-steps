@@ -94,11 +94,30 @@ class Package(models.Model):
     _interplant_audit_fields = ('step_interplant_origin_tag_id',)
     step_interplant_origin_tag_id = fields.Many2one('stock.quant.package', string='Tarja de origen', readonly=True, copy=False, ondelete='restrict')
 
+    @api.constrains('company_id', 'fundo_id', 'fruit_category_id', 'fruit_class_id',
+                    'fruit_quality_id', 'fruit_caliber_id', 'step_interplant_origin_tag_id')
+    def _check_agricultural_masters(self):
+        transferred = self.filtered('step_interplant_origin_tag_id')
+        super(Package, self - transferred)._check_agricultural_masters()
+        # A transferred pallet retains its original masters. This does not widen
+        # their company assignments or allow selecting foreign masters manually.
+        for tag in transferred:
+            origin = tag.step_interplant_origin_tag_id.sudo()
+            receipt = tag.step_process_reception_id
+            guide = receipt.step_interplant_guide_id.sudo()
+            if (not guide or origin not in guide.load_tag_ids or guide.company_id != origin.company_id
+                    or receipt.company_id != tag.company_id or guide.company_id.root_id != tag.company_id.root_id):
+                raise UserError(_('El origen del traslado no acredita los maestros de la tarja.'))
+            for name in ('fundo_id', 'fruit_category_id', 'fruit_class_id', 'fruit_quality_id', 'fruit_caliber_id'):
+                if tag[name] != origin[name]:
+                    raise UserError(_('La tarja trasladada conserva los maestros de su origen.'))
+
     def _check_interplant_content(self):
         for tag in self.filtered('step_interplant_origin_tag_id'):
             origin = tag.step_interplant_origin_tag_id.sudo()
             names = ('name', 'step_tag_kind', 'step_producer_id', 'fundo_id', 'especie_id',
-                     'variedad_id', 'step_packaging_id', 'box_count', 'step_export_season_id')
+                     'variedad_id', 'step_packaging_id', 'box_count', 'step_export_season_id',
+                     'fruit_category_id', 'fruit_class_id', 'fruit_quality_id', 'fruit_caliber_id')
             if any(tag[name] != origin[name] for name in names):
                 raise UserError(_('Conserve los datos de la tarja de origen del traslado.'))
             expected = sorted((row.producer_id.id, row.product_id.id, row.lot_id.id or 0,
