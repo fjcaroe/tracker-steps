@@ -199,3 +199,47 @@ class TestNursery(TransactionCase):
         self.assertEqual((report.produced, report.normal_waste, report.useful), (128, 8, 120))
         self.assertAlmostEqual(report.unit_cost, 256 / 120, places=4)
         self.assertEqual(report.balance_cost, 256)
+
+    def test_maquila_reserves_only_requested_owner_and_lot(self):
+        plan = self._plan(quantity=100)
+        plan.sale_line_id.order_id.action_confirm()
+        plan.action_create_production()
+        native = plan.production_id
+        owner2 = self.env["res.partner"].create({"name": "QA Segundo cliente de semilla"})
+        custody_location = self.env["stock.location"].create({
+            "name": "QA Semilla ajena", "company_id": self.company.id,
+            "location_id": self.warehouse.view_location_id.id, "usage": "internal",
+        })
+        seed_lot = self.env["stock.lot"].create({
+            "name": "QA-SEM-CUST", "product_id": self.seed.id, "company_id": self.company.id,
+        })
+        receipt = self.env["stock.picking"].create({
+            "partner_id": self.customer.id, "picking_type_id": self.warehouse.in_type_id.id,
+            "location_id": self.env.ref("stock.stock_location_suppliers").id,
+            "location_dest_id": custody_location.id,
+            "move_ids": [Command.create({
+                "name": self.seed.name, "product_id": self.seed.id, "product_uom_qty": 60,
+                "product_uom": self.unit.id,
+            })],
+        })
+        receipt.action_confirm()
+        receipt.move_line_ids.unlink()
+        received = self.env["stock.move.line"].create({
+            "move_id": receipt.move_ids.id, "picking_id": receipt.id, "product_id": self.seed.id,
+            "product_uom_id": self.unit.id, "quantity": 60, "lot_id": seed_lot.id, "owner_id": self.customer.id,
+            "location_id": receipt.location_id.id, "location_dest_id": custody_location.id,
+            "company_id": self.company.id, "picked": True,
+        })
+        receipt.button_validate()
+        custody = self.env["step.nursery.custody"].create({"receipt_line_id": received.id})
+        self.env["stock.quant"]._update_available_quantity(
+            self.seed, custody_location, 200, lot_id=seed_lot, owner_id=owner2)
+        native.step_nursery_custody_id = custody
+        native.action_confirm()
+        native.action_assign()
+        self.assertEqual(native.move_raw_ids.location_id, custody_location)
+        self.assertEqual(native.move_raw_ids.move_line_ids.owner_id, self.customer)
+        self.assertEqual(native.move_raw_ids.move_line_ids.lot_id, seed_lot)
+        self.assertEqual(native.move_raw_ids.quantity, 60)
+        self.assertEqual(custody.available, 60)
+        self.assertFalse(receipt.move_ids.stock_valuation_layer_ids)

@@ -15,3 +15,6 @@ access_nursery_batch_allocation_manager,nursery.batch.allocation.manager,model_s
 access_nursery_batch_allocation_line_reader,nursery.batch.allocation_line.reader,model_step_nursery_batch_allocation_line,account.group_account_user,1,0,0,0
 access_nursery_batch_allocation_line_manager,nursery.batch.allocation_line.manager,model_step_nursery_batch_allocation_line,account.group_account_manager,1,1,1,1
 access_nursery_batch_cost_report,nursery.batch.cost.report,model_step_nursery_batch_cost_report,account.group_account_user,1,0,1,0
+access_nursery_custody_operator,nursery.custody.operator,model_step_nursery_custody,group_nursery_operator,1,0,1,0
+access_nursery_custody_manager,nursery.custody.manager,model_step_nursery_custody,group_nursery_manager,1,1,1,1
+access_nursery_service_bill,nursery.service.bill,model_step_nursery_service_bill,account.group_account_invoice,1,1,1,1

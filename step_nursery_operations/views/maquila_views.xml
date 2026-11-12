@@ -1,0 +1,117 @@
+<odoo>
+    <record id="view_nursery_custody_list" model="ir.ui.view">
+        <field name="name">step.nursery.custody.list</field>
+        <field name="model">step.nursery.custody</field>
+        <field name="arch" type="xml">
+            <list><field name="owner_id"/><field name="lot_id"/><field name="variety_id"/><field name="location_id"/>
+                <field name="received"/><field name="consumed"/><field name="returned"/><field name="available"/>
+                <field name="unit_id"/><field name="germination_pct"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_nursery_custody_form" model="ir.ui.view">
+        <field name="name">step.nursery.custody.form</field>
+        <field name="model">step.nursery.custody</field>
+        <field name="arch" type="xml">
+            <form><sheet><group><group string="Origen">
+                <field name="receipt_line_id" readonly="id" domain="[('state', '=', 'done'), ('owner_id', '!=', False), ('lot_id', '!=', False), ('location_dest_id.usage', '=', 'internal')]"/>
+                <field name="owner_id"/><field name="location_id"/><field name="lot_id"/>
+                <field name="variety_id"/><field name="germination_pct"/>
+            </group><group string="Movimientos en custodia">
+                <field name="received"/><field name="consumed"/><field name="returned"/>
+                <field name="available"/><field name="unit_id"/>
+            </group></group></sheet></form>
+        </field>
+    </record>
+    <record id="view_nursery_maquila_production" model="ir.ui.view">
+        <field name="name">mrp.production.form.nursery.custody</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="view_nursery_mrp_production"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='step_nursery']/group" position="inside">
+                <field name="step_nursery_custody_id" readonly="state != 'draft'"/>
+                <field name="step_nursery_customer_id" invisible="not step_nursery_custody_id"/>
+            </xpath>
+            <xpath expr="//page[@name='step_nursery']" position="inside">
+                <separator string="Bandejas y etiquetas"/>
+                <field name="step_nursery_packages">
+                    <list><field name="name"/><field name="step_nursery_package_lot_id"/>
+                        <field name="step_nursery_package_customer_id"/>
+                        <button name="action_step_nursery_package_label" type="object" string="Imprimir etiqueta"/>
+                    </list>
+                    <form><group><field name="name"/><field name="step_nursery_package_lot_id"/>
+                        <field name="step_nursery_package_customer_id"/></group></form>
+                </field>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_nursery_service_bill_list" model="ir.ui.view">
+        <field name="name">step.nursery.service.bill.list</field>
+        <field name="model">step.nursery.service.bill</field>
+        <field name="arch" type="xml">
+            <list><field name="production_id"/><field name="partner_id"/><field name="basis"/>
+                <field name="shipment_id"/><field name="tray_loan_id"/><field name="invoice_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_nursery_service_bill_form" model="ir.ui.view">
+        <field name="name">step.nursery.service.bill.form</field>
+        <field name="model">step.nursery.service.bill</field>
+        <field name="arch" type="xml">
+            <form><header><button name="action_create_invoice" type="object" string="Preparar factura"
+                                  class="oe_highlight" invisible="invoice_id"/></header>
+                <sheet><group><group string="Orden y entrega">
+                    <field name="production_id" readonly="invoice_id" domain="[('step_nursery_custody_id','!=',False)]"/>
+                    <field name="partner_id"/><field name="shipment_id" readonly="invoice_id" required="basis == 'plants'"/>
+                    <field name="tray_loan_id" readonly="invoice_id"/>
+                </group><group string="Servicio">
+                    <field name="basis" readonly="invoice_id"/><field name="service_id" readonly="invoice_id"/>
+                    <field name="currency_id" invisible="1"/><field name="price" readonly="invoice_id"/>
+                    <field name="extra_product_id" readonly="invoice_id"/><field name="extra_price" readonly="invoice_id"/>
+                    <field name="invoice_id"/>
+                </group></group></sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_nursery_custody" model="ir.actions.act_window">
+        <field name="name">Semillas en custodia</field><field name="res_model">step.nursery.custody</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="action_nursery_service_bill" model="ir.actions.act_window">
+        <field name="name">Cobros de maquila</field><field name="res_model">step.nursery.service.bill</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <menuitem id="menu_nursery_custody" name="Semilla en custodia" parent="menu_nursery_root"
+              action="action_nursery_custody" sequence="21"/>
+    <menuitem id="menu_nursery_service_bill" name="Cobros de maquila" parent="menu_nursery_root"
+              action="action_nursery_service_bill" groups="account.group_account_invoice" sequence="27"/>
+    <record id="paper_nursery_package" model="report.paperformat">
+        <field name="name">Etiqueta de bandeja 100 × 60 mm</field>
+        <field name="format">custom</field>
+        <field name="page_height">60</field><field name="page_width">100</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">3</field><field name="margin_bottom">3</field>
+        <field name="margin_left">3</field><field name="margin_right">3</field>
+        <field name="dpi">96</field>
+    </record>
+    <record id="action_nursery_package_label" model="ir.actions.report">
+        <field name="name">Etiqueta de vivero</field><field name="model">stock.quant.package</field>
+        <field name="report_type">qweb-pdf</field><field name="report_name">step_nursery_operations.nursery_package_label</field>
+        <field name="paperformat_id" ref="paper_nursery_package"/>
+        <field name="groups_id" eval="[(4, ref('group_nursery_operator'))]"/>
+    </record>
+    <template id="nursery_package_label">
+        <t t-call="web.html_container">
+            <div class="page" t-foreach="docs" t-as="package" style="font-size:14px">
+                <strong t-if="package.step_nursery_package_customer_id">MAQUILA</strong>
+                <strong t-else="">PRODUCCIÓN PROPIA</strong>
+                <div t-if="package.step_nursery_package_customer_id">
+                    Cliente: <span t-field="package.step_nursery_package_customer_id"/>
+                </div>
+                <div>Lote: <span t-field="package.step_nursery_package_lot_id"/></div>
+                <div t-field="package.name" t-options="{'widget':'barcode','symbology':'Code128','width':500,'height':80,'img_style':'width:78mm;height:14mm'}"/>
+                <div t-field="package.name"/>
+            </div>
+        </t>
+    </template>
+</odoo>

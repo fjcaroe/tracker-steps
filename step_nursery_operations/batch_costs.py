@@ -179,4 +179,5 @@ class NurseryBatchCostReport(models.TransientModel):
     tray_cost = fields.Float(string="Costo por bandeja completa", digits=(16, 4), readonly=True)
     sales_cost = fields.Monetary(string="Costo de entregas netas", readonly=True)
     balance_cost = fields.Monetary(string="Costo de saldo útil", readonly=True)
-    allocation_ids = fields.Many2many("step.nursery.batch.allocation.line", string="Repartos de respaldo", readonly=True)
+    allocation_ids = fields.Many2many("step.nursery.batch.allocation.line", "step_nursery_cost_report_alloc_rel",
+                                     string="Repartos de respaldo", readonly=True)
