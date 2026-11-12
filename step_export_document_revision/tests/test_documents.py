@@ -74,6 +74,48 @@ class DocumentCase(TransactionCase):
         order.step_price_kg = True
         with self.assertRaises(ValidationError), self.cr.savepoint(): order.order_line.product_packaging_id = False
 
+    def test_sale_note_uses_native_masters_with_box_quantity(self):
+        order, _ = self.sample()
+        env = order.env
+        product = order.order_line.product_id
+        package = order.order_line.product_packaging_id
+        package.write({'qty': 1.5, 'step_export_kg_per_box': 1.5, 'sales': True})
+        branch = env['res.company'].create({'name': 'QA Export Branch', 'parent_id': order.company_id.id})
+        foreign = self.env['res.company'].create({'name': 'QA Other Exporter'})
+        modes = env['step.export.sale.mode']
+        mode = modes.create({'name': 'QA Parent Sale Mode', 'company_id': order.company_id.id})
+        foreign_mode = modes.create({'name': 'QA Foreign Sale Mode', 'company_id': foreign.id})
+        scoped = env(context={**env.context, 'allowed_company_ids': branch.ids, 'default_step_export_sale': True})
+        note = scoped['sale.order'].create({
+            'partner_id': order.partner_id.id,
+            'step_export_sale_mode_id': mode.id,
+            'order_line': [Command.create({'product_id': product.id, 'product_uom_qty': 100,
+                'price_unit': 5, 'tax_id': [Command.clear()]})],
+        })
+        line = note.order_line
+        self.assertEqual(note.company_id, branch)
+        self.assertEqual(note.step_export_sale_mode_id, mode)
+        self.assertEqual(line.product_packaging_id, package)
+        self.assertEqual(line.step_document_kg, 150)
+        self.assertEqual(note.amount_total, 500)
+        self.assertIsNone(line._onchange_product_packaging_id())
+        with self.assertRaises(UserError), self.cr.savepoint():
+            note.step_export_sale_mode_id = foreign_mode
+        alternative = scoped['product.packaging'].create({
+            'name': 'QA Alternative', 'product_id': product.id, 'sales': True,
+            'qty': 1.5, 'step_export_kg_per_box': 2, 'company_id': branch.id,
+        })
+        line.product_packaging_id = alternative
+        line.product_uom_qty = 101
+        self.assertEqual(line.product_packaging_id, alternative)
+        self.assertEqual(line.step_document_kg, 202)
+
+        tree = etree.fromstring(note.get_view(view_type='form')['arch'])
+        selector, = tree.xpath(".//field[@name='step_export_sale_mode_id']")
+        self.assertIn("parent_of", selector.get('domain'))
+        for node in tree.xpath(".//field[@name='order_line']//field[@name='product_packaging_id']"):
+            self.assertIn('step_export.view_step_export_packaging_form', node.get('context'))
+
     def test_english_documents_and_no_accounting_side_effects(self):
         order, _ = self.sample(); reports = order.env['ir.actions.report']
         count = order.env['account.move'].search_count([])

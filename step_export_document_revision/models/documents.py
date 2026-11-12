@@ -28,6 +28,12 @@ class Package(models.Model):
             raise ValidationError(_('El peso bruto no puede ser negativo.'))
 
 
+class SaleMode(models.Model):
+    _inherit = 'step.export.sale.mode'
+
+    _check_company_domain = models.check_company_domain_parent_of
+
+
 class Order(models.Model):
     _inherit = 'sale.order'
     step_price_kg = fields.Boolean(string='Precio kg', default=False, tracking=True)
@@ -94,6 +100,29 @@ class OrderLine(models.Model):
     step_document_kg_per_box = fields.Float(string='Kg por caja acordados', digits=(16, 3),
         compute='_compute_document_packaging', store=True, precompute=True,
         help='Peso del embalaje al seleccionarlo; conserva el precio acordado ante cambios posteriores del maestro.')
+
+    @api.depends('product_id', 'product_uom_qty', 'product_uom', 'order_id.step_box_pricing')
+    def _compute_product_packaging_id(self):
+        box_lines = self.filtered(lambda line: line.order_id.step_box_pricing)
+        super(OrderLine, self - box_lines)._compute_product_packaging_id()
+        packaging = self.env['product.packaging']
+        for line in box_lines:
+            if line.product_packaging_id and line.product_packaging_id.product_id == line.product_id:
+                continue
+            # These quantities already count boxes. The native suggestion
+            # treats qty on the master as a divisor of the order quantity.
+            choices = packaging.search([
+                ('product_id', '=', line.product_id.id),
+                ('sales', '=', True),
+                ('company_id', 'in', [False, line.company_id.id]),
+                ('step_export_kg_per_box', '>', 0),
+            ], limit=2) if line.product_id else packaging
+            line.product_packaging_id = choices if len(choices) == 1 else False
+
+    @api.onchange('product_packaging_id')
+    def _onchange_product_packaging_id(self):
+        if not self.order_id.step_box_pricing:
+            return super()._onchange_product_packaging_id()
 
     @api.depends('product_packaging_id')
     def _compute_document_packaging(self):

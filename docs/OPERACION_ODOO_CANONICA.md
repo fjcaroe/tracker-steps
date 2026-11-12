@@ -1,5 +1,13 @@
 # Operación y publicación de Odoo
 
+T210 actualiza `step_export_document_revision` con `document-design` en
+Desarrollo, Cerro y QA-Cerro. La nota usa la modalidad del maestro de la
+empresa, su matriz o compartida, y los embalajes de venta del producto que
+pertenecen a la empresa de la nota o son compartidos. En cálculo por cajas,
+un único embalaje con peso configurado se propone sin redondear las cajas.
+Probar la selección desde la nota, el cálculo de 100 cajas de 1,5 kg y las
+restricciones de empresa en copias. Conservar maestros y notas existentes.
+
 T209 actualiza `step_packing_interplant` a 18.0.1.0.3 con el mismo paquete
 `reception-excel --with-interplant`. El almacén de destino se consulta con
 el contexto de la planta destinataria autorizada, aunque solo esté activa
