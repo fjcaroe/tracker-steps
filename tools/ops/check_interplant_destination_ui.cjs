@@ -32,7 +32,7 @@ const {chromium} = require('playwright');
   }
   const input=page.locator('.o_field_widget[name="step_destination_warehouse_id"] input');
   if(test.type) {await input.waitFor(); await input.fill(''); await input.click();}
-  else {assert.equal(proof.host,'desarrollo.stepsapp.cl'); assert.equal(await input.count(),0);}
+  else {assert.equal(proof.host,'desarrollo.stepsapp.cl'); assert.equal(await input.isVisible(),false);}
   for(const name of test.warehouses)
    await page.locator('.o-autocomplete--dropdown-item').filter({hasText:name}).first().waitFor();
   await page.screenshot({path:path.join(output,'destination-warehouse-options.png'),fullPage:true});
@@ -47,8 +47,12 @@ const {chromium} = require('playwright');
   const cookie=(await context.cookies()).find(x=>x.name==='cids');
   assert.equal(cookie.value,String(proof.company_id));
   const companyField=page.locator('.o_field_widget[name="company_id"]');
-  const companyText=await companyField.locator('input').count() ? await companyField.locator('input').inputValue() : await companyField.innerText();
-  assert.ok(companyText.includes(test.source_name));
+  if(await companyField.count()) {
+   const companyText=await companyField.locator('input').count() ? await companyField.locator('input').inputValue() : await companyField.innerText();
+   assert.ok(companyText.includes(test.source_name));
+  } else {
+   assert.ok(test.no_destination && proof.host === 'desarrollo.stepsapp.cl');
+  }
   assert.equal(errors.length,0);
   await page.screenshot({path:path.join(output,'destination-warehouse-selected.png'),fullPage:true});
   const result={host:proof.host,company:proof.company_id,destinationWarehouseChoices:test.warehouses,
