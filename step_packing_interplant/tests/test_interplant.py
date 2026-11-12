@@ -312,8 +312,10 @@ class InterplantCase(DispatchCase):
         tag.invalidate_recordset(['step_packing_company_id'])
         self.assertFalse(tag.step_packing_company_id)
         self.assertEqual(tag.company_id, source)
+        audit = (tag.write_uid, tag.write_date)
         preserve_legacy_tag_companies(self.env)
         preserve_legacy_tag_companies(self.env)  # Safe on an already migrated database.
+        self.assertEqual((tag.write_uid, tag.write_date), audit)
         self.assertEqual(tag.step_packing_company_id, source)
         guide = self.source_only_operator(self.transfer_guide(tag))
         guide.action_confirm()

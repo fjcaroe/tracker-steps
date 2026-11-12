@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 import subprocess
 
-PAIRS = [(environment, suffix) for environment in ('development', 'cerro') for suffix in ('a', 'b', 'c')] + [('qa-cerro', 'a'), ('development', 'd')]
+PAIRS = [(environment, suffix) for environment in ('development', 'cerro') for suffix in ('a', 'b', 'c')] + [('qa-cerro', 'a'), ('development', 'd'), ('development', 'e')]
 ROOT = Path('/opt/steps-validation')
 
 
@@ -58,7 +58,7 @@ def cleanup(apply):
                     target.unlink()
             (stage/'intermediate_copy_removed.json').write_text(json.dumps(row,indent=2))
         result.append(row)
-    print(json.dumps({'tickets':[209],'intermediate_copies':result,'final_e_copies_and_deployment_backups':'retained'},indent=2))
+    print(json.dumps({'tickets':[209],'intermediate_copies':result,'final_f_copies_and_deployment_backups':'retained'},indent=2))
 
 
 if __name__ == '__main__':

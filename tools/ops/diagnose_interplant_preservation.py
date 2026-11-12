@@ -24,11 +24,15 @@ for line in lines[start+1:]:
     if line == r'\.': break
     values=dict(zip(columns,line.split('\t')))
     old.append((int(values['id']),None if values['step_packing_company_id']==r'\N' else int(values['step_packing_company_id'])))
-values=','.join('(%d,%s)'%(key,'NULL' if company is None else company) for key,company in old)
+values=','.join('(%d,%s)'%(key,'NULL::integer' if company is None else company) for key,company in old)
 old_cte='WITH old(id,company) AS (VALUES '+values+') '
 assert management.query(db,old_cte+"SELECT count(*) FROM stock_quant_package t JOIN old ON t.id=old.id WHERE t.step_packing_company_id IS DISTINCT FROM old.company AND NOT (old.company IS NULL AND t.is_fruit_tag AND t.company_id=t.step_packing_company_id)")=='0'
 row="(to_jsonb(t) || jsonb_build_object('step_packing_company_id',old.company))"
 original_hash=management.query(db,old_cte+"SELECT json_build_object('count',count(*),'digest',md5(COALESCE(string_agg("+row+"::text,'|' ORDER BY "+row+"::text),'')))::text FROM stock_quant_package t JOIN old ON t.id=old.id")
-assert json.loads(original_hash)==json.loads(before['stock_quant_package'])
+end=next(i for i in range(start+1,len(lines)) if lines[i]==r'\.')
+copy='\n'.join(lines[start:end+1]).replace('COPY public.stock_quant_package (','COPY previous_tag (',1)
+comparison="SELECT jsonb_object_agg(key,n) FROM (SELECT a.key,count(*) n FROM stock_quant_package t JOIN previous_tag old USING(id), LATERAL jsonb_each(to_jsonb(t)) a WHERE a.value IS DISTINCT FROM to_jsonb(old)->a.key GROUP BY a.key) changes;"
+print('EXACT_CHANGED_COLUMNS',management.query(db,'BEGIN; CREATE TEMP TABLE previous_tag (LIKE stock_quant_package);\n'+copy+'\n'+comparison+'\nROLLBACK;'))
+print('ONLY_COMPANY_FIELD_CHANGED',json.loads(original_hash)==json.loads(before['stock_quant_package']))
 assert [key for key in before if before[key]!=after.get(key)]==['stock_quant_package']
-print('ONLY_EXPECTED_NATIVE_COMPANY_BACKFILL_CONFIRMED')
+print('PRIVATE_PRESERVATION_DIAGNOSTIC_COMPLETE')

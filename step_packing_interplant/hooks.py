@@ -18,7 +18,8 @@ def preserve_legacy_tag_companies(env):
         env.cr.execute('UPDATE stock_quant_package SET step_packing_company_id=%s '
                        'WHERE id=%s AND step_packing_company_id IS NULL', [company.id, tag.id])
         tag.invalidate_recordset(['step_packing_company_id'])
-        tag.modified(['step_packing_company_id'])
+        # company_id already has this value. Do not force a recomputation here:
+        # it would rewrite audit timestamps on historical packages.
     env.flush_all()
 
 
