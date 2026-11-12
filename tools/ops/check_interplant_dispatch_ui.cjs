@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
   await openAction('receipts','.o_list_view');
   await page.getByText('Recepciones vigentes',{exact:true}).first().waitFor();
   await page.screenshot({path:path.join(output,'current-receipts.png'),fullPage:true});
-  await openAction('report','.o_pivot');
+  await openAction('report','div.o_pivot');
   await page.screenshot({path:path.join(output,'current-reception-report.png'),fullPage:true});
   await openAction('interplant','.o_list_view');
   await page.screenshot({path:path.join(output,'interplant-receipts.png'),fullPage:true});
@@ -37,7 +37,7 @@ const { chromium } = require('playwright');
   const dialog=page.getByRole('dialog'); await dialog.waitFor();
   const headers=await dialog.locator('th').allTextContents();
   for (const fragment of ['Tipo de tarja','Número de tarja','Productor','Cajas','Kilos'])
-   assert.ok(headers.some(h=>h.includes(fragment)),`Missing selector column ${fragment}: ${headers}`);
+   assert.ok(headers.some(h=>h.toLocaleLowerCase().includes(fragment.toLocaleLowerCase())),`Missing selector column ${fragment}: ${headers}`);
   await page.screenshot({path:path.join(output,'dispatch-tag-selector.png'),fullPage:true});
   assert.equal(errors.length,0,errors.join('; '));
   const result={host:proof.host,company:proof.company_id,currentReceiptFilter:true,receptionPivot:true,

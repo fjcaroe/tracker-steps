@@ -1,5 +1,31 @@
 # Operación y publicación de Odoo
 
+T207–T208 se entregan con `reception-excel --with-interplant` en Desarrollo,
+Cerro y QA-Cerro. El paquete incluye `step_packing_interplant` 18.0.1.0.0 y
+`step_packing_ticket_revision` 18.0.1.2.5. Tipo despacho precede al destinatario
+y selecciona clientes, productores o empresas y sucursales del mismo grupo.
+En Folio Pallet se eligen tarjas C, E y N con stock libre; usar Traer detalle
+de pallets antes de confirmar. Se conservan instructivos de exportación y
+traslados de materiales mediante movimientos nativos.
+
+El traslado interplanta deja una recepción pendiente en Packing / Recepciones /
+Recepciones interplanta. La planta receptora debe validar la llegada; hasta
+entonces no tiene stock disponible. Preservar folio, lote, propietario,
+cantidades y vínculos originales. No ampliar asignaciones de maestros ni
+permisos de otras empresas para efectuar el traslado. Probar con un operador
+que tenga acceso solo al destino y rechazar reservas, duplicados o cambios
+en el origen, lote y cantidades de una recepción pendiente.
+
+Las recepciones con devolución realizada se excluyen de los listados vigentes
+y los informes dinámicos, conservando originales y devoluciones en Inventario.
+Verificar filtros guardados, ambos tipos de recepción, totales y trazabilidad.
+Cada copia del destino exige 19 pruebas, además del flujo real revertido en
+la copia de Cerro. Revisar las pantallas con `check_interplant_dispatch_ui.cjs`
+y retirar las sesiones privadas. `collect_interplant_delivery.py` comprueba
+paquete idéntico, versiones, fuentes, respaldos legibles y aislamiento de QA.
+El cierre interno requiere esas evidencias, revisión visual y ausencia de
+respuestas nuevas. QA-Cerro conserva sus datos; no se refresca desde producción.
+
 T204–T206 se entregan con `reception-excel --with-receipt-dispatch` en
 Desarrollo, Cerro y QA-Cerro. Los tipos de despacho reutilizan el maestro
 nativo, conservan las guías existentes y pueden compartirse entre empresas.
