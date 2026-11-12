@@ -33,3 +33,7 @@ for suffix in ('process', 'packed'):
     assert safe_eval(receipt_action.context)['search_default_fruit_current'] == 1
 print('INTERPLANT_REGISTRY_OK ' + json.dumps({'version': module.latest_version,
     'native_form_menu_selector': True, 'pending_receipt_form': True, 'returned_receipts_excluded': len(returned)}))
+
+if env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_'):
+    exec(compile((Path(PROBE_TOOLS) / 'probe_interplant_customer_copy.py').read_text(),
+        'probe_interplant_customer_copy.py', 'exec'))
