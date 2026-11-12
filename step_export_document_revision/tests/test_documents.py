@@ -79,13 +79,16 @@ class DocumentCase(TransactionCase):
         env = order.env
         product = order.order_line.product_id
         package = order.order_line.product_packaging_id
-        package.write({'qty': 1.5, 'step_export_kg_per_box': 1.5, 'sales': True})
+        package.write({'qty': 1.5, 'step_export_kg_per_box': 1.5, 'sales': True,
+                       'company_id': order.company_id.id})
         branch = env['res.company'].create({'name': 'QA Export Branch', 'parent_id': order.company_id.id})
         foreign = self.env['res.company'].create({'name': 'QA Other Exporter'})
         modes = env['step.export.sale.mode']
         mode = modes.create({'name': 'QA Parent Sale Mode', 'company_id': order.company_id.id})
         foreign_mode = modes.create({'name': 'QA Foreign Sale Mode', 'company_id': foreign.id})
         scoped = env(context={**env.context, 'allowed_company_ids': branch.ids, 'default_step_export_sale': True})
+        scoped['product.packaging'].create({'name': 'QA No weight', 'product_id': product.id,
+            'sales': True, 'company_id': branch.id})
         note = scoped['sale.order'].create({
             'partner_id': order.partner_id.id,
             'step_export_sale_mode_id': mode.id,
@@ -101,6 +104,10 @@ class DocumentCase(TransactionCase):
         self.assertIsNone(line._onchange_product_packaging_id())
         with self.assertRaises(UserError), self.cr.savepoint():
             note.step_export_sale_mode_id = foreign_mode
+        foreign_package = env['product.packaging'].create({'name': 'QA Foreign Packaging',
+            'product_id': product.id, 'step_export_kg_per_box': 1.5, 'sales': True, 'company_id': foreign.id})
+        with self.assertRaises(UserError), self.cr.savepoint():
+            line.product_packaging_id = foreign_package
         alternative = scoped['product.packaging'].create({
             'name': 'QA Alternative', 'product_id': product.id, 'sales': True,
             'qty': 1.5, 'step_export_kg_per_box': 2, 'company_id': branch.id,
@@ -115,6 +122,8 @@ class DocumentCase(TransactionCase):
         self.assertIn("parent_of", selector.get('domain'))
         for node in tree.xpath(".//field[@name='order_line']//field[@name='product_packaging_id']"):
             self.assertIn('step_export.view_step_export_packaging_form', node.get('context'))
+            self.assertIn("'company_id', 'parent_of', parent.company_id", node.get('domain'))
+            self.assertIn('step_export_kg_per_box', node.get('domain'))
 
     def test_english_documents_and_no_accounting_side_effects(self):
         order, _ = self.sample(); reports = order.env['ir.actions.report']

@@ -1,6 +1,6 @@
 {
     'name': 'Steps - Documentos comerciales y Packing List',
-    'version': '18.0.1.0.2',
+    'version': '18.0.1.0.3',
     'license': 'LGPL-3',
     'depends': ['step_export_shipping_design', 'step_sale_export_report', 'step_packing_operations'],
     'data': ['views/documents.xml', 'report/documents.xml', 'report/packing.xml'],

@@ -22,7 +22,8 @@ try:
         tree = etree.fromstring(record.get_view(view_type='form')['arch'].encode())
         assert tree.tag == 'form'
         if model == 'step.packing.production': assert tree.xpath('.//field[@name="date"]')
-    if tuple(map(int, EXPECTED['step_export_document_revision'].split('.'))) >= (18, 0, 1, 0, 2):
+    document_version = tuple(map(int, EXPECTED['step_export_document_revision'].split('.')))
+    if document_version >= (18, 0, 1, 0, 2):
         sale_menu = env.ref('step_export.menu_step_export_sale_orders')
         mode_master = env.ref('step_export.action_step_export_sale_mode')
         pack_master = env.ref('step_export.action_step_export_packaging')
@@ -35,6 +36,10 @@ try:
         assert order.order_line._fields['product_packaging_id'].comodel_name == pack_master.res_model
         assert 'step_export.view_step_export_sale_mode_form' in mode.get('context') and 'parent_of' in mode.get('domain')
         assert all('step_export.view_step_export_packaging_form' in node.get('context') for node in pack_nodes)
+        if document_version >= (18, 0, 1, 0, 3):
+            assert all('parent_of' in node.get('domain') and 'step_export_kg_per_box' in node.get('domain')
+                       for node in pack_nodes)
+            assert env.ref('step_export.view_step_export_packaging_list') in pack_master.view_ids.view_id
         print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 210, 'menu': True, 'masters': True, 'form': True}))
     reports = order.env['ir.actions.report']
     for report, record, filename in [('step_sale_export_report.proforma', order, 'proforma'),

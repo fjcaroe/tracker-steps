@@ -8,6 +8,18 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
 
+_EXPORT_PACKAGING_CHECK = object()
+
+
+class ProductPackaging(models.Model):
+    _inherit = 'product.packaging'
+
+    def _check_company_domain(self, companies):
+        if self.env.context.get('_step_export_packaging_check') is _EXPORT_PACKAGING_CHECK:
+            return models.check_company_domain_parent_of(self, companies)
+        return super()._check_company_domain(companies)
+
+
 class Partner(models.Model):
     _inherit = 'res.partner'
     step_packing_csp = fields.Char(string='CSP', help='Código de la planta de packing.')
@@ -101,6 +113,15 @@ class OrderLine(models.Model):
         compute='_compute_document_packaging', store=True, precompute=True,
         help='Peso del embalaje al seleccionarlo; conserva el precio acordado ante cambios posteriores del maestro.')
 
+    def _check_company(self, fnames=None):
+        if fnames is not None and not {'company_id', 'company_ids', 'product_packaging_id'}.intersection(fnames):
+            return super()._check_company(fnames)
+        export = self.filtered(lambda line: line.product_packaging_id and line.order_id.step_export_sale_context)
+        if export:
+            scoped = export.with_context(_step_export_packaging_check=_EXPORT_PACKAGING_CHECK)
+            super(OrderLine, scoped)._check_company(fnames)
+        return super(OrderLine, self - export)._check_company(fnames)
+
     @api.depends('product_id', 'product_uom_qty', 'product_uom')
     def _compute_product_packaging_id(self):
         box_lines = self.filtered(lambda line: line.order_id.step_box_pricing)
@@ -114,7 +135,7 @@ class OrderLine(models.Model):
             choices = packaging.search([
                 ('product_id', '=', line.product_id.id),
                 ('sales', '=', True),
-                ('company_id', 'in', [False, line.company_id.id]),
+                '|', ('company_id', '=', False), ('company_id', 'parent_of', line.company_id.id),
                 ('step_export_kg_per_box', '>', 0),
             ], limit=2) if line.product_id else packaging
             line.product_packaging_id = choices if len(choices) == 1 else False
@@ -174,6 +195,26 @@ class OrderLine(models.Model):
                     raise ValidationError(_('Seleccione un embalaje del producto con kilos por caja positivos.'))
                 if line.order_id.step_price_kg and not package:
                     raise ValidationError(_('Seleccione el embalaje para calcular el precio por kilo.'))
+
+
+class StockMove(models.Model):
+    _inherit = 'stock.move'
+
+    def _check_company(self, fnames=None):
+        if fnames is not None and not {'company_id', 'company_ids', 'product_packaging_id'}.intersection(fnames):
+            return super()._check_company(fnames)
+
+        def from_export_sale(move):
+            if not move.product_packaging_id:
+                return False
+            line = move.sudo().sale_line_id
+            return line.company_id == move.company_id and line.order_id.step_export_sale_context
+
+        export = self.filtered(from_export_sale)
+        if export:
+            scoped = export.with_context(_step_export_packaging_check=_EXPORT_PACKAGING_CHECK)
+            super(StockMove, scoped)._check_company(fnames)
+        return super(StockMove, self - export)._check_company(fnames)
 
 
 class PackingList(models.Model):
