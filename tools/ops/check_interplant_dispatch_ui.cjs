@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
   page = await context.newPage(); const errors=[];
   page.on('pageerror', e=>errors.push(e.message));
   async function openAction(name, selector) {
-   await page.goto(`https://${proof.host}/web#action=${proof.actions[name]}&cids=${proof.company_id}`,{waitUntil:'domcontentloaded',timeout:120000});
+   await page.goto(`https://${proof.host}/web?t207_review=${name}#action=${proof.actions[name]}&cids=${proof.company_id}`,{waitUntil:'domcontentloaded',timeout:120000});
    await page.locator(selector).waitFor({timeout:120000});
    assert.equal(await page.locator('.o_error_dialog').count(),0);
   }
