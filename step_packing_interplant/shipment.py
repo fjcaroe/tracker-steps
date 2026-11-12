@@ -7,6 +7,12 @@ class Guide(models.Model):
     _inherit = 'step.dispatch.guide'
 
     step_shipment_company_id = fields.Many2one('res.company', compute='_compute_shipment_company')
+    step_is_shipment_dispatch = fields.Boolean(compute='_compute_is_shipment_dispatch')
+
+    @api.depends('dispatch_type_id.step_recipient_kind')
+    def _compute_is_shipment_dispatch(self):
+        for guide in self:
+            guide.step_is_shipment_dispatch = guide.step_recipient_kind == 'shipment'
 
     @api.depends('company_id')
     @api.depends_context('uid')

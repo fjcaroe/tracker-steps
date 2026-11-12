@@ -1,0 +1,54 @@
+<odoo>
+    <record id="packing_list_from_branch" model="ir.ui.view">
+        <field name="name">step.export.packing.list.branch.sources</field>
+        <field name="model">step.export.packing.list</field>
+        <field name="inherit_id" ref="step_export_document_revision.packing_list_form"/>
+        <field name="arch" type="xml">
+            <field name="shipment_id" position="before">
+                <field name="step_packing_company_ids" invisible="1"/>
+                <field name="step_packing_shipment_domain" invisible="1"/>
+                <field name="step_uses_guide_pallets" invisible="1"/>
+            </field>
+            <field name="shipment_id" position="attributes">
+                <attribute name="domain">step_packing_shipment_domain</attribute>
+                <attribute name="context">{'allowed_company_ids': step_packing_company_ids}</attribute>
+                <attribute name="options">{'no_create': True}</attribute>
+            </field>
+            <field name="guide_id" position="attributes">
+                <attribute name="context">{'allowed_company_ids': step_packing_company_ids}</attribute>
+            </field>
+            <field name="guide_id" position="after">
+                <field name="step_dispatch_branch_id" invisible="not guide_id"/>
+            </field>
+            <field name="tag_ids" position="attributes">
+                <attribute name="readonly">step_uses_guide_pallets or (guide_id and guide_has_dispatch_instruction)</attribute>
+                <attribute name="context">{'allowed_company_ids': step_packing_company_ids}</attribute>
+            </field>
+            <xpath expr="//field[@name='tag_ids']/list" position="attributes">
+                <attribute name="default_order">name,id</attribute>
+            </xpath>
+        </field>
+    </record>
+    <record id="packing_list_on_matrix_shipment" model="ir.ui.view">
+        <field name="name">step.export.export.packing.lists.by.branch</field>
+        <field name="model">step.export.export</field>
+        <field name="inherit_id" ref="step_packing_interplant.shipment_branch_dispatches"/>
+        <field name="arch" type="xml">
+            <field name="packing_list_ids" position="attributes">
+                <attribute name="readonly">1</attribute>
+                <attribute name="context">{'allowed_company_ids': step_branch_company_ids}</attribute>
+            </field>
+            <field name="packing_list_ids" position="inside">
+                <list default_order="date desc,id desc">
+                    <field name="name"/>
+                    <field name="guide_id"/>
+                    <field name="step_dispatch_branch_id"/>
+                    <field name="date"/>
+                    <field name="container_number"/>
+                    <field name="box_qty"/>
+                    <field name="kg_qty"/>
+                </list>
+            </field>
+        </field>
+    </record>
+</odoo>

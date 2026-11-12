@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T213 amplía `reception-excel --with-interplant` en Desarrollo, Cerro y QA-Cerro.
+El Packing List de sucursal toma la guía confirmada y sus tarjas, conserva
+la compañía matriz del documento y se muestra en Tarjas y despachos.
+Reutilizar la secuencia de la matriz o la global vigente. Crear la secuencia
+nativa de la matriz solo cuando falten ambas. Probar desde la sucursal
+activa, verificar el reflejo en la matriz y revertir el caso en la copia.
+
 T212 amplía `reception-excel --with-interplant` en Desarrollo, Cerro y QA-Cerro.
 En Packing → Despacho → Despacho, el tipo Embarque ofrece contactos marcados
 para Exportación y embarques validados de la matriz autorizada del usuario.

@@ -46,6 +46,17 @@ def configure_shipment_dispatch_types(env):
             dispatch_type.write(values)
 
 
+def configure_matrix_packing_sequences(env):
+    kinds = env['step.freight.dispatch.type'].search([('step_recipient_kind', '=', 'shipment')])
+    matrices = (kinds.company_id | kinds.company_ids).root_id
+    sequences = env['ir.sequence']
+    code = 'step.export.packing.list'
+    for matrix in matrices:
+        if not sequences.search_count([('code', '=', code), ('company_id', 'in', [False, matrix.id])], limit=1):
+            sequences.create({'name': 'Packing List', 'code': code, 'company_id': matrix.id,
+                'prefix': 'PL/', 'padding': 5})
+
+
 def post_init_hook(env):
     preserve_legacy_tag_companies(env)
     mapping = {'Despacho a cliente': 'customer', 'Retira cliente': 'customer',
@@ -60,3 +71,4 @@ def post_init_hook(env):
                 [kind, tuple(records.ids)])
             records.invalidate_recordset(['step_recipient_kind'])
     configure_shipment_dispatch_types(env)
+    configure_matrix_packing_sequences(env)

@@ -70,3 +70,60 @@ def verify_shipment_dispatch(env, scoped):
 
 
 verify_shipment_dispatch(env, scoped)
+
+
+def verify_branch_packing_list(env, scoped):
+    menu = scoped.ref('step_packing_operations.menu_packing_dispatch_packing_list')
+    assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
+    model = scoped[menu.action.res_model]
+    arch = etree.fromstring(model.get_view(view_type='form')['arch'])
+    shipment_field, = arch.xpath("//field[@name='shipment_id']")
+    guide_field, = arch.xpath("//field[@name='guide_id']")
+    assert shipment_field.get('domain') == 'step_packing_shipment_domain'
+    assert guide_field.get('context') == "{'allowed_company_ids': step_packing_company_ids}"
+    matrix_arch = etree.fromstring(scoped['step.export.export'].get_view(view_type='form')['arch'])
+    assert matrix_arch.xpath("//field[@name='packing_list_ids']/list/field[@name='step_dispatch_branch_id']")
+    code = 'step.export.packing.list'
+    assert env['ir.sequence'].search_count([('code', '=', code), ('company_id', 'in', [False, scoped.company.id])])
+    print('T213_REGISTRY_OK ' + json.dumps({'packing_menu': True, 'branch_form': True, 'matrix_tab': True, 'sequence': True}))
+    if not env.cr.dbname.startswith('MANAGEMENT_QA_QA-CERRO_'):
+        return
+    guide = env['step.dispatch.guide'].search([('external_folio', '=', '6666'),
+        ('step_recipient_kind', '=', 'shipment'), ('state', '=', 'confirmed')], limit=1)
+    if not guide:
+        return
+    branch = scoped_business_environment(env, company=guide.company_id)
+    shipment = guide.step_export_shipment_ids.filtered(lambda row: row.name == 'M0260')
+    assert len(shipment) == 1 and len(guide.load_tag_ids) == 3
+    packing_model = branch[model._name]
+    draft = packing_model.new({'shipment_id': shipment.id, 'guide_id': guide.id})
+    context = safe_eval(shipment_field.get('context'), {'step_packing_company_ids': draft.step_packing_company_ids.ids})
+    choices = branch[shipment._name].with_context(**context).name_search('M0260', args=draft.step_packing_shipment_domain)
+    assert shipment.id in {row[0] for row in choices}
+    choices = branch[guide._name].name_search('6666', args=[('id', 'in', draft.available_guide_ids.ids)])
+    assert guide.id in {row[0] for row in choices}
+    try:
+        expected = guide.load_tag_ids
+        spec = {'name': {}, 'shipment_id': {'fields': {'display_name': {}}}, 'box_qty': {}, 'kg_qty': {},
+                'tag_ids': {'fields': {'name': {}}, 'order': 'name,id'}}
+        draft._onchange_guide_tags()
+        assert draft.tag_ids.ids == expected.ids
+        saved, = packing_model.web_save({'shipment_id': shipment.id, 'guide_id': guide.id}, spec)
+        assert saved['name'].startswith('PL/') and saved['shipment_id']['id'] == shipment.id
+        assert {row['id'] for row in saved['tag_ids']} == set(expected.ids)
+        assert saved['box_qty'] == sum(expected.mapped('box_count')) == 720
+        assert saved['kg_qty'] > 0
+        parent = scoped['step.export.export'].with_context(allowed_company_ids=context['allowed_company_ids'])
+        reflected, = parent.browse(shipment.id).web_read({'packing_list_ids': {'order': 'date desc,id desc',
+            'fields': {'step_dispatch_branch_id': {'fields': {'display_name': {}}}}}})
+        assert any(row['id'] == saved['id'] and row['step_dispatch_branch_id']['id'] == branch.company.id
+                   for row in reflected['packing_list_ids'])
+        assert packing_model.browse(saved['id']).action_export_excel()['type'] == 'ir.actions.act_url'
+        print('T213_CUSTOMER_COPY_OK ' + json.dumps({'shipment': 'M0260', 'guide': '6666', 'tags': 3,
+            'boxes': saved['box_qty'], 'net_kg': saved['kg_qty'], 'visible_in_matrix': True, 'excel': True}))
+    finally:
+        env.cr.rollback()
+
+
+if 'step_uses_guide_pallets' in env['step.export.packing.list']._fields:
+    verify_branch_packing_list(env, scoped)
