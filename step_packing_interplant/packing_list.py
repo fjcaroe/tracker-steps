@@ -16,9 +16,9 @@ class PackingList(models.Model):
     step_packing_shipment_domain = fields.Json(compute='_compute_packing_matrix')
     step_uses_guide_pallets = fields.Boolean(related='guide_id.step_is_shipment_dispatch')
     available_guide_ids = fields.Many2many(
-        related=False, compute='_compute_available_dispatches', compute_sudo=False)
+        'step.dispatch.guide', related=False, compute='_compute_available_dispatches', compute_sudo=False)
     available_tag_ids = fields.Many2many(
-        related=False, compute='_compute_available_dispatches', compute_sudo=False)
+        'stock.quant.package', related=False, compute='_compute_available_dispatches', compute_sudo=False)
 
     def _packing_scope(self):
         company = self.env.company
