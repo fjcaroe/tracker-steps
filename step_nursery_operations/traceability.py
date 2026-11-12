@@ -1,4 +1,4 @@
-from math import isfinite
+from math import floor, isfinite
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
@@ -132,7 +132,8 @@ class StockMoveLine(models.Model):
             if not lot.step_nursery_weight_g or not lot.step_nursery_sample:
                 raise ValidationError(_("Registre una muestra pesada en este lote antes de estimar unidades."))
             rate = lot.step_nursery_sample / lot.step_nursery_weight_g
-            qty = unit._compute_quantity(self.step_nursery_net_seed_g * rate, uom, rounding_method="DOWN")
+            whole_seeds = floor(round(self.step_nursery_net_seed_g * rate, 8))
+            qty = unit._compute_quantity(whole_seeds, uom, rounding_method="DOWN")
         elif uom.category_id == gram.category_id:
             qty = gram._compute_quantity(self.step_nursery_net_seed_g, uom, rounding_method="HALF-UP")
         else:
