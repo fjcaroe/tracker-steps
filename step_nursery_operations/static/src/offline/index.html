@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bitácora de vivero</title>
+<link rel="stylesheet" href="/step_nursery_operations/static/src/offline/offline.css">
+<main>
+  <p class="kicker">STEPS · VIVERO</p><h1>Bitácora de vivero</h1>
+  <p id="status" role="status" aria-live="polite"></p>
+  <section><h2>Preparar captura</h2>
+    <label>Empresa <select id="company" disabled></select></label>
+    <button id="prepare" disabled>Descargar órdenes</button>
+    <p id="workspace"></p>
+  </section>
+  <section><h2>Registrar labor</h2>
+    <form id="capture">
+      <fieldset id="entry" disabled>
+        <label>Orden de siembra <select id="order" required></select></label>
+        <label>Tipo <select id="kind">
+          <option value="germination">Germinación</option><option value="watering">Riego</option>
+          <option value="observation">Otra labor u observación</option>
+        </select></label>
+        <div id="sample-fields">
+          <label>Semillas en muestra <input id="sample" type="number" min="1" max="1000000" step="1"></label>
+          <label>Germinadas <input id="germinated" type="number" min="0" max="1000000" step="1"></label>
+        </div>
+        <label>Observación <textarea id="note" maxlength="1000" rows="3"></textarea></label>
+        <button type="submit">Guardar captura</button>
+      </fieldset>
+    </form>
+  </section>
+  <section><h2>Capturas pendientes</h2>
+    <p id="queue-count"></p><ul id="pending"></ul>
+    <button id="sync" disabled>Sincronizar ahora</button>
+  </section>
+</main>
+<script type="module" src="/step_nursery_operations/static/src/offline/app.js"></script>
+</html>

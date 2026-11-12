@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 from odoo import Command
 from odoo.exceptions import AccessError, ValidationError
@@ -20,7 +21,7 @@ class TestNursery(TransactionCase):
             {"name": "QA Bandeja 128", "is_storable": True, "uom_id": cls.unit.id},
         ])
         cls.customer = env["res.partner"].create({"name": "QA Vivero"})
-        cls.species = env["step.especie"].create({"name": "QA Especie de vivero"})
+        cls.species = env["step.especie"].create({"name": "QA Especie de vivero", "type_especie": "frutal", "group_especie": "baya"})
         cls.season = env["step.temporada"].create({"name": "QA Temporada de vivero"})
         cls.cycle = env["step.nursery.cycle"].create({
             "name": "QA Ciclo 35 días", "species_id": cls.species.id, "season_id": cls.season.id,
@@ -149,3 +150,20 @@ class TestNursery(TransactionCase):
         returned.move_ids.picked = True
         returned.button_validate()
         self.assertEqual((loan.quantity_returned, loan.quantity_pending), (3, 7))
+
+    def test_offline_events_replay_without_duplicate(self):
+        plan = self._plan()
+        plan.sale_line_id.order_id.action_confirm()
+        plan.action_create_production()
+        payload = {"id": str(uuid4()), "order_id": plan.production_id.id,
+                   "performed_at": "2026-11-12 15:40:00", "kind": "germination",
+                   "sample": 80, "germinated": 70}
+        model = self.env["step.nursery.event"]
+        first = model._ingest_offline_event(payload)
+        self.assertEqual(model._ingest_offline_event(payload), first)
+        self.assertEqual(first.germination_pct, 87.5)
+        self.assertEqual(model.search_count([("offline_key", "=", payload["id"])]), 1)
+        with self.assertRaises(ValidationError):
+            model._ingest_offline_event(dict(payload, germinated=71))
+        with self.assertRaises(ValidationError):
+            model._ingest_offline_event(dict(payload, order_id=0))

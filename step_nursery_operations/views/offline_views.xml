@@ -1,0 +1,9 @@
+<odoo>
+    <record id="action_nursery_offline" model="ir.actions.act_url">
+        <field name="name">Bitácora sin conexión</field>
+        <field name="url">/nursery-offline/</field>
+        <field name="target">new</field>
+    </record>
+    <menuitem id="menu_nursery_offline" name="Bitácora sin conexión" parent="menu_nursery_root"
+              action="action_nursery_offline" sequence="28"/>
+</odoo>

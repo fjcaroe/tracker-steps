@@ -11,6 +11,7 @@
         "security/ir.model.access.csv",
         "views/nursery_views.xml",
         "views/delivery_tray_views.xml",
+        "views/offline_views.xml",
     ],
     "application": True,
     "installable": True,
