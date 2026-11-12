@@ -29,6 +29,8 @@ for target in proof['targets']:
         assert dest['destinationWarehouseChoices'] and dest['sourceCompanyUnchanged'] and not dest['errors']
     assert ui['currentReceiptFilter'] and ui['receptionPivot'] and ui['interplantMenu'] and ui['typeBeforeRecipient'] and not ui['errors']
 assert proof['parity'] and proof['qa_isolation'] and proof['customer_case']
+if args.ticket == 209:
+    assert proof['reported_draft']['destination_pending'] and proof['reported_draft']['source_scope_unchanged']
 cfg = json.loads((Path.home()/'.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'))
 url = 'https://soporte.stepsapp.cl/xmlrpc/2/'
 uid = xmlrpc.client.ServerProxy(url+'common').authenticate(cfg['db'],cfg['username'],cfg['api_key'],{})

@@ -44,6 +44,12 @@ def server(args):
                 assert case['pending_before_validation'] and case['owners_lots_stock_conserved']
                 assert set(case['kinds']) == {'C','E','N'} and case['excluded_kilos'] == 799.5
                 result['customer_case'] = case
+                if args.run_id.startswith('t209'):
+                    draft_log = (stage/'reported-draft-probe.log').read_text()
+                    match = re.search(r'REPORTED_DRAFT_COPY_OK (.+)', draft_log)
+                    assert match and 'PROBE_ROLLBACK_OK' in draft_log
+                    result['reported_draft'] = json.loads(match[1])
+                    assert result['reported_draft']['destination_pending'] and result['reported_draft']['source_scope_unchanged']
             matches = []
             for backup in Path('/opt/steps_backups').glob('management_' + target + '_*'):
                 receipt = backup/'deployment.json'
