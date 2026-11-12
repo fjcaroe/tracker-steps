@@ -9,6 +9,9 @@
                 <field name="step_contact_group_id" options="{'no_create': True}"
                        domain="[('is_productor', '=', True), ('id', '!=', id)] + (['|', ('company_id', '=', False), ('company_id', 'parent_of', company_id)] if company_id else [('company_id', '=', False)])"/>
             </xpath>
+            <xpath expr="//page[@name='productor']//field[@name='step_export_fundo_ids']/list" position="attributes">
+                <attribute name="default_order">id</attribute>
+            </xpath>
         </field>
     </record>
     <record id="producer_contact_group_list" model="ir.ui.view">

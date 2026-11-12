@@ -47,6 +47,8 @@ def verify_contact_group(scoped):
     form = etree.fromstring(producer.get_view(view_type='form')['arch'])
     node, = form.xpath("//page[@name='productor']//field[@name='step_contact_group_id']")
     assert "('is_productor', '=', True)" in node.get('domain')
+    nested_farms, = form.xpath("//page[@name='productor']//field[@name='step_export_fundo_ids']/list")
+    assert nested_farms.get('default_order')
     partner_list = etree.fromstring(producer.get_view(view_type='list')['arch'])
     farm_list = etree.fromstring(farm.get_view(view_type='list')['arch'])
     assert 'default_is_productor' in producer_menu.action.context

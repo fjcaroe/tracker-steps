@@ -1,3 +1,5 @@
+from lxml import etree
+
 from odoo import Command
 from odoo.exceptions import AccessError, ValidationError, UserError
 from odoo.tests import TransactionCase, Form, tagged, new_test_user
@@ -126,6 +128,27 @@ class TestMasters(TransactionCase):
         producer.step_contact_group_id = False
         self.assertFalse(farm.step_contact_group_id)
 
+    def test_producer_group_web_save_with_a_farm_in_another_company(self):
+        producer, group = self.env['res.partner'].create([
+            {'name': name, 'is_productor': True, 'company_id': False}
+            for name in ('QA Producer with scoped farms', 'QA Scoped Parent Producer')
+        ])
+        visible = self.make('step.fundo', partner_id=producer.id)
+        hidden = self.make('step.fundo', company_id=self.c.id, partner_id=producer.id)
+        scoped = producer.with_user(self.user).with_context(allowed_company_ids=self.a.ids)
+        self.assertFalse(hidden.with_env(scoped.env).has_access('read'))
+        arch = etree.fromstring(scoped.get_view(view_type='form')['arch'])
+        farm_list, = arch.xpath("//page[@name='productor']//field[@name='step_export_fundo_ids']/list")
+        group_spec = {'step_contact_group_id': {'fields': {'display_name': {}}}}
+        spec = {**group_spec, 'step_export_fundo_ids': {
+            'fields': {'name': {}}, 'order': farm_list.get('default_order'),
+        }}
+        self.assertEqual([row['id'] for row in scoped.web_read(spec)[0]['step_export_fundo_ids']], [visible.id])
+        saved, = scoped.web_save({'step_contact_group_id': group.id}, spec)
+        self.assertEqual(saved['step_contact_group_id']['id'], group.id)
+        self.assertEqual([row['id'] for row in saved['step_export_fundo_ids']], [visible.id])
+        self.assertEqual(visible.with_env(scoped.env).web_read(group_spec)[0]['step_contact_group_id']['id'], group.id)
+
     def test_origin_is_preserved(self):
         record = self.make('step.fundo')
         with self.assertRaises(ValidationError), self.cr.savepoint():
@@ -189,7 +212,6 @@ class TestMasters(TransactionCase):
         self.assertEqual({c['id'] for c in result[0]['company_ids']}, set((self.a|self.b).ids))
 
     def test_operator_view_does_not_read_other_company_names(self):
-        from lxml import etree
         user = new_test_user(self.env(context=dict(self.env.context, no_reset_password=True)), login='qa-shared-operator',
             groups='base.group_user,stock.group_stock_manager', company_id=self.b.id, company_ids=[Command.set(self.b.ids)])
         for model in self.models:
