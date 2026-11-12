@@ -234,6 +234,10 @@ def snapshot(database):
                     'sale_order':['step_price_kg','step_box_pricing'], 'sale_order_line':['step_document_kg_per_box']}
                 if table in additions:
                     row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % name for name in additions[table])
+            if TICKET_REVISION == 'agriculture-multicompany' and table == 'res_partner':
+                # A new empty field is equivalent to an absent column. Keep
+                # any actual group assignments in the preservation check.
+                row = "(CASE WHEN to_jsonb(t)->>'step_contact_group_id' IS NULL THEN to_jsonb(t)-'step_contact_group_id' ELSE to_jsonb(t) END)"
             if TICKET_REVISION == 'shipping-design' and SHIPPING_DESIGN_INITIAL:
                 additions = {'res_company':['export_folio_mode','export_folio_initial'], 'sale_order':['export_folio'],
                     'account_move':['export_folio_sale_order_id'], 'step_export_shipment_line':['quality_id'],

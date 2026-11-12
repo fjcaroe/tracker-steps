@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T211 amplía `agriculture-multicompany` en Desarrollo, Cerro y QA-Cerro.
+Grupo del contacto relaciona contactos existentes. La pestaña Productor
+permite seleccionar otro productor visible de una compañía compatible,
+y la columna de Fundos muestra el grupo del productor vinculado. Probar
+el guardado y ambos listados en copias frescas. Las fichas y sus grupos
+quedan intactos durante la publicación.
+
 T210 actualiza `step_export_document_revision` con `document-design` en
 Desarrollo, Cerro y QA-Cerro. La nota usa la modalidad del maestro de la
 empresa, su matriz o compartida. La acción de Notas de venta usa el

@@ -1,0 +1,35 @@
+<odoo>
+    <record id="producer_contact_group_form" model="ir.ui.view">
+        <field name="name">res.partner.producer.contact.group.form</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="step_producers.view_step_producer_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='productor']//field[@name='productor_name']" position="after">
+                <field name="company_id" invisible="1"/>
+                <field name="step_contact_group_id" options="{'no_create': True}"
+                       domain="[('is_productor', '=', True), ('id', '!=', id)] + (['|', ('company_id', '=', False), ('company_id', 'parent_of', company_id)] if company_id else [('company_id', '=', False)])"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="producer_contact_group_list" model="ir.ui.view">
+        <field name="name">res.partner.producer.contact.group.list</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='complete_name']" position="after">
+                <field name="step_contact_group_id" optional="show" readonly="1"
+                       column_invisible="not context.get('default_is_productor')"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="fundo_contact_group_list" model="ir.ui.view">
+        <field name="name">step.fundo.producer.contact.group.list</field>
+        <field name="model">step.fundo</field>
+        <field name="inherit_id" ref="step_hr.view_step_fundo_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='partner_id']" position="after">
+                <field name="step_contact_group_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

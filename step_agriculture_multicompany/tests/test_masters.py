@@ -103,6 +103,29 @@ class TestMasters(TransactionCase):
         self.assertEqual(menu.action, self.env.ref('step_producers.action_step_producers_fundo'))
         self.assertEqual(menu.parent_id, self.env.ref('step_packing_operations.menu_packing_operations_masters'))
 
+    def test_producer_group_follows_native_contact_in_fundo_list(self):
+        partners = self.env['res.partner']
+        producer, group, other_group = partners.create([
+            {'name': name, 'is_productor': True, 'company_id': False}
+            for name in ('QA Producer', 'QA Parent Producer', 'QA New Parent')
+        ])
+        ordinary = partners.create({'name': 'QA Ordinary Contact'})
+        farm = self.make('step.fundo', partner_id=producer.id)
+        with Form(producer, view='base.view_partner_form') as form:
+            form.step_contact_group_id = group
+        self.assertEqual(producer.step_contact_group_id, group)
+        self.assertEqual(farm.partner_id, producer)
+        spec = {'step_contact_group_id': {'fields': {'display_name': {}}}}
+        self.assertEqual(farm.web_read(spec)[0]['step_contact_group_id']['id'], group.id)
+        producer.step_contact_group_id = other_group
+        self.assertEqual(farm.web_read(spec)[0]['step_contact_group_id']['id'], other_group.id)
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            producer.step_contact_group_id = ordinary
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            other_group.step_contact_group_id = producer
+        producer.step_contact_group_id = False
+        self.assertFalse(farm.step_contact_group_id)
+
     def test_origin_is_preserved(self):
         record = self.make('step.fundo')
         with self.assertRaises(ValidationError), self.cr.savepoint():

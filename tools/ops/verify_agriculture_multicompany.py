@@ -35,6 +35,29 @@ def verify_calibers(env):
     return {'ticket': 200, 'native_menu_list_and_form': True,
             'preserved_calibers': len(records), 'preserved_groups': len(groups)}
 
+def verify_contact_group(scoped):
+    producer_menu = scoped.ref('step_packing_operations.menu_packing_master_producers')
+    farm_menu = scoped.ref('step_agriculture_multicompany.packing_fundos')
+    visible = scoped['ir.ui.menu']._visible_menu_ids()
+    assert producer_menu.id in visible and farm_menu.id in visible
+    producer = scoped[producer_menu.action.res_model]
+    farm = scoped[farm_menu.action.res_model]
+    assert producer._fields['step_contact_group_id'].comodel_name == 'res.partner'
+    assert farm._fields['step_contact_group_id'].comodel_name == 'res.partner'
+    form = etree.fromstring(producer.get_view(view_type='form')['arch'])
+    node, = form.xpath("//page[@name='productor']//field[@name='step_contact_group_id']")
+    assert "('is_productor', '=', True)" in node.get('domain')
+    partner_list = etree.fromstring(producer.get_view(view_type='list')['arch'])
+    farm_list = etree.fromstring(farm.get_view(view_type='list')['arch'])
+    assert 'default_is_productor' in producer_menu.action.context
+    assert partner_list.xpath("//list/field[@name='step_contact_group_id'][@optional='show']")
+    assert farm_list.xpath("//list/field[@name='step_contact_group_id'][@optional='show']")
+    sample = farm.search([('partner_id.is_productor', '=', True)], limit=1)
+    if sample:
+        sample.web_read({'step_contact_group_id': {'fields': {'display_name': {}}}})
+    return {'ticket': 211, 'producer_form': True, 'producer_list': True, 'farm_list': True}
+
+
 try:
     for name, version in EXPECTED.items():
         module = env['ir.module.module'].search([('name', '=', name)])
@@ -97,6 +120,8 @@ try:
         proof['shared_producer'] = verify_shared_producer_reception(env, scoped, SHARED_PRODUCER_RECEPTION)
     if 'company_ids' in env['step.management.fruit.caliber']._fields:
         proof['shared_calibers'] = verify_calibers(env)
+    if 'step_contact_group_id' in scoped['res.partner']._fields:
+        proof['producer_group'] = verify_contact_group(scoped)
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps(proof))
 finally:
     env.cr.rollback()
