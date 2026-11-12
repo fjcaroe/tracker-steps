@@ -1,0 +1,154 @@
+<odoo>
+    <record id="view_nursery_cycle_list" model="ir.ui.view">
+        <field name="name">step.nursery.cycle.list</field>
+        <field name="model">step.nursery.cycle</field>
+        <field name="arch" type="xml">
+            <list><field name="name"/><field name="company_id" groups="base.group_multi_company"/>
+                <field name="species_id"/><field name="season_id"/><field name="cycle_days"/>
+                <field name="extra_pct"/><field name="tray_id"/><field name="cells_per_tray"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_nursery_cycle_form" model="ir.ui.view">
+        <field name="name">step.nursery.cycle.form</field>
+        <field name="model">step.nursery.cycle</field>
+        <field name="arch" type="xml">
+            <form><sheet><group><group><field name="name"/><field name="company_id" groups="base.group_multi_company"/>
+                <field name="species_id"/><field name="season_id"/></group>
+                <group><field name="cycle_days"/><field name="extra_pct"/><field name="tray_id"/>
+                <field name="cells_per_tray"/></group></group></sheet></form>
+        </field>
+    </record>
+    <record id="view_nursery_plan_list" model="ir.ui.view">
+        <field name="name">step.nursery.plan.list</field>
+        <field name="model">step.nursery.plan</field>
+        <field name="arch" type="xml">
+            <list><field name="sale_line_id"/><field name="partner_id"/><field name="product_id"/>
+                <field name="cycle_id"/><field name="promised_at"/><field name="sowing_at"/>
+                <field name="promised_units"/><field name="sowing_units"/><field name="tray_count"/>
+                <field name="production_id"/><field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_nursery_plan_form" model="ir.ui.view">
+        <field name="name">step.nursery.plan.form</field>
+        <field name="model">step.nursery.plan</field>
+        <field name="arch" type="xml">
+            <form>
+                <header><button name="action_create_production" type="object" string="Crear orden de siembra"
+                                class="oe_highlight" invisible="production_id"/>
+                    <button name="action_create_production" type="object" string="Abrir orden" invisible="not production_id"/>
+                </header>
+                <sheet>
+                    <group><group string="Pedido">
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="sale_line_id" readonly="production_id" domain="[('display_type', '=', False)]"/>
+                        <field name="partner_id"/><field name="product_id"/>
+                        <field name="promised_at" readonly="production_id"/><field name="promised_units"/>
+                    </group><group string="Siembra">
+                        <field name="cycle_id" readonly="production_id"/>
+                        <field name="bom_id" readonly="production_id" domain="[('type', '=', 'normal'), '|', ('product_id', '=', product_id), ('product_id', '=', False)]"/>
+                        <field name="sowing_at"/><field name="sowing_units"/><field name="tray_count"/>
+                        <field name="production_id"/>
+                    </group></group>
+                    <notebook><page string="Ocupación">
+                        <field name="slot_ids">
+                            <list editable="bottom" decoration-danger="over_capacity">
+                                <field name="operation_id" domain="[('bom_id', '=', parent.bom_id)]"/>
+                                <field name="location_id" domain="[('usage', '=', 'internal'), ('step_nursery_tray_capacity', '&gt;', 0)]"/>
+                                <field name="start_date"/><field name="end_date"/><field name="trays"/>
+                                <field name="peak_trays"/><field name="over_capacity"/>
+                            </list>
+                        </field>
+                    </page></notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_nursery_slot_list" model="ir.ui.view">
+        <field name="name">step.nursery.slot.list</field>
+        <field name="model">step.nursery.slot</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" decoration-danger="over_capacity">
+                <field name="location_id"/><field name="plan_id"/><field name="operation_id"/>
+                <field name="start_date"/><field name="end_date"/><field name="trays"/>
+                <field name="peak_trays"/><field name="over_capacity"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_nursery_location" model="ir.ui.view">
+        <field name="name">stock.location.form.nursery.capacity</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_form"/>
+        <field name="arch" type="xml">
+            <field name="usage" position="after">
+                <field name="step_nursery_tray_capacity" groups="step_nursery_operations.group_nursery_manager"
+                       invisible="usage != 'internal'"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_nursery_lot" model="ir.ui.view">
+        <field name="name">stock.lot.form.nursery.seed</field>
+        <field name="model">stock.lot</field>
+        <field name="inherit_id" ref="stock.view_production_lot_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group[1]" position="after">
+                <group string="Semilla de vivero" groups="step_nursery_operations.group_nursery_operator">
+                    <group><field name="step_nursery_seed"/><field name="step_nursery_variety_id" invisible="not step_nursery_seed"/>
+                    <field name="step_nursery_sample" invisible="not step_nursery_seed"/>
+                    <field name="step_nursery_germinated" invisible="not step_nursery_seed"/></group>
+                    <group invisible="not step_nursery_seed"><field name="step_nursery_weight_g"/>
+                    <field name="step_nursery_germination_pct"/><field name="step_nursery_seeds_per_g"/></group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_nursery_mrp_production" model="ir.ui.view">
+        <field name="name">mrp.production.form.nursery.events</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/notebook" position="inside">
+                <page name="step_nursery" string="Vivero" groups="step_nursery_operations.group_nursery_operator">
+                    <group><field name="step_nursery_plan_ids" readonly="1"/>
+                        <field name="step_nursery_input_lot_ids" widget="many2many_tags"/>
+                    </group>
+                    <field name="step_nursery_event_ids">
+                        <list>
+                            <field name="performed_at"/><field name="kind"/><field name="operator_id"/>
+                            <field name="workorder_id"/><field name="material_id"/><field name="quantity"/>
+                            <field name="uom_id"/><field name="germination_pct"/><field name="finished_lot_id"/>
+                        </list>
+                        <form><group><group>
+                            <field name="performed_at"/><field name="operator_id"/><field name="kind"/>
+                            <field name="workorder_id" domain="[('production_id', '=', parent.id)]"/>
+                            <field name="finished_lot_id"/>
+                        </group><group>
+                            <field name="material_id"/><field name="quantity"/><field name="uom_id"/>
+                            <field name="sample_count" invisible="kind != 'germination'"/>
+                            <field name="germinated_count" invisible="kind != 'germination'"/>
+                            <field name="germination_pct" invisible="kind != 'germination'"/>
+                        </group></group><group><field name="note"/></group></form>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    <record id="action_nursery_cycle" model="ir.actions.act_window">
+        <field name="name">Ciclos de siembra</field><field name="res_model">step.nursery.cycle</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="action_nursery_plan" model="ir.actions.act_window">
+        <field name="name">Planes de siembra</field><field name="res_model">step.nursery.plan</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="action_nursery_slot" model="ir.actions.act_window">
+        <field name="name">Ocupación de naves y mesones</field><field name="res_model">step.nursery.slot</field>
+        <field name="view_mode">list</field>
+    </record>
+    <menuitem id="menu_nursery_root" name="Operación de vivero" groups="group_nursery_operator" sequence="45"/>
+    <menuitem id="menu_nursery_plan" name="Planes de siembra" parent="menu_nursery_root" action="action_nursery_plan" sequence="10"/>
+    <menuitem id="menu_nursery_slot" name="Ocupación" parent="menu_nursery_root" action="action_nursery_slot" sequence="20"/>
+    <menuitem id="menu_nursery_cycle" name="Ciclos de siembra" parent="menu_nursery_root" action="action_nursery_cycle"
+              groups="group_nursery_manager" sequence="30"/>
+</odoo>

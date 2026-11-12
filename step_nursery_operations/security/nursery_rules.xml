@@ -1,0 +1,30 @@
+<odoo>
+    <record id="group_nursery_operator" model="res.groups">
+        <field name="name">Operación de vivero</field>
+        <field name="implied_ids" eval="[(4, ref('mrp.group_mrp_user'))]"/>
+    </record>
+    <record id="group_nursery_manager" model="res.groups">
+        <field name="name">Administración de vivero</field>
+        <field name="implied_ids" eval="[(4, ref('group_nursery_operator'))]"/>
+    </record>
+    <record id="rule_nursery_cycle_company" model="ir.rule">
+        <field name="name">Vivero: empresa autorizada (cycle)</field>
+        <field name="model_id" ref="model_step_nursery_cycle"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_nursery_plan_company" model="ir.rule">
+        <field name="name">Vivero: empresa autorizada (plan)</field>
+        <field name="model_id" ref="model_step_nursery_plan"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_nursery_slot_company" model="ir.rule">
+        <field name="name">Vivero: empresa autorizada (slot)</field>
+        <field name="model_id" ref="model_step_nursery_slot"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_nursery_event_company" model="ir.rule">
+        <field name="name">Vivero: empresa autorizada (event)</field>
+        <field name="model_id" ref="model_step_nursery_event"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

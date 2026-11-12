@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_nursery_cycle_user,nursery.cycle.user,model_step_nursery_cycle,group_nursery_operator,1,0,0,0
+access_nursery_cycle_manager,nursery.cycle.manager,model_step_nursery_cycle,group_nursery_manager,1,1,1,1
+access_nursery_plan_user,nursery.plan.user,model_step_nursery_plan,group_nursery_operator,1,1,1,0
+access_nursery_plan_manager,nursery.plan.manager,model_step_nursery_plan,group_nursery_manager,1,1,1,1
+access_nursery_slot_user,nursery.slot.user,model_step_nursery_slot,group_nursery_operator,1,1,1,0
+access_nursery_slot_manager,nursery.slot.manager,model_step_nursery_slot,group_nursery_manager,1,1,1,1
+access_nursery_event_user,nursery.event.user,model_step_nursery_event,group_nursery_operator,1,1,1,0
+access_nursery_event_manager,nursery.event.manager,model_step_nursery_event,group_nursery_manager,1,1,1,1
