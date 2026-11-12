@@ -154,7 +154,7 @@ class Guide(models.Model):
         company = self.company_id
         if company not in self.env.companies:
             raise AccessError(_('Active la empresa de origen.'))
-        source = self.with_company(company).with_context(_step_interplant=_INTERNAL)
+        source = self.with_company(company).with_context(_step_interplant=_INTERNAL, bypass_entire_pack=True)
         tags = source.load_tag_ids
         locations = tags.quant_ids.filtered(lambda q: q.quantity > 0).location_id
         warehouse = self.step_source_warehouse_id
@@ -178,7 +178,7 @@ class Guide(models.Model):
                     source.env['stock.move.line'].create({'move_id': move.id, 'picking_id': picking.id,
                         'product_id': quant.product_id.id, 'product_uom_id': quant.product_id.uom_id.id,
                         'location_id': quant.location_id.id, 'location_dest_id': destination.id,
-                        'package_id': tag.id, 'lot_id': quant.lot_id.id, 'owner_id': quant.owner_id.id,
+                        'package_id': tag.id, 'result_package_id': False, 'lot_id': quant.lot_id.id, 'owner_id': quant.owner_id.id,
                         'quantity': quant.quantity, 'picked': True})
         else:
             for line in self.line_ids:
@@ -217,6 +217,7 @@ class Guide(models.Model):
             warehouse = candidates if len(candidates) == 1 else candidates.browse()
         if not warehouse or warehouse.company_id != company:
             raise UserError(_('Seleccione el almacén de destino.'))
+        self.with_context(_step_interplant=_INTERNAL).write({'step_destination_warehouse_id': warehouse.id})
         scoped = self.with_company(company).with_context(_step_interplant=_INTERNAL)
         incoming = scoped.env['stock.picking'].create({'company_id': company.id,
             'picking_type_id': warehouse.in_type_id.id, 'location_id': self.env.ref('stock.stock_location_suppliers').id,

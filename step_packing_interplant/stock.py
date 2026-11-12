@@ -42,14 +42,19 @@ class Picking(models.Model):
             for picking in pending:
                 self.env.cr.execute('SELECT id FROM stock_picking WHERE id=%s FOR UPDATE', [picking.id])
                 picking.invalidate_recordset()
-                guide = picking.step_interplant_guide_id
+                picking.check_access('write')
+                if picking.company_id not in self.env.companies:
+                    raise AccessError(_('Active la planta receptora para validar la llegada.'))
+                # Immutable guide link created by the dispatcher: read its proof only.
+                # The receiving user needs access to the destination, not source-company writes.
+                guide = picking.step_interplant_guide_id.sudo()
                 original = guide.picking_id
                 lines = picking.move_line_ids
                 checks = {
                     'recepción vinculada': picking == guide.step_destination_picking_id,
                     'salida realizada': original.state == 'done',
                     'guía confirmada': guide.state == 'confirmed',
-                    'empresa de destino': picking.company_id == guide.step_destination_company_id,
+                    'empresa de destino': picking.company_id == guide.step_destination_warehouse_id.company_id,
                     'tipo de operación': picking.picking_type_code == 'incoming',
                     'ubicación de origen': picking.location_id.usage == 'supplier',
                     'almacén de destino': not guide.step_destination_warehouse_id or picking.location_dest_id == guide.step_destination_warehouse_id.lot_stock_id,
@@ -61,7 +66,7 @@ class Picking(models.Model):
                 if invalid:
                     raise UserError(_('La recepción difiere de la guía interplanta: %s.', ', '.join(invalid)))
                 for line in lines:
-                    origin = line.step_interplant_origin_line_id
+                    origin = line.step_interplant_origin_line_id.sudo()
                     if (line.product_id != origin.product_id or line.owner_id != origin.owner_id
                             or abs(line.quantity_product_uom - origin.quantity_product_uom) > 0.000001
                             or line.result_package_id.step_interplant_origin_tag_id != origin.package_id
@@ -91,7 +96,7 @@ class Package(models.Model):
 
     def _check_interplant_content(self):
         for tag in self.filtered('step_interplant_origin_tag_id'):
-            origin = tag.step_interplant_origin_tag_id
+            origin = tag.step_interplant_origin_tag_id.sudo()
             names = ('name', 'step_tag_kind', 'step_producer_id', 'fundo_id', 'especie_id',
                      'variedad_id', 'step_packaging_id', 'box_count', 'step_export_season_id')
             if any(tag[name] != origin[name] for name in names):
@@ -119,8 +124,8 @@ class Lot(models.Model):
 
 def owner_matches(record, package):
     receipt = package.step_process_reception_id
-    origin = package.step_interplant_origin_tag_id
-    guide = receipt.step_interplant_guide_id
+    origin = package.step_interplant_origin_tag_id.sudo()
+    guide = receipt.step_interplant_guide_id.sudo()
     if not (origin and guide and receipt.company_id == record.company_id
             and guide.company_id.root_id == record.company_id.root_id
             and origin in guide.load_tag_ids and origin.company_id == guide.company_id):

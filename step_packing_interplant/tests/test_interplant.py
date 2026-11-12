@@ -140,3 +140,17 @@ class InterplantCase(DispatchCase):
         self.assertIn(self.producer, self.env['res.partner'].search(guide.step_recipient_domain))
         with self.assertRaises(ValidationError), self.cr.savepoint():
             guide.write({'dispatch_type_id': self.kind.id, 'partner_id': self.receiver.id})
+
+    def test_destination_operator_can_receive_without_source_membership(self):
+        self.interplant_fixture()
+        guide = self.transfer_guide(self.tag('QA207-RECEIVER'))
+        guide.action_confirm()
+        receipt = guide.step_destination_picking_id
+        user = self.env['res.users'].with_context(no_reset_password=True).create({
+            'name': 'QA destination receiver', 'login': 'qa207-destination',
+            'company_id': self.branch.id, 'company_ids': [Command.set(self.branch.ids)],
+            'groups_id': [Command.set([self.env.ref('base.group_user').id, self.env.ref('stock.group_stock_user').id])]})
+        scoped = receipt.with_user(user).with_context(allowed_company_ids=self.branch.ids)
+        scoped.button_validate()
+        self.assertEqual(receipt.state, 'done')
+        self.assertEqual(user.company_ids, self.branch)
