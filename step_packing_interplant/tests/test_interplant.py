@@ -2,6 +2,7 @@ from lxml import etree
 from odoo import Command
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import tagged
+from odoo.tools.safe_eval import safe_eval
 from odoo.addons.step_packing_dispatch.tests.test_dispatch import DispatchCase
 
 
@@ -186,3 +187,65 @@ class InterplantCase(DispatchCase):
         receipt.with_company(self.branch).button_validate()
         self.assertEqual(receipt.state, 'done')
         self.assertEqual(self.env['stock.quant']._get_available_quantity(plain, self.destination.lot_stock_id), 6)
+
+
+    def source_only_operator(self, guide):
+        source = guide.company_id
+        user = self.env['res.users'].with_context(no_reset_password=True).create({
+            'name': 'QA source dispatcher', 'login': 'qa209-source',
+            'company_id': source.id, 'company_ids': [Command.set((source | self.branch).ids)],
+            'groups_id': [Command.set([self.env.ref('base.group_user').id,
+                                      self.env.ref('stock.group_stock_manager').id])]})
+        return guide.with_user(user).with_context(allowed_company_ids=source.ids)
+
+    def test_single_active_source_finds_destination_and_confirms_without_selector(self):
+        self.interplant_fixture()
+        guide = self.transfer_guide(self.tag('QA209-ONE'))
+        guide.step_destination_warehouse_id = False
+        scoped = self.source_only_operator(guide)
+        source = scoped.env.company
+        memberships = scoped.env.user.company_ids
+        self.assertFalse(scoped.env['stock.warehouse'].search([('company_id','=',self.branch.id)]))
+        self.assertEqual(scoped._destination_warehouses(), self.destination)
+        scoped._onchange_interplant_destination()
+        self.assertEqual(scoped.step_destination_warehouse_id, self.destination)
+        # Existing drafts or imports may not trigger an onchange: confirmation must resolve it too.
+        scoped.step_destination_warehouse_id = False
+        scoped.action_confirm()
+        receipt = scoped.with_company(self.branch).step_destination_picking_id
+        self.assertEqual(receipt.picking_type_id, self.destination.in_type_id)
+        self.assertNotIn(receipt.state, ('done','cancel'))
+        self.assertFalse(receipt.step_interplant_tag_ids.quant_ids.filtered(lambda q: q.quantity > 0))
+        self.assertEqual(scoped.env.company, source)
+        self.assertEqual(scoped.env.companies, source)
+        self.assertEqual(scoped.env.user.company_ids, memberships)
+
+    def test_multiple_destination_warehouses_use_native_selector_scope(self):
+        self.interplant_fixture()
+        second = self.env['stock.warehouse'].create({'name':'QA second destination','code':'Q209','company_id':self.branch.id})
+        guide = self.transfer_guide(self.tag('QA209-MULTI'))
+        guide.step_destination_warehouse_id = False
+        scoped = self.source_only_operator(guide)
+        scoped._onchange_interplant_destination()
+        self.assertFalse(scoped.step_destination_warehouse_id)
+        arch = etree.fromstring(scoped.get_view(view_type='form')['arch'])
+        field = arch.xpath('//field[@name="step_destination_warehouse_id"]')[0]
+        context = safe_eval(field.get('context'), {'step_destination_company_id':self.branch.id})
+        choices = scoped.env['stock.warehouse'].with_context(**context).name_search(args=[('company_id','=',self.branch.id)])
+        self.assertEqual({row[0] for row in choices}, {self.destination.id,second.id})
+        scoped.step_destination_warehouse_id = second
+        scoped.action_confirm()
+        receipt = scoped.with_company(self.branch).step_destination_picking_id
+        self.assertEqual(receipt.location_dest_id,second.lot_stock_id)
+        self.assertNotEqual(receipt.state,'done')
+
+    def test_destination_lookup_does_not_grant_unassigned_branch(self):
+        self.interplant_fixture()
+        guide = self.transfer_guide(self.tag('QA209-DENIED'))
+        scoped = self.source_only_operator(guide)
+        scoped.env.user.sudo().company_ids = [Command.set(guide.company_id.ids)]
+        scoped.invalidate_recordset()
+        self.assertFalse(scoped.step_destination_company_id)
+        self.assertFalse(scoped._destination_warehouses())
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            scoped._check_recipient()

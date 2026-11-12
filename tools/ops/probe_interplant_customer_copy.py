@@ -15,7 +15,6 @@ try:
     for company in source_candidates:
         scoped = scoped_business_environment(env, company=company)
         branches = branch_companies(scoped, company)
-        scoped = scoped(context=dict(scoped.context, allowed_company_ids=branches.ids))
         guide_model = scoped['step.dispatch.guide']
         probe = guide_model.new({'company_id': company.id})
         tags = probe.available_load_tag_ids
@@ -30,7 +29,7 @@ try:
             continue
         candidates = branches - company
         destination = (candidates.filtered('parent_id') or candidates)[:1]
-        dest_warehouse = scoped['stock.warehouse'].search([('company_id', '=', destination.id)], limit=1)
+        dest_warehouse = scoped['stock.warehouse'].with_company(destination).search([('company_id', '=', destination.id)], limit=1)
         if not dest_warehouse:
             continue
         kind = scoped['step.freight.dispatch.type'].search([('step_recipient_kind', '=', 'interplant')], limit=1)
@@ -46,7 +45,7 @@ try:
         kilos = sum(selected.mapped('step_actual_kg'))
         boxes = sum(selected.mapped('box_count'))
         guide.action_confirm()
-        receipt = guide.step_destination_picking_id
+        receipt = guide.with_company(destination).step_destination_picking_id
         assert receipt.state not in ('done', 'cancel')
         assert not receipt.step_interplant_tag_ids.quant_ids.filtered(lambda q: q.quantity > 0)
         assert set(receipt.step_interplant_tag_ids.mapped('name')) == set(selected.mapped('name'))

@@ -42,10 +42,19 @@ class Guide(models.Model):
             guide.step_destination_company_id = (branch_companies(self.env, guide.company_id) - guide.company_id).filtered(
                 lambda company: company.partner_id == guide.partner_id)[:1] if guide.step_recipient_kind == 'interplant' else False
 
+    def _destination_warehouses(self):
+        self.ensure_one()
+        company = self.step_destination_company_id
+        if not company:
+            return self.env['stock.warehouse']
+        # Activate only an already-authorized recipient for this lookup.
+        # The user's company memberships and the guide's source stay unchanged.
+        return self.env['stock.warehouse'].with_company(company).search([('company_id', '=', company.id)])
+
     @api.onchange('partner_id', 'dispatch_type_id', 'company_id')
     def _onchange_interplant_destination(self):
         for guide in self:
-            warehouses = self.env['stock.warehouse'].search([('company_id', '=', guide.step_destination_company_id.id)]) if guide.step_destination_company_id else self.env['stock.warehouse']
+            warehouses = guide._destination_warehouses()
             if guide.step_destination_warehouse_id not in warehouses:
                 guide.step_destination_warehouse_id = warehouses if len(warehouses) == 1 else False
 
@@ -55,7 +64,8 @@ class Guide(models.Model):
             if guide.partner_id and guide.step_recipient_domain and not self.env['res.partner'].search_count(
                     [('id', '=', guide.partner_id.id)] + guide.step_recipient_domain):
                 raise ValidationError(_('El destinatario no corresponde al tipo de despacho seleccionado.'))
-            if guide.step_destination_warehouse_id and guide.step_destination_warehouse_id.company_id != guide.step_destination_company_id:
+            if guide.step_destination_warehouse_id and (not guide.step_destination_company_id or
+                    guide.step_destination_warehouse_id.with_company(guide.step_destination_company_id).company_id != guide.step_destination_company_id):
                 raise ValidationError(_('El almacén debe pertenecer a la planta destinataria.'))
 
     def _free_stock_tag(self, tag):
@@ -226,9 +236,9 @@ class Guide(models.Model):
         company = self.step_destination_company_id
         if not company or company not in branch_companies(self.env, self.company_id):
             raise AccessError(_('Seleccione una planta relacionada a la que tenga acceso.'))
-        warehouse = self.step_destination_warehouse_id
+        warehouse = self.step_destination_warehouse_id.with_company(company)
         if not warehouse:
-            candidates = self.env['stock.warehouse'].search([('company_id', '=', company.id)])
+            candidates = self._destination_warehouses()
             warehouse = candidates if len(candidates) == 1 else candidates.browse()
         if not warehouse or warehouse.company_id != company:
             raise UserError(_('Seleccione el almacén de destino.'))

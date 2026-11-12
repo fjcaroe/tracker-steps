@@ -17,6 +17,8 @@ arch = etree.fromstring(scoped['step.dispatch.guide'].get_view(view_type='form')
 names = [node.get('name') for node in arch.xpath('//sheet//field')]
 assert names.index('dispatch_type_id') < names.index('partner_id')
 assert arch.xpath('//field[@name="step_destination_picking_id"]')
+warehouse_field = arch.xpath('//field[@name="step_destination_warehouse_id"]')[0]
+assert safe_eval(warehouse_field.get('context'), {'step_destination_company_id': scoped.company.id}) == {'allowed_company_ids': scoped.company.ids}
 assert 'step_packing_interplant.tag_list' in arch.xpath('//field[@name="load_tag_ids"]')[0].get('context')
 for field in ('step_tag_kind', 'name', 'step_producer_id', 'box_count', 'step_actual_kg'):
     assert field in scoped.ref('step_packing_interplant.tag_list').arch_db
