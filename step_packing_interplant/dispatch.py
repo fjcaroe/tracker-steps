@@ -65,7 +65,17 @@ class Guide(models.Model):
             and tag.step_tag_state == 'validated' and tag.company_id == self.company_id
             and quants and all(q.location_id.usage == 'internal' and q.company_id == self.company_id
                 and q.quantity > 0 and not q.reserved_quantity for q in quants)
-            and not tag.step_reserved_ids)
+            and not tag.step_reserved_ids and self._tag_content_matches_stock(tag, quants))
+
+    def _tag_content_matches_stock(self, tag, quants):
+        expected, actual = defaultdict(float), defaultdict(float)
+        for line in tag.step_tag_line_ids:
+            expected[(line.product_id.id, line.lot_id.id)] += line.quantity
+        for quant in quants:
+            actual[(quant.product_id.id, quant.lot_id.id)] += quant.quantity
+        return bool(expected) and expected.keys() == actual.keys() and all(
+            not float_compare(qty, actual[key], precision_rounding=self.env['product.product'].browse(key[0]).uom_id.rounding)
+            for key, qty in expected.items())
 
     @api.depends('dispatch_instruction_id', 'load_tag_ids', 'company_id')
     def _available_tags(self):
@@ -83,7 +93,9 @@ class Guide(models.Model):
             if guide.picking_id.state == 'done':
                 continue  # completed loads are immutable and no longer have source stock
             self.env.cr.execute('SELECT id FROM stock_quant_package WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(guide.load_tag_ids.ids))])
+            self.env.cr.execute('SELECT id FROM stock_quant WHERE package_id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(guide.load_tag_ids.ids))])
             guide.load_tag_ids.invalidate_recordset()
+            guide.load_tag_ids.quant_ids.invalidate_recordset()
             if self.search_count([('id', '!=', guide.id), ('state', '!=', 'cancelled'), ('load_tag_ids', 'in', guide.load_tag_ids.ids)]):
                 raise ValidationError(_('Una tarja ya está asignada a otra guía vigente.'))
             if any(not guide._free_stock_tag(tag) for tag in guide.load_tag_ids):
@@ -217,7 +229,11 @@ class Guide(models.Model):
             lot = scoped.env['stock.lot']
             if line.lot_id:
                 if line.lot_id.id not in lots:
-                    lots[line.lot_id.id] = scoped.env['stock.lot'].create({'name': line.lot_id.name,
+                    existing = scoped.env['stock.lot'].search([('name', '=', line.lot_id.name),
+                        ('product_id', '=', product.id), ('company_id', '=', company.id)])
+                    if existing and (len(existing) != 1 or existing.step_interplant_origin_lot_id != line.lot_id):
+                        raise UserError(_('El lote %s ya existe en destino con otro origen; revise su trazabilidad.', line.lot_id.name))
+                    lots[line.lot_id.id] = existing or scoped.env['stock.lot'].create({'name': line.lot_id.name,
                         'product_id': product.id, 'company_id': company.id, 'step_interplant_origin_lot_id': line.lot_id.id})
                 lot = lots[line.lot_id.id]
             tag = scoped.env['stock.quant.package']
@@ -246,6 +262,9 @@ class Guide(models.Model):
         if self.env['stock.quant.package'].search_count([('company_id', '=', incoming.company_id.id),
                 ('name', '=', original.name), ('is_fruit_tag', '=', True), ('step_tag_state', 'not in', ['void', 'dispatched', 'processed', 'repalletized'])]):
             raise UserError(_('Ya existe una tarja vigente con el folio %s en destino.', original.name))
+        if not original.is_fruit_tag:
+            return self.env['stock.quant.package'].create({'name': original.name,
+                'step_interplant_origin_tag_id': original.id})
         names = ['name', 'package_type_id', 'step_tag_kind', 'step_producer_id', 'fundo_id', 'especie_id',
             'variedad_id', 'step_export_season_id', 'box_count', 'step_packaging_id', 'harvest_date',
             'fruit_type', 'fruit_category_id', 'fruit_caliber_id', 'label']

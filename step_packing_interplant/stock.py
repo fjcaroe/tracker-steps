@@ -34,7 +34,7 @@ class Picking(models.Model):
     @api.depends('move_line_ids.result_package_id')
     def _compute_interplant_tags(self):
         for picking in self:
-            picking.step_interplant_tag_ids = picking.move_line_ids.result_package_id if picking.step_interplant_guide_id else False
+            picking.step_interplant_tag_ids = picking.move_line_ids.result_package_id.filtered('is_fruit_tag') if picking.step_interplant_guide_id else False
 
     def button_validate(self):
         with self.env.cr.savepoint():
@@ -62,6 +62,7 @@ class Picking(models.Model):
                             or bool(line.lot_id) != bool(origin.lot_id)
                             or line.lot_id and line.lot_id.step_interplant_origin_lot_id != origin.lot_id):
                         raise UserError(_('Conserve producto, cantidad, lote, propietario y tarja del traslado.'))
+                picking.step_interplant_tag_ids._check_interplant_content()
                 lines.write({'picked': True})
             result = super().button_validate()
             for picking in pending.filtered(lambda p: p.state == 'done'):
@@ -81,6 +82,21 @@ class Package(models.Model):
     _inherit = ['stock.quant.package', 'step.interplant.audit.mixin']
     _interplant_audit_fields = ('step_interplant_origin_tag_id',)
     step_interplant_origin_tag_id = fields.Many2one('stock.quant.package', string='Tarja de origen', readonly=True, copy=False, ondelete='restrict')
+
+    def _check_interplant_content(self):
+        for tag in self.filtered('step_interplant_origin_tag_id'):
+            origin = tag.step_interplant_origin_tag_id
+            names = ('name', 'step_tag_kind', 'step_producer_id', 'fundo_id', 'especie_id',
+                     'variedad_id', 'step_packaging_id', 'box_count', 'step_export_season_id')
+            if any(tag[name] != origin[name] for name in names):
+                raise UserError(_('Conserve los datos de la tarja de origen del traslado.'))
+            expected = sorted((row.producer_id.id, row.product_id.id, row.lot_id.id or 0,
+                row.quantity, row.boxes, row.kilos) for row in origin.step_tag_line_ids)
+            actual = sorted((row.producer_id.id, row.product_id.id,
+                row.lot_id.step_interplant_origin_lot_id.id or 0, row.quantity, row.boxes, row.kilos)
+                for row in tag.step_tag_line_ids)
+            if actual != expected:
+                raise UserError(_('El detalle de las tarjas debe conservar lotes, cantidades, cajas y kilos de origen.'))
 
     def action_step_validate_tag(self):
         if any(tag.step_interplant_origin_tag_id and tag.step_process_reception_id.state != 'done' for tag in self):
