@@ -1,0 +1,23 @@
+<odoo>
+  <record id="receipt_status_search" model="ir.ui.view">
+    <field name="name">packing.reception.return.status.search</field><field name="model">stock.picking</field>
+    <field name="inherit_id" ref="stock.view_picking_internal_search"/>
+    <field name="arch" type="xml"><xpath expr="//search" position="inside">
+      <separator/>
+      <filter name="fruit_current" string="Recepciones vigentes" domain="[('step_has_fruit_return','=',False)]"/>
+      <filter name="fruit_returned" string="Recepciones con devolución" domain="[('step_has_fruit_return','=',True)]"/>
+    </xpath></field>
+  </record>
+  <record id="step_inventory_packing.action_steps_fruit_process_reception" model="ir.actions.act_window">
+    <field name="context">{'default_step_fruit_reception_kind':'process','restricted_picking_type_code':'incoming','search_default_fruit_current':1}</field>
+  </record>
+  <record id="step_inventory_packing.action_steps_fruit_packed_reception" model="ir.actions.act_window">
+    <field name="context">{'default_step_fruit_reception_kind':'packed','restricted_picking_type_code':'incoming','search_default_fruit_current':1}</field>
+  </record>
+  <record id="step_producer_fruit_reports.action_process" model="ir.actions.act_window">
+    <field name="domain">[('reception_kind','=','process'),('picking_id.step_has_fruit_return','=',False)]</field>
+  </record>
+  <record id="step_producer_fruit_reports.action_packed" model="ir.actions.act_window">
+    <field name="domain">[('reception_kind','=','packed'),('picking_id.step_has_fruit_return','=',False)]</field>
+  </record>
+</odoo>

@@ -1,0 +1,101 @@
+from lxml import etree
+from odoo import Command
+from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tests import tagged
+from odoo.addons.step_packing_dispatch.tests.test_dispatch import DispatchCase
+
+
+@tagged('post_install', '-at_install')
+class InterplantCase(DispatchCase):
+    def interplant_fixture(self):
+        self.fixture()
+        self.branch = self.env['res.company'].create({'name': 'QA destination plant', 'parent_id': self.env.company.id})
+        self.env.user.company_ids |= self.branch
+        self.env = self.env(context=dict(self.env.context, allowed_company_ids=(self.env.company | self.branch).ids))
+        self.destination = self.env['stock.warehouse'].search([('company_id', '=', self.branch.id)], limit=1)
+        self.kind = self.env['step.freight.dispatch.type'].create({'name': 'QA interplant', 'step_recipient_kind': 'interplant'})
+        self.driver = self.env['res.partner'].create({'name': 'QA driver', 'step_chofer': True})
+
+    def transfer_guide(self, tags):
+        guide = self.guide(dispatch_instruction_id=False, partner_id=self.branch.partner_id.id,
+            dispatch_type_id=self.kind.id, step_destination_warehouse_id=self.destination.id,
+            step_source_warehouse_id=self.location.warehouse_id.id, driver_partner_id=self.driver.id,
+            transfer_reason_id=self.env['step.dispatch.transfer.reason'].search([], limit=1).id,
+            load_tag_ids=[Command.set(tags.ids)])
+        guide.action_load_pallet_detail()
+        return guide
+
+    def test_interplant_c_e_n_stock_pending_and_traceability(self):
+        self.interplant_fixture()
+        tags = self.tag('QA207-C', step_tag_kind='C') | self.tag('QA207-E') | self.tag('QA207-N', step_tag_kind='N')
+        guide = self.transfer_guide(tags)
+        guide.action_confirm()
+        self.assertEqual(guide.picking_id.state, 'done')
+        receipt = guide.step_destination_picking_id
+        self.assertTrue(receipt)
+        self.assertNotIn(receipt.state, ('done', 'cancel'))
+        self.assertFalse(receipt.step_interplant_tag_ids.quant_ids.filtered(lambda q: q.quantity > 0))
+        self.assertEqual(set(receipt.step_interplant_tag_ids.mapped('name')), set(tags.mapped('name')))
+        self.assertEqual(receipt.step_interplant_tag_ids.step_interplant_origin_tag_id, tags)
+        self.assertAlmostEqual(sum(receipt.step_interplant_tag_ids.mapped('step_actual_kg')), 150)
+        self.assertFalse(tags.quant_ids.filtered(lambda q: q.quantity > 0))
+        self.assertEqual(set(tags.mapped('step_tag_state')), {'dispatched'})
+        with self.assertRaises(UserError), self.cr.savepoint():
+            receipt.step_interplant_tag_ids.action_step_validate_tag()
+        receipt.with_company(self.branch).button_validate()
+        self.assertEqual(receipt.state, 'done')
+        self.assertEqual(set(receipt.step_interplant_tag_ids.mapped('step_tag_state')), {'validated'})
+        self.assertEqual(sum(receipt.step_interplant_tag_ids.quant_ids.mapped('quantity')), 30)
+        self.assertEqual(receipt.step_interplant_tag_ids.company_id, self.branch)
+        old = receipt.move_line_ids.ids
+        guide.action_confirm()
+        self.assertEqual(guide.step_destination_picking_id, receipt)
+        self.assertEqual(receipt.move_line_ids.ids, old)
+
+    def test_reserved_and_duplicate_tags_rejected(self):
+        self.interplant_fixture()
+        tag = self.tag('QA207-RES')
+        tag.quant_ids.reserved_quantity = 1
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            self.transfer_guide(tag)
+        tag.quant_ids.reserved_quantity = 0
+        self.transfer_guide(tag)
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            self.transfer_guide(tag)
+
+    def test_destination_failure_rolls_back_source_stock(self):
+        self.interplant_fixture()
+        tag = self.tag('QA207-DUP')
+        guide = self.transfer_guide(tag)
+        self.env['stock.quant.package'].with_company(self.branch).create({'name': tag.name,
+            'is_fruit_tag': True, 'step_tag_kind': 'C', 'company_id': self.branch.id})
+        with self.assertRaises(UserError), self.cr.savepoint():
+            guide.action_confirm()
+        self.assertEqual(guide.state, 'draft')
+        self.assertFalse(guide.picking_id)
+        self.assertEqual(sum(tag.quant_ids.mapped('quantity')), 10)
+
+    def test_pending_receipt_cannot_change_quantity_or_forge_origin(self):
+        self.interplant_fixture()
+        guide = self.transfer_guide(self.tag('QA207-IMM'))
+        guide.action_confirm()
+        receipt = guide.step_destination_picking_id
+        with self.assertRaises(AccessError), self.cr.savepoint():
+            receipt.step_interplant_guide_id = False
+        receipt.move_line_ids.quantity = 9
+        with self.assertRaises(UserError), self.cr.savepoint():
+            receipt.with_company(self.branch).button_validate()
+        self.assertFalse(receipt.step_interplant_tag_ids.quant_ids)
+
+    def test_recipient_domains_and_native_views(self):
+        self.interplant_fixture()
+        guide = self.transfer_guide(self.tag('QA207-VIEW'))
+        self.assertIn(self.branch.partner_id, self.env['res.partner'].search(guide.step_recipient_domain))
+        self.assertNotIn(self.receiver, self.env['res.partner'].search(guide.step_recipient_domain))
+        arch = etree.fromstring(guide.get_view(view_type='form')['arch'])
+        names = [node.get('name') for node in arch.xpath('//sheet//field')]
+        self.assertLess(names.index('dispatch_type_id'), names.index('partner_id'))
+        self.assertIn('step_packing_interplant.tag_list', arch.xpath('//field[@name="load_tag_ids"]')[0].get('context'))
+        for field in ('step_tag_kind', 'name', 'step_producer_id', 'box_count', 'step_actual_kg'):
+            self.assertIn(field, self.env.ref('step_packing_interplant.tag_list').arch_db)
+        self.assertEqual(self.env.ref('step_packing_interplant.receipts_menu').action.res_model, 'stock.picking')

@@ -1,8 +1,8 @@
-{'name': 'Steps Packing reception and process reports', 'version': '18.0.1.2.4',
+{'name': 'Steps Packing reception and process reports', 'version': '18.0.1.2.5',
  'license': 'AGPL-3',
  'depends': ['step_packing_reception_revision', 'step_producer_fruit_reports',
              'step_export_document_revision', 'step_packing_ot_layout', 'step_packing_operations',
              'step_packing_overweight', 'step_packing_tag_split', 'step_dispatch_guide'],
  'data': ['ir.model.access.csv', 'views/packing.xml', 'views/reports.xml', 'views/reception_template_security.xml',
           'views/external_reception.xml', 'views/external_process.xml', 'views/external_multitag.xml',
-          'views/dispatch_type.xml'], 'post_init_hook': 'post_init_hook', 'installable': True}
+          'views/dispatch_type.xml', 'views/receipt_status.xml'], 'post_init_hook': 'post_init_hook', 'installable': True}
