@@ -10,6 +10,18 @@ from odoo.tests import TransactionCase, tagged
 
 @tagged('post_install', '-at_install')
 class ExternalReceiptCase(TransactionCase):
+    def test_review_identifies_receipt_header_column_and_excel_rows(self):
+        wizard = self.env['step.external.fruit.reception.import']
+        first = {'guide': '1058', 'scheduled': '2026-11-11 05:53:00', 'especie': 1,
+                 'fundo': 10, 'fruit_type': 'conventional', 'classification': 'psj',
+                 'number': 13, 'gassed': 'yes'}
+        same_origin = dict(first, number=14, gassed='no')
+        wizard._check_receipt_header('63', [first, same_origin])
+        with self.assertRaises(UserError) as caught:
+            wizard._check_receipt_header('63', [first, dict(same_origin, fundo=20)])
+        for detail in ('63', '13', '14', 'fundo'):
+            self.assertIn(detail, str(caught.exception).lower())
+
     def test_process_list_totals_from_tags_and_existing_operations(self):
         wh = self.env['stock.warehouse'].search([('company_id', '=', self.env.company.id)], limit=1)
         picking_model = self.env['stock.picking']

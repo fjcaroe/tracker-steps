@@ -39,6 +39,10 @@ _REQUIRED_COLUMNS = ('folio', 'guide', 'tag', 'date', 'species', 'variety', 'pro
                      'packaging', 'boxes', 'kilos', 'fruit_type')
 _DEFAULTS = ('picking_type_id', 'packing_id', 'season_id', 'product_id', 'category_id', 'fruit_class_id')
 _COLUMN_LABELS = dict(RECEPTION_COLUMNS)
+_RECEIPT_HEADER = {
+    'guide': 'guide', 'scheduled': 'date', 'especie': 'species', 'fundo': 'producer',
+    'fruit_type': 'fruit_type', 'classification': 'classification',
+}
 _SELECTIONS = {
     'fruit_type': {'convencional': 'conventional', 'organico': 'organic', 'organica': 'organic'},
     'gassed': {'s': 'yes', 'si': 'yes', 'n': 'no', 'no': 'no'},
@@ -293,9 +297,47 @@ class ExternalReceptionImport(models.TransientModel):
                 tags = ', '.join(rejected[:10])
                 self.review_note += _(' Se excluyen %(count)s tarjas rechazadas (%(tags)s).',
                                       count=len(rejected), tags=tags)
+            issue = self._review_receipt_headers(rows)
+            if issue:
+                self.review_note = issue
         action = self.env.ref('step_packing_ticket_revision.action_external_fruit_reception_import').read()[0]
         action.update(res_id=self.id, views=[(action['view_id'][0], 'form')])
         return action
+
+    def _review_receipt_headers(self, rows):
+        aliases = self._master_aliases('producer')
+        _, farms, labels, _ = self._equivalence_masters()[0]
+        groups = defaultdict(list)
+        resolved = {}
+        for number, row in rows:
+            producer = normalized(row['producer'])
+            if producer not in resolved:
+                farm = aliases.get(producer)
+                if not farm or farm not in farms:
+                    farm = farms.filtered(lambda record: producer in {normalized(label) for label in labels(record)})
+                resolved[producer] = farm.id if len(farm) == 1 else producer
+            groups[row['folio']].append(dict(row, number=number,
+                fundo=resolved[producer], especie=normalized(row['species'])))
+        for folio, lines in groups.items():
+            try:
+                self._check_receipt_header(folio, lines)
+            except UserError as error:
+                return str(error)
+        return False
+
+    def _check_receipt_header(self, folio, lines):
+        first = lines[0]
+        differences = {key: [str(row['number']) for row in lines[1:] if row[key] != first[key]]
+                       for key in _RECEIPT_HEADER}
+        problems = [
+            _('%(column)s (filas %(first)s y %(others)s)', column=_COLUMN_LABELS[column],
+              first=first['number'], others=', '.join(differences[key]))
+            for key, column in _RECEIPT_HEADER.items() if differences[key]
+        ]
+        if problems:
+            raise UserError(_('Folio %(folio)s: hay diferencias en %(details)s. '
+                              'Cada recepción de fruta a proceso debe corresponder a un solo fundo y propietario.',
+                              folio=folio, details='; '.join(problems)))
 
     def _validate_row(self, row, number):
         required = ('folio', 'guide', 'tag', 'date', 'species', 'variety', 'producer', 'packaging', 'fruit_type')
@@ -436,6 +478,8 @@ class ExternalReceptionImport(models.TransientModel):
             groups[row['folio']].append(dict(row, number=number, fundo=resolved['producer'][normalized(row['producer'])],
                                             especie=especie, variant=variant,
                                             container=resolved['packaging'][normalized(row['packaging'])]))
+        for folio, lines in groups.items():
+            self._check_receipt_header(folio, lines)
         # Match the native validation's lock so concurrent imports and manual
         # confirmations cannot claim the same tag number.
         for tag in sorted(seen_tags):
@@ -465,9 +509,6 @@ class ExternalReceptionImport(models.TransientModel):
 
     def _create_reception(self, folio, lines, kg):
         first = lines[0]
-        header = ('guide', 'scheduled', 'especie', 'fundo', 'fruit_type', 'classification')
-        if any(any(row[key] != first[key] for key in header) for row in lines[1:]):
-            raise UserError(_('El folio %s tiene valores distintos en el encabezado. Corrija el archivo.', folio))
         company = self.env.company
         operation = self.picking_type_id
         source, destination = operation.default_location_src_id, operation.default_location_dest_id
