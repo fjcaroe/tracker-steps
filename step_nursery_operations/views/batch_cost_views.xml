@@ -1,0 +1,72 @@
+<odoo>
+    <record id="view_nursery_batch_allocations" model="ir.ui.view">
+        <field name="name">step.nursery.batch.allocation.list</field>
+        <field name="model">step.nursery.batch.allocation</field>
+        <field name="arch" type="xml">
+            <list><field name="run_id"/><field name="center_id"/><field name="run_state"/><field name="amount"/>
+                <field name="currency_id" column_invisible="True"/><field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_nursery_batch_allocation" model="ir.ui.view">
+        <field name="name">step.nursery.batch.allocation.form</field>
+        <field name="model">step.nursery.batch.allocation</field>
+        <field name="arch" type="xml">
+            <form><sheet>
+                <group><group><field name="company_id" groups="base.group_multi_company"/><field name="run_id"/>
+                    <field name="center_id"/><field name="run_state"/><field name="currency_id" invisible="1"/>
+                    <field name="amount"/></group></group>
+                <field name="line_ids">
+                    <list editable="bottom"><field name="production_id"/><field name="weight"/>
+                        <field name="currency_id" column_invisible="True"/><field name="amount"/>
+                    </list>
+                </field>
+            </sheet></form>
+        </field>
+    </record>
+    <record id="view_nursery_batch_cost_report" model="ir.ui.view">
+        <field name="name">step.nursery.batch.cost.report.form</field>
+        <field name="model">step.nursery.batch.cost.report</field>
+        <field name="arch" type="xml">
+            <form string="Costo real de lote">
+                <group><field name="production_id"/><field name="currency_id" invisible="1"/></group>
+                <group><group string="Costo real"><field name="material_cost"/><field name="work_cost"/><field name="overhead_cost"/>
+                    <field name="unit_cost"/><field name="tray_cost"/>
+                </group><group string="Unidades"><field name="produced"/><field name="normal_waste"/><field name="abnormal_waste"/>
+                    <field name="useful"/><field name="sold"/>
+                </group></group>
+                <group string="Distribución de costo"><field name="abnormal_cost"/><field name="sales_cost"/><field name="balance_cost"/></group>
+                <field name="allocation_ids" widget="many2many_tags"/>
+                <footer><button string="Cerrar" special="cancel" class="btn-secondary"/></footer>
+            </form>
+        </field>
+    </record>
+    <record id="view_nursery_batch_cost_production" model="ir.ui.view">
+        <field name="name">mrp.production.form.nursery.costs</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="view_nursery_mrp_production"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='step_nursery']/group" position="inside">
+                <button type="object" name="action_step_nursery_batch_cost" string="Costo real y mermas"
+                        class="btn-primary" groups="account.group_account_user"
+                        invisible="state != 'done' or not step_nursery_plan_ids"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_nursery_stock_scrap" model="ir.ui.view">
+        <field name="name">stock.scrap.form.nursery.waste</field>
+        <field name="model">stock.scrap</field>
+        <field name="inherit_id" ref="stock.stock_scrap_form_view"/>
+        <field name="arch" type="xml">
+            <field name="product_id" position="after">
+                <field name="step_nursery_waste_kind" groups="step_nursery_operations.group_nursery_operator"/>
+            </field>
+        </field>
+    </record>
+    <record id="action_nursery_batch_allocations" model="ir.actions.act_window">
+        <field name="name">Gastos por lote</field><field name="res_model">step.nursery.batch.allocation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <menuitem id="menu_nursery_batch_allocations" name="Gastos por lote" parent="menu_nursery_root"
+              action="action_nursery_batch_allocations" groups="account.group_account_user" sequence="26"/>
+</odoo>

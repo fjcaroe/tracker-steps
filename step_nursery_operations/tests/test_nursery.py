@@ -167,3 +167,35 @@ class TestNursery(TransactionCase):
             model._ingest_offline_event(dict(payload, germinated=71))
         with self.assertRaises(ValidationError):
             model._ingest_offline_event(dict(payload, order_id=0))
+
+    def test_batch_cost_absorbs_normal_waste_after_native_production(self):
+        plan = self._plan(quantity=100)
+        plan.sale_line_id.order_id.action_confirm()
+        plan.action_create_production()
+        native = plan.production_id
+        self.seed.standard_price = 2
+        seed_lot = self.env["stock.lot"].create({
+            "name": "QA-SEM-COST", "product_id": self.seed.id, "company_id": self.company.id,
+        })
+        finished_lot = self.env["stock.lot"].create({
+            "name": "QA-PLT-COST", "product_id": self.plant.id, "company_id": self.company.id,
+        })
+        self.env["stock.quant"]._update_available_quantity(
+            self.seed, native.location_src_id, plan.sowing_units, lot_id=seed_lot)
+        native.action_confirm()
+        native.action_assign()
+        native.lot_producing_id = finished_lot
+        native.qty_producing = plan.sowing_units
+        native.move_raw_ids.picked = True
+        native.button_mark_done()
+        self.assertEqual(native.state, "done")
+        scrap = self.env["stock.scrap"].create({
+            "product_id": self.plant.id, "product_uom_id": self.unit.id, "lot_id": finished_lot.id,
+            "scrap_qty": 8, "location_id": native.location_dest_id.id,
+            "company_id": self.company.id, "step_nursery_waste_kind": "normal",
+        })
+        scrap.action_validate()
+        report = self.env["step.nursery.batch.cost.report"].browse(native.action_step_nursery_batch_cost()["res_id"])
+        self.assertEqual((report.produced, report.normal_waste, report.useful), (128, 8, 120))
+        self.assertAlmostEqual(report.unit_cost, 256 / 120, places=4)
+        self.assertEqual(report.balance_cost, 256)

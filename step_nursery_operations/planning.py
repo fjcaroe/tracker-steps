@@ -175,6 +175,7 @@ class NurserySlot(models.Model):
                 ("id", "!=", slot._origin.id), ("company_id", "=", slot.company_id.id),
                 ("location_id", "=", slot.location_id.id), ("start_date", "<=", slot.end_date),
                 ("end_date", ">=", slot.start_date), ("plan_id.sale_line_id.order_id.state", "!=", "cancel"),
+                "|", ("plan_id.production_id", "=", False),
                 ("plan_id.production_id.state", "not in", ["cancel", "done"]),
             ])
             events = defaultdict(int)
