@@ -281,6 +281,7 @@ class InterplantCase(DispatchCase):
         receipt.button_validate()
         self.assertEqual(receipt.state,'done')
         received = receipt.step_interplant_tag_ids
+        self.kind.company_ids |= self.branch
         returned = guide.with_company(self.branch).copy({'external_folio':'QA209-RETURN','state':'draft',
             'company_id':self.branch.id,'partner_id':source.partner_id.id,
             'step_source_warehouse_id':self.destination.id,
