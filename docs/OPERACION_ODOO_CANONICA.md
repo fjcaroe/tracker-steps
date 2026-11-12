@@ -2,13 +2,15 @@
 
 T210 actualiza `step_export_document_revision` con `document-design` en
 Desarrollo, Cerro y QA-Cerro. La nota usa la modalidad del maestro de la
-empresa, su matriz o compartida. Embalaje abre el maestro de Steps, con los
-embalajes de venta del producto de la empresa, sus matrices o compartidos,
-según las reglas de lectura vigentes. El cálculo por cajas solo ofrece
-embalajes con peso configurado y propone uno si es el único válido.
-Verificar en copia la nota nueva, el selector de la sucursal, 100 cajas de
-1,5 kg y la entrega nativa con el mismo embalaje. Conservar los maestros
-y las notas existentes y rechazar embalajes de empresas independientes.
+empresa, su matriz o compartida. La acción de Notas de venta usa el
+formulario de Exportaciones, enlazado a las vistas del maestro Steps de
+Packing. El maestro y la relación logística reutilizan `product.packaging`.
+El selector filtra por Grupo embalaje Exportación, producto y empresa o
+matriz, conforme a las reglas de lectura vigentes. El cálculo por cajas
+solo ofrece embalajes con peso configurado y propone uno si es el único.
+Comprobar en el navegador de una copia de QA-Cerro el caso Cool & Go sin
+cliente y el cálculo de 100 cajas de 1,5 kg. En copia de Cerro, comprobar
+la entrega nativa con el mismo embalaje y el rechazo de empresas ajenas.
 
 T209 actualiza `step_packing_interplant` a 18.0.1.0.3 con el mismo paquete
 `reception-excel --with-interplant`. El almacén de destino se consulta con

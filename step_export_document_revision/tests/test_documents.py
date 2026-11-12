@@ -19,7 +19,7 @@ class DocumentCase(TransactionCase):
         product = env['product.product'].create({'name': 'QA Export Fruit', 'type': 'consu',
             'step_export_enabled': True, 'weight': 5, 'is_fruta': True})
         packaging = env['product.packaging'].create({'name': 'QA 5 kg box', 'product_id': product.id,
-            'qty': 1, 'step_export_kg_per_box': 5})
+            'qty': 1, 'step_export_kg_per_box': 5, 'step_packaging_group': 'export'})
         order = env['sale.order'].create({'partner_id': partner.id, 'company_id': company.id,
             'step_export_sale': True, 'order_line': [Command.create({'product_id': product.id,
                 'product_uom_qty': 10, 'product_packaging_id': packaging.id, 'price_unit': 3, 'tax_id': [Command.clear()]})]})
@@ -88,7 +88,9 @@ class DocumentCase(TransactionCase):
         foreign_mode = modes.create({'name': 'QA Foreign Sale Mode', 'company_id': foreign.id})
         scoped = env(context={**env.context, 'allowed_company_ids': branch.ids, 'default_step_export_sale': True})
         scoped['product.packaging'].create({'name': 'QA No weight', 'product_id': product.id,
-            'sales': True, 'company_id': branch.id})
+            'sales': True, 'company_id': branch.id, 'step_packaging_group': 'export'})
+        scoped['product.packaging'].create({'name': 'QA Native Pack', 'product_id': product.id,
+            'sales': True, 'company_id': branch.id, 'step_export_kg_per_box': 1.5})
         note = scoped['sale.order'].create({
             'partner_id': order.partner_id.id,
             'step_export_sale_mode_id': mode.id,
@@ -110,20 +112,24 @@ class DocumentCase(TransactionCase):
             line.product_packaging_id = foreign_package
         alternative = scoped['product.packaging'].create({
             'name': 'QA Alternative', 'product_id': product.id, 'sales': True,
-            'qty': 1.5, 'step_export_kg_per_box': 2, 'company_id': branch.id,
+            'qty': 1.5, 'step_export_kg_per_box': 2, 'company_id': branch.id, 'step_packaging_group': 'export',
         })
         line.product_packaging_id = alternative
         line.product_uom_qty = 101
         self.assertEqual(line.product_packaging_id, alternative)
         self.assertEqual(line.step_document_kg, 202)
 
-        tree = etree.fromstring(note.get_view(view_type='form')['arch'])
+        action = env.ref('step_export.action_export_sale_orders')
+        form_id = dict((kind, view_id) for view_id, kind in action.views)['form']
+        tree = etree.fromstring(note.get_view(view_id=form_id, view_type='form')['arch'])
         selector, = tree.xpath(".//field[@name='step_export_sale_mode_id']")
         self.assertIn("parent_of", selector.get('domain'))
         for node in tree.xpath(".//field[@name='order_line']//field[@name='product_packaging_id']"):
             self.assertIn('step_export.view_step_export_packaging_form', node.get('context'))
+            self.assertNotIn('product.product_packaging', node.get('context'))
             self.assertIn("'company_id', 'parent_of', parent.company_id", node.get('domain'))
             self.assertIn('step_export_kg_per_box', node.get('domain'))
+            self.assertIn("('step_packaging_group', '=', 'export')", node.get('domain'))
 
     def test_english_documents_and_no_accounting_side_effects(self):
         order, _ = self.sample(); reports = order.env['ir.actions.report']

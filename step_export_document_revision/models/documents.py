@@ -134,7 +134,7 @@ class OrderLine(models.Model):
             # treats qty on the master as a divisor of the order quantity.
             choices = packaging.search([
                 ('product_id', '=', line.product_id.id),
-                ('sales', '=', True),
+                ('step_packaging_group', '=', 'export'),
                 '|', ('company_id', '=', False), ('company_id', 'parent_of', line.company_id.id),
                 ('step_export_kg_per_box', '>', 0),
             ], limit=2) if line.product_id else packaging

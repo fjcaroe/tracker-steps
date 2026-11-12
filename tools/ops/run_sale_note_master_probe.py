@@ -34,7 +34,8 @@ try:
     partner = main['sale.order'].search([('step_export_sale', '=', True),
                                         ('company_id', '=', main.company.id)], limit=1).partner_id.with_env(business)
     assert partner
-    tree = etree.fromstring(order_model.get_view(view_type='form')['arch'])
+    form_id = next(view_id for view_id, kind in menu.action.views if kind == 'form')
+    tree = etree.fromstring(order_model.get_view(view_id=form_id, view_type='form')['arch'])
     mode_node, = tree.xpath(".//field[@name='step_export_sale_mode_id']")
     pack_node, = tree.xpath(".//field[@name='order_line']/list/field[@name='product_packaging_id']")
     values = {'company_id': company.id, 'product_id': product.id,

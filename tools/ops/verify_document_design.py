@@ -28,7 +28,8 @@ try:
         mode_master = env.ref('step_export.action_step_export_sale_mode')
         pack_master = env.ref('step_export.action_step_export_packaging')
         assert sale_menu.action.res_model == 'sale.order'
-        tree = etree.fromstring(order.get_view(view_type='form')['arch'])
+        form_id = next(view_id for view_id, kind in sale_menu.action.views if kind == 'form')
+        tree = etree.fromstring(order.get_view(view_id=form_id, view_type='form')['arch'])
         mode, = tree.xpath(".//field[@name='step_export_sale_mode_id']")
         pack_nodes = tree.xpath(".//field[@name='order_line']//field[@name='product_packaging_id']")
         assert len(pack_nodes) >= 2
@@ -39,6 +40,10 @@ try:
         if document_version >= (18, 0, 1, 0, 3):
             assert all('parent_of' in node.get('domain') and 'step_export_kg_per_box' in node.get('domain')
                        for node in pack_nodes)
+            assert sale_menu.action.views[0][1] == 'list'
+            assert form_id == env.ref('step_export_document_revision.export_note_form').id
+            assert all("'step_packaging_group', '=', 'export'" in node.get('domain') and
+                       'product.product_packaging' not in node.get('context') for node in pack_nodes)
             assert env.ref('step_export.view_step_export_packaging_list') in pack_master.view_ids.view_id
         print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 210, 'menu': True, 'masters': True, 'form': True}))
     reports = order.env['ir.actions.report']

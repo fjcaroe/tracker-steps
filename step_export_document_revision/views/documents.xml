@@ -25,11 +25,11 @@
             </xpath>
             <xpath expr="//field[@name='order_line']/list/field[@name='product_packaging_id']" position="attributes">
                 <attribute name="optional">show</attribute>
-                <attribute name="domain">[('sales', '=', True), ('product_id', '=', product_id)] + (['|', ('company_id', '=', False), ('company_id', 'parent_of', parent.company_id)] if parent.step_export_sale_context else []) + ([('step_export_kg_per_box', '&gt;', 0)] if parent.step_box_pricing else [])</attribute>
+                <attribute name="domain">[('product_id', '=', product_id)] + ([('step_packaging_group', '=', 'export'), '|', ('company_id', '=', False), ('company_id', 'parent_of', parent.company_id)] if parent.step_export_sale_context else [('sales', '=', True)]) + ([('step_export_kg_per_box', '&gt;', 0)] if parent.step_box_pricing else [])</attribute>
                 <attribute name="context">{'default_product_id': product_id, 'default_company_id': parent.company_id if parent.step_export_sale_context else False, 'list_view_ref': 'step_export.view_step_export_packaging_list' if parent.step_export_sale_context else 'product.product_packaging_tree_view', 'form_view_ref': 'step_export.view_step_export_packaging_form' if parent.step_export_sale_context else 'product.product_packaging_form_view'}</attribute>
             </xpath>
             <xpath expr="//field[@name='order_line']/form//field[@name='product_packaging_id']" position="attributes">
-                <attribute name="domain">[('sales', '=', True), ('product_id', '=', product_id)] + (['|', ('company_id', '=', False), ('company_id', 'parent_of', parent.company_id)] if parent.step_export_sale_context else []) + ([('step_export_kg_per_box', '&gt;', 0)] if parent.step_box_pricing else [])</attribute>
+                <attribute name="domain">[('product_id', '=', product_id)] + ([('step_packaging_group', '=', 'export'), '|', ('company_id', '=', False), ('company_id', 'parent_of', parent.company_id)] if parent.step_export_sale_context else [('sales', '=', True)]) + ([('step_export_kg_per_box', '&gt;', 0)] if parent.step_box_pricing else [])</attribute>
                 <attribute name="context">{'default_product_id': product_id, 'default_company_id': parent.company_id if parent.step_export_sale_context else False, 'list_view_ref': 'step_export.view_step_export_packaging_list' if parent.step_export_sale_context else 'product.product_packaging_tree_view', 'form_view_ref': 'step_export.view_step_export_packaging_form' if parent.step_export_sale_context else 'product.product_packaging_form_view'}</attribute>
             </xpath>
             <xpath expr="//field[@name='order_line']/list/field[@name='product_packaging_id']" position="after">
@@ -45,6 +45,36 @@
             </xpath>
             <xpath expr="//field[@name='order_line']/list/field[@name='product_packaging_qty']" position="attributes"><attribute name="column_invisible">parent.step_box_pricing</attribute></xpath>
         </field>
+    </record>
+    <record id="export_note_form" model="ir.ui.view">
+        <field name="name">sale.order.steps.export.note</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="mode">primary</field>
+        <field name="priority">110</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_packaging_id']" position="attributes">
+                <attribute name="domain">[('product_id', '=', product_id), ('step_packaging_group', '=', 'export'), '|', ('company_id', '=', False), ('company_id', 'parent_of', parent.company_id)] + ([('step_export_kg_per_box', '&gt;', 0)] if parent.step_box_pricing else [])</attribute>
+                <attribute name="context">{'list_view_ref': 'step_export.view_step_export_packaging_list', 'form_view_ref': 'step_export.view_step_export_packaging_form'}</attribute>
+                <attribute name="options">{'no_create': True}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/form//field[@name='product_packaging_id']" position="attributes">
+                <attribute name="domain">[('product_id', '=', product_id), ('step_packaging_group', '=', 'export'), '|', ('company_id', '=', False), ('company_id', 'parent_of', parent.company_id)] + ([('step_export_kg_per_box', '&gt;', 0)] if parent.step_box_pricing else [])</attribute>
+                <attribute name="context">{'list_view_ref': 'step_export.view_step_export_packaging_list', 'form_view_ref': 'step_export.view_step_export_packaging_form'}</attribute>
+                <attribute name="options">{'no_create': True}</attribute>
+            </xpath>
+        </field>
+    </record>
+    <record id="export_note_action_list" model="ir.actions.act_window.view">
+        <field name="sequence">10</field>
+        <field name="view_mode">list</field>
+        <field name="act_window_id" ref="step_export.action_export_sale_orders"/>
+    </record>
+    <record id="export_note_action_form" model="ir.actions.act_window.view">
+        <field name="sequence">20</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="export_note_form"/>
+        <field name="act_window_id" ref="step_export.action_export_sale_orders"/>
     </record>
     <record id="sale_quantities" model="ir.ui.view">
         <field name="name">sale.order.export.legacy.quantities</field><field name="model">sale.order</field>
