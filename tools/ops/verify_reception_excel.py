@@ -65,8 +65,16 @@ try:
     if 'step_packing_reception_revision' in EXPECTED and installed_version >= (18, 0, 1, 2, 4):
         assert arch.xpath("//button[@name='action_step_reverse_fruit_receipt']")
         assert arch.xpath("//field[@name='step_fruit_correction_of_id']")
-        env.cr.execute("SELECT to_regclass('step_external_active_reception_folio')")
+        folio_index = ('step_external_active_reception_folio_farm' if installed_version >= (18, 0, 1, 2, 6)
+                       else 'step_external_active_reception_folio')
+        env.cr.execute("SELECT to_regclass(%s)", [folio_index])
         assert env.cr.fetchone()[0]
+        if installed_version >= (18, 0, 1, 2, 6):
+            assert 'cada combinación de referencia y fundo' in wizard.with_context(lang='es_CL').get_view(
+                view_id=menu.action.view_id.id, view_type='form')['arch']
+            env.cr.execute("SELECT to_regclass('step_external_active_reception_folio')")
+            assert not env.cr.fetchone()[0]
+            print('T214_REGISTRY_OK ' + json.dumps({'import_menu': True, 'wizard': True, 'unique_per_farm': True}))
         dispatch_menu = scoped.ref('step_dispatch_guide.menu_dispatch_types')
         assert dispatch_menu.id in scoped['ir.ui.menu']._visible_menu_ids()
         types = scoped[dispatch_menu.action.res_model]

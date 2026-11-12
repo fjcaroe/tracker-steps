@@ -18,8 +18,8 @@ class ExternalReceiptCase(TransactionCase):
         same_origin = dict(first, number=14, gassed='no')
         wizard._check_receipt_header('63', [first, same_origin])
         with self.assertRaises(UserError) as caught:
-            wizard._check_receipt_header('63', [first, dict(same_origin, fundo=20)])
-        for detail in ('63', '13', '14', 'fundo'):
+            wizard._check_receipt_header('63', [first, dict(same_origin, guide='1059')])
+        for detail in ('63', '13', '14', 'guía'):
             self.assertIn(detail, str(caught.exception).lower())
 
     def test_process_list_totals_from_tags_and_existing_operations(self):
@@ -212,6 +212,26 @@ class ExternalReceiptCase(TransactionCase):
         self.assertEqual(independent.fruit_guide_number, corrected.fruit_guide_number)
         self.assertEqual(independent.partner_id, corrected.partner_id)
         self.assertEqual(independent.fruit_fundo_id, other_farm)
+        for index, origin in enumerate((fundo, other_farm), start=1):
+            sheet.cell(index + 2, 1, 'QA214-MULTI')
+            sheet.cell(index + 2, 2, 'QA214-GUIA')
+            sheet.cell(index + 2, 3, f'QA214-TARJA-{index}')
+            sheet.cell(index + 2, 8, origin.name)
+        mixed = model.create(dict(defaults, file=attachment(), template_id=template.id, save_template=False))
+        mixed.action_review()
+        self.assertIn('2 borradores', mixed.review_note)
+        result = mixed.action_import()
+        receipts = self.env['stock.picking'].search(result['domain'])
+        self.assertEqual(len(receipts), 2)
+        self.assertEqual(set(receipts.mapped('step_external_reception_folio')), {'QA214-MULTI'})
+        self.assertEqual(set(receipts.fruit_fundo_id.ids), {fundo.id, other_farm.id})
+        self.assertEqual(set(receipts.mapped('state')), {'draft'})
+        self.assertEqual(sum(receipts.fruit_tag_line_ids.mapped('kilos')), 61.5)
+        for receipt in receipts:
+            self.assertEqual(len(receipt.fruit_tag_line_ids), 1)
+            self.assertEqual(receipt.partner_id, receipt.fruit_fundo_id.partner_id)
+        with self.assertRaises(UserError), self.cr.savepoint():
+            mixed.action_import()
 
         process_type = self.env['step.packing.process.type'].create({'name': 'QA T193 Embalaje'})
         process_line = self.env['step.packing.line'].create({'name': 'QA T193 Línea'})

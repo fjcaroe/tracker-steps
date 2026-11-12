@@ -4,7 +4,7 @@
     <field name="model">step.external.fruit.reception.import</field>
     <field name="arch" type="xml">
       <form string="Importar recepciones de fruta">
-        <p>Suba el Excel y revise las columnas detectadas. Se creará un borrador por referencia de recepción.</p>
+        <p>Suba el Excel y revise las columnas detectadas. Se creará un borrador por cada combinación de referencia y fundo.</p>
         <group>
           <group>
             <field name="company_id"/>

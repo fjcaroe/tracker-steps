@@ -10,8 +10,9 @@ class Picking(models.Model):
     def init(self):
         super().init()
         self.env.cr.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS step_external_active_reception_folio
-                ON stock_picking (company_id, step_receiving_packing_id, fruit_season_id, step_external_reception_folio)
+            CREATE UNIQUE INDEX IF NOT EXISTS step_external_active_reception_folio_farm
+                ON stock_picking (company_id, step_receiving_packing_id, fruit_season_id,
+                                  step_external_reception_folio, COALESCE(fruit_fundo_id, 0))
              WHERE state <> 'cancel' AND step_fruit_reversal_id IS NULL AND step_external_reception_folio IS NOT NULL
         """)
 
