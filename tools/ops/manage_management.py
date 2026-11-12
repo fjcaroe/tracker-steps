@@ -159,6 +159,11 @@ def snapshot(database):
                 # Only a missing native company for an E/N fruit output may be filled.
                 # Keep non-null conflicts and every other value in the preservation hash.
                 row = "(" + row + " || jsonb_build_object('company_id', CASE WHEN t.company_id IS NULL AND t.is_fruit_tag AND t.step_tag_kind IN ('E','N') THEN (SELECT company_id FROM step_packing_production WHERE id=t.step_packing_production_id) ELSE t.company_id END))"
+            if 'step_packing_interplant' in MODULES and table == 'stock_quant_package':
+                # T209 preserves the existing company in its native persistent field.
+                # Normalize only NULL -> existing company on fruit tags; preserve
+                # every non-null conflict, all other columns and every stock row.
+                row = "(" + row + " || jsonb_build_object('step_packing_company_id', CASE WHEN t.is_fruit_tag AND t.step_packing_company_id IS NULL AND t.company_id IS NOT NULL THEN t.company_id ELSE t.step_packing_company_id END))"
             if TICKET_REVISION == 'packaging-master' and table == 'product_category':
                 from packing_material_hierarchy_setup import snapshot_row
                 row = snapshot_row(row, MATERIAL_HIERARCHY_PLAN)

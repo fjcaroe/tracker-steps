@@ -9,6 +9,10 @@ module_name = 'step_packing_interplant'
 module = env['ir.module.module'].search([('name', '=', module_name), ('state', '=', 'installed')])
 assert module.latest_version == EXPECTED[module_name]
 assert Path(importlib.import_module('odoo.addons.' + module_name).__file__).resolve().parent == Path(ROOT) / module_name
+if tuple(map(int, module.latest_version.split('.'))) >= (18, 0, 1, 0, 3):
+    assert not env['stock.quant.package'].sudo().search_count([
+        ('is_fruit_tag', '=', True), ('company_id', '!=', False),
+        ('step_packing_company_id', '=', False)]), 'Legacy tag company migration incomplete'
 scoped = scoped_business_environment(env)
 menu = scoped.ref('step_packing_interplant.receipts_menu')
 assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
