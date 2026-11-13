@@ -1,5 +1,5 @@
 from odoo import Command
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import ValidationError
 from odoo.tests import Form, TransactionCase, new_test_user, tagged
 
 
@@ -52,7 +52,7 @@ class BranchPackingListCase(TransactionCase):
         self.assertTrue(packing.sudo().name.startswith('PL/'))
         self.assertIn(packing.with_env(parent_scope), shipment.with_env(parent_scope).packing_list_ids)
         self.assertFalse(shipment.tag_ids)
-        with self.assertRaises(AccessError), self.cr.savepoint():
+        with self.assertRaises(ValidationError), self.cr.savepoint():
             model.create({'shipment_id': shipment.id, 'guide_id': foreign.id})
         with self.assertRaises(ValidationError), self.cr.savepoint():
             model.create({'shipment_id': shipment.id, 'guide_id': draft.id})
