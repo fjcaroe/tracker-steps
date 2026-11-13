@@ -83,19 +83,31 @@ class FruitReportsCase(TransactionCase):
         picking.fruit_tag_line_ids[0].kilos=45;self.env.flush_all();rows.invalidate_recordset()
         self.assertEqual(sum(rows.mapped('kilos')),145)
 
+    def clear_legacy_tag_lot(self, line):
+        # Simulate a historical tag without its own lot. Current completed tags
+        # cannot be edited directly through the normal reception flow.
+        line.flush_recordset(['stock_lot_id'])
+        self.env.cr.execute(
+            "UPDATE step_packing_picking_tag_line SET stock_lot_id = NULL WHERE id = %s",
+            [line.id],
+        )
+        line.invalidate_recordset(['stock_lot_id'])
+
     def test_multiple_stock_lines_do_not_duplicate_tag_quantities(self):
         picking=self.sample();line=picking.fruit_tag_line_ids[0]
         move_line=picking.move_line_ids.filtered(lambda row:row.result_package_id==line.package_id)[0]
         move_line.quantity-=1
         move_line.copy({'quantity':1})
         self.assertEqual(sum(picking.move_line_ids.mapped('quantity')),30)
-        line.stock_lot_id=False;self.env.flush_all()
+        self.clear_legacy_tag_lot(line)
+        self.env.flush_all()
         rows=self.rows(picking)
         self.assertEqual(len(rows),2);self.assertEqual(sum(rows.mapped('kilos')),150)
         self.assertTrue(rows.filtered(lambda row:row.tag_line_id==line).lot_id)
 
     def test_ambiguous_lots_are_not_guessed(self):
-        picking=self.sample();line=picking.fruit_tag_line_ids[0];line.stock_lot_id=False
+        picking=self.sample();line=picking.fruit_tag_line_ids[0]
+        self.clear_legacy_tag_lot(line)
         lot=self.env['stock.lot'].create({'name':'QA-LOT-OTHER','product_id':line.product_id.id,'company_id':picking.company_id.id})
         move_line=picking.move_line_ids.filtered(lambda row:row.result_package_id==line.package_id)[0]
         move_line.quantity-=1
