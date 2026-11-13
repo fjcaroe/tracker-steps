@@ -44,7 +44,7 @@ class TestMonthlyBooks(AccountTestInvoicingCommon):
 
     def test_purchases_posted_amounts_and_refund(self):
         vat = self.tax('VAT', 19, 14)
-        withheld = self.tax('VAT withheld', -14, 15)
+        withheld = self.tax('VAT withheld on berries', -14, 48)
         specific = self.tax('Specific tax', 11, 28)
         empty = self.env['account.tax']
         invoice = self.invoice('in_invoice', 'dc_a_f_dte', [(100000, vat | withheld | specific), (10000, empty)])

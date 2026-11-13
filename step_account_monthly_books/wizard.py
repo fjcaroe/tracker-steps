@@ -7,6 +7,7 @@ from xlsxwriter import Workbook
 from xlsxwriter.utility import xl_range
 
 from odoo import _, fields, models
+from odoo.osv import expression
 from odoo.exceptions import UserError
 
 
@@ -16,6 +17,9 @@ MONTHS = (
 )
 BOOKS = [('sales', 'Libro de ventas'), ('purchases', 'Libro de compras'), ('fees', 'Libro de honorarios')]
 FEE_CODES = ('70', '71')
+# SII codes for IVA retenido, including the variants for total retention.
+VAT_WITHHOLDING_CODES = {15, 30, 31, 32, 33, 34, 36, 37, 38, 39, 41, 46, 47, 48,
+                        301, 321, 331, 341, 361, 371, 481}
 IDENTITY = ('Correlativo', 'Tipo de Doc', 'Número de Documento', 'RUT Nº', 'Contacto')
 DATES = ('Fecha de factura', 'Fecha de vencimiento')
 COLUMNS = {
@@ -53,7 +57,7 @@ class AccountMonthlyBook(models.TransientModel):
         start, end = self._period()
         sale = self.book == 'sales'
         document = 'l10n_latam_document_type_id'
-        return self.env['account.move'].search([
+        domain = [
             ('company_id', '=', self.env.company.id),
             ('state', '=', 'posted'),
             ('move_type', 'in', ('out_invoice', 'out_refund') if sale else ('in_invoice', 'in_refund')),
@@ -61,8 +65,13 @@ class AccountMonthlyBook(models.TransientModel):
             ('invoice_date', '<', end),
             (document + '.country_id', '=', self.env.ref('base.cl').id),
             (document + '.internal_type', 'in', ('invoice', 'invoice_in', 'credit_note', 'debit_note')),
-            (document + '.code', 'in' if self.book == 'fees' else 'not in', FEE_CODES),
-        ], order='invoice_date, name, id')
+        ]
+        fee_documents = expression.OR([
+            [(document + '.code', 'in', FEE_CODES)],
+            [('reversed_entry_id.' + document + '.code', 'in', FEE_CODES)],
+        ])
+        domain += fee_documents if self.book == 'fees' else ['!', *fee_documents]
+        return self.env['account.move'].search(domain, order='invoice_date, name, id')
 
     def _amounts(self, move):
         # Work from posted balances in company currency, including export invoices in another currency.
@@ -73,7 +82,7 @@ class AccountMonthlyBook(models.TransientModel):
             code = tax.l10n_cl_sii_code
             amount = sign * line.balance
             if tax:
-                if self.book == 'fees' or (code in (15, 16) and tax.amount < 0):
+                if code in VAT_WITHHOLDING_CODES and tax.amount < 0:
                     amounts['withheld'] -= amount
                 elif code == 14:
                     amounts['vat'] += amount
@@ -154,7 +163,7 @@ class AccountMonthlyBook(models.TransientModel):
                         elif value is not False:
                             sheet.write(row_number, column, value)
                     row_number += 1
-                sheet.autofilter(4, 0, max(5, row_number - 1), len(headers) - 1)
+                sheet.autofilter(4, 0, max(4, row_number - 1), len(headers) - 1)
                 sheet.write(row_number, 1, _('Totalizar'), total)
                 for column, value in totals.items():
                     if row_number > 5:
