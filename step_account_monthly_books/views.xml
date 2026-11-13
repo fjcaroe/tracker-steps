@@ -1,0 +1,53 @@
+<odoo>
+    <record id="view_monthly_book_form" model="ir.ui.view">
+        <field name="name">step.account.monthly.book.form</field>
+        <field name="model">step.account.monthly.book</field>
+        <field name="arch" type="xml">
+            <form string="Libros mensuales">
+                <group>
+                    <field name="month"/>
+                    <field name="year"/>
+                    <field name="book"/>
+                </group>
+                <footer>
+                    <button name="action_download" type="object" string="Descargar Excel" class="btn-primary"/>
+                    <button special="cancel" string="Cerrar" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_sales" model="ir.actions.act_window">
+        <field name="name">Libro de ventas</field>
+        <field name="res_model">step.account.monthly.book</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_monthly_book_form"/>
+        <field name="target">new</field>
+        <field name="context">{'default_book': 'sales'}</field>
+    </record>
+    <record id="action_purchases" model="ir.actions.act_window">
+        <field name="name">Libro de compras</field>
+        <field name="res_model">step.account.monthly.book</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_monthly_book_form"/>
+        <field name="target">new</field>
+        <field name="context">{'default_book': 'purchases'}</field>
+    </record>
+    <record id="action_fees" model="ir.actions.act_window">
+        <field name="name">Libro de honorarios</field>
+        <field name="res_model">step.account.monthly.book</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_monthly_book_form"/>
+        <field name="target">new</field>
+        <field name="context">{'default_book': 'fees'}</field>
+    </record>
+
+    <menuitem id="menu_customer_books" name="Libros" parent="account.menu_finance_receivables" sequence="35"/>
+    <menuitem id="menu_vendor_books" name="Libros" parent="account.menu_finance_payables" sequence="35"/>
+    <menuitem id="menu_sales" parent="menu_customer_books" action="action_sales"
+              groups="account.group_account_invoice,account.group_account_readonly"/>
+    <menuitem id="menu_purchases" parent="menu_vendor_books" action="action_purchases"
+              groups="account.group_account_invoice,account.group_account_readonly" sequence="10"/>
+    <menuitem id="menu_fees" parent="menu_vendor_books" action="action_fees"
+              groups="account.group_account_invoice,account.group_account_readonly" sequence="20"/>
+</odoo>

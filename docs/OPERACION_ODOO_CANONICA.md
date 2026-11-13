@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T217 usa `monthly-accounting-books` en Desarrollo, Cerro, QA-Cerro y SyS.
+Los menús de Clientes y Proveedores abren los libros Excel de la empresa
+activa para el mes y año de la fecha de factura. Usar documentos chilenos
+contabilizados y los saldos en moneda contable, con notas de crédito negativas.
+Verificar los tres menús, el asistente y los totales del Excel en copias.
+Publicar el mismo paquete con respaldo y bloqueo.
+
 T216 usa `reception-excel --with-fruit-report-date` en Desarrollo, Cerro y
 QA-Cerro. El informe de fruta a proceso agrupa por la fecha prevista. La
 fruta embalada conserva la fecha efectiva. La actualización reaplica las
