@@ -2,7 +2,9 @@
 
 T217 usa `monthly-accounting-books` en Desarrollo, Cerro, QA-Cerro y SyS.
 Los menús de Clientes y Proveedores abren los libros Excel de la empresa
-activa para el mes y año de la fecha de factura. Usar documentos chilenos
+activa. Ventas usa la fecha de factura para elegir el período. Compras y
+Honorarios usan la fecha contable y muestran la fecha original del documento
+en el Excel. Probar los cruces de mes en ambos sentidos. Usar documentos chilenos
 contabilizados y los saldos en moneda contable, con notas de crédito negativas.
 Verificar los tres menús, el asistente y los totales del Excel en copias.
 Publicar el mismo paquete con respaldo y bloqueo.

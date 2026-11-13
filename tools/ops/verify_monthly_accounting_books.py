@@ -24,6 +24,7 @@ try:
     assert accountants
     results = {}
     for key in KEYS:
+        period_field = 'invoice_date' if key == 'sales' else 'date'
         sample_domain = [
             ('state', '=', 'posted'),
             ('move_type', 'in', ('out_invoice', 'out_refund') if key == 'sales' else ('in_invoice', 'in_refund')),
@@ -32,7 +33,13 @@ try:
             ('l10n_latam_document_type_id.code', 'in' if key == 'fees' else 'not in', ('70', '71')),
             ('company_id', 'in', accountants.company_ids.ids),
         ]
-        sample = env['account.move'].search(sample_domain, order='invoice_date desc, id desc', limit=1)
+        documents = env['account.move'].search(sample_domain, order=period_field + ' desc, id desc')
+        if key == 'sales':
+            sample = documents[:1]
+        else:
+            cross_month = documents.filtered(lambda move: move.invoice_date and
+                move.invoice_date.replace(day=1) != move.date.replace(day=1))
+            sample = (cross_month or documents)[:1]
         company = sample.company_id or accountants[0].company_id
         eligible = accountants.filtered(lambda user: company in user.company_ids)
         user = (eligible.filtered(lambda user: user.company_id == company) or eligible)[0]
@@ -47,14 +54,14 @@ try:
         arch = ElementTree.fromstring(wizard_model.get_view(view_id=action.view_id.id, view_type='form')['arch'])
         assert {item.get('name') for item in arch.findall('.//field')} == {'month', 'year', 'book'}
         assert arch.find(".//button[@name='action_download']") is not None
-        day = sample.invoice_date or fields.Date.today()
+        day = sample[period_field] or fields.Date.today()
         wizard_values = {'month': str(day.month), 'year': day.year, 'book': key}
         wizard = wizard_model.new(wizard_values)
         moves = wizard._moves()
         if sample and sample.with_env(scoped).has_access('read'):
             assert sample.id in moves.ids
-        assert all(move.company_id == company and move.invoice_date.month == day.month
-                   and move.invoice_date.year == day.year and move.state == 'posted' for move in moves)
+        assert all(move.company_id == company and move[period_field].month == day.month
+                   and move[period_field].year == day.year and move.state == 'posted' for move in moves)
         if env.cr.dbname.startswith('MANAGEMENT_QA_'):
             wizard = wizard_model.create(wizard_values)
             download = wizard.action_download()

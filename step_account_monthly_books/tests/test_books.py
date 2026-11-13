@@ -20,12 +20,13 @@ class TestMonthlyBooks(AccountTestInvoicingCommon):
             'company_id': self.env.company.id,
         })
 
-    def invoice(self, move_type, document, lines, day=date(2026, 10, 12), post=True):
+    def invoice(self, move_type, document, lines, day=date(2026, 10, 12), post=True, accounting_day=None):
         # Produce real posted tax balances with the test chart and no electronic
         # issuance. Set the Chilean document code for the reporting fixture.
         move = self.env['account.move'].create({
             'move_type': move_type,
             'invoice_date': day,
+            'date': accounting_day or day,
             'partner_id': self.partner_a.id,
             'invoice_line_ids': [Command.create({
                 'name': 'Item',
@@ -80,3 +81,29 @@ class TestMonthlyBooks(AccountTestInvoicingCommon):
         self.assertEqual(fees._row(2, exempt)[7:11], (10000, 10000, 0, 10000))
         self.assertFalse(self.book('purchases')._moves())
         self.assertEqual(fees.action_download()['target'], 'download')
+
+    def test_period_uses_posting_date_for_purchases_and_fees(self):
+        september = date(2026, 9, 30)
+        october = date(2026, 10, 1)
+        november = date(2026, 11, 1)
+        empty = self.env['account.tax']
+
+        for book, document in (('purchases', 'dc_y_f_dte'), ('fees', 'dc_m_d_dtn')):
+            with self.subTest(book=book):
+                brought_forward = self.invoice('in_invoice', document, [(10000, empty)],
+                                               day=september, accounting_day=october)
+                deferred = self.invoice('in_invoice', document, [(20000, empty)],
+                                        day=october, accounting_day=november)
+                self.assertEqual((brought_forward.invoice_date, brought_forward.date), (september, october))
+                self.assertEqual((deferred.invoice_date, deferred.date), (october, november))
+                october_book = self.book(book)
+                self.assertEqual(october_book._moves(), brought_forward)
+                self.assertEqual(october_book._row(1, brought_forward)[7 if book == 'purchases' else 5], september)
+                october_book.month = '11'
+                self.assertEqual(october_book._moves(), deferred)
+
+        sales = self.book('sales')
+        sale = self.invoice('out_invoice', 'dc_a_f_dte', [(10000, empty)],
+                            day=october, accounting_day=november)
+        self.assertEqual((sale.invoice_date, sale.date), (october, november))
+        self.assertEqual(sales._moves(), sale)

@@ -56,13 +56,14 @@ class AccountMonthlyBook(models.TransientModel):
     def _moves(self):
         start, end = self._period()
         sale = self.book == 'sales'
+        period_field = 'invoice_date' if sale else 'date'
         document = 'l10n_latam_document_type_id'
         domain = [
             ('company_id', '=', self.env.company.id),
             ('state', '=', 'posted'),
             ('move_type', 'in', ('out_invoice', 'out_refund') if sale else ('in_invoice', 'in_refund')),
-            ('invoice_date', '>=', start),
-            ('invoice_date', '<', end),
+            (period_field, '>=', start),
+            (period_field, '<', end),
             (document + '.country_id', '=', self.env.ref('base.cl').id),
             (document + '.internal_type', 'in', ('invoice', 'invoice_in', 'credit_note', 'debit_note')),
         ]
