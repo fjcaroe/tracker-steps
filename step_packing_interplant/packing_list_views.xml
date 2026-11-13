@@ -6,11 +6,12 @@
         <field name="arch" type="xml">
             <field name="shipment_id" position="before">
                 <field name="step_packing_company_ids" invisible="1"/>
-                <field name="step_packing_shipment_domain" invisible="1"/>
+                <field name="step_packing_is_branch" invisible="1"/>
+                <field name="step_packing_matrix_id" invisible="1"/>
                 <field name="step_uses_guide_pallets" invisible="1"/>
             </field>
             <field name="shipment_id" position="attributes">
-                <attribute name="domain">step_packing_shipment_domain</attribute>
+                <attribute name="domain">([('company_id', '=', step_packing_matrix_id), ('state', '!=', 'draft')] if step_packing_matrix_id else [('id', '=', False)]) if step_packing_is_branch else []</attribute>
                 <attribute name="context">{'allowed_company_ids': step_packing_company_ids}</attribute>
                 <attribute name="options">{'no_create': True}</attribute>
             </field>

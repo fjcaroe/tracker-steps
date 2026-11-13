@@ -13,7 +13,8 @@ class PackingList(models.Model):
     _inherit = 'step.export.packing.list'
 
     step_packing_company_ids = fields.Many2many('res.company', compute='_compute_packing_matrix')
-    step_packing_shipment_domain = fields.Json(compute='_compute_packing_matrix')
+    step_packing_is_branch = fields.Boolean(compute='_compute_packing_matrix')
+    step_packing_matrix_id = fields.Many2one('res.company', compute='_compute_packing_matrix')
     step_uses_guide_pallets = fields.Boolean(related='guide_id.step_is_shipment_dispatch')
     available_guide_ids = fields.Many2many(
         'step.dispatch.guide', related=False, compute='_compute_available_dispatches', compute_sudo=False)
@@ -31,9 +32,8 @@ class PackingList(models.Model):
         companies = branch_companies(self.env, company)
         for packing in self:
             packing.step_packing_company_ids = companies
-            packing.step_packing_shipment_domain = (
-                [('company_id', '=', matrix.id), ('state', '!=', 'draft')]
-                if company.parent_id and matrix else [('id', '=', False)] if company.parent_id else [])
+            packing.step_packing_is_branch = bool(company.parent_id)
+            packing.step_packing_matrix_id = matrix
 
     @api.depends('shipment_id.dispatch_guide_ids', 'shipment_id.tag_ids', 'guide_id.state',
                  'guide_id.step_is_shipment_dispatch', 'guide_id.load_tag_ids')

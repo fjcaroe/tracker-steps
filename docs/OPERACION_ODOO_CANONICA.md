@@ -6,6 +6,9 @@ la compañía matriz del documento y se muestra en Tarjas y despachos.
 Reutilizar la secuencia de la matriz o la global vigente. Crear la secuencia
 nativa de la matriz solo cuando falten ambas. Probar desde la sucursal
 activa, verificar el reflejo en la matriz y revertir el caso en la copia.
+La corrección posterior del selector requiere probar el autocompletado en el
+navegador con la matriz activa y guardar el caso M0260 / guía 6666 desde
+Cool & Go en la copia privada de QA-Cerro.
 
 T214 amplía `reception-excel --with-interplant` en Desarrollo, Cerro y QA-Cerro.
 El importador agrupa por referencia del Excel y fundo resuelto. Conserva el

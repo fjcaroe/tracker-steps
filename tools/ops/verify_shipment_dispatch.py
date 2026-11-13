@@ -79,7 +79,12 @@ def verify_branch_packing_list(env, scoped):
     arch = etree.fromstring(model.get_view(view_type='form')['arch'])
     shipment_field, = arch.xpath("//field[@name='shipment_id']")
     guide_field, = arch.xpath("//field[@name='guide_id']")
-    assert shipment_field.get('domain') == 'step_packing_shipment_domain'
+    shipment_domain = shipment_field.get('domain')
+    for is_branch, company_id, expected in (
+            (False, scoped.company.id, []), (True, False, [('id', '=', False)]),
+            (True, scoped.company.id, [('company_id', '=', scoped.company.id), ('state', '!=', 'draft')])):
+        assert safe_eval(shipment_domain, {'step_packing_is_branch': is_branch,
+            'step_packing_matrix_id': company_id}) == expected
     assert guide_field.get('context') == "{'allowed_company_ids': step_packing_company_ids}"
     matrix_arch = etree.fromstring(scoped['step.export.export'].get_view(view_type='form')['arch'])
     assert matrix_arch.xpath("//field[@name='packing_list_ids']/list/field[@name='step_dispatch_branch_id']")
@@ -98,7 +103,9 @@ def verify_branch_packing_list(env, scoped):
     packing_model = branch[model._name]
     draft = packing_model.new({'shipment_id': shipment.id, 'guide_id': guide.id})
     context = safe_eval(shipment_field.get('context'), {'step_packing_company_ids': draft.step_packing_company_ids.ids})
-    choices = branch[shipment._name].with_context(**context).name_search('M0260', args=draft.step_packing_shipment_domain)
+    domain = safe_eval(shipment_domain, {'step_packing_is_branch': draft.step_packing_is_branch,
+        'step_packing_matrix_id': draft.step_packing_matrix_id.id})
+    choices = branch[shipment._name].with_context(**context).name_search('M0260', args=domain)
     assert shipment.id in {row[0] for row in choices}
     choices = branch[guide._name].name_search('6666', args=[('id', 'in', draft.available_guide_ids.ids)])
     assert guide.id in {row[0] for row in choices}
