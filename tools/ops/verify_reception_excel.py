@@ -69,12 +69,6 @@ try:
                        else 'step_external_active_reception_folio')
         env.cr.execute("SELECT to_regclass(%s)", [folio_index])
         assert env.cr.fetchone()[0]
-        if installed_version >= (18, 0, 1, 2, 6):
-            assert 'cada combinación de referencia y fundo' in wizard.with_context(lang='es_CL').get_view(
-                view_id=menu.action.view_id.id, view_type='form')['arch']
-            env.cr.execute("SELECT to_regclass('step_external_active_reception_folio')")
-            assert not env.cr.fetchone()[0]
-            print('T214_REGISTRY_OK ' + json.dumps({'import_menu': True, 'wizard': True, 'unique_per_farm': True}))
         dispatch_menu = scoped.ref('step_dispatch_guide.menu_dispatch_types')
         assert dispatch_menu.id in scoped['ir.ui.menu']._visible_menu_ids()
         types = scoped[dispatch_menu.action.res_model]
@@ -85,6 +79,14 @@ try:
         assert guide_arch.xpath("//field[@name='dispatch_type_id' and contains(@domain, 'company_ids')]")
         print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [204, 205, 206],
               'dispatch_types': True, 'active_folio': True, 'reversal': True}))
+    if installed_version >= (18, 0, 1, 2, 6):
+        assert 'cada combinación de referencia y fundo' in wizard.with_context(lang='es_CL').get_view(
+            view_id=menu.action.view_id.id, view_type='form')['arch']
+        env.cr.execute("SELECT to_regclass('step_external_active_reception_folio_farm'), "
+                       "to_regclass('step_external_active_reception_folio')")
+        current_index, previous_index = env.cr.fetchone()
+        assert current_index and not previous_index
+        print('T214_REGISTRY_OK ' + json.dumps({'import_menu': True, 'wizard': True, 'unique_per_farm': True}))
     if installed_version >= (18, 0, 1, 2, 0):
         process_menu = scoped.ref('step_packing_ticket_revision.menu_external_packing_process_import')
         assert process_menu.id in scoped['ir.ui.menu']._visible_menu_ids()
