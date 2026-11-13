@@ -7,6 +7,13 @@ Reutilizar la secuencia de la matriz o la global vigente. Crear la secuencia
 nativa de la matriz solo cuando falten ambas. Probar desde la sucursal
 activa, verificar el reflejo en la matriz y revertir el caso en la copia.
 
+T214 amplía `reception-excel --with-interplant` en Desarrollo, Cerro y QA-Cerro.
+El importador agrupa por referencia del Excel y fundo resuelto. Conserva el
+folio de origen en cada borrador y comprueba duplicados dentro de empresa,
+packing, temporada y fundo. Verificar el adjunto con las equivalencias del
+último intento solo en una copia privada de QA-Cerro y revertir la prueba.
+Los borradores conservan kilos, envases, guía y propietario por fundo.
+
 T212 amplía `reception-excel --with-interplant` en Desarrollo, Cerro y QA-Cerro.
 En Packing → Despacho → Despacho, el tipo Embarque ofrece contactos marcados
 para Exportación y embarques validados de la matriz autorizada del usuario.

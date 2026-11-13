@@ -39,6 +39,10 @@ _REQUIRED_COLUMNS = ('folio', 'guide', 'tag', 'date', 'species', 'variety', 'pro
                      'packaging', 'boxes', 'kilos', 'fruit_type')
 _DEFAULTS = ('picking_type_id', 'packing_id', 'season_id', 'product_id', 'category_id', 'fruit_class_id')
 _COLUMN_LABELS = dict(RECEPTION_COLUMNS)
+_RECEIPT_HEADER = {
+    'guide': 'guide', 'scheduled': 'date', 'especie': 'species',
+    'fruit_type': 'fruit_type', 'classification': 'classification',
+}
 _SELECTIONS = {
     'fruit_type': {'convencional': 'conventional', 'organico': 'organic', 'organica': 'organic'},
     'gassed': {'s': 'yes', 'si': 'yes', 'n': 'no', 'no': 'no'},
@@ -286,16 +290,53 @@ class ExternalReceptionImport(models.TransientModel):
             self.review_note = str(error)
         else:
             self._review_aliases(rows)
-            folios = len({row['folio'] for _, row in rows})
-            self.review_note = _('%(folios)s recepciones y %(tags)s tarjas aceptadas.',
-                                 folios=folios, tags=len(rows))
+            groups = self._review_receipt_groups(rows)
+            self.review_note = _('%(folios)s borradores por folio y fundo, con %(tags)s tarjas. '
+                                 'Revise las equivalencias antes de crear los borradores.',
+                                 folios=len(groups), tags=len(rows))
             if rejected:
                 tags = ', '.join(rejected[:10])
                 self.review_note += _(' Se excluyen %(count)s tarjas rechazadas (%(tags)s).',
                                       count=len(rejected), tags=tags)
+            for (folio, _farm), lines in groups.items():
+                try:
+                    self._check_receipt_header(folio, lines)
+                except UserError as error:
+                    self.review_note = str(error)
+                    break
         action = self.env.ref('step_packing_ticket_revision.action_external_fruit_reception_import').read()[0]
         action.update(res_id=self.id, views=[(action['view_id'][0], 'form')])
         return action
+
+    def _review_receipt_groups(self, rows):
+        aliases = self._master_aliases('producer')
+        _, farms, labels, _ = self._equivalence_masters()[0]
+        groups = defaultdict(list)
+        resolved = {}
+        for number, row in rows:
+            producer = normalized(row['producer'])
+            if producer not in resolved:
+                farm = aliases.get(producer)
+                if not farm or farm not in farms:
+                    farm = farms.filtered(lambda record: producer in {normalized(label) for label in labels(record)})
+                resolved[producer] = farm.id if len(farm) == 1 else producer
+            groups[row['folio'], resolved[producer]].append(
+                dict(row, number=number, especie=normalized(row['species'])))
+        return groups
+
+    def _check_receipt_header(self, folio, lines):
+        first = lines[0]
+        differences = {key: [str(row['number']) for row in lines[1:] if row[key] != first[key]]
+                       for key in _RECEIPT_HEADER}
+        problems = [
+            _('%(column)s (filas %(first)s y %(others)s)', column=_COLUMN_LABELS[column],
+              first=first['number'], others=', '.join(differences[key]))
+            for key, column in _RECEIPT_HEADER.items() if differences[key]
+        ]
+        if problems:
+            raise UserError(_('Folio %(folio)s: hay diferencias en %(details)s. '
+                              'Revise los datos de la recepción del mismo fundo.',
+                              folio=folio, details='; '.join(problems)))
 
     def _validate_row(self, row, number):
         required = ('folio', 'guide', 'tag', 'date', 'species', 'variety', 'producer', 'packaging', 'fruit_type')
@@ -433,9 +474,11 @@ class ExternalReceptionImport(models.TransientModel):
             especie = species_by_name[normalized(row['species'])]
             variant, = self._match([(number, row)], 'variety', varieties.filtered(
                 lambda item: item.especie_id == especie), lambda m: (m.name,)).values()
-            groups[row['folio']].append(dict(row, number=number, fundo=resolved['producer'][normalized(row['producer'])],
-                                            especie=especie, variant=variant,
-                                            container=resolved['packaging'][normalized(row['packaging'])]))
+            farm = resolved['producer'][normalized(row['producer'])]
+            groups[row['folio'], farm.id].append(dict(row, number=number, fundo=farm,
+                especie=especie, variant=variant, container=resolved['packaging'][normalized(row['packaging'])]))
+        for (folio, _farm), lines in groups.items():
+            self._check_receipt_header(folio, lines)
         # Match the native validation's lock so concurrent imports and manual
         # confirmations cannot claim the same tag number.
         for tag in sorted(seen_tags):
@@ -447,13 +490,14 @@ class ExternalReceptionImport(models.TransientModel):
                     ('picking_id.step_fruit_reversal_id', '=', False)], limit=1)):
             raise UserError(_('El archivo contiene un número de tarja ya utilizado o reservado por otra recepción.'))
 
-        keys = {f'steps-receipt-folio:{company.id}:{self.packing_id.id}:{self.season_id.id}:{folio}' for folio in groups}
+        keys = {f'steps-receipt-folio:{company.id}:{self.packing_id.id}:{self.season_id.id}:{folio}'
+                for folio, _farm in groups}
         keys.update(f'steps-receipt-guide:{company.id}:{lines[0]["guide"]}' for lines in groups.values())
         for key in sorted(keys):
             self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))', [key])
         pickings = self.env['stock.picking']
         with self.env.cr.savepoint():
-            for folio, lines in groups.items():
+            for (folio, _farm), lines in groups.items():
                 pickings |= self._create_reception(folio, lines, kg)
             self._save_template()
         action = self.env.ref('step_inventory_packing.action_steps_fruit_process_reception').read()[0]
@@ -465,9 +509,6 @@ class ExternalReceptionImport(models.TransientModel):
 
     def _create_reception(self, folio, lines, kg):
         first = lines[0]
-        header = ('guide', 'scheduled', 'especie', 'fundo', 'fruit_type', 'classification')
-        if any(any(row[key] != first[key] for key in header) for row in lines[1:]):
-            raise UserError(_('El folio %s tiene valores distintos en el encabezado. Corrija el archivo.', folio))
         company = self.env.company
         operation = self.picking_type_id
         source, destination = operation.default_location_src_id, operation.default_location_dest_id
@@ -477,9 +518,11 @@ class ExternalReceptionImport(models.TransientModel):
                   ('step_fruit_reversal_id', '=', False), ('step_fruit_reception_kind', '=', 'process')]
         if model.sudo().search_count([*active, '|', ('name', '=', folio),
                 '&', ('step_external_reception_folio', '=', folio),
-                '&', ('step_receiving_packing_id', '=', self.packing_id.id), ('fruit_season_id', '=', self.season_id.id)],
+                '&', ('step_receiving_packing_id', '=', self.packing_id.id),
+                '&', ('fruit_season_id', '=', self.season_id.id), ('fruit_fundo_id', 'in', [False, first['fundo'].id])],
                 limit=1):
-            raise UserError(_('La referencia %s ya existe en las recepciones de Odoo.', folio))
+            raise UserError(_('La referencia %(folio)s ya existe para el fundo %(farm)s.',
+                              folio=folio, farm=first['fundo'].display_name))
         if model.sudo().search_count([
                 *active,
                 '|', ('fruit_fundo_id', '=', first['fundo'].id),
