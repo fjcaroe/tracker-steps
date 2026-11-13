@@ -1,0 +1,12 @@
+<odoo>
+    <record id="packing_list_issuing_company_read" model="ir.rule">
+        <field name="name">Packing List: lectura por sucursal emisora</field>
+        <field name="model_id" ref="step_export.model_step_export_packing_list"/>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="domain_force">[('guide_id.company_id', 'in', company_ids)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+</odoo>

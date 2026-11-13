@@ -3,6 +3,17 @@ from odoo.exceptions import ValidationError
 from odoo.addons.step_export_branch_consolidation.models import branch_companies
 
 
+class PackingActions(models.Model):
+    _inherit = 'ir.actions.act_window'
+
+    def _get_action_dict(self):
+        action = super()._get_action_dict()
+        packing_action = self.env.ref('step_packing_interplant.action_issued_packing_lists', raise_if_not_found=False)
+        if self == packing_action and self.env.company.parent_id:
+            action['domain'] = [('guide_id.company_id', '=', self.env.company.id)]
+        return action
+
+
 class Guide(models.Model):
     _inherit = 'step.dispatch.guide'
 

@@ -75,6 +75,10 @@ verify_shipment_dispatch(env, scoped)
 def verify_branch_packing_list(env, scoped):
     menu = scoped.ref('step_packing_operations.menu_packing_dispatch_packing_list')
     assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
+    issued_xmlid = 'step_packing_interplant.action_issued_packing_lists'
+    issued_action = scoped.ref(issued_xmlid, raise_if_not_found=False)
+    if issued_action:
+        assert menu.action == issued_action
     model = scoped[menu.action.res_model]
     arch = etree.fromstring(model.get_view(view_type='form')['arch'])
     shipment_field, = arch.xpath("//field[@name='shipment_id']")
@@ -103,7 +107,8 @@ def verify_branch_packing_list(env, scoped):
     assert len(shipment) == 1 and len(guide.load_tag_ids) == 3
     packing_model = branch[model._name]
     draft = packing_model.new({'shipment_id': shipment.id, 'guide_id': guide.id})
-    context = safe_eval(shipment_field.get('context'), {'step_packing_company_ids': draft.step_packing_company_ids.ids})
+    context = safe_eval(shipment_field.get('context'), {'step_packing_company_ids': draft.step_packing_company_ids.ids,
+                                                        'context': branch.context})
     domain = safe_eval(shipment_domain, {'step_packing_is_branch': draft.step_packing_is_branch,
         'step_packing_matrix_id': draft.step_packing_matrix_id.id})
     choices = branch[shipment._name].with_context(**context).name_search('M0260', args=domain)
@@ -116,7 +121,11 @@ def verify_branch_packing_list(env, scoped):
                 'tag_ids': {'fields': {'name': {}}, 'order': 'name,id'}}
         draft._onchange_guide_tags()
         assert draft.tag_ids.ids == expected.ids
-        saved, = packing_model.web_save({'shipment_id': shipment.id, 'guide_id': guide.id}, spec)
+        existing = env[model._name].search([('guide_id', '=', guide.id)], limit=1)
+        if existing:
+            saved, = packing_model.browse(existing.id).web_read(spec)
+        else:
+            saved, = packing_model.web_save({'shipment_id': shipment.id, 'guide_id': guide.id}, spec)
         assert saved['name'].startswith('PL/') and saved['shipment_id']['id'] == shipment.id
         assert {row['id'] for row in saved['tag_ids']} == set(expected.ids)
         assert saved['box_qty'] == sum(expected.mapped('box_count')) == 720
@@ -127,6 +136,13 @@ def verify_branch_packing_list(env, scoped):
         assert any(row['id'] == saved['id'] and row['step_dispatch_branch_id']['id'] == branch.company.id
                    for row in reflected['packing_list_ids'])
         assert packing_model.browse(saved['id']).action_export_excel()['type'] == 'ir.actions.act_url'
+        if issued_action:
+            action = branch['ir.actions.act_window']._for_xml_id(issued_xmlid)
+            assert action['domain'] == [('guide_id.company_id', '=', branch.company.id)]
+            found = packing_model.web_search_read([('id', '=', saved['id']), *action['domain']], {'name': {}})
+            assert [row['id'] for row in found['records']] == [saved['id']]
+            print('T215_CUSTOMER_COPY_OK ' + json.dumps({'visible_in_issuing_branch': True,
+                'visible_in_matrix': True, 'existing_document': bool(existing), 'same_document': True}))
         print('T213_CUSTOMER_COPY_OK ' + json.dumps({'shipment': 'M0260', 'guide': '6666', 'tags': 3,
             'boxes': saved['box_qty'], 'net_kg': saved['kg_qty'], 'visible_in_matrix': True, 'excel': True}))
     finally:

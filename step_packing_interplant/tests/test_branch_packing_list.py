@@ -47,6 +47,16 @@ class BranchPackingListCase(TransactionCase):
             form.guide_id = guide.with_env(scoped)
             self.assertEqual(len(form.tag_ids), 1)
         packing = form.record
+        menu = scoped.ref('step_packing_operations.menu_packing_dispatch_packing_list')
+        self.assertEqual(menu.action, scoped.ref('step_packing_interplant.action_issued_packing_lists'))
+        action = scoped['ir.actions.act_window']._for_xml_id('step_packing_interplant.action_issued_packing_lists')
+        self.assertEqual(action['domain'], [('guide_id.company_id', '=', branch.id)])
+        self.assertEqual(model.search([('id', '=', packing.id), *action['domain']]), packing)
+        self.assertEqual(model.browse(packing.id).web_read({'name': {}})[0]['id'], packing.id)
+        other_user = new_test_user(self.env, login='qa215-other', groups='stock.group_stock_user',
+            company_id=other.id, company_ids=[Command.set(other.ids)])
+        other_model = model.with_user(other_user).with_context(allowed_company_ids=other.ids)
+        self.assertFalse(other_model.search([('id', '=', packing.id)]))
         self.assertEqual(packing.sudo().company_id, matrix)
         self.assertEqual(packing.sudo().tag_ids, tag)
         self.assertTrue(packing.sudo().name.startswith('PL/'))

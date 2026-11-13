@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T215 amplía `reception-excel --with-interplant` en Desarrollo, Cerro y QA-Cerro.
+Packing → Despacho → Packing List muestra los documentos de la sucursal
+emisora según la compañía de su guía. El mismo documento y folio siguen
+vinculados al embarque de la matriz. La regla adicional concede lectura a
+la emisora y conserva los permisos de creación, edición y eliminación.
+Probar el documento existente de M0260 desde Cool & Go y desde la matriz.
+
 T213 amplía `reception-excel --with-interplant` en Desarrollo, Cerro y QA-Cerro.
 El Packing List de sucursal toma la guía confirmada y sus tarjas, conserva
 la compañía matriz del documento y se muestra en Tarjas y despachos.
