@@ -31,6 +31,7 @@ class FruitReportsCase(TransactionCase):
             'fruit_season_id':season.id,'fruit_lot':'QA DECLARED LOT','step_fruit_gross_kg':150,
             'fruit_tag_line_ids':[Command.create({'tag_number':tag.name,'package_id':tag.id,'product_id':product.id,
                 'packaging_id':packaging.id,'stock_lot_id':lot.id,'uom_id':product.uom_id.id,'quantity':qty,'kilos':qty*5,'box_count':qty}) for tag,qty in zip(tags,(10,20))]})
+        picking.scheduled_date = datetime(2026,11,24,15)
         if done:
             if kind == 'process':
                 # Full installed flow: one native operation, split into two tarjas.
@@ -43,7 +44,7 @@ class FruitReportsCase(TransactionCase):
                 picking.action_prepare_fruit_stock()
             picking.button_validate()
             assert picking.state=='done'
-            picking.date_done=datetime(2026,11,30,15)
+            picking.date_done = datetime(2026,11,30,15)
         env.flush_all()
         return picking
 
@@ -64,6 +65,16 @@ class FruitReportsCase(TransactionCase):
             self.assertEqual(rows.producer_id,picking.fruit_fundo_id.partner_id)
             self.assertEqual(rows.season_id,picking.fruit_season_id)
             self.assertEqual(rows.variety_id,picking.fruit_variety_id)
+            expected_date = picking.scheduled_date if kind == 'process' else picking.date_done
+            self.assertEqual(set(rows.mapped('reception_date')), {expected_date})
+            groups = rows.with_context(tz='America/Santiago').read_group(
+                [('picking_id', '=', picking.id), ('state', '=', 'done')],
+                ['packaging_qty:sum', 'kilos:sum'], ['reception_date:day'],
+            )
+            self.assertEqual(len(groups), 1)
+            self.assertEqual(groups[0]['__range']['reception_date:day']['from'][:10],
+                             expected_date.date().isoformat())
+            self.assertEqual((groups[0]['packaging_qty'], groups[0]['kilos']), (30, 150))
 
     def test_pending_receipts_are_separate_from_done(self):
         picking=self.sample(done=False);rows=self.rows(picking)

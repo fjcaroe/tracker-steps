@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T216 usa `reception-excel --with-fruit-report-date` en Desarrollo, Cerro y
+QA-Cerro. El informe de fruta a proceso agrupa por la fecha prevista. La
+fruta embalada conserva la fecha efectiva. La actualización reaplica las
+acciones de Packing para conservar los filtros de devoluciones. Verificar
+los menús, el pivote y sus totales con recepciones de fechas distintas en
+copias del destino antes de publicar el mismo paquete con respaldo y bloqueo.
+
 T215 amplía `reception-excel --with-interplant` en Desarrollo, Cerro y QA-Cerro.
 Packing → Despacho → Packing List muestra los documentos de la sucursal
 emisora según la compañía de su guía. El mismo documento y folio siguen

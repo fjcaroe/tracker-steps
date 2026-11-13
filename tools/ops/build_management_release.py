@@ -23,10 +23,13 @@ def main():
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro', 'qa-cerro'))
     parser.add_argument('--with-master-access', action='store_true', help='Include the installed Steps application profiles')
     parser.add_argument('--with-receipt-dispatch', action='store_true', help='Include the receipt correction and dispatch catalog modules')
+    parser.add_argument('--with-fruit-report-date', action='store_true', help='Include the fruit reception pivot date update')
     parser.add_argument('--with-interplant', action='store_true', help='Include native interplant dispatch and pending receipt')
     args = parser.parse_args()
     if args.with_master_access and args.kind != 'reception-excel':
         parser.error('--with-master-access requires --kind reception-excel')
+    if args.with_fruit_report_date and args.kind != 'reception-excel':
+        parser.error('--with-fruit-report-date requires --kind reception-excel')
     if args.with_interplant and args.kind != 'reception-excel':
         parser.error('--with-interplant requires --kind reception-excel')
     if args.with_receipt_dispatch and args.kind != 'reception-excel':
@@ -85,6 +88,8 @@ def main():
     if args.kind == 'reception-excel':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         modules = ('step_packing_ticket_revision',)
+        if args.with_fruit_report_date:
+            modules = ('step_producer_fruit_reports', *modules)
         if args.with_interplant:
             modules += ('step_packing_interplant',)
         if args.with_master_access:

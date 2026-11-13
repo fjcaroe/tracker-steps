@@ -420,6 +420,7 @@ def main():
     parser.add_argument('--monthly-fruit-plan', type=Path, help='Private unchanged customer case; required for Cerro T170 accounting validation')
     parser.add_argument('--with-master-access', action='store_true', help='Include Steps application profiles with reception-excel')
     parser.add_argument('--with-receipt-dispatch', action='store_true', help='Include receipt correction and dispatch catalog modules with reception-excel')
+    parser.add_argument('--with-fruit-report-date', action='store_true', help='Include the fruit reception pivot date update')
     parser.add_argument('--with-interplant', action='store_true', help='Include native interplant dispatch and pending receipt')
     parser.add_argument('--wait-for-lease', action='store_true', help='Queue this authorized ticket operation before reading its source baseline')
     parser.add_argument('--normalize-user-id', type=int)
@@ -442,6 +443,8 @@ def main():
     args = parser.parse_args()
     if args.with_master_access and args.kind != 'reception-excel':
         parser.error('--with-master-access requires --kind reception-excel')
+    if args.with_fruit_report_date and args.kind != 'reception-excel':
+        parser.error('--with-fruit-report-date requires --kind reception-excel')
     if args.with_interplant and args.kind != 'reception-excel':
         parser.error('--with-interplant requires --kind reception-excel')
     if args.with_receipt_dispatch and args.kind != 'reception-excel':
@@ -648,6 +651,9 @@ def main():
         BUSINESS = ('hr_payslip', 'hr_payslip_line', 'hr_payslip_run', 'hr_salary_rule',
                     'hr_contract', 'account_move', 'account_move_line')
     assert args.environment != 'sys' or args.kind in ('payroll-attendance', 'payroll-days', 'payroll-review', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'previred-simpledigital', 'previred-movement-dates', 'previred-revision')
+    if args.with_fruit_report_date:
+        assert args.environment in ('development', 'cerro', 'qa-cerro')
+        MODULES = ('step_producer_fruit_reports', *MODULES)
     if args.with_interplant:
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         MODULES += ('step_packing_interplant',)
