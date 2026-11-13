@@ -12,18 +12,18 @@
             </field>
             <field name="shipment_id" position="attributes">
                 <attribute name="domain">([('company_id', '=', step_packing_matrix_id), ('state', '!=', 'draft')] if step_packing_matrix_id else [('id', '=', False)]) if step_packing_is_branch else []</attribute>
-                <attribute name="context">{'allowed_company_ids': step_packing_company_ids}</attribute>
+                <attribute name="context">{'allowed_company_ids': step_packing_company_ids or context.get('allowed_company_ids', [])}</attribute>
                 <attribute name="options">{'no_create': True}</attribute>
             </field>
             <field name="guide_id" position="attributes">
-                <attribute name="context">{'allowed_company_ids': step_packing_company_ids}</attribute>
+                <attribute name="context">{'allowed_company_ids': step_packing_company_ids or context.get('allowed_company_ids', [])}</attribute>
             </field>
             <field name="guide_id" position="after">
                 <field name="step_dispatch_branch_id" invisible="not guide_id"/>
             </field>
             <field name="tag_ids" position="attributes">
                 <attribute name="readonly">step_uses_guide_pallets or (guide_id and guide_has_dispatch_instruction)</attribute>
-                <attribute name="context">{'allowed_company_ids': step_packing_company_ids}</attribute>
+                <attribute name="context">{'allowed_company_ids': step_packing_company_ids or context.get('allowed_company_ids', [])}</attribute>
             </field>
             <xpath expr="//field[@name='tag_ids']/list" position="attributes">
                 <attribute name="default_order">name,id</attribute>

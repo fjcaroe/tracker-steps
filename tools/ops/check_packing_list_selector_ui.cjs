@@ -19,6 +19,16 @@ async function run() {
             ]);
             const page = await context.newPage();
             page.on('pageerror', error => errors.push(error.message));
+            if (process.env.T213_DEBUG) page.on('response', async response => {
+                if (!response.url().includes('/step.export.packing.list/onchange')) return;
+                const call = response.request().postDataJSON().params;
+                const result = await response.json();
+                const value = result.result?.value;
+                console.log('T213_ONCHANGE ' + JSON.stringify({ company, changed: call.args[2],
+                    context: call.kwargs.context.allowed_company_ids, specification: Object.keys(call.args[3] || {}),
+                    companies: value?.step_packing_company_ids, guides: value?.available_guide_ids,
+                    tags: value?.available_tag_ids, error: result.error?.data?.message }));
+            });
             await page.goto(new URL(`/web#action=${proof.action}&cids=${company}`, url).href,
                 { waitUntil: 'domcontentloaded', timeout: 120000 });
             await page.locator('.o_list_view').waitFor({ timeout: 120000 });
@@ -29,12 +39,20 @@ async function run() {
         async function choose(page, field, search, label) {
             const input = page.locator(`.o_field_widget[name="${field}"] input`);
             await input.click();
+            const model = field === 'shipment_id' ? 'step.export.export' : 'step.dispatch.guide';
+            const lookup = page.waitForResponse(response => response.url().includes('/' + model + '/name_search')
+                && response.request().postDataJSON()?.params?.kwargs?.name === search);
             await input.fill(search);
-            const option = page.locator('.o-autocomplete--dropdown-item').filter({ hasText: label }).first();
-            const updated = page.waitForResponse(response => response.url().endsWith('/step.export.packing.list/onchange'));
-            await option.click();
-            const result = await (await updated).json();
+            const response = await lookup;
+            const result = await response.json();
             assert.ok(!result.error, result.error?.data?.message);
+            const criteria = response.request().postDataJSON().params.kwargs;
+            assert.ok(result.result.some(row => row[1].includes(label)), `No apareció ${search} en ${field} ${JSON.stringify({ domain: criteria.args, companies: criteria.context.allowed_company_ids })}`);
+            const option = page.locator('.o-autocomplete--dropdown-item').filter({ hasText: label }).first();
+            await option.click();
+            await page.waitForFunction(({ field, label }) =>
+                document.querySelector(`.o_field_widget[name="${field}"] input`)?.value.includes(label),
+            { field, label });
             assert.equal(await page.locator('.o_error_dialog').count(), 0);
         }
         const matrixPage = await openForm(proof.matrix);

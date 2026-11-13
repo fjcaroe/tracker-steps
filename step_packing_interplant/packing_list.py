@@ -25,6 +25,16 @@ class PackingList(models.Model):
         company = self.env.company
         return self.with_context(allowed_company_ids=branch_companies(self.env, company).ids)
 
+    @api.model
+    def default_get(self, fields_list):
+        defaults = super().default_get(fields_list)
+        scope_fields = {'step_packing_is_branch', 'step_packing_matrix_id', 'step_packing_company_ids'}
+        if scope_fields.intersection(fields_list):
+            form = self.new()
+            defaults.update(form._convert_to_write({field: form[field] for field in scope_fields
+                                                    if field in fields_list}))
+        return defaults
+
     @api.depends_context('company', 'uid')
     def _compute_packing_matrix(self):
         company = self.env.company
@@ -56,6 +66,7 @@ class PackingList(models.Model):
 
     @api.onchange('shipment_id')
     def _onchange_shipment_guide(self):
+        self._compute_available_dispatches()
         if self.guide_id and self.guide_id not in self.available_guide_ids:
             self.guide_id = False
             self.tag_ids = [Command.clear()]

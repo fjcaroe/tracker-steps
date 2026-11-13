@@ -85,7 +85,8 @@ def verify_branch_packing_list(env, scoped):
             (True, scoped.company.id, [('company_id', '=', scoped.company.id), ('state', '!=', 'draft')])):
         assert safe_eval(shipment_domain, {'step_packing_is_branch': is_branch,
             'step_packing_matrix_id': company_id}) == expected
-    assert guide_field.get('context') == "{'allowed_company_ids': step_packing_company_ids}"
+    assert safe_eval(guide_field.get('context'), {'step_packing_company_ids': [], 'context': {
+        'allowed_company_ids': scoped.company.ids}}) == {'allowed_company_ids': scoped.company.ids}
     matrix_arch = etree.fromstring(scoped['step.export.export'].get_view(view_type='form')['arch'])
     assert matrix_arch.xpath("//field[@name='packing_list_ids']/list/field[@name='step_dispatch_branch_id']")
     code = 'step.export.packing.list'
