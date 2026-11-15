@@ -45,6 +45,7 @@ for model, xmlid, name in [
     ('stock.picking', 'stock.view_picking_form', 'step_container_work_order_id'),
     ('step.hrs.machinery', 'step_machinery.view_step_hrs_machinery_form', 'step_container_work_order_id'),
     ('step.tarja', 'step_hr.view_step_tarja_form', 'step_container_work_order_id'),
+    ('step.tarja', 'step_task.view_step_tarja_task_form', 'step_container_work_order_id'),
     ('account.move', 'account.view_move_form', 'step_container_work_order_id'),
 ]:
     arch = env[model].get_view(view_id=env.ref(xmlid).id, view_type='form')['arch']
