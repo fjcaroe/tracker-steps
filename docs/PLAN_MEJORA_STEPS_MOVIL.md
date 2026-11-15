@@ -144,10 +144,15 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 - **Aceptación:** servicio completo sin red → al reconectar el manifiesto final coincide con lo marcado.
 - Entregado Tracker 1.6.1 en Desarrollo: preparar la nómina por 24 horas, registrar subida/bajada/ausencia, ocupación real, búsqueda, filtros y QR/código. Cola transaccional por cuenta, recibos idempotentes y revisión explícita de conflictos. Perfil y salida incluyen los pendientes. Ensayo de cinco eventos en copia PostgreSQL y navegador, revisión 390 px/escritorio y cuenta existente con PKFX47; 183 pruebas app y 83 API. API de Desarrollo separada, base compartida y tabla aditiva; Cerro y Steps compartido no reciben esta UI ni cambian su API/receptor. Nota interna 9952. Contrato Odoo v2 definido; consumidor automático, cámara física, APK/IPA y arranque autenticado completamente sin red no se certifican. Próxima iteración: I11.
 
-### I11 · Paradas y avance del servicio  `[ ]`
+### I11 · Paradas y avance del servicio  `[x]` 15-11-2026 en Desarrollo
 - **Qué:** ruta del servicio con paradas, estado por parada (llegada/salida), estimación de llegada, desvíos y
   retrasos; cierre de servicio con manifiesto firmado (conductor) y novedades.
 - **Aceptación:** el coordinador ve en la web el avance del servicio y los retrasos en tiempo casi real.
+- Publicado Tracker 1.7.0 en Desarrollo. El conductor registra llegadas, salidas
+  y desvíos con conexión. Supervisor consulta el avance cada diez segundos.
+  El cierre registra la firma nominal, el usuario autenticado y el hash de la
+  nómina. Se comprobó el flujo en copia y las pantallas con el servicio existente.
+  Ver `docs/T46_I11_AVANCE_SERVICIO.md`.
 
 ### I12 · Seguridad del pasajero y del conductor  `[~]` 02-10-2026 parcial: SOS con ubicación, aviso de exceso de velocidad y pausas de conducción configurables hechos; faltan contactos de emergencia configurables
 - **Qué:** botón SOS (aviso inmediato con ubicación a contactos y a la web), registro de exceso de velocidad
@@ -480,3 +485,14 @@ Tracker 1.6.1, paquete `2abb2e0678cad981ca15ba90d91ec2c37cbe8275`. Evidencia pri
 ## Preparación personal de jornadas — 02-11-2026
 
 Por solicitud del usuario se retiraron las máquinas antiguas de prueba y se preparó únicamente el vehículo personal en Desarrollo, con cuatro plazas de pasajeros y un servicio ficticio autorizado. Tracker 1.6.2 elimina la exigencia de horómetro y permite combustible desconocido en vehículos por distancia. Las jornadas y adjuntos de Desarrollo usan ahora base/almacenamiento propios; el receptor GPS y el puente Odoo conservan sus datos. Ver `PREPARACION_JORNADA_PERSONAL_DESARROLLO.md`. No supone completar I11 ni ampliar producción.
+
+### I11 — Paradas y avance del servicio (15-11-2026)
+
+Paquete probado y publicado en Desarrollo: `9f896b3bb032f33c39ee483537faec8deec9d1dd`.
+JS de la entrada Jornada `assets/index-DaOW3Y6L.js`, SHA-256
+`74bd5b6eea43b1cee76af7ae8f73b86ed0988173f76b9f29c36fdd55cd32942d`.
+189 pruebas de la app, 92 de API, copia PostgreSQL con llegada, salida, retraso,
+consulta de Supervisor, firma y rollback, y navegador de 375 px. Versión,
+menús y consulta con el servicio existente verificados en Desarrollo.
+La firma y los registros de avance requieren conexión. La prueba en ruta con
+un conductor real queda pendiente. Se conserva el alcance de producción.
