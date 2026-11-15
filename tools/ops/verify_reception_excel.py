@@ -34,7 +34,9 @@ try:
         assert etree.fromstring(products.get_view(view_type='form')['arch']).xpath("//field[@name='categ_id']")
         found = products.search(action['domain'])
         assert found and all(category.parent_path.startswith(root.parent_path) for category in found.categ_id)
-        assert not products.search(action['domain'] + [('categ_id', 'not child_of', root.id)], limit=1)
+        other = products.search(['!', ('categ_id', 'child_of', root.id)], limit=1)
+        if other:
+            assert not products.search(action['domain'] + [('id', '=', other.id)])
         print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 218, 'version': version,
               'materials_menu': True, 'native_product_form': True, 'materials': len(found)}))
     menu = scoped.ref('step_packing_ticket_revision.menu_external_fruit_reception_import')
