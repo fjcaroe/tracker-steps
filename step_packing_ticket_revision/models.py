@@ -113,17 +113,47 @@ class Package(models.Model):
                 package.step_packing_partner_id = plants if len(plants) == 1 else False
 
 
+class PackingProductCategory(models.Model):
+    _inherit = 'product.category'
+
+    @api.model
+    def _steps_packing_root(self, category):
+        labels = {'fruit': ['1 fruta'], 'materials': ['6 materiales de embalaje', '6 materiales de embalajes',
+                     'materiales de embalaje', 'materiales de embalajes']}.get(category)
+        if not labels:
+            raise UserError(_('Categoría de informe desconocida.'))
+        candidates = self.search(expression.OR([[('name', '=ilike', label)] for label in labels]))
+        root = candidates.filtered(lambda category: not any(
+            category.parent_path.startswith(other.parent_path) for other in candidates - category
+        ))
+        if len(root) != 1:
+            raise UserError(_('El informe requiere una categoría única «%s» en el maestro existente.', ' / '.join(labels)))
+        return root
+
+
+class PackingProductTemplate(models.Model):
+    _inherit = 'product.template'
+
+    @api.model
+    def action_steps_packing_materials(self):
+        root = self.env['product.category']._steps_packing_root('materials')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Materiales de embalajes'),
+            'res_model': self._name,
+            'view_mode': 'list,form',
+            'views': [(self.env.ref('product.product_template_tree_view').id, 'list'), (False, 'form')],
+            'domain': [('categ_id', 'child_of', root.id)],
+            'context': {'default_categ_id': root.id},
+        }
+
+
 class Quant(models.Model):
     _inherit = 'stock.quant'
 
     @api.model
     def action_steps_packing_stock(self, category):
-        labels = {'fruit': ['1 fruta'], 'materials': ['6 materiales de embalaje','6 materiales de embalajes']}.get(category)
-        if not labels:
-            raise UserError(_('Categoría de informe desconocida.'))
-        root = self.env['product.category'].search(expression.OR([[('name','=ilike',name)] for name in labels]))
-        if len(root) != 1:
-            raise UserError(_('El informe requiere una categoría única «%s» en el maestro existente.', ' / '.join(labels)))
+        root = self.env['product.category']._steps_packing_root(category)
         return {
             'type': 'ir.actions.act_window', 'name': _('Stock: %s', root.display_name),
             'res_model': 'stock.quant', 'view_mode': 'list,pivot',

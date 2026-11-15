@@ -21,6 +21,22 @@ try:
     assert Path(importlib.import_module('odoo.addons.' + name).__file__).resolve().parent == Path(ROOT) / name
     scoped = scoped_business_environment(env)
     installed_version = tuple(map(int, version.split('.')))
+    if installed_version >= (18, 0, 1, 2, 7):
+        materials = scoped.ref('step_packing_ticket_revision.menu_packaging_materials')
+        assert materials.parent_id == scoped.ref('step_packing_operations.menu_packing_operations_masters')
+        assert materials.id in scoped['ir.ui.menu']._visible_menu_ids()
+        action = materials.action.run()
+        products = scoped[action['res_model']]
+        root = scoped['product.category'].browse(action['context']['default_categ_id'])
+        assert root and action['domain'] == [('categ_id', 'child_of', root.id)]
+        assert action['views'] == [(scoped.ref('product.product_template_tree_view').id, 'list'), (False, 'form')]
+        assert etree.fromstring(products.get_view(view_id=action['views'][0][0], view_type='list')['arch']).tag == 'list'
+        assert etree.fromstring(products.get_view(view_type='form')['arch']).xpath("//field[@name='categ_id']")
+        found = products.search(action['domain'])
+        assert found and all(category.parent_path.startswith(root.parent_path) for category in found.categ_id)
+        assert not products.search(action['domain'] + [('categ_id', 'not child_of', root.id)], limit=1)
+        print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 218, 'version': version,
+              'materials_menu': True, 'native_product_form': True, 'materials': len(found)}))
     menu = scoped.ref('step_packing_ticket_revision.menu_external_fruit_reception_import')
     assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
     wizard = scoped[menu.action.res_model]

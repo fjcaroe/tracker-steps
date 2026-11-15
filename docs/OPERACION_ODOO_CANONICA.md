@@ -1,5 +1,11 @@
 # Operación y publicación de Odoo
 
+T218 usa `reception-excel` en Desarrollo, Cerro y QA-Cerro. Packing →
+Maestros → Materiales de embalajes abre las fichas nativas de productos de
+la categoría de embalajes y sus subcategorías. Verificar el menú, listado,
+formulario y filtro en copias con los productos existentes. Publicar el
+mismo paquete con respaldo y bloqueo.
+
 T217 usa `monthly-accounting-books` en Desarrollo, Cerro, QA-Cerro y SyS.
 Los menús de Clientes y Proveedores abren los libros Excel de la empresa
 activa. Ventas usa la fecha de factura para elegir el período. Compras y

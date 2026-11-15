@@ -58,6 +58,27 @@ class TicketRevisionCase(TransactionCase):
             self.assertEqual(sum(found.mapped('quantity')),5)
             self.assertFalse(self.env['stock.quant'].search(expression.AND([action['domain'],[('location_id.usage','=','supplier')]])))
 
+    def test_packaging_materials_menu_filters_native_products(self):
+        categories = self.env['product.category']
+        roots = categories.search([('name', '=ilike', '6 materiales de embalaje')]) | categories.search(
+            [('name', '=ilike', '6 materiales de embalajes')])
+        root = roots or categories.create({'name': '6 Materiales de embalajes'})
+        child = categories.create({'name': 'Materiales de embalaje', 'parent_id': root.id})
+        unrelated = categories.create({'name': 'Other products'})
+        products = self.env['product.template'].create([
+            {'name': 'Root material', 'categ_id': root.id},
+            {'name': 'Child material', 'categ_id': child.id},
+            {'name': 'Unrelated product', 'categ_id': unrelated.id},
+        ])
+        menu = self.env.ref('step_packing_ticket_revision.menu_packaging_materials')
+        self.assertEqual(menu.parent_id, self.env.ref('step_packing_operations.menu_packing_operations_masters'))
+        action = menu.action.run()
+        self.assertEqual(action['res_model'], 'product.template')
+        self.assertEqual(action['context']['default_categ_id'], root.id)
+        self.assertEqual(set(products.search(action['domain'] + [('id', 'in', products.ids)]).ids), set(products[:2].ids))
+        self.assertEqual(products.browse(products[0].id).categ_id, root)
+        self.assertEqual(products.browse(products[1].id).categ_id, child)
+
     def test_reports_menu_reuses_reception_reports_and_native_tag_data(self):
         root=self.env.ref('step_packing_ticket_revision.reports')
         self.assertEqual(root.parent_id,self.env.ref('step_packing_operations.menu_packing_operations_root'))
