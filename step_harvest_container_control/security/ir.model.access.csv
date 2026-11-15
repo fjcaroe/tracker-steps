@@ -1,3 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_harvest_container_order_read,Orden de envases: lectura,model_step_harvest_container_work_order,base.group_user,1,0,0,0
 access_harvest_container_order_stock,Orden de envases: inventario,model_step_harvest_container_work_order,stock.group_stock_user,1,1,1,0
+access_container_analytic_account_stock,Analytic account lookup for container work orders,analytic.model_account_analytic_account,stock.group_stock_user,1,0,0,0
+access_container_analytic_plan_stock,Analytic plan lookup for container work orders,analytic.model_account_analytic_plan,stock.group_stock_user,1,0,0,0

@@ -133,7 +133,7 @@ class StockMoveLine(models.Model):
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
-    def _step_move_containers(self, warehouse, source, destination, rows, origin, partner=None, strict=False):
+    def _step_move_containers(self, warehouse, source, destination, rows, origin, partner=None, strict=False, issue=False):
         """Reserve company stock, keeping the lot and the actual source location."""
         company = warehouse.company_id
         picking = self.with_company(company).create({
@@ -155,7 +155,25 @@ class StockPicking(models.Model):
             })
             move._action_confirm(merge=False)
             move._do_unreserve()
-            move._update_reserved_quantity(quantity, src, lot_id=lot or None, strict=strict)
+            quants = self.env['stock.quant']._gather(product, src, lot_id=lot or None, strict=False)
+            quants = quants.filtered(lambda quant: not quant.owner_id and (
+                not strict or quant.location_id == src) and (not lot or quant.lot_id == lot) and (
+                product.tracking == 'none' or quant.lot_id) and (
+                not issue or not quant.location_id.step_container_operating or (
+                    quant.location_id.step_container_conservation == 'good' and
+                    quant.location_id.step_container_operating in ('clean', 'sanitized'))))
+            remaining = quantity
+            for location, item_lot, package in dict.fromkeys((quant.location_id, quant.lot_id, quant.package_id)
+                                                              for quant in quants):
+                remaining -= move._update_reserved_quantity(remaining, location, lot_id=item_lot,
+                                                            package_id=package, strict=True)
+                if float_compare(remaining, 0, precision_rounding=product.uom_id.rounding) <= 0:
+                    break
+            if issue and not dst.step_container_operating:
+                for line in move.move_line_ids:
+                    conservation = line.location_id.step_container_conservation
+                    if conservation:
+                        line.location_dest_id = dst._step_container_state_location(conservation, 'in_use')
             if float_compare(move.quantity, quantity, precision_rounding=product.uom_id.rounding) or any(
                     ml.owner_id or (lot and ml.lot_id != lot) or (product.tracking != 'none' and not ml.lot_id)
                     for ml in move.move_line_ids):
@@ -191,9 +209,9 @@ class StockPicking(models.Model):
             if product and quantity > 0:
                 lot = tag.stock_lot_id if tag.stock_lot_id.product_id == product else False
                 counts[(product.id, lot.id if lot else False)] += quantity
-        if not counts:
+        if not counts or not self.fruit_fundo_id.partner_id or not self.picking_type_id.warehouse_id:
             return existing
-        return self.env['step.harvest.container.transfer'].create({
+        return self.env['step.harvest.container.transfer'].with_context(mail_create_nosubscribe=True).create({
             'direction': 'return', 'producer_id': self.fruit_fundo_id.partner_id.id,
             'fruit_picking_id': self.id, 'warehouse_id': self.picking_type_id.warehouse_id.id,
             'company_id': self.company_id.id,
@@ -253,7 +271,7 @@ class Transfer(models.Model):
             dst = destination._step_container_state_location(line.conservation, line.operating)
             rows.append((line.product_id, line.quantity, line.lot_id, line.source_location_id or source, dst))
         picking = self.env['stock.picking']._step_move_containers(
-            self.warehouse_id, source, destination, rows, self.name, self.producer_id)
+            self.warehouse_id, source, destination, rows, self.name, self.producer_id, issue=self.direction == 'issue')
         self.write({'picking_id': picking.id, 'state': 'done'})
 
 
@@ -265,3 +283,51 @@ class TransferLine(models.Model):
                                         domain="[('step_container_operating', '!=', False)]")
     conservation = fields.Selection(CONSERVATION, string='Conservación de destino')
     operating = fields.Selection(OPERATING, string='Operación de destino')
+
+
+class ContainerOpening(models.TransientModel):
+    _inherit = 'step.harvest.container.opening'
+
+    def action_apply(self):
+        self.ensure_one()
+        if not any(line.lot_id or line.conservation or line.operating for line in self.line_ids):
+            return super().action_apply()
+        if not self.env.user.has_group('stock.group_stock_manager'):
+            raise UserError(_('El inventario inicial requiere permisos de administrador de Inventario.'))
+        quants = self.env['stock.quant'].with_company(self.company_id)
+        seen = set()
+        pending = []
+        for line in self.line_ids.sorted(lambda item: item.producer_id.id):
+            product, lot = line.product_id, line.lot_id
+            if not product.is_storable or not product.step_is_harvest_container or line.quantity < 0:
+                raise ValidationError(_('Revise el envase y la cantidad del saldo inicial.'))
+            if line.producer_id.company_id and line.producer_id.company_id != self.company_id:
+                raise ValidationError(_('El destinatario no pertenece a esta empresa.'))
+            if (product.tracking != 'none' and not lot) or (lot and (
+                    lot.product_id != product or (lot.company_id and lot.company_id != self.company_id))):
+                raise ValidationError(_('Seleccione el lote o serie del envase en esta empresa.'))
+            if bool(line.conservation) != bool(line.operating):
+                raise ValidationError(_('Complete ambos estados o deje ambos en blanco.'))
+            self.env.cr.execute('SELECT id FROM res_partner WHERE id = %s FOR UPDATE', [line.producer_id.id])
+            root = line.producer_id._step_container_location(self.company_id)
+            key = (root.id, product.id, lot.id, line.conservation, line.operating)
+            if key in seen:
+                raise ValidationError(_('No repita el envase, lote y estado para el mismo destinatario.'))
+            seen.add(key)
+            if quants.search_count([
+                    ('location_id', 'child_of', root.id), ('product_id', '=', product.id), ('lot_id', '=', lot.id)]):
+                raise UserError(_('Ya existe historial para este envase y lote; use un ajuste de inventario.'))
+            location = root._step_container_state_location(line.conservation, line.operating)
+            pending.append({'product_id': product.id, 'lot_id': lot.id, 'location_id': location.id,
+                            'inventory_quantity': line.quantity})
+        if quants.with_context(inventory_mode=True).create(pending).action_apply_inventory():
+            raise UserError(_('Revise los lotes, series y cantidades del inventario inicial.'))
+        return {'type': 'ir.actions.act_window_close'}
+
+
+class ContainerOpeningLine(models.TransientModel):
+    _inherit = 'step.harvest.container.opening.line'
+
+    lot_id = fields.Many2one('stock.lot', string='Lote / serie', domain="[('product_id', '=', product_id)]")
+    conservation = fields.Selection(CONSERVATION, string='Conservación')
+    operating = fields.Selection(OPERATING, string='Estado operativo')

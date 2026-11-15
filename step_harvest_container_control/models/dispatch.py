@@ -58,7 +58,7 @@ class DispatchGuide(models.Model):
         if not warehouse:
             raise UserError(_('Seleccione el almacén de origen de los envases.'))
         transfer = self.env['step.harvest.container.transfer'].with_context(
-            _step_guide_container=_GUIDE_CONTAINER, mail_create_nosubscribe=True).create({
+            _step_guide_container=_GUIDE_CONTAINER, mail_create_nosubscribe=True, mail_notrack=True).create({
             'dispatch_guide_id': self.id, 'company_id': self.company_id.id, 'warehouse_id': warehouse.id,
             'producer_id': self.partner_id.id, 'direction': 'issue',
             'line_ids': [Command.create({

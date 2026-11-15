@@ -23,6 +23,15 @@
       </xpath>
     </field>
   </record>
+  <record id="view_harvest_opening_states" model="ir.ui.view">
+    <field name="name">step.harvest.container.opening.states</field><field name="model">step.harvest.container.opening</field>
+    <field name="inherit_id" ref="step_inventory_packing.view_harvest_container_opening_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='line_ids']/list/field[@name='quantity']" position="after">
+        <field name="lot_id" options="{'no_create': True}"/><field name="conservation"/><field name="operating"/>
+      </xpath>
+    </field>
+  </record>
   <record id="view_guide_container_transfer" model="ir.ui.view">
     <field name="name">step.dispatch.guide.container.transfer</field><field name="model">step.dispatch.guide</field>
     <field name="inherit_id" ref="step_dispatch_guide.view_dispatch_guide_form"/>

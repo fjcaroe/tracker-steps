@@ -14,7 +14,9 @@ class TestHarvestContainerControl(TransactionCase):
         cls.warehouse = cls.env['stock.warehouse'].search([('company_id', '=', cls.company.id)], limit=1)
         cls.producer = cls.env['res.partner'].create({'name': 'Productor envases QA219', 'is_productor': True})
         cls.driver = cls.env['res.partner'].create({'name': 'Chofer QA219', 'step_chofer': True})
-        cls.fruit = cls.env['product.product'].create({'name': 'Fruta QA219', 'is_storable': True})
+        kg = cls.env.ref('uom.product_uom_kgm')
+        cls.fruit = cls.env['product.product'].create({
+            'name': 'Fruta QA219', 'is_storable': True, 'uom_id': kg.id, 'uom_po_id': kg.id})
         cls.packaging = cls.env['product.packaging'].create({
             'name': 'Embalaje QA219', 'step_packaging_group': 'harvest', 'product_id': cls.fruit.id, 'qty': 1,
         })
@@ -75,11 +77,18 @@ class TestHarvestContainerControl(TransactionCase):
             'step_fruit_gross_kg': 55.0,
             'fruit_tag_line_ids': [Command.create({
                 'tag_number': package.name, 'package_id': package.id, 'product_id': self.fruit.id,
-                'packaging_id': self.packaging.id, 'quantity': 55, 'box_count': 3, 'kilos': 55,
+                'packaging_id': self.packaging.id, 'quantity': 3, 'box_count': 3, 'kilos': 55,
                 'variety_id': variety.id,
             })],
         })
-        receipt.action_prepare_fruit_stock()
+        move = self.env['stock.move'].create({
+            'picking_id': receipt.id, 'name': self.fruit.name, 'product_id': self.fruit.id,
+            'product_uom': self.fruit.uom_id.id, 'product_uom_qty': 55, 'product_packaging_id': self.packaging.id,
+            'location_id': receipt.location_id.id, 'location_dest_id': self.root.id,
+        })
+        receipt.action_confirm()
+        move.quantity = 55
+        move.picked = True
         receipt.button_validate()
         self.assertEqual(receipt.state, 'done')
         transfer = receipt.step_container_transfer_ids
@@ -160,3 +169,47 @@ class TestHarvestContainerControl(TransactionCase):
         order.invalidate_recordset(['inventory_cost', 'financial_cost', 'total_cost', 'unit_cost'])
         self.assertEqual(order.total_cost, 200)
         self.assertEqual(order.unit_cost, 50)
+        supply = self.env['product.product'].create({
+            'name': 'Insumo QA219', 'is_storable': True, 'standard_price': 10,
+        })
+        self.quant._update_available_quantity(supply, self.root, 5)
+        expense_location = self.env['stock.location'].create({
+            'name': 'Consumo QA219', 'usage': 'inventory', 'company_id': self.company.id,
+        })
+        consumption = self.env['stock.picking'].create({
+            'company_id': self.company.id, 'picking_type_id': self.warehouse.int_type_id.id,
+            'location_id': self.root.id, 'location_dest_id': expense_location.id,
+            'step_container_work_order_id': order.id,
+            'move_ids': [Command.create({'name': supply.name, 'product_id': supply.id,
+                'product_uom': supply.uom_id.id, 'product_uom_qty': 2,
+                'location_id': self.root.id, 'location_dest_id': expense_location.id})],
+        })
+        consumption.action_confirm()
+        consumption.action_assign()
+        consumption.move_ids.picked = True
+        consumption.button_validate()
+        self.assertEqual(consumption.state, 'done')
+        self.assertEqual(order.inventory_cost, 20)
+        self.assertEqual(order.total_cost, 220)
+        self.assertEqual(order.unit_cost, 55)
+
+    def test_manual_return_preserves_lot_and_only_ready_stock_can_ship(self):
+        opening = self.env['step.harvest.container.opening'].create({
+            'line_ids': [Command.create({'producer_id': self.producer.id, 'product_id': self.container.id,
+                                         'lot_id': self.lots[1].id, 'quantity': 5,
+                                         'conservation': 'good', 'operating': 'in_use'})],
+        })
+        opening.action_apply()
+        transfer = self.env['step.harvest.container.transfer'].create({
+            'direction': 'return', 'producer_id': self.producer.id, 'warehouse_id': self.warehouse.id,
+            'line_ids': [Command.create({'product_id': self.container.id, 'lot_id': self.lots[1].id,
+                                         'quantity': 3, 'conservation': 'repairable', 'operating': 'dirty'})],
+        })
+        transfer.action_validate()
+        native = transfer.picking_id.move_line_ids
+        self.assertEqual(native.step_container_source_operating, 'in_use')
+        self.assertEqual(native.step_container_operating, 'dirty')
+        self.assertEqual(native.step_container_conservation, 'repairable')
+        self.assertEqual(native.lot_id, self.lots[1])
+        with self.assertRaises(UserError), self.cr.savepoint():
+            self._guide(quantity=11).action_confirm()

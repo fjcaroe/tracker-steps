@@ -12,7 +12,10 @@
   una devolución identificando el lote y destinatario.
 - **Inventario de envases** muestra existencias, unidades reservadas, lote y
   estados. Un mismo lote puede estar repartido entre estados. Las existencias
-  previas quedan sin clasificar hasta que se registren sus estados.
+  previas quedan sin clasificar hasta que se registren sus estados. Si se
+  conocen los estados, el despacho reserva envases limpios o sanitizados y
+  en buen estado, y los registra en uso. **Inventario inicial** admite lotes
+  y estados para los saldos que todavía no existen.
 - En **OT de envases** elija lavado, sanitización o reparación, el lote y las
   unidades efectivamente intervenidas. La OT reserva y mueve el lote al nuevo
   estado conservando su identidad. El plan analítico de la OT es independiente

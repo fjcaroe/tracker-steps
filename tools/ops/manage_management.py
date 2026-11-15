@@ -877,7 +877,7 @@ def main():
     base = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']
     if args.kind == 'sag-traceability' and args.environment == 'cerro':
         base[-1] = str(HERE / 'run_sag_cerro_upgrade.py')
-    if args.kind in ('reception-variety', 'reception-packaging-match'):
+    if args.kind in ('reception-variety', 'reception-packaging-match', 'harvest-container-control'):
         base[-1] = str(HERE / 'run_canonical_fruit_upgrade.py')
     options = ['-c', str(conf), '--no-http', '--http-interface=127.0.0.1', '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
     qa_db = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
