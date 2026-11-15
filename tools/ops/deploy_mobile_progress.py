@@ -24,6 +24,7 @@ TARGET = 'tracker_steps_development'
 SNIPPET = Path('/etc/nginx/snippets/steps-tracker-dev-gps.conf')
 BASE = Path('/opt/steps-validation/mobile-progress')
 WEB = Path('/var/www/steps-mobile-releases')
+ENTRY = Path('/var/www/steps-tracker-entry-releases')
 OVERLAYS = Path('/opt/steps-tracker-development/releases')
 DROPIN = Path('/etc/systemd/system/steps-tracker-dev-api.service.d/90-service-progress.conf')
 PUBLIC = 'https://desarrollo.stepsapp.cl'
@@ -69,7 +70,21 @@ def deployment_scope():
     }
 
 
-def verify(front, commit, baseline):
+def jornada_entry(front, snippet):
+    old_name, = re.findall(r'alias (/var/www/steps-tracker-entry-releases/[^;]+/jornada[.]html);', snippet)
+    old_path = Path(old_name)
+    index = (front / 'index.html').read_text()
+    new_script, = re.findall(r'src="([.]/assets/index-[^"]+[.]js)"', index)
+    new_style, = re.findall(r'href="([.]/assets/index-[^"]+[.]css)"', index)
+    original = old_path.read_text()
+    assert "fetch('/steps_tracker/context'" in original and 'context.vehicle_limited' in original
+    updated, scripts = re.subn(r'import\("[.]/assets/index-[^"]+[.]js"\)', f'import("{new_script}")', original)
+    updated, styles = re.subn(r'href="[.]/assets/index-[^"]+[.]css"', f'href="{new_style}"', updated)
+    assert scripts == styles == 1
+    return old_path, updated
+
+
+def verify(front, entry, commit, baseline):
     settings = dotenv_values(API / '.env')
     driver = output('sudo', '-u', 'postgres', 'psql', '-XAt', '-d', TARGET, '-c',
                     'SELECT driver_user_id FROM mobile_passenger_services ORDER BY created_at DESC LIMIT 1')
@@ -80,8 +95,8 @@ def verify(front, commit, baseline):
         try:
             with urlopen(PUBLIC + '/tracker-dev-api/openapi.json', timeout=6) as response:
                 assert paths in json.load(response)['paths']
-            with urlopen(PUBLIC + '/truck/', timeout=6) as response:
-                if hashlib.sha256(response.read()).hexdigest() == sha(front / 'index.html'):
+            with urlopen(PUBLIC + '/tracker/jornada/', timeout=6) as response:
+                if hashlib.sha256(response.read()).hexdigest() == sha(entry):
                     break
         except (OSError, AssertionError):
             pass
@@ -100,6 +115,9 @@ def verify(front, commit, baseline):
     for file, expected in assets(front).items():
         with urlopen(PUBLIC + '/truck/' + file, timeout=25) as response:
             assert hashlib.sha256(response.read()).hexdigest() == expected, file
+    for file in re.findall(r'[.]/(assets/index-[^"]+[.](?:js|css))', entry.read_text()):
+        with urlopen(PUBLIC + '/tracker/jornada/' + file, timeout=20) as response:
+            assert hashlib.sha256(response.read()).hexdigest() == sha(front / file), file
     scope = deployment_scope()
     assert all(scope[k] == baseline[k] for k in ('production_api', 'production_truck', 'production_web', 'cerro', 'gps_receiver'))
     bundles = {name: digest for name, digest in assets(front).items()
@@ -132,8 +150,13 @@ def main():
         effective = Path(baseline['working_directory'])
         assert effective.is_relative_to('/opt/steps-tracker-analytics/releases/development') or effective.is_relative_to(OVERLAYS)
         baseline['effective_api'] = tree(effective / 'app')
+        old = SNIPPET.read_text()
+        old_entry, updated_entry = jornada_entry(front, old)
+        baseline['entry'] = sha(old_entry)
+        entry = stage / 'jornada.html'
         if args.action == 'qa':
             assert not overlay.exists()
+            entry.write_text(updated_entry)
             for path in PATCH:
                 relative = 'backend/tracker_py/app/' + path
                 change = output('git', '-C', source, 'log', '-1', '--format=%H', '--', relative)
@@ -169,14 +192,16 @@ def main():
             finally:
                 postgres('dropdb', '--if-exists', copy)
             (stage / 'qa.json').write_text(json.dumps({'baseline': baseline, 'api': path_hashes,
-                'assets': assets(front), 'migration': sha(migration)}, indent=2))
+                'assets': assets(front), 'migration': sha(migration), 'entry': sha(entry)}, indent=2))
             print('TRACKER_I11_QA_OK', flush=True)
             return
 
         proof = json.loads((stage / 'qa.json').read_text())
         assert proof == {'baseline': baseline, 'api': tree(overlay / 'app'),
-                         'assets': assets(front), 'migration': sha(migration)}
-        assert not DROPIN.exists() and not (OVERLAYS / commit).exists() and not (WEB / commit).exists()
+                         'assets': assets(front), 'migration': sha(migration), 'entry': sha(entry)}
+        assert entry.read_text() == updated_entry
+        entry_release = ENTRY / ('jornada-' + commit)
+        assert not any(path.exists() for path in (DROPIN, OVERLAYS / commit, WEB / commit, entry_release))
         backup = stage / ('backup-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
         backup.mkdir(mode=0o700)
         shutil.copy2(SNIPPET, backup / 'nginx.conf')
@@ -186,15 +211,23 @@ def main():
         shutil.copytree(overlay, api_release)
         (api_release / '.env').symlink_to((effective / '.env').resolve(strict=True))
         shutil.copytree(front, web_release)
-        for root in (api_release, web_release):
+        old_assets, = set(re.findall(r'alias (/var/www/steps-mobile-releases/[a-f0-9]{40})/assets/;', old))
+        for file in (Path(old_assets) / 'assets').iterdir():
+            target = web_release / 'assets' / file.name
+            if not target.exists():
+                shutil.copy2(file, target)
+        entry_release.mkdir(mode=0o755)
+        served_entry = entry_release / 'jornada.html'
+        shutil.copy2(entry, served_entry)
+        for root in (api_release, web_release, entry_release):
             root.chmod(0o755)
             for item in root.rglob('*'):
                 if not item.is_symlink():
                     item.chmod(0o755 if item.is_dir() else 0o644)
-        old = SNIPPET.read_text()
         new, count = re.subn(r'/var/www/steps-mobile-releases/[a-f0-9]{40}/',
                              str(web_release) + '/', old)
-        assert count == 2 and new != old
+        assert count == 2 and new.count(str(old_entry)) == 1
+        new = new.replace(str(old_entry), str(served_entry))
         migrate(TARGET, migration)
         try:
             DROPIN.write_text('[Service]\nWorkingDirectory=' + str(api_release) + '\n')
@@ -204,7 +237,7 @@ def main():
             SNIPPET.write_text(new)
             run('nginx', '-t')
             run('systemctl', 'reload', 'nginx')
-            bundles = verify(front, commit, baseline)
+            bundles = verify(front, served_entry, commit, baseline)
         except Exception:
             SNIPPET.write_text(old)
             run('nginx', '-t')
