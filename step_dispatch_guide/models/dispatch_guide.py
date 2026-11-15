@@ -168,12 +168,16 @@ class StepDispatchGuide(models.Model):
             guide.truck_plate = guide.vehicle_id.license_plate or guide.truck_plate
             guide.trailer_plate = guide.trailer_vehicle_id.license_plate or guide.trailer_plate
 
+    def _step_billable_lines(self):
+        self.ensure_one()
+        return self.line_ids
+
     @api.depends("line_ids.bin_count", "line_ids.quantity_kg", "line_ids.quantity",
                  "line_ids.price_unit", "line_ids.tax_ids")
     def _compute_totals(self):
         for guide in self:
             untaxed = exempt = tax = rate = 0.0
-            for line in guide.line_ids:
+            for line in guide._step_billable_lines():
                 taxes = line.tax_ids.filtered(lambda t: t.amount)
                 if not taxes:
                     exempt += line.subtotal
@@ -196,7 +200,7 @@ class StepDispatchGuide(models.Model):
         for guide in self:
             if guide.invoice_id and guide.invoice_id.state != "cancel":
                 guide.invoice_status = "invoiced"
-            elif guide.state == "confirmed" and guide.transfer_reason_id.invoiceable:
+            elif guide.state == "confirmed" and guide.transfer_reason_id.invoiceable and guide._step_billable_lines():
                 guide.invoice_status = "to_invoice"
             else:
                 guide.invoice_status = "no"
@@ -299,7 +303,7 @@ class StepDispatchGuide(models.Model):
     def _prepare_invoice_line_vals(self):
         self.ensure_one()
         vals = []
-        for line in self.line_ids:
+        for line in self._step_billable_lines():
             line_vals = {
                 "product_id": line.product_id.id,
                 "name": _("%(desc)s (Guía N° %(folio)s)", desc=line.description, folio=self.external_folio),

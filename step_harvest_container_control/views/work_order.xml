@@ -1,0 +1,110 @@
+<odoo>
+  <record id="view_container_work_order_list" model="ir.ui.view">
+    <field name="name">step.harvest.container.work.order.list</field>
+    <field name="model">step.harvest.container.work.order</field>
+    <field name="arch" type="xml"><list>
+      <field name="name"/><field name="date"/><field name="operation"/><field name="product_id"/>
+      <field name="lot_id"/><field name="quantity"/><field name="state" widget="badge"/>
+      <field name="currency_id" column_invisible="True"/>
+      <field name="total_cost" groups="stock.group_stock_user,account.group_account_user"/>
+      <field name="unit_cost" groups="stock.group_stock_user,account.group_account_user"/>
+    </list></field>
+  </record>
+  <record id="view_container_work_order_form" model="ir.ui.view">
+    <field name="name">step.harvest.container.work.order.form</field>
+    <field name="model">step.harvest.container.work.order</field>
+    <field name="arch" type="xml"><form>
+      <header>
+        <button name="action_complete" type="object" string="Realizar operación" class="btn-primary"
+                invisible="state != 'draft'" groups="stock.group_stock_user"/>
+        <field name="state" widget="statusbar"/>
+      </header>
+      <sheet>
+        <div class="oe_title"><h1><field name="name"/></h1></div>
+        <group>
+          <group string="Operación sobre envases">
+            <field name="company_id" readonly="id" groups="base.group_multi_company"/>
+            <field name="date" readonly="state == 'done'"/>
+            <field name="warehouse_id" readonly="state == 'done'" options="{'no_create': True}"/>
+            <field name="operation" readonly="state == 'done'"/>
+            <field name="product_id" readonly="state == 'done'" options="{'no_create': True}"/>
+            <field name="lot_id" readonly="state == 'done'" options="{'no_create': True}"/>
+            <field name="quantity" readonly="state == 'done'"/>
+            <field name="warehouse_stock_id" invisible="1"/>
+            <field name="source_location_id" readonly="state == 'done'" options="{'no_create': True}"/>
+            <field name="assigned_conservation" invisible="source_location_id" readonly="state == 'done'"/>
+            <field name="assigned_operating" invisible="source_location_id" readonly="state == 'done'"/>
+            <field name="picking_id" invisible="not picking_id" groups="stock.group_stock_user"/>
+          </group>
+          <group string="Imputación analítica">
+            <field name="season_account_id" readonly="state == 'done'" options="{'no_create': True}"/>
+            <field name="center_account_id" readonly="state == 'done'" options="{'no_create': True}"/>
+            <field name="activity_account_id" readonly="state == 'done'" options="{'no_create': True}"/>
+            <field name="work_plan_id" readonly="id" options="{'no_create': True}"/>
+            <field name="work_account_id" invisible="not work_account_id"/>
+          </group>
+        </group>
+        <group string="Costo registrado de la operación" groups="stock.group_stock_user,account.group_account_user">
+          <field name="currency_id" invisible="1"/>
+          <field name="inventory_cost"/><field name="financial_cost"/><field name="total_cost"/><field name="unit_cost"/>
+          <button name="action_open_cost_lines" type="object" string="Ver cargos contabilizados" class="btn-link"
+                  groups="account.group_account_user"/>
+        </group>
+        <group string="Consumos de insumos" groups="stock.group_stock_user">
+          <field name="consumption_ids" readonly="1">
+            <list><field name="name"/><field name="scheduled_date"/><field name="state"/></list>
+          </field>
+        </group>
+      </sheet>
+    </form></field>
+  </record>
+  <record id="action_container_work_order" model="ir.actions.act_window">
+    <field name="name">OT de envases</field>
+    <field name="res_model">step.harvest.container.work.order</field><field name="view_mode">list,form</field>
+  </record>
+  <menuitem id="menu_container_work_order" name="OT de envases" sequence="45"
+            parent="step_packing_operations.menu_packing_reception_containers"
+            action="action_container_work_order" groups="stock.group_stock_user"/>
+  <record id="view_picking_container_work_order" model="ir.ui.view">
+    <field name="name">stock.picking.container.work.order</field><field name="model">stock.picking</field>
+    <field name="inherit_id" ref="stock.view_picking_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='origin']" position="after">
+        <field name="step_container_work_order_id" readonly="state in ('done', 'cancel')"
+               invisible="picking_type_code == 'incoming' and not step_container_work_order_id"
+               options="{'no_create': True}" domain="[('company_id', '=', company_id)]"/>
+      </xpath>
+    </field>
+  </record>
+  <record id="view_machinery_container_work_order" model="ir.ui.view">
+    <field name="name">step.hrs.machinery.container.work.order</field><field name="model">step.hrs.machinery</field>
+    <field name="inherit_id" ref="step_machinery.view_step_hrs_machinery_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//sheet/group" position="after">
+        <group><field name="step_container_work_order_id" readonly="state == 'accounted'"
+                 domain="[('company_id', '=', company_id)]" options="{'no_create': True}"/></group>
+      </xpath>
+    </field>
+  </record>
+  <record id="view_labor_container_work_order" model="ir.ui.view">
+    <field name="name">step.tarja.container.work.order</field><field name="model">step.tarja</field>
+    <field name="inherit_id" ref="step_labor_operations_core.view_step_tarja_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//sheet/group" position="after">
+        <group><field name="step_container_work_order_id" readonly="state == 'conta'"
+                domain="[('company_id', '=', company_id)]" options="{'no_create': True}"/></group>
+      </xpath>
+    </field>
+  </record>
+  <record id="view_account_move_container_work_order" model="ir.ui.view">
+    <field name="name">account.move.container.work.order</field><field name="model">account.move</field>
+    <field name="inherit_id" ref="account.view_move_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='invoice_date']" position="after">
+        <field name="step_container_work_order_id" readonly="state != 'draft'"
+               invisible="move_type not in ('in_invoice', 'in_refund', 'in_receipt', 'entry')"
+               domain="[('company_id', '=', company_id)]" options="{'no_create': True}"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>

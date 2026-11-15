@@ -164,12 +164,16 @@ class Guide(models.Model):
                     guide._dispatch_stock()
         return True
 
+    def _step_pallet_detail_lines(self):
+        self.ensure_one()
+        return self.line_ids
+
     def _check_pallet_detail(self):
         expected, actual = defaultdict(lambda: [0.0, 0.0]), defaultdict(lambda: [0.0, 0.0])
         for row in self.load_tag_ids.step_tag_line_ids:
             expected[row.product_id.id][0] += row.quantity
             expected[row.product_id.id][1] += row.kilos
-        for row in self.line_ids:
+        for row in self._step_pallet_detail_lines():
             actual[row.product_id.id][0] += row.product_uom_id._compute_quantity(row.quantity, row.product_id.uom_id, round=False)
             actual[row.product_id.id][1] += row.quantity_kg
         if expected.keys() != actual.keys() or any(

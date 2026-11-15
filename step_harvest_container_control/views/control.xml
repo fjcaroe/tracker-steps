@@ -1,0 +1,100 @@
+<odoo>
+  <record id="view_product_harvest_packaging" model="ir.ui.view">
+    <field name="name">product.template.form.harvest.packaging</field><field name="model">product.template</field>
+    <field name="inherit_id" ref="step_inventory_packing.view_product_template_form_harvest_container"/>
+    <field name="arch" type="xml">
+      <field name="step_is_harvest_container" position="after">
+        <field name="step_harvest_packaging_id" invisible="not step_is_harvest_container"
+               options="{'no_create': True, 'no_open': True}"/>
+      </field>
+    </field>
+  </record>
+  <record id="view_harvest_transfer_states" model="ir.ui.view">
+    <field name="name">step.harvest.container.transfer.states</field><field name="model">step.harvest.container.transfer</field>
+    <field name="inherit_id" ref="step_inventory_packing.view_harvest_container_transfer_form"/>
+    <field name="arch" type="xml">
+      <field name="fruit_picking_id" position="after"><field name="dispatch_guide_id" invisible="not dispatch_guide_id"/></field>
+      <field name="producer_id" position="attributes"><attribute name="string">Productor / cliente</attribute></field>
+      <xpath expr="//field[@name='line_ids']/list/field[@name='uom_id']" position="after">
+        <field name="lot_id" options="{'no_create': True}"/>
+        <field name="source_location_id" optional="hide" options="{'no_create': True}"/>
+        <field name="conservation"/>
+        <field name="operating"/>
+      </xpath>
+    </field>
+  </record>
+  <record id="view_guide_container_transfer" model="ir.ui.view">
+    <field name="name">step.dispatch.guide.container.transfer</field><field name="model">step.dispatch.guide</field>
+    <field name="inherit_id" ref="step_dispatch_guide.view_dispatch_guide_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//sheet/notebook" position="inside">
+        <page name="step_container_transfers" string="Envases" invisible="not step_container_transfer_ids"
+              groups="stock.group_stock_user">
+          <field name="step_container_transfer_ids" readonly="1">
+            <list><field name="name"/><field name="producer_id"/><field name="picking_id"/><field name="state"/></list>
+          </field>
+        </page>
+      </xpath>
+    </field>
+  </record>
+  <record id="view_container_balance" model="ir.ui.view">
+    <field name="name">stock.quant.container.list</field><field name="model">stock.quant</field>
+    <field name="arch" type="xml">
+      <list create="0" edit="0" delete="0">
+        <field name="product_id"/><field name="lot_id"/>
+        <field name="location_id"/><field name="step_container_partner_id"/>
+        <field name="step_container_conservation"/><field name="step_container_operating"/>
+        <field name="quantity" sum="Existencias"/><field name="reserved_quantity" sum="Reservado"/>
+        <field name="available_quantity" sum="Disponible"/><field name="company_id" groups="base.group_multi_company"/>
+      </list>
+    </field>
+  </record>
+  <record id="view_container_balance_search" model="ir.ui.view">
+    <field name="name">stock.quant.container.search</field><field name="model">stock.quant</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="product_id"/><field name="lot_id"/><field name="location_id"/>
+        <field name="step_container_conservation"/><field name="step_container_operating"/>
+        <filter name="conservation" string="Conservación" context="{'group_by':'step_container_conservation'}"/>
+        <filter name="operating" string="Estado operativo" context="{'group_by':'step_container_operating'}"/>
+        <filter name="lot" string="Lote" context="{'group_by':'lot_id'}"/>
+      </search>
+    </field>
+  </record>
+  <record id="action_container_inventory" model="ir.actions.act_window">
+    <field name="name">Inventario de envases</field><field name="res_model">stock.quant</field>
+    <field name="view_mode">list</field><field name="view_id" ref="view_container_balance"/>
+    <field name="search_view_id" ref="view_container_balance_search"/>
+    <field name="domain">[('product_id.step_is_harvest_container', '=', True), ('location_id.usage', '=', 'internal'), ('quantity', '!=', 0)]</field>
+  </record>
+  <record id="step_inventory_packing.action_step_harvest_container_balance" model="ir.actions.act_window">
+    <field name="view_id" ref="view_container_balance"/><field name="search_view_id" ref="view_container_balance_search"/>
+    <field name="domain">[('product_id.step_is_harvest_container', '=', True), ('location_id.step_container_partner_id', '!=', False)]</field>
+  </record>
+  <record id="view_container_ledger" model="ir.ui.view">
+    <field name="name">stock.move.line.container.ledger</field><field name="model">stock.move.line</field>
+    <field name="arch" type="xml">
+      <list create="0" edit="0" delete="0">
+        <field name="date"/><field name="picking_id"/><field name="product_id"/><field name="lot_id"/>
+        <field name="location_id"/><field name="location_dest_id"/>
+        <field name="step_container_source_partner_id"/><field name="step_container_dest_partner_id"/>
+        <field name="step_container_source_conservation" optional="hide"/>
+        <field name="step_container_source_operating" optional="hide"/>
+        <field name="step_container_conservation"/><field name="step_container_operating"/>
+        <field name="quantity" sum="Unidades"/>
+      </list>
+    </field>
+  </record>
+  <record id="action_container_ledger" model="ir.actions.act_window">
+    <field name="name">Cuenta corriente de envases</field><field name="res_model">stock.move.line</field>
+    <field name="view_mode">list</field><field name="view_id" ref="view_container_ledger"/>
+    <field name="domain">[('product_id.step_is_harvest_container', '=', True), ('state', '=', 'done'), '|',
+      ('location_id.step_container_partner_id', '!=', False), ('location_dest_id.step_container_partner_id', '!=', False)]</field>
+  </record>
+  <record id="step_packing_operations.menu_packing_reception_containers_ledger" model="ir.ui.menu">
+    <field name="action" eval="'ir.actions.act_window,%s' % ref('action_container_ledger')"/>
+  </record>
+  <menuitem id="menu_container_inventory" name="Inventario de envases" sequence="35"
+            parent="step_packing_operations.menu_packing_reception_containers"
+            action="action_container_inventory" groups="stock.group_stock_user"/>
+</odoo>
