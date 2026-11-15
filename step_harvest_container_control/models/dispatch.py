@@ -69,7 +69,8 @@ class DispatchGuide(models.Model):
         transfer.action_validate()
 
     def _step_check_container_ledger(self):
-        if self.filtered('step_container_transfer_ids'):
+        self.check_access('write')
+        if self.sudo().filtered('step_container_transfer_ids'):
             raise UserError(_('Esta guía respalda una entrega de envases validada. Conserve la guía y '
                               'registre cualquier devolución en Control de Envases.'))
 

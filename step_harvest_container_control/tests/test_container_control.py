@@ -64,19 +64,17 @@ class TestHarvestContainerControl(TransactionCase):
         species = self.env['step.especie'].create({'name': 'Especie QA219', 'type_especie': 'frutal', 'group_especie': 'baya'})
         group = self.env['step.grupo.variedad'].create({'name': 'Grupo QA219', 'especie_id': species.id})
         variety = self.env['step.variedad'].create({
-            'name': 'Variedad QA219', 'cod_variedad': 'T219-TEST', 'grupo_variedad_id': group.id,
-        })
-        package = self.env['stock.quant.package'].create({
-            'name': 'QA219-C-1', 'is_fruit_tag': True, 'step_tag_kind': 'C', 'company_id': self.company.id,
+            'name': 'Variedad QA219', 'cod_variedad': 'T219-TEST', 'grupo_variedad_id': group.id, 'especie_id': species.id,
         })
         receipt = self.env['stock.picking'].create({
             'partner_id': self.producer.id, 'picking_type_id': self.warehouse.in_type_id.id,
             'location_id': self.warehouse.in_type_id.default_location_src_id.id,
             'location_dest_id': self.root.id, 'step_fruit_reception_kind': 'process',
             'fruit_fundo_id': fundo.id, 'fruit_species_id': species.id, 'fruit_variety_id': variety.id,
+            'step_fruit_type': 'conventional',
             'step_fruit_gross_kg': 55.0,
             'fruit_tag_line_ids': [Command.create({
-                'tag_number': package.name, 'package_id': package.id, 'product_id': self.fruit.id,
+                'tag_number': 'QA219-C-1', 'product_id': self.fruit.id,
                 'packaging_id': self.packaging.id, 'quantity': 3, 'box_count': 3, 'kilos': 55,
                 'variety_id': variety.id,
             })],
@@ -86,7 +84,7 @@ class TestHarvestContainerControl(TransactionCase):
             'product_uom': self.fruit.uom_id.id, 'product_uom_qty': 55, 'product_packaging_id': self.packaging.id,
             'location_id': receipt.location_id.id, 'location_dest_id': self.root.id,
         })
-        receipt.action_confirm()
+        move._action_confirm(merge=False)
         move.quantity = 55
         move.picked = True
         receipt.button_validate()
@@ -114,6 +112,8 @@ class TestHarvestContainerControl(TransactionCase):
         self.assertEqual(transfer.picking_id.move_line_ids.lot_id, self.lots[1])
         self.assertEqual(guide.invoice_status, 'to_invoice')
         self.assertEqual([vals['product_id'] for _, _, vals in guide._prepare_invoice_line_vals()], self.fruit.ids)
+        guide.action_create_invoice()
+        self.assertEqual(guide.invoice_id.invoice_line_ids.product_id, self.fruit)
         self.assertEqual(self.quant._get_available_quantity(self.container, self.root, lot_id=self.lots[0], strict=True), 10)
         with self.assertRaises(UserError), self.cr.savepoint():
             guide.action_cancel()

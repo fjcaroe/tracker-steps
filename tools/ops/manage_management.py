@@ -521,7 +521,8 @@ def main():
         TICKET_REVISION = args.kind
         MODULES = ('step_dispatch_guide', 'step_packing_interplant', 'step_harvest_container_control')
         BUSINESS = ('stock_location', 'stock_quant', 'stock_move', 'stock_move_line', 'stock_picking',
-                    'stock_valuation_layer', 'product_template', 'product_packaging', 'account_move',
+                    'stock_valuation_layer', 'stock_quant_package', 'stock_lot', 'step_fruit_package_line',
+                    'step_packing_picking_tag_line', 'product_template', 'product_packaging', 'account_move',
                     'account_move_line', 'account_analytic_line', 'account_analytic_account',
                     'step_dispatch_guide', 'step_dispatch_guide_line', 'step_harvest_container_transfer',
                     'step_harvest_container_transfer_line',
@@ -761,8 +762,9 @@ def main():
     if args.kind == 'harvest-container-control':
         assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN "
                      "('step_packing_operations','step_packing_interplant','step_dispatch_guide',"
-                     "'step_cosecha_planning','step_packing_analytics','step_machinery','step_hr','step_task') "
-                     "AND state='installed'") == '8', 'T219 native dependencies must already be installed'
+                     "'step_cosecha_planning','step_packing_analytics','step_packing_reception_revision',"
+                     "'step_machinery','step_hr','step_task') "
+                     "AND state='installed'") == '9', 'T219 native dependencies must already be installed'
     release_sha = digest(args.release)
     if args.kind == 'sag-traceability':
         from approved_sag_traceability import verify_content, verify_authorization
@@ -966,6 +968,9 @@ def main():
                 # changes from the destination, not just its overlay directory.
                 test_modules = [name for name in test_modules if name == 'step_agriculture_records'
                     or name in install or tree_hash(staged / name) != baseline['modules'][name]['sha256']]
+            if args.kind == 'harvest-container-control' and args.action == 'compatibility':
+                # The complete dispatch and interplant regression suite runs in Development.
+                test_modules = ['step_harvest_container_control']
             tags = ','.join('/' + name for name in test_modules)
             if args.kind == 'packing-output-lots' and args.action == 'compatibility':
                 cases = (
@@ -1127,6 +1132,8 @@ def main():
                 certified = json.loads((args.development_proof / 'qa_passed.json').read_text())
                 assert certified['commit'] == proof['commit'] and certified['release_sha256'] == release_sha
                 assert certified['database'].startswith('MANAGEMENT_QA_DEVELOPMENT_')
+                live_dev = Path('/opt/steps-managed/releases/development') / proof['commit'] / 'release.json'
+                assert live_dev.is_file() and json.loads(live_dev.read_text()) == proof, 'Publish T219 in Development first'
             elif args.kind == 'reception-variety' and args.environment == 'cerro':
                 assert args.development_proof, 'T152 requires Development clone certification'
                 certified = json.loads((args.development_proof / 'qa_passed.json').read_text())

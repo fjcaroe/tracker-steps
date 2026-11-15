@@ -57,6 +57,8 @@ class ContainerWorkOrder(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        if not self.env.su and not self.env.user.has_group('analytic.group_analytic_accounting'):
+            raise UserError(_('Para crear una OT de envases se requiere acceso a los planes analíticos de la empresa.'))
         vals_list = [dict(vals, name=self.env['ir.sequence'].next_by_code('step.harvest.container.work.order'),
                           state='draft', work_account_id=False, picking_id=False) for vals in vals_list]
         records = super().create(vals_list)
@@ -72,6 +74,9 @@ class ContainerWorkOrder(models.Model):
         if {'state', 'picking_id', 'work_account_id', 'name', 'company_id', 'work_plan_id'} & vals.keys():
             raise UserError(_('Conserve la identidad y la trazabilidad de la orden.'))
         dimensions = {'season_account_id', 'center_account_id', 'activity_account_id'}
+        if dimensions & vals.keys() and not self.env.su and not self.env.user.has_group(
+                'analytic.group_analytic_accounting'):
+            raise UserError(_('Se requiere acceso a la contabilidad analítica para cambiar la imputación.'))
         if dimensions & vals.keys() and any(record._step_cost_lines() or record.consumption_ids for record in self):
             raise UserError(_('Conserve la imputación de las órdenes que ya tienen documentos asociados.'))
         if vals and any(record.state == 'done' for record in self):

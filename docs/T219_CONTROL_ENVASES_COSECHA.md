@@ -19,7 +19,8 @@
 - En **OT de envases** elija lavado, sanitización o reparación, el lote y las
   unidades efectivamente intervenidas. La OT reserva y mueve el lote al nuevo
   estado conservando su identidad. El plan analítico de la OT es independiente
-  de los planes de temporada, centro de costo y actividad.
+  de los planes de temporada, centro de costo y actividad. La persona que
+  crea la OT necesita permisos de Inventario y acceso a la analítica vigente.
 - Impute los recursos desde sus documentos: traslado de consumo de insumos,
   factura o asiento de gastos, tarja de Actividad o registro de horas
   Maquinaria. Seleccione la OT en el documento. El costo considera consumos
