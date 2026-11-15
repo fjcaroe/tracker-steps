@@ -88,7 +88,7 @@
   </record>
   <record id="view_labor_container_work_order" model="ir.ui.view">
     <field name="name">step.tarja.container.work.order</field><field name="model">step.tarja</field>
-    <field name="inherit_id" ref="step_labor_operations_core.view_step_tarja_form"/>
+    <field name="inherit_id" ref="step_hr.view_step_tarja_form"/>
     <field name="arch" type="xml">
       <xpath expr="//sheet/group" position="after">
         <group><field name="step_container_work_order_id" readonly="state == 'conta'"

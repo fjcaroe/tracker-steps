@@ -761,8 +761,8 @@ def main():
     if args.kind == 'harvest-container-control':
         assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN "
                      "('step_packing_operations','step_packing_interplant','step_dispatch_guide',"
-                     "'step_cosecha_planning','step_packing_analytics','step_machinery','step_labor_operations_core') "
-                     "AND state='installed'") == '7', 'T219 native dependencies must already be installed'
+                     "'step_cosecha_planning','step_packing_analytics','step_machinery','step_hr','step_task') "
+                     "AND state='installed'") == '8', 'T219 native dependencies must already be installed'
     release_sha = digest(args.release)
     if args.kind == 'sag-traceability':
         from approved_sag_traceability import verify_content, verify_authorization
