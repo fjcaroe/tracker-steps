@@ -135,8 +135,9 @@ def main():
         if args.action == 'qa':
             assert not overlay.exists()
             for path in PATCH:
-                previous = subprocess.check_output(['git', '-C', str(source), 'show',
-                                                    'HEAD^:backend/tracker_py/app/' + path])
+                relative = 'backend/tracker_py/app/' + path
+                change = output('git', '-C', source, 'log', '-1', '--format=%H', '--', relative)
+                previous = subprocess.check_output(['git', '-C', str(source), 'show', change + '^:' + relative])
                 assert (effective / 'app' / path).read_bytes() == previous, path
             (overlay / 'app').mkdir(parents=True, mode=0o755)
             shutil.copytree(effective / 'app', overlay / 'app', dirs_exist_ok=True,
@@ -158,8 +159,8 @@ def main():
                 scripts.mkdir(mode=0o700)
                 for filename in ('rehearse_service_progress.py', 'rehearse_passenger_services.py'):
                     shutil.copy2(api_source / 'scripts' / filename, scripts)
-                run('setfacl', '-m', 'u:postgres:--x', BASE, stage, overlay)
-                run('setfacl', '-Rm', 'u:postgres:rX', overlay / 'app', scripts)
+                run('setfacl', '-m', 'u:postgres:--x', BASE, stage)
+                run('setfacl', '-Rm', 'u:postgres:rX', overlay, scripts)
                 with (stage / 'functional.log').open('wb') as log:
                     run('sudo', '-u', 'postgres', 'env', 'DATABASE_URL=postgresql+psycopg2:///' + copy,
                         'JWT_SECRET=disposable-i11-clone-only', 'PYTHONPATH=' + str(overlay),
