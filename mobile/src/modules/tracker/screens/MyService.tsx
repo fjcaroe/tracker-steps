@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type PassengerService } from '../lib/api';
 import { findPassenger, passengerStore, project, syncPassengers, type BoardingEvent, type Manifest, type Workspace } from '../lib/passengers';
+import ServiceProgress from './ServiceProgress';
 import PassengerScanner from '../components/PassengerScanner';
 import './passenger-service.css';
 
@@ -18,6 +19,7 @@ export default function MyService({ userId }: { userId: number }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [code, setCode] = useState('');
+  const [progressOpen, setProgressOpen] = useState(false);
   const [camera, setCamera] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
@@ -127,7 +129,11 @@ export default function MyService({ userId }: { userId: number }) {
       {!prepared ? <section className="passenger-notice"><p>Prepara la nómina para registrar pasajeros, incluso sin señal. Se guardará en este teléfono por 24 horas y se retirará al cerrar sesión. Los eventos pendientes se conservan sin nombres ni RUT.</p><button className="primary" disabled={busy || !navigator.onLine} onClick={() => {
         setBusy(true); void passengerStore.prepare(userId, manifest).then(refresh).catch((e: Error) => setError(e.message)).finally(() => setBusy(false));
       }}>Preparar servicio en este teléfono</button></section> : <p className="muted">Preparado hasta {localTime(new Date(workspace!.expiresAt).toISOString())}. Mantén la app abierta durante el viaje sin señal.</p>}
-      <details><summary>Paradas y horarios</summary><ol>{manifest.stops.map((stop) => <li key={stop.id}><strong>{stop.name}</strong><br /><time dateTime={stop.scheduled_at}>{localTime(stop.scheduled_at)}</time></li>)}</ol></details>
+      <details onToggle={(event) => setProgressOpen(event.currentTarget.open)}>
+        <summary>Paradas y avance del servicio</summary>
+        {progressOpen && <ServiceProgress key={manifest.id} manifest={manifest} pending={workspace?.queue.length ?? 0}
+          online={navigator.onLine} onClosed={() => void refresh()} />}
+      </details>
       <label>Buscar pasajero<input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nombre o RUT / ID" /></label>
       <label>Mostrar<select value={filter} onChange={(e) => setFilter(e.target.value)}><option value="all">Todos los pasajeros</option>{Object.entries(labels).map(([state, label]) => <option key={state} value={state}>{label}</option>)}</select></label>
       <details><summary>Leer QR o ingresar código</summary><p>El QR debe contener el UUID de la nómina, solo o precedido de steps:passenger:. Un lector externo también puede escribirlo aquí. Confirma la acción después de leer.</p><label>Código del pasajero<input value={code} onChange={(e) => setCode(e.target.value)} /></label><div className="passenger-actions"><button onClick={() => onCode(code)}>Buscar código</button><button onClick={() => setCamera(true)}>Abrir cámara</button></div></details>
@@ -144,9 +150,9 @@ export default function MyService({ userId }: { userId: number }) {
           <small>{stop(passenger.boarding_stop_id)} → {stop(passenger.alighting_stop_id)}</small>
           {last && <small>{localTime(last.occurred_at)}{waiting ? ' · Por sincronizar' : ' · Confirmado'}</small>}
           <div className="passenger-actions">
-            {['pending', 'no_show'].includes(passenger.state) && <button className="primary" disabled={!prepared || busy || conflict || manifest.route_status === 'cancelled' || manifest.occupied >= manifest.capacity} onClick={() => void act(passenger.id, 'boarded')}>Registrar subida</button>}
-            {passenger.state === 'boarded' && <button className="primary" disabled={!prepared || busy || conflict || manifest.route_status === 'cancelled'} onClick={() => void act(passenger.id, 'alighted')}>Registrar bajada</button>}
-            {passenger.state === 'pending' && <button disabled={!prepared || busy || conflict || manifest.route_status === 'cancelled'} onClick={() => { if (confirm('¿Marcar a ' + passenger.name + ' como ausente? Podrás registrar su subida si llega después.')) void act(passenger.id, 'no_show'); }}>Marcar ausente</button>}
+            {['pending', 'no_show'].includes(passenger.state) && <button className="primary" disabled={!prepared || busy || conflict || manifest.service_closed || manifest.route_status === 'cancelled' || manifest.occupied >= manifest.capacity} onClick={() => void act(passenger.id, 'boarded')}>Registrar subida</button>}
+            {passenger.state === 'boarded' && <button className="primary" disabled={!prepared || busy || conflict || manifest.service_closed || manifest.route_status === 'cancelled'} onClick={() => void act(passenger.id, 'alighted')}>Registrar bajada</button>}
+            {passenger.state === 'pending' && <button disabled={!prepared || busy || conflict || manifest.service_closed || manifest.route_status === 'cancelled'} onClick={() => { if (confirm('¿Marcar a ' + passenger.name + ' como ausente? Podrás registrar su subida si llega después.')) void act(passenger.id, 'no_show'); }}>Marcar ausente</button>}
           </div>
         </li>;
       })}</ul>

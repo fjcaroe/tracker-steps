@@ -65,3 +65,27 @@ class PassengerEvent(Base):
         CheckConstraint('sequence > 0', name='passenger_event_positive_sequence'),
         CheckConstraint('(lat IS NULL AND lon IS NULL AND accuracy_m IS NULL) OR (lat BETWEEN -90 AND 90 AND lon BETWEEN -180 AND 180 AND lat IS NOT NULL AND lon IS NOT NULL AND (accuracy_m IS NULL OR accuracy_m >= 0))', name='passenger_event_coordinates'),
     )
+
+
+class ServiceProgressEvent(Base):
+    __tablename__ = 'mobile_service_progress_events'
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    service_id = Column(UUID(as_uuid=True), ForeignKey('mobile_passenger_services.id'), nullable=False)
+    stop_id = Column(UUID(as_uuid=True), ForeignKey('mobile_service_stops.id'))
+    sequence = Column(Integer, nullable=False)
+    kind = Column(Text, nullable=False)
+    occurred_at = Column(DateTime(timezone=True), nullable=False)
+    actor_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    notes = Column(Text)
+    signature = Column(Text)
+    manifest_hash = Column(Text)
+    payload_hash = Column(Text, nullable=False)
+    __table_args__ = (
+        UniqueConstraint('service_id', 'sequence', name='service_progress_sequence'),
+        CheckConstraint('sequence > 0', name='service_progress_positive_sequence'),
+        CheckConstraint(
+            "(kind IN ('arrived','departed') AND stop_id IS NOT NULL AND signature IS NULL AND manifest_hash IS NULL)"
+            " OR (kind = 'closed' AND stop_id IS NULL AND signature IS NOT NULL AND manifest_hash IS NOT NULL)",
+            name='service_progress_kind',
+        ),
+    )

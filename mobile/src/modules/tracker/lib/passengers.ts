@@ -3,7 +3,7 @@ import { api, API_BASE, ApiError, tokenStore, type PassengerService } from './ap
 export type PassengerState = 'pending' | 'boarded' | 'alighted' | 'no_show';
 export type BoardingEvent = { id: string; passenger_id: string; kind: Exclude<PassengerState, 'pending'>;
   expected_version: number; occurred_at: string; lat: number | null; lon: number | null; accuracy_m: number | null };
-export type Manifest = Omit<PassengerService, 'passengers'> & { manifest_version: number; occupied: number;
+export type Manifest = Omit<PassengerService, 'passengers'> & { manifest_version: number; occupied: number; service_closed?: boolean;
   passengers: (PassengerService['passengers'][number] & { state: PassengerState })[];
   events: { id: string; passenger_id: string; kind: BoardingEvent['kind']; occurred_at: string }[] };
 export type Workspace = { serviceId: string; base: Manifest | null; expiresAt: number; queue: BoardingEvent[] };

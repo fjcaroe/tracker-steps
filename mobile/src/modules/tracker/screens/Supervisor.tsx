@@ -3,12 +3,14 @@ import { catalogs, mobile, sessions, type ActiveSession, type AssignedRoute, typ
 import MapView, { type MapField, type MapMarker } from '../components/MapView';
 import { centroid, formatDistance, routeLengthM, type LatLon, type Waypoint } from '../lib/nav';
 import { Sheet } from './Sheets';
+import { ServiceProgressMonitor } from './ServiceProgress';
 
 const CATEGORY: Record<string, string> = { breakdown: 'Falla mecánica', accident: 'Accidente', damage: 'Daño', theft: 'Robo', sos: 'SOS', other: 'Otro' };
 const when = (iso: string) => new Date(iso).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
 
 /** Vista de supervisor: flota en el mapa, incidentes por atender, asignación de rutas y estado de los teléfonos. */
 export default function Supervisor() {
+  const [monitorOpen, setMonitorOpen] = useState(false);
   const [incidents, setIncidents] = useState<IncidentOut[]>([]);
   const [open, setOpen] = useState<ActiveSession[]>([]);
   const [devices, setDevices] = useState<DeviceOut[]>([]);
@@ -95,6 +97,10 @@ export default function Supervisor() {
       ))}
       {!open.length && <p className="muted">No hay jornadas abiertas.</p>}
 
+      <details className="card" onToggle={(event) => setMonitorOpen(event.currentTarget.open)}>
+        <summary>Avance de servicios de pasajeros</summary>
+        {monitorOpen && <ServiceProgressMonitor />}
+      </details>
       <h2>Rutas asignadas ({routes.length})</h2>
       {!routes.length && <p className="muted">Aún no hay rutas pendientes.</p>}
       {routes.map((r) => (

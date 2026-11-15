@@ -14,7 +14,7 @@ from app.models.users import User
 from app.models.machines import Machine
 from app.models.cost_centers import CostCenter
 from app.models.mobile import MobileRoute
-from app.models.passenger_services import PassengerService, ServiceStop, ServicePassenger, PassengerEvent
+from app.models.passenger_services import PassengerService, ServiceStop, ServicePassenger, PassengerEvent, ServiceProgressEvent
 
 router = APIRouter(prefix='/mobile/services', tags=['passenger-services'])
 
@@ -181,6 +181,15 @@ def list_services(response: Response, mine: bool=True, limit: int=Query(50,ge=1,
     return result
 
 
+@router.get('/progress')
+def list_service_progress(response: Response, db: Session=Depends(get_db), current: User=Depends(get_current_user)):
+    response.headers['Cache-Control'] = 'no-store'
+    if not current.is_admin:
+        raise HTTPException(403, 'Solo el supervisor puede consultar el avance de otros servicios.')
+    rows = db.query(PassengerService).order_by(PassengerService.created_at.desc(), PassengerService.id).limit(50).all()
+    return [progress_out(db, row) for row in rows]
+
+
 @router.get('/{service_id}')
 def get_service(service_id: uuid.UUID,response: Response,db: Session=Depends(get_db),current: User=Depends(get_current_user)):
     response.headers['Cache-Control']='no-store'
@@ -226,6 +235,7 @@ def manifest_out(db, row):
     result['sync']['schema_version'] = 2
     result['sync'].pop('content_hash')
     result['sync']['content_hash'] = hashlib.sha256(json.dumps(result, sort_keys=True, default=str).encode()).hexdigest()
+    result['service_closed'] = service_closure(db, row.id) is not None
     return result
 
 
@@ -252,6 +262,8 @@ def record_event(service_id: uuid.UUID, payload: EventIn, response: Response,
         return manifest_out(db, row)
     if db.get(MobileRoute, row.route_id).status == 'cancelled':
         raise HTTPException(409, 'La ruta fue cancelada. Conserva los pendientes y consulta al supervisor.')
+    if service_closure(db, row.id):
+        raise HTTPException(409, 'El servicio tiene un manifiesto cerrado.')
     now = datetime.now(timezone.utc)
     if payload.occurred_at > now + timedelta(minutes=5) or payload.occurred_at < now - timedelta(days=7):
         raise HTTPException(422, 'La hora debe estar dentro de los últimos siete días y no en el futuro.')
@@ -282,3 +294,127 @@ def record_event(service_id: uuid.UUID, payload: EventIn, response: Response,
         db.rollback()
         raise HTTPException(409, 'El manifiesto recibió otro registro. Actualiza y revisa antes de reintentar.')
     return manifest_out(db, row)
+
+
+class ProgressIn(Strict):
+    id: uuid.UUID
+    kind: Literal['arrived', 'departed', 'closed']
+    stop_id: uuid.UUID | None = None
+    expected_version: int = Field(ge=0, strict=True)
+    manifest_version: int | None = Field(None, ge=0, strict=True)
+    notes: str | None = Field(None, max_length=1000)
+    signature: str | None = Field(None, min_length=2, max_length=200)
+
+    @model_validator(mode='after')
+    def required_fields(self):
+        if self.kind == 'closed':
+            if self.stop_id is not None or self.signature is None or self.manifest_version is None:
+                raise ValueError('Confirma el manifiesto y firma el cierre del servicio.')
+        elif self.stop_id is None or self.signature is not None or self.manifest_version is not None:
+            raise ValueError('Selecciona la parada que corresponde al registro.')
+        return self
+
+
+def progress_rows(db, service_id):
+    return db.query(ServiceProgressEvent).filter_by(service_id=service_id).order_by(ServiceProgressEvent.sequence).all()
+
+
+def service_closure(db, service_id):
+    return db.query(ServiceProgressEvent).filter_by(service_id=service_id, kind='closed').one_or_none()
+
+
+def aware_utc(stamp):
+    return stamp if stamp.tzinfo else stamp.replace(tzinfo=timezone.utc)
+
+
+def progress_out(db, service):
+    route = db.get(MobileRoute, service.route_id)
+    driver = db.get(User, service.driver_user_id)
+    stops = db.query(ServiceStop).filter_by(service_id=service.id).order_by(ServiceStop.position).all()
+    events = progress_rows(db, service.id)
+    by_stop = {(event.stop_id, event.kind): event for event in events}
+    closed = by_stop.get((None, 'closed'))
+    now = datetime.now(timezone.utc)
+    latest_delay = timedelta()
+    stop_rows = []
+    for stop in stops:
+        arrival = by_stop.get((stop.id, 'arrived'))
+        departure = by_stop.get((stop.id, 'departed'))
+        scheduled = aware_utc(stop.scheduled_at)
+        if arrival:
+            latest_delay = aware_utc((departure or arrival).occurred_at) - scheduled
+        forecast = scheduled + latest_delay
+        stop_rows.append({
+            'id': str(stop.id), 'name': stop.name, 'scheduled_at': scheduled,
+            'arrived_at': aware_utc(arrival.occurred_at) if arrival else None,
+            'departed_at': aware_utc(departure.occurred_at) if departure else None,
+            'eta': max(now, forecast) if events and not arrival and route.status != 'cancelled' else None,
+            'delay_minutes': max(0, int(((aware_utc(arrival.occurred_at) if arrival else max(now, forecast))
+                                          - scheduled).total_seconds() // 60)),
+            'arrival_notes': arrival.notes if arrival else None,
+            'departure_notes': departure.notes if departure else None,
+        })
+    return {
+        'id': str(service.id), 'name': service.name, 'route_name': route.name, 'route_status': route.status,
+        'driver_name': driver.full_name, 'version': len(events), 'stops': stop_rows,
+        'closure': {'closed_at': aware_utc(closed.occurred_at), 'actor_id': closed.actor_id,
+                    'signature': closed.signature, 'notes': closed.notes,
+                    'manifest_hash': closed.manifest_hash} if closed else None,
+    }
+
+
+@router.get('/{service_id}/progress')
+def get_progress(service_id: uuid.UUID, response: Response, db: Session=Depends(get_db),
+                 current: User=Depends(get_current_user)):
+    response.headers['Cache-Control'] = 'no-store'
+    return progress_out(db, authorized_service(db, current, service_id))
+
+
+@router.post('/{service_id}/progress')
+def record_progress(service_id: uuid.UUID, payload: ProgressIn, response: Response,
+                    db: Session=Depends(get_db), current: User=Depends(get_current_user)):
+    response.headers['Cache-Control'] = 'no-store'
+    row = authorized_service(db, current, service_id)
+    if row.driver_user_id != current.id:
+        raise HTTPException(403, 'Solo el conductor asignado puede registrar el avance.')
+    # The same row lock serializes boarding, stop progress, and signing.
+    db.query(PassengerService).filter_by(id=row.id).with_for_update().one()
+    db.refresh(row)
+    authorized_service(db, current, service_id)
+    payload_hash = hashlib.sha256(payload.model_dump_json().encode()).hexdigest()
+    existing = db.get(ServiceProgressEvent, payload.id)
+    if existing:
+        if existing.service_id != row.id or existing.actor_id != current.id or existing.payload_hash != payload_hash:
+            raise HTTPException(409, 'El código del registro ya corresponde a otro avance.')
+        return progress_out(db, row)
+    events = progress_rows(db, row.id)
+    if (events and events[-1].kind == 'closed') or db.get(MobileRoute, row.route_id).status == 'cancelled':
+        raise HTTPException(409, 'El servicio está cerrado o cancelado.')
+    if payload.expected_version != len(events):
+        raise HTTPException(409, 'El avance cambió. Actualiza el servicio y revisa la siguiente parada.')
+    stops = db.query(ServiceStop).filter_by(service_id=row.id).order_by(ServiceStop.position).all()
+    position, is_departure = divmod(len(events), 2)
+    manifest_hash = None
+    if payload.kind == 'closed':
+        if position != len(stops) or is_departure:
+            raise HTTPException(409, 'Registra las llegadas y salidas de todas las paradas antes de cerrar.')
+        manifest = manifest_out(db, row)
+        if payload.manifest_version != manifest['manifest_version']:
+            raise HTTPException(409, 'La nómina cambió. Actualízala antes de firmar.')
+        if any(passenger['state'] in ('pending', 'boarded') for passenger in manifest['passengers']):
+            raise HTTPException(409, 'Registra los descensos y las ausencias antes de firmar.')
+        manifest_hash = manifest['sync']['content_hash']
+    else:
+        kind = 'departed' if is_departure else 'arrived'
+        if position >= len(stops) or payload.stop_id != stops[position].id or payload.kind != kind:
+            raise HTTPException(409, 'Registra la llegada y la salida de la siguiente parada en orden.')
+    db.add(ServiceProgressEvent(id=payload.id, service_id=row.id, stop_id=payload.stop_id,
+                                sequence=len(events) + 1, kind=payload.kind, occurred_at=datetime.now(timezone.utc),
+                                actor_id=current.id, notes=payload.notes, signature=payload.signature,
+                                manifest_hash=manifest_hash, payload_hash=payload_hash))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, 'El avance cambió. Actualiza el servicio antes de reintentar.')
+    return progress_out(db, row)
