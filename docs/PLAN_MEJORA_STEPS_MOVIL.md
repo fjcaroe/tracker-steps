@@ -154,11 +154,25 @@ abierta desde otro teléfono; no hay nada de pasajeros.
   nómina. Se comprobó el flujo en copia y las pantallas con el servicio existente.
   Ver `docs/T46_I11_AVANCE_SERVICIO.md`.
 
-### I12 · Seguridad del pasajero y del conductor  `[~]` 02-10-2026 parcial: SOS con ubicación, aviso de exceso de velocidad y pausas de conducción configurables hechos; faltan contactos de emergencia configurables
+### I12 · Seguridad del pasajero y del conductor  `[x]` 16-11-2026 disponible en Desarrollo
 - **Qué:** botón SOS (aviso inmediato con ubicación a contactos y a la web), registro de exceso de velocidad
   y de pausas de conducción/descanso (jornada), números de emergencia configurables. Reutiliza incidentes
   y política de protección existentes; **no** habilita control físico del vehículo (bloqueado hasta E4).
 - **Aceptación:** SOS visible en la bandeja de incidentes de la web en menos de 10 s, con ubicación.
+- **Perfil → Contactos de emergencia** permite guardar hasta tres números por
+  cuenta en el dispositivo. **Jornada → SOS** ofrece llamar o abrir un SMS con
+  la última ubicación disponible. El conductor confirma el envío en su aplicación
+  de mensajes. El aviso a la oficina se sincroniza por el canal de incidencias
+  existente y muestra si está pendiente, confirmado o rechazado.
+- **Bitácora 16-11-2026:** Tracker 1.8.0 en Desarrollo, paquete
+  `b20817868b91b9adf3dbc07b6191a04ac7bff7df`. JS servido
+  `assets/index-B0T6BXW0.js`, SHA-256
+  `803f5c55b52ef744e98537fa2340de930f6761299e12572354c9ceb1771c4fd5`.
+  Pasaron 192 pruebas de app y TypeScript. En navegador a 375 px el SOS
+  con ubicación apareció en Supervisor en 4,74 s con una API simulada.
+  La copia PostgreSQL comprobó la recepción del aviso, la ubicación,
+  el reintento sin duplicados y la reversión de los datos de prueba.
+  Queda pendiente probar en un teléfono físico la llamada y el envío de SMS.
 
 ---
 
