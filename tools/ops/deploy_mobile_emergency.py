@@ -23,15 +23,18 @@ def certify(source, stage, effective):
     scripts.mkdir(mode=0o700)
     for name in ('rehearse_mobile_emergency.py', 'rehearse_passenger_services.py'):
         shutil.copy2(source / 'backend/tracker_py/scripts' / name, scripts)
+    isolated_api = stage / 'api'
+    shutil.copytree(effective / 'app', isolated_api / 'app', ignore=shutil.ignore_patterns('__pycache__', '.env*'))
+    assert tree(isolated_api / 'app') == tree(effective / 'app')
     run('setfacl', '-m', 'u:postgres:--x', BASE, stage)
-    run('setfacl', '-Rm', 'u:postgres:rX', scripts)
+    run('setfacl', '-Rm', 'u:postgres:rX', scripts, isolated_api)
     postgres('createdb', copy)
     try:
         with archive.open('rb') as stream:
             postgres('pg_restore', '--no-owner', '--no-acl', '--no-comments', '-d', copy, stdin=stream)
         with (stage / 'postgres.log').open('wb') as log:
             run('sudo', '-u', 'postgres', 'env', 'DATABASE_URL=postgresql+psycopg2:///' + copy,
-                'JWT_SECRET=disposable-i12-copy-only', 'PYTHONPATH=' + str(effective),
+                'JWT_SECRET=disposable-i12-copy-only', 'PYTHONPATH=' + str(isolated_api),
                 PY, scripts / 'rehearse_mobile_emergency.py', stdout=log, stderr=subprocess.STDOUT)
         assert 'TRACKER_I12_POSTGRES_OK' in (stage / 'postgres.log').read_text()
     finally:
