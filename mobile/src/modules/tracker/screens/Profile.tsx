@@ -6,6 +6,7 @@ import { pendingTotal } from '../lib/sync';
 import { Sheet } from './Sheets';
 import RejectedPoints from './RejectedPoints';
 import { passengerStore } from '../lib/passengers';
+import EmergencyContacts from './EmergencyContacts';
 
 export function HelpSheet({ onClose }: { onClose: () => void }) {
   return (
@@ -91,6 +92,7 @@ export default function Profile({ user, onLogout }: { user: User; onLogout: () =
         <div className="grid2"><button onClick={() => void diagnostic()} disabled={busy}>Enviar diagnóstico</button><button onClick={() => void checkUpdate()}>Buscar actualización</button></div>
         {msg && <p className="muted" role="status">{msg}</p>}
       </article>
+      <EmergencyContacts key={user.id} userId={user.id} />
       <RejectedPoints />
       <button className="danger" onClick={onLogout}>Cerrar sesión</button>
       {help && <HelpSheet onClose={() => setHelp(false)} />}

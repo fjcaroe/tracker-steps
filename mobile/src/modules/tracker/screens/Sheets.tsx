@@ -4,7 +4,8 @@ import type { Fix } from '../lib/geo';
 import { compressPhoto } from '../lib/photo';
 import { parseNumber, type Active } from '../lib/queue';
 import { projectRoute, summaryText, type RoutePoint, type Summary } from '../lib/route';
-import { outboxStore } from '../lib/sync';
+import { emergencyReceived, outboxStore } from '../lib/sync';
+import { emergencySmsLink, getEmergencyContacts } from '../lib/emergencyContacts';
 
 const DEFAULT_ITEMS = [
   { key: 'lights', label: 'Luces y señalización' }, { key: 'brakes', label: 'Frenos' }, { key: 'tires', label: 'Neumáticos (presión y desgaste)' },
@@ -133,16 +134,68 @@ export function ExpenseSheet({ active, onClose, onSaved }: Props) {
   );
 }
 
-/** I12 · SOS: confirmación explícita y envío inmediato con ubicación. */
-export function SosSheet({ active, fix, onClose, onSaved }: Props) {
-  const send = () => {
-    outboxStore.add({ kind: 'post', path: 'incidents', sessionId: active.sessionId, body: { id: crypto.randomUUID(), category: 'sos', note: 'SOS del conductor', machine_id: active.machineId, session_id: active.sessionId, lat: fix?.lat ?? null, lon: fix?.lon ?? null, occurred_at: new Date().toISOString() } });
-    onSaved('SOS enviado con tu ubicación. Si es una emergencia, llama también al 133 (Carabineros) o 131 (Ambulancia).');
+export function SosSheet({ active, fix, userId, online, onClose, onSync }: Omit<Props, 'onSaved'> & {
+  userId: number; online: boolean; onSync: () => Promise<void>;
+}) {
+  const [contacts] = useState(() => getEmergencyContacts(userId));
+  const [status, setStatus] = useState<'ready' | 'sending' | 'queued' | 'sent' | 'rejected' | 'storage'>('ready');
+  const [incidentId, setIncidentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (status !== 'queued' || !incidentId) return;
+    const refresh = () => {
+      if (emergencyReceived(incidentId)) setStatus('sent');
+      else if (outboxStore.ops().some(op => op.kind === 'post' && op.body.id === incidentId && op.error)) setStatus('rejected');
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 1000);
+    return () => window.clearInterval(timer);
+  }, [incidentId, status]);
+
+  const send = async () => {
+    if (status !== 'ready' && status !== 'storage') return;
+    const id = crypto.randomUUID();
+    outboxStore.add({
+      kind: 'post', path: 'incidents', sessionId: active.sessionId,
+      body: { id, category: 'sos', note: 'SOS del conductor', machine_id: active.machineId, session_id: active.sessionId,
+        lat: fix?.lat ?? null, lon: fix?.lon ?? null, occurred_at: new Date().toISOString() },
+    });
+    const findPending = () => outboxStore.ops().find(op => op.kind === 'post' && op.body.id === id);
+    if (!findPending()) { setStatus('storage'); return; }
+    setIncidentId(id);
+    if (!online) { setStatus('queued'); return; }
+    setStatus('sending');
+    try {
+      await onSync();
+      const pending = findPending();
+      if (pending && !pending.error && !emergencyReceived(id)) await onSync();
+    } catch {
+      setStatus('queued');
+      return;
+    }
+    const pending = findPending();
+    setStatus(emergencyReceived(id) ? 'sent' : pending?.error ? 'rejected' : pending ? 'queued' : 'storage');
   };
+
   return (
     <Sheet title="Emergencia" onClose={onClose}>
-      <p>Se avisará de inmediato a la oficina con tu ubicación y la hora.</p>
-      <button className="danger big" onClick={send}>Enviar SOS</button>
+      <p>Envía un aviso a la oficina. {fix ? 'Se adjuntará la última ubicación del teléfono.' : 'La ubicación aún no está disponible.'}</p>
+      <button className="danger big" onClick={() => void send()} disabled={status !== 'ready' && status !== 'storage'}>
+        {status === 'sending' ? 'Enviando SOS…' : 'Enviar SOS'}
+      </button>
+      {status === 'sent' && <p role="status">La oficina recibió el SOS.</p>}
+      {status === 'queued' && <p role="status">SOS pendiente. La app reintentará cuando pueda conectarse.</p>}
+      {status === 'rejected' && <p role="alert">El servidor no recibió el aviso. Usa los contactos de emergencia y revisa los pendientes.</p>}
+      {status === 'storage' && <p role="alert">El aviso no se pudo guardar. Usa los contactos de emergencia.</p>}
+      {contacts.length > 0 && <section className="stack" aria-label="Contactos de emergencia">
+        {contacts.map(({ name, phone }) => <div className="stack" key={phone}>
+          <strong>{name || phone}</strong>
+          <div className="grid2">
+            <a className="btnlink" href={'tel:' + phone} aria-label={'Llamar a ' + (name || phone)}>Llamar</a>
+            <a className="btnlink" href={emergencySmsLink(phone, fix)} aria-label={'Abrir SMS para ' + (name || phone)}>Abrir SMS</a>
+          </div>
+        </div>)}
+      </section>}
       <small className="center">Emergencias: Carabineros 133 · Ambulancia 131 · Bomberos 132</small>
     </Sheet>
   );

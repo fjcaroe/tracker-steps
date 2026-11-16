@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { catalogs, mobile, sessions, type ActiveSession, type AssignedRoute, type DeviceOut, type Field, type IncidentOut, type Machine } from '../lib/api';
 import MapView, { type MapField, type MapMarker } from '../components/MapView';
 import { centroid, formatDistance, routeLengthM, type LatLon, type Waypoint } from '../lib/nav';
@@ -12,6 +12,7 @@ const when = (iso: string) => new Date(iso).toLocaleString('es-CL', { dateStyle:
 export default function Supervisor() {
   const [monitorOpen, setMonitorOpen] = useState(false);
   const [incidents, setIncidents] = useState<IncidentOut[]>([]);
+  const incidentRevision = useRef(0);
   const [open, setOpen] = useState<ActiveSession[]>([]);
   const [devices, setDevices] = useState<DeviceOut[]>([]);
   const [routes, setRoutes] = useState<AssignedRoute[]>([]);
@@ -24,16 +25,36 @@ export default function Supervisor() {
 
   const load = () => {
     setError('');
-    Promise.all([mobile.incidents(), sessions.active(), mobile.devices(), mobile.routes(), catalogs.machines(), catalogs.fields()])
-      .then(([i, s, d, r, m, f]) => { setIncidents(i); setOpen(s); setDevices(d); setRoutes(r); setMachines(m); setFields(f); })
+    Promise.all([sessions.active(), mobile.devices(), mobile.routes(), catalogs.machines(), catalogs.fields()])
+      .then(([s, d, r, m, f]) => { setOpen(s); setDevices(d); setRoutes(r); setMachines(m); setFields(f); })
       .catch((e: Error) => setError(e.message));
   };
   useEffect(load, []);
+  useEffect(() => {
+    let disposed = false;
+    let loading = false;
+    const refresh = async () => {
+      if (loading) return;
+      loading = true;
+      const revision = incidentRevision.current;
+      try {
+        const next = await mobile.incidents();
+        if (!disposed && revision === incidentRevision.current) setIncidents(next);
+      } catch (e) {
+        if (!disposed) setError((e as Error).message);
+      } finally {
+        loading = false;
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 5000);
+    return () => { disposed = true; window.clearInterval(timer); };
+  }, []);
   // La flota se refresca sola mientras la pestaña está abierta.
   useEffect(() => { const t = setInterval(() => { sessions.active().then(setOpen).catch(() => {}); }, 20000); return () => clearInterval(t); }, []);
 
   const act = async (i: IncidentOut, status: 'attended' | 'closed') => {
-    try { const next = await mobile.setIncident(i.id, status); setIncidents((p) => p.map((x) => (x.id === i.id ? next : x))); }
+    try { const next = await mobile.setIncident(i.id, status); incidentRevision.current++; setIncidents((p) => p.map((x) => (x.id === i.id ? next : x))); }
     catch (e) { setError((e as Error).message); }
   };
   const showPhoto = async (i: IncidentOut) => { try { setPhoto({ id: i.id, url: await mobile.photo('incidents', i.id) }); } catch (e) { setError((e as Error).message); } };
@@ -57,7 +78,7 @@ export default function Supervisor() {
       <article className="card stack">
         <div className="row"><h2>Flota en vivo</h2><span className="chip">{open.length} en jornada{moving.length ? ` · ${moving.length} en movimiento` : ''}</span></div>
         <MapView markers={markers} fields={mapFields} focus={focus} height={300} />
-        <small className="muted">Verde: máquinas con jornada abierta (última posición). Naranja/rojo: incidentes y SOS. Se actualiza cada 20 s.</small>
+        <small className="muted">Verde: máquinas con jornada abierta (última posición). Naranja/rojo: incidentes y SOS. Incidentes cada 5 s. Flota cada 20 s.</small>
         <button className="primary" onClick={() => setBuilder({ machineId: null })}>Asignar una ruta</button>
       </article>
 

@@ -59,10 +59,20 @@ describe('outbox', () => {
   });
   it('los registros de campo siguen a su jornada y heredan el parte resuelto', async () => {
     const log: string[] = [];
-    const ops: Op[] = [...full().slice(0, 2), { kind: 'post', path: 'expenses', sessionId: 's1', body: { id: 'e1', kind: 'fuel', liters: 10 } }, { kind: 'post', path: 'incidents', sessionId: 'solo:i1', body: { id: 'i1', category: 'sos' } }];
+    const ops: Op[] = [...full().slice(0, 2), { kind: 'post', path: 'expenses', sessionId: 's1', body: { id: 'e1', kind: 'fuel', liters: 10 } }, { kind: 'post', path: 'incidents', sessionId: 'solo:i1', body: { id: 'i1', category: 'other' } }];
     const r = await runOutbox(ops, {}, handlers(log));
     expect(log).toEqual(['wo', 'start:77', 'post:expenses:77', 'post:incidents:-']);
     expect(r.ops).toEqual([]);
+  });
+  it('prioriza SOS de jornadas abiertas y conserva el orden de una jornada que sigue local', async () => {
+    const log: string[] = [];
+    const online: Op = { kind: 'post', path: 'incidents', sessionId: 's2', body: { id: 'online', category: 'sos' } };
+    const local: Op = { kind: 'post', path: 'incidents', sessionId: 's1', body: { id: 'local', category: 'sos' } };
+    const result = await runOutbox([...full().slice(0, 2), local, online], {}, handlers(log, {
+      post: async (_path, body) => { log.push(String(body.id)); },
+    }));
+    expect(log).toEqual(['online', 'wo', 'start:77', 'local']);
+    expect(result.ops).toEqual([]);
   });
   it('un registro rechazado no frena otros registros', async () => {
     const log: string[] = [];

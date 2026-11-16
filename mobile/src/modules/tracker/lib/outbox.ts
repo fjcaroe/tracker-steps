@@ -36,6 +36,8 @@ export const isPermanentRejection = (e: unknown): boolean => [400, 404, 409, 410
 /** Jornadas que la persona ya terminó en este teléfono y cuyo cierre aún no llegó al servidor. */
 export const closingIds = (ops: Op[]): Set<string> => new Set(ops.filter((o) => o.kind === 'session_close').map((o) => o.sessionId));
 
+export const isEmergency = (op: Op) => op.kind === 'post' && op.path === 'incidents' && op.body.category === 'sos';
+
 export type RunResult = { ops: Op[]; resolved: Record<string, number>; done: number };
 
 /**
@@ -47,7 +49,12 @@ export async function runOutbox(input: Op[], resolvedIn: Record<string, number>,
   const remaining: Op[] = [];
   const blocked = new Set<string>();
   let done = 0, halted = false;
-  for (const raw of input) {
+  // An SOS from a server-side session can pass ordinary uploads. Local sessions
+  // still have to be opened on the server before their incidents are submitted.
+  const unstarted = new Set(input.filter(op => op.kind === 'wo_create' || op.kind === 'session_start').map(op => op.sessionId));
+  const priorities = input.filter(op => isEmergency(op) && !unstarted.has(op.sessionId));
+  const prioritySet = new Set(priorities);
+  for (const raw of [...priorities, ...input.filter(op => !prioritySet.has(op))]) {
     const op: Op = { ...raw };
     if (halted || blocked.has(op.sessionId)) { remaining.push(op); continue; }
     try {
@@ -69,7 +76,10 @@ export async function runOutbox(input: Op[], resolvedIn: Record<string, number>,
       done += 1;
     } catch (e) {
       if (isNetworkError(e)) { halted = true; delete op.error; }
-      else { op.error = (e as Error).message || 'Rechazada por el servidor'; blocked.add(op.sessionId); }
+      else {
+        op.error = (e as Error).message || 'Rechazada por el servidor';
+        if (!isEmergency(op)) blocked.add(op.sessionId);
+      }
       remaining.push(op);
     }
   }

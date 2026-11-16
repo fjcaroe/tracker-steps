@@ -18,7 +18,7 @@ const cachedCatalogs = (): Catalogs | null => { try { const raw = localStorage.g
 
 type Catalogs = { machines: Machine[]; labors: Labor[]; drivers: Driver[]; implementsList: Implement[]; fields: Field[]; costCenters: CostCenter[] };
 
-export default function Journey({ online, preset, onPresetUsed }: { online: boolean; preset: Task | null; onPresetUsed: () => void }) {
+export default function Journey({ userId, online, preset, onPresetUsed }: { userId: number; online: boolean; preset: Task | null; onPresetUsed: () => void }) {
   const [finished, setFinished] = useState<Finished | null>(null);
   const [active, setActive] = useState<Active | null>(() => {
     // La app pudo cerrarse justo al terminar la jornada: si su cierre ya está en cola, no se vuelve a ofrecer como activa (ni sin señal).
@@ -100,7 +100,7 @@ export default function Journey({ online, preset, onPresetUsed }: { online: bool
       {ops.length > 0 && <PendingOps ops={ops} syncing={syncing} online={online} onRetry={retry} />}
       {active
         ? (confirmed
-            ? <Tracking active={active} online={online} onChange={change} onSync={sync} onFinished={setFinished} />
+            ? <Tracking userId={userId} active={active} online={online} onChange={change} onSync={sync} onFinished={setFinished} />
             : <ResumeGate active={active} onContinue={() => setConfirmed(true)} />)
         : <>
             {open.length > 0 && (
@@ -240,7 +240,7 @@ function Select({ label, value, onChange, options, required }: { label: string; 
   return <label>{label}<select value={value} onChange={(e) => onChange(e.target.value)} required={required}><option value="">{required ? 'Seleccionar…' : 'Sin especificar'}</option>{options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>;
 }
 
-function Tracking({ active, online, onChange, onSync, onFinished }: { active: Active; online: boolean; onChange: (a: Active | null) => void; onSync: () => Promise<void>; onFinished: (f: Finished) => void }) {
+function Tracking({ userId, active, online, onChange, onSync, onFinished }: { userId: number; active: Active; online: boolean; onChange: (a: Active | null) => void; onSync: () => Promise<void>; onFinished: (f: Finished) => void }) {
   const settings = useRef(loadSettings());
   const lastAlert = useRef(0);
   const [sheet, setSheet] = useState<'' | 'check' | 'incident' | 'theft' | 'expense' | 'sos'>('');
@@ -387,7 +387,7 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
       {sheet === 'check' && <ChecklistSheet active={active} fix={fix} onClose={() => setSheet('')} onSaved={(m) => { try { localStorage.setItem(checkedKey, '1'); } catch { /* nada */ } setChecked(true); setSheet(''); setToast(m); void onSync(); }} />}
       {(sheet === 'incident' || sheet === 'theft') && <IncidentSheet initial={sheet === 'theft' ? 'theft' : undefined} active={active} fix={fix} onClose={() => setSheet('')} onSaved={(m) => { setSheet(''); setToast(m); void onSync(); }} />}
       {sheet === 'expense' && <ExpenseSheet active={active} fix={fix} onClose={() => setSheet('')} onSaved={(m) => { setSheet(''); setToast(m); void onSync(); }} />}
-      {sheet === 'sos' && <SosSheet active={active} fix={fix} onClose={() => setSheet('')} onSaved={(m) => { setSheet(''); setToast(m); void onSync(); }} />}
+      {sheet === 'sos' && <SosSheet userId={userId} active={active} fix={fix} online={online} onClose={() => setSheet('')} onSync={onSync} />}
       <p className="muted center" role="status">
         {pending ? `${pending} puntos por enviar${online ? '' : ' (sin conexión)'}` : 'Ruta al día con el servidor'}
         {' · '}Último envío: {lastSync ? new Date(lastSync).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : 'aún no'}

@@ -25,6 +25,8 @@ export function pendingTotal(): number {
 const platform = (): string => { try { return (window as unknown as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? 'web'; } catch { return 'web'; } };
 
 let running: Promise<number> | null = null;
+const receivedEmergencies = new Set<string>();
+export const emergencyReceived = (id: string) => receivedEmergencies.has(id);
 
 /** Compuerta de propietario: mientras devuelva false no se envía nada (datos de otra cuenta o de dueño desconocido). */
 let gate: () => boolean = () => true;
@@ -49,7 +51,16 @@ export function syncAll(): Promise<number> {
       flushPoints,
       closeSession: (id, endedAt) => sessions.close(id, endedAt),
       finishWorkOrder: sessions.finishWorkOrder,
-      post: (path, body) => api(`/mobile/${path}`, { method: 'POST', body: JSON.stringify(body) }),
+      post: async (path, body) => {
+        await api(`/mobile/${path}`, { method: 'POST', body: JSON.stringify(body) });
+        if (path === 'incidents' && body.category === 'sos' && typeof body.id === 'string') {
+          receivedEmergencies.add(body.id);
+          if (receivedEmergencies.size > 50) {
+            const oldest = receivedEmergencies.values().next().value;
+            if (oldest) receivedEmergencies.delete(oldest);
+          }
+        }
+      },
     });
     // Registros agregados mientras una petición estaba en vuelo deben sobrevivir al resultado.
     write(OPS, [...result.ops, ...outboxStore.ops().slice(snapshot.length)]);
