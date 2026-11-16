@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { catalogs, mobile, sessions, type ActiveSession, type AssignedRoute, type DeviceOut, type Field, type IncidentOut, type Machine } from '../lib/api';
+import { catalogs, mobile, sessions, type ActiveSession, type AssignedRoute, type Field, type IncidentOut, type Machine } from '../lib/api';
 import MapView, { type MapField, type MapMarker } from '../components/MapView';
 import { centroid, formatDistance, routeLengthM, type LatLon, type Waypoint } from '../lib/nav';
 import { Sheet } from './Sheets';
 import { ServiceProgressMonitor } from './ServiceProgress';
+import TrackerHealth from './TrackerHealth';
 
 const CATEGORY: Record<string, string> = { breakdown: 'Falla mecánica', accident: 'Accidente', damage: 'Daño', theft: 'Robo', sos: 'SOS', other: 'Otro' };
 const when = (iso: string) => new Date(iso).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
@@ -14,7 +15,7 @@ export default function Supervisor() {
   const [incidents, setIncidents] = useState<IncidentOut[]>([]);
   const incidentRevision = useRef(0);
   const [open, setOpen] = useState<ActiveSession[]>([]);
-  const [devices, setDevices] = useState<DeviceOut[]>([]);
+  const [healthOpen, setHealthOpen] = useState(false);
   const [routes, setRoutes] = useState<AssignedRoute[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
@@ -25,8 +26,8 @@ export default function Supervisor() {
 
   const load = () => {
     setError('');
-    Promise.all([sessions.active(), mobile.devices(), mobile.routes(), catalogs.machines(), catalogs.fields()])
-      .then(([s, d, r, m, f]) => { setOpen(s); setDevices(d); setRoutes(r); setMachines(m); setFields(f); })
+    Promise.all([sessions.active(), mobile.routes(), catalogs.machines(), catalogs.fields()])
+      .then(([s, r, m, f]) => { setOpen(s); setRoutes(r); setMachines(m); setFields(f); })
       .catch((e: Error) => setError(e.message));
   };
   useEffect(load, []);
@@ -131,9 +132,10 @@ export default function Supervisor() {
         </article>
       ))}
 
-      <h2>Teléfonos</h2>
-      {!devices.length && <p className="muted">Aún no hay teléfonos reportando.</p>}
-      {devices.map((d) => <article key={d.user_id} className="card"><strong>{d.user_name ?? `Usuario ${d.user_id}`}</strong><small>v{d.version ?? '?'} · {d.platform ?? 'web'} · {d.pending ?? 0} pendientes · última sincronización {d.last_sync_at ? when(d.last_sync_at) : 'nunca'}</small></article>)}
+      <details className="card" onToggle={event => setHealthOpen(event.currentTarget.open)}>
+        <summary>Salud de Steps Móvil</summary>
+        {healthOpen && <TrackerHealth />}
+      </details>
       <button onClick={load}>Actualizar</button>
 
       {builder && <RouteBuilder machines={machines} fields={fields} mapFields={mapFields} open={open} initialMachine={builder.machineId}

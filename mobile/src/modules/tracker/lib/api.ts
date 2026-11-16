@@ -3,7 +3,7 @@ import { platformFetch } from '../../../platform/http';
 const TOKEN_KEY = 'steps_movil_token';
 export const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) || 'https://stepsapp.cl/tracker-steps').replace(/\/+$/, '');
 
-export const APP_VERSION = '1.8.0';
+export const APP_VERSION = '1.9.0';
 
 export class ApiError extends Error {
   status: number;
@@ -20,6 +20,7 @@ export function setUnauthorizedHandler(fn: () => void) { onUnauthorized = fn; }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
+  headers.set('X-Steps-App-Version', APP_VERSION);
   const token = tokenStore.get();
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
@@ -132,11 +133,11 @@ export const mobile = {
   checklistTemplate: (machineId: number) => api<ChecklistTemplate>(`/mobile/checklist_template?machine_id=${machineId}`),
   incidents: (status?: string) => api<IncidentOut[]>(`/mobile/incidents${status ? `?status=${status}` : ''}`),
   setIncident: (id: string, status: string) => api<IncidentOut>(`/mobile/incidents/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-  devices: () => api<DeviceOut[]>('/mobile/devices'),
+  devices: () => api<DeviceOut[]>('/mobile/devices', { cache: 'no-store' }),
   routes: (machineId?: number) => api<AssignedRoute[]>(`/mobile/routes${machineId != null ? `?machine_id=${machineId}` : ''}`),
   createRoute: (body: { id: string; name: string; machine_id: number; waypoints: { lat: number; lon: number; label?: string }[]; note?: string }) => api<AssignedRoute>('/mobile/routes', { method: 'POST', body: JSON.stringify(body) }),
   setRoute: (id: string, status: AssignedRoute['status']) => api<AssignedRoute>(`/mobile/routes/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-  heartbeat: (body: { version: string; platform: string; pending: number; last_sync_at: string | null }) => api<{ ok: boolean }>('/mobile/heartbeat', { method: 'POST', body: JSON.stringify(body) }),
+  heartbeat: (body: { version: string; platform: string; pending: number | null; last_sync_at: string | null }) => api<{ ok: boolean }>('/mobile/heartbeat', { method: 'POST', body: JSON.stringify(body) }),
   diagnostic: (body: { version: string; message: string; log: string }) => api<{ ok: boolean }>('/mobile/diagnostics', { method: 'POST', body: JSON.stringify(body) }),
   /** La foto se pide con el token (no es pública): se devuelve como URL de objeto. */
   async photo(kind: 'incidents' | 'expenses', id: string): Promise<string> {

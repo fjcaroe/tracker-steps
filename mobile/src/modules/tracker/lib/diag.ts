@@ -1,23 +1,34 @@
-// Registro local de errores (sin datos personales) para el diagnóstico que el conductor puede enviar a soporte.
 import { APP_VERSION, mobile } from './api';
 
-const KEY = 'steps_movil_errors';
+const KEY = 'tracker-support-errors';
 const MAX = 40;
+type ErrorKind = 'error' | 'rechazo';
+type LogEntry = { time: string; kind: ErrorKind };
 
-function read(): string[] { try { const raw = localStorage.getItem(KEY); return raw ? (JSON.parse(raw) as string[]) : []; } catch { return []; } }
+function read(): LogEntry[] {
+  try {
+    const data: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]');
+    return Array.isArray(data) ? data.filter((entry): entry is LogEntry =>
+      Boolean(entry) && typeof entry.time === 'string'
+      && new Date(Date.parse(entry.time)).toJSON() === entry.time
+      && (entry.kind === 'error' || entry.kind === 'rechazo')).slice(-MAX) : [];
+  } catch {
+    return [];
+  }
+}
 
-export function logError(message: string) {
-  const list = read();
-  list.push(`${new Date().toISOString()} ${message}`.slice(0, 400));
+function logError(kind: ErrorKind) {
+  const list = [...read(), { time: new Date().toISOString(), kind }];
   try { localStorage.setItem(KEY, JSON.stringify(list.slice(-MAX))); } catch { /* sin espacio */ }
 }
-export const errorLog = () => read();
 
 export function installErrorLogging() {
-  window.addEventListener('error', (e) => logError(`error: ${e.message}`));
-  window.addEventListener('unhandledrejection', (e) => logError(`rechazo: ${(e.reason as Error)?.message ?? String(e.reason)}`));
+  window.addEventListener('error', () => logError('error'));
+  window.addEventListener('unhandledrejection', () => logError('rechazo'));
 }
 
-export function sendDiagnostic(message: string, extra: string): Promise<{ ok: boolean }> {
-  return mobile.diagnostic({ version: APP_VERSION, message, log: [extra, ...read()].join('\n').slice(0, 20000) });
+export function sendDiagnostic(pending: number | null, online: boolean): Promise<{ ok: boolean }> {
+  const summary = `pendientes=${pending ?? 'sin consultar'} conexión=${online ? 'disponible' : 'sin conexión'}`;
+  const log = [summary, ...read().map(({ time, kind }) => `${time} ${kind}`)].join('\n');
+  return mobile.diagnostic({ version: APP_VERSION, message: 'Diagnóstico enviado desde Perfil', log });
 }

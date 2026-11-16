@@ -3,7 +3,7 @@ import { loginWithOdoo, me, refreshToken, setUnauthorizedHandler, tokenStore, ty
 import { activeStore } from './lib/queue';
 import { applySettings, loadSettings, saveSettings } from './lib/settings';
 import { pendingTotal, setSyncGate } from './lib/sync';
-import { claimLocalData, ownerState, type OwnerState } from './lib/owner';
+import { claimLocalData, ownerState, ownerStore, type OwnerState } from './lib/owner';
 import Login from './screens/Login';
 import Journey from './screens/Journey';
 import Tasks from './screens/Tasks';
@@ -13,6 +13,7 @@ import Supervisor from './screens/Supervisor';
 import OwnerGate from './screens/OwnerGate';
 import HardwareFleet from './screens/HardwareFleet';
 import { passengerStore } from './lib/passengers';
+import { reportTrackerHealth } from './lib/health';
 
 type Tab = 'journey' | 'tasks' | 'history' | 'supervisor' | 'profile' | 'gps';
 const ALL_TABS: { id: Tab; label: string; icon: string; admin?: boolean }[] = [
@@ -72,6 +73,34 @@ export default function TrackerModule({ onExit }: { onExit: () => void }) {
     document.addEventListener('visibilitychange', visible);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); document.removeEventListener('visibilitychange', visible); };
   }, []);
+
+  useEffect(() => {
+    if (!user || owner.kind !== 'ok' || !online) return;
+    const account = user.id;
+    if (ownerStore.get()?.userId !== account) return;
+    let disposed = false;
+    let busy = false;
+    async function report() {
+      const token = tokenStore.get();
+      if (!token || document.visibilityState === 'hidden' || busy || disposed) return;
+      busy = true;
+      try {
+        const passengers = await passengerStore.read(account).catch(() => null);
+        if (disposed || tokenStore.get() !== token || ownerStore.get()?.userId !== account) return;
+        const pending = passengers && pendingTotal() + passengers.reduce((total, row) => total + row.queue.length, 0);
+        await reportTrackerHealth(account, pending);
+      } catch { /* Se reintenta mientras la app esté visible. */ }
+      finally { busy = false; }
+    }
+    void report();
+    const timer = window.setInterval(() => void report(), 60_000);
+    document.addEventListener('visibilitychange', report);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', report);
+    };
+  }, [user, owner.kind, online]);
 
   const closeHelp = () => { setHelp(false); saveSettings({ ...loadSettings(), seenHelp: true }); };
   const startTask = (t: Task) => { setPreset(t); setTab('journey'); };

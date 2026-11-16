@@ -40,7 +40,7 @@ export default function Profile({ user, onLogout }: { user: User; onLogout: () =
 
   const diagnostic = async () => {
     setBusy(true); setMsg('');
-    try { await sendDiagnostic('Diagnóstico enviado por el usuario', `usuario=${user.username} pendientes=${totalPending ?? 'sin consultar'} online=${navigator.onLine} ua=${navigator.userAgent}`); setMsg('Diagnóstico enviado. Gracias.'); }
+    try { await sendDiagnostic(totalPending, navigator.onLine); setMsg('Diagnóstico enviado. Gracias.'); }
     catch (e) { setMsg(`No se pudo enviar: ${(e as Error).message}`); } finally { setBusy(false); }
   };
   const checkUpdate = async () => {

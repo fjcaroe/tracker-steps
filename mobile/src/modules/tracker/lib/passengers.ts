@@ -1,3 +1,4 @@
+import { recordHealthSync } from './health';
 import { api, API_BASE, ApiError, tokenStore, type PassengerService } from './api';
 
 export type PassengerState = 'pending' | 'boarded' | 'alighted' | 'no_show';
@@ -129,6 +130,7 @@ export function syncPassengers(userId: number): Promise<void> {
           // Logout/expiry must not resurrect personal information after an in-flight request.
           if (record.base && record.expiresAt > Date.now() && manifest.manifest_version >= record.base.manifest_version) record.base = manifest;
         });
+        recordHealthSync(userId);
       }
     }
   })().finally(() => { syncing.delete(key); });

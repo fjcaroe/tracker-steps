@@ -36,8 +36,8 @@ export default function Journey({ userId, online, preset, onPresetUsed }: { user
 
   const sync = useCallback(async () => {
     setSyncing(true);
-    try { await syncAll(); } finally { setSyncing(false); setOps(outboxStore.ops()); const a = activeStore.get(); if (a) setActive((cur) => (cur && cur.workOrderId !== a.workOrderId ? a : cur)); }
-  }, []);
+    try { await syncAll(userId); } finally { setSyncing(false); setOps(outboxStore.ops()); const a = activeStore.get(); if (a) setActive((cur) => (cur && cur.workOrderId !== a.workOrderId ? a : cur)); }
+  }, [userId]);
   const retry = () => { outboxStore.clearErrors(); void sync(); };
   useEffect(() => { if (online) void sync(); }, [online, sync]);
   useEffect(() => {

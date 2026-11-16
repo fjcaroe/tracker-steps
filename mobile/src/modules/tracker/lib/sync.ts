@@ -1,7 +1,8 @@
 // Sincronización: cola de operaciones + puntos GPS, con almacenamiento local.
-import { api, APP_VERSION, mobile, sessions } from './api';
+import { api, sessions } from './api';
+import { recordHealthSync } from './health';
 import { runOutbox, startPending, type Op } from './outbox';
-import { activeStore, pointQueue, syncStore } from './queue';
+import { activeStore, pointQueue } from './queue';
 
 const OPS = 'steps_movil_outbox';
 const RESOLVED = 'steps_movil_outbox_ids';
@@ -22,8 +23,6 @@ export function pendingTotal(): number {
   return outboxStore.ops().length + Object.values(pointQueue.all()).reduce((n, p) => n + p.length, 0);
 }
 
-const platform = (): string => { try { return (window as unknown as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? 'web'; } catch { return 'web'; } };
-
 let running: Promise<number> | null = null;
 const receivedEmergencies = new Set<string>();
 export const emergencyReceived = (id: string) => receivedEmergencies.has(id);
@@ -31,17 +30,17 @@ export const emergencyReceived = (id: string) => receivedEmergencies.has(id);
 /** Compuerta de propietario: mientras devuelva false no se envía nada (datos de otra cuenta o de dueño desconocido). */
 let gate: () => boolean = () => true;
 export function setSyncGate(fn: () => boolean) { gate = fn; }
-let lastBeat = 0;
-let lastBeatPending = -1;
-const BEAT_EVERY_MS = 60_000;
-
 /** Ejecuta la cola y luego envía los puntos de la jornada activa (si ya existe en el servidor). Devuelve operaciones completadas. */
-export function syncAll(): Promise<number> {
+export function syncAll(userId?: number): Promise<number> {
   if (!gate()) return Promise.resolve(0);
   if (running) return running;
   running = (async () => {
     const flushPoints = async (sessionId: string) => {
-      await pointQueue.flush(sessionId, (p) => sessions.points(sessionId, p));
+      await pointQueue.flush(sessionId, async (points) => {
+        const receipt = await sessions.points(sessionId, points);
+        if (userId != null) recordHealthSync(userId);
+        return receipt;
+      });
       return pointQueue.size(sessionId) === 0;
     };
     const snapshot = outboxStore.ops();
@@ -62,6 +61,7 @@ export function syncAll(): Promise<number> {
         }
       },
     });
+    if (userId != null && result.done > 0) recordHealthSync(userId);
     // Registros agregados mientras una petición estaba en vuelo deben sobrevivir al resultado.
     write(OPS, [...result.ops, ...outboxStore.ops().slice(snapshot.length)]);
     write(RESOLVED, result.resolved);
@@ -74,13 +74,6 @@ export function syncAll(): Promise<number> {
     // También quedan puntos de jornadas cerradas o ya retiradas de la pantalla activa.
     for (const id of Object.keys(pointQueue.all())) {
       if (!startPending(outboxStore.ops(), id)) await flushPoints(id);
-    }
-    // Señal de vida para soporte: versión de la app, pendientes y última sincronización.
-    const last = syncStore.get();
-    const pending = pendingTotal();
-    if (Date.now() - lastBeat > BEAT_EVERY_MS || pending !== lastBeatPending) {
-      lastBeat = Date.now(); lastBeatPending = pending;
-      void mobile.heartbeat({ version: APP_VERSION, platform: platform(), pending, last_sync_at: last ? new Date(last).toISOString() : null }).catch(() => {});
     }
     return result.done;
   })().finally(() => { running = null; });

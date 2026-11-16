@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { activeStore, pointQueue } from './queue';
+import { healthSyncTime } from './health';
 import { outboxStore, pendingTotal, syncAll } from './sync';
 
 const handlers = vi.hoisted(() => ({
@@ -31,6 +32,16 @@ describe('sincronización de jornadas', () => {
     await syncAll();
     expect(outboxStore.ops()).toEqual([]);
     expect(handlers.api).toHaveBeenCalledTimes(2);
+  });
+
+  it('fecha una operación confirmada para la cuenta que sincroniza', async () => {
+    handlers.api.mockRejectedValueOnce(Object.assign(new Error('offline'), { status: 0 }));
+    outboxStore.add({ kind: 'post', sessionId: 'a', path: 'incidents', body: { id: 'incident' } });
+    await syncAll(44);
+    expect(healthSyncTime(44)).toBeNull();
+    await syncAll(44);
+    expect(healthSyncTime(44)).toBeTruthy();
+    expect(healthSyncTime(45)).toBeNull();
   });
 
   it('envía puntos pendientes aunque la jornada ya no esté activa en pantalla', async () => {

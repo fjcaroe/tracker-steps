@@ -135,12 +135,17 @@ def test_my_tasks_and_progress(api):
 
 def test_heartbeat_and_devices(api):
     client, who, _ = api
+    assert client.post('/mobile/heartbeat', json={'version': '0.4.0', 'platform': 'web', 'pending': 3,
+                                                'last_sync_at': '2026-01-02T12:00:00Z'}).status_code == 200
+    assert client.post('/mobile/heartbeat', json={'version': '0.4.0', 'platform': 'web', 'pending': 3,
+                                                'last_sync_at': '2026-01-02T11:00:00Z'}).status_code == 200
     assert client.post('/mobile/heartbeat', json={'version': '0.4.0', 'platform': 'web', 'pending': 3}).status_code == 200
     assert client.get('/mobile/devices').status_code == 403
     assert client.post('/mobile/diagnostics', json={'version': '0.4.0', 'message': 'falla', 'log': 'x'}).status_code == 200
     who['id'] = 1
     devices = client.get('/mobile/devices').json()
     assert devices[0]['version'] == '0.4.0' and devices[0]['pending'] == 3 and devices[0]['user_name'] == 'Omar Operador'
+    assert devices[0]['last_sync_at'].startswith('2026-01-02T12:00:00')
 
 
 def test_routes_assign_and_follow(api):

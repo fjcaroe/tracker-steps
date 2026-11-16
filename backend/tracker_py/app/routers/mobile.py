@@ -328,14 +328,23 @@ class DiagnosticIn(BaseModel):
 
 @router.post("/heartbeat")
 def heartbeat(payload: HeartbeatIn, db: Session = Depends(get_db), current: User = Depends(get_current_user)):
-    row = db.get(MobileDevice, current.id)
+    now = _now()
+    row = db.query(MobileDevice).filter(MobileDevice.user_id == current.id).with_for_update().one_or_none()
     if row is None:
-        row = MobileDevice(user_id=current.id, last_seen_at=_now())
+        row = MobileDevice(user_id=current.id, last_seen_at=now)
         db.add(row)
     row.version, row.platform, row.pending = payload.version, payload.platform, payload.pending
     if payload.last_sync_at is not None:
-        row.last_sync_at = payload.last_sync_at
-    row.last_seen_at = _now()
+        reported = payload.last_sync_at
+        if reported.tzinfo is None:
+            reported = reported.replace(tzinfo=timezone.utc)
+        confirmed = min(reported, now)
+        previous = row.last_sync_at
+        if previous is not None and previous.tzinfo is None:
+            previous = previous.replace(tzinfo=timezone.utc)
+        if previous is None or confirmed > previous:
+            row.last_sync_at = confirmed
+    row.last_seen_at = now
     db.commit()
     return {"ok": True}
 
