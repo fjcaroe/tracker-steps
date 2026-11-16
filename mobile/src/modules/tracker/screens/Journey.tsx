@@ -9,7 +9,7 @@ import { continuousDrivingMs, routeStore, summarize, type RoutePoint, type Summa
 import { beep, loadSettings } from '../lib/settings';
 import { directionsUrl, formatDistance, nextWaypoint, routeDeviationM, routeLengthM } from '../lib/nav';
 import MapView from '../components/MapView';
-import { ChecklistSheet, ExpenseSheet, IncidentSheet, SosSheet, SummarySheet } from './Sheets';
+import { ChecklistSheet, ExpenseSheet, IncidentSheet, Sheet, SosSheet, SummarySheet } from './Sheets';
 
 type Finished = { machine: string; summary: Summary; points: RoutePoint[] };
 
@@ -432,17 +432,15 @@ export function FinishSheet({ active, flush, onCancel, onDone }: { active: Activ
   };
 
   return (
-    <div className="sheet" role="dialog" aria-modal="true" aria-label="Finalizar jornada">
-      <form className="sheet__panel stack" onSubmit={submit}>
-        <h2>Cerrar jornada</h2>
+    <Sheet title="Finalizar jornada" onClose={onCancel} closeLabel="Seguir en jornada" closingLocked={busy}>
+      <form className="stack" onSubmit={submit}>
         {!active.distanceBased && <label>Horómetro final<input inputMode="decimal" value={hm} onChange={(e) => setHm(e.target.value)} required /></label>}
         <label>Litros en el estanque al terminar{active.distanceBased ? ' (opcional)' : ''}<input inputMode="decimal" value={tank} onChange={(e) => setTank(e.target.value)} required={!active.distanceBased} /></label>
         <label>Litros recargados (opcional)<input inputMode="decimal" value={refill} onChange={(e) => setRefill(e.target.value)} placeholder="0" /></label>
         {error && <p className="error" role="alert">{error}</p>}
         <button className="primary big" disabled={busy}>{busy ? 'Cerrando…' : 'Confirmar y cerrar'}</button>
-        <button type="button" onClick={onCancel} disabled={busy}>Seguir en jornada</button>
       </form>
-    </div>
+    </Sheet>
   );
 }
 

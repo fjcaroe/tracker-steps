@@ -140,7 +140,7 @@ export default function TrackerModule({ onExit }: { onExit: () => void }) {
         {tabs.map((t) => (
           <button key={t.id} className={tab === t.id ? 'is-active' : ''} aria-current={tab === t.id ? 'page' : undefined} onClick={() => setTab(t.id)}>
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={t.icon} /></svg>
-            {t.label}
+            <span>{t.label}</span>
           </button>
         ))}
       </nav>

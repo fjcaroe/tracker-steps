@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { mobile, type IncidentCategory } from '../lib/api';
 import type { Fix } from '../lib/geo';
 import { compressPhoto } from '../lib/photo';
@@ -12,14 +12,65 @@ const DEFAULT_ITEMS = [
   { key: 'oil', label: 'Nivel de aceite y refrigerante' }, { key: 'leaks', label: 'Sin fugas de aceite o combustible' }, { key: 'extinguisher', label: 'Extintor vigente' },
 ];
 
-export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return (
-    <div className="sheet" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="sheet__panel stack">
-        <div className="row"><h2>{title}</h2><button type="button" onClick={onClose} aria-label="Cerrar">Cerrar</button></div>
-        {children}
-      </div>
+export function Sheet({ title, onClose, children, closeLabel = 'Cerrar', closingLocked = false }: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  closeLabel?: string;
+  closingLocked?: boolean;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const legacy = useRef<HTMLDivElement>(null);
+  const headingId = useId();
+  const nativeDialog = typeof HTMLDialogElement !== 'undefined' && typeof HTMLDialogElement.prototype.showModal === 'function';
+  useLayoutEffect(() => {
+    const element = dialog.current;
+    if (element) {
+      element.showModal();
+      return () => element.close();
+    }
+
+    const opener = document.activeElement;
+    legacy.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+    return () => { if (opener instanceof HTMLElement) opener.focus(); };
+  }, []);
+
+  const panel = (
+    <div className="sheet__panel stack">
+      <div className="row"><h2 id={headingId}>{title}</h2><button type="button" onClick={onClose} disabled={closingLocked}>{closeLabel}</button></div>
+      {children}
     </div>
+  );
+
+  // Older iOS WebViews have no modal dialog element.
+  const onLegacyKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (!closingLocked) onClose();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button, input, select, textarea, a[href]')]
+      .filter((control) => control.tabIndex >= 0 && !control.matches(':disabled') && control.getClientRects().length);
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (document.activeElement !== (event.shiftKey ? first : last)) return;
+    event.preventDefault();
+    (event.shiftKey ? last : first)?.focus();
+  };
+
+  if (!nativeDialog) {
+    return <div ref={legacy} className="sheet-legacy" role="dialog" aria-modal="true"
+      aria-labelledby={headingId} onKeyDown={onLegacyKeyDown}>{panel}</div>;
+  }
+
+  return (
+    <dialog ref={dialog} className="sheet" aria-labelledby={headingId} onCancel={(event) => {
+      event.preventDefault();
+      if (!closingLocked) onClose();
+    }}>
+      {panel}
+    </dialog>
   );
 }
 
