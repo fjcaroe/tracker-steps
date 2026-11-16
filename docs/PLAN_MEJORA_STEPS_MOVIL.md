@@ -193,10 +193,24 @@ abierta desde otro teléfono; no hay nada de pasajeros.
   con permisos de ubicación paso a paso, y versión visible con "buscar actualización".
 - **Aceptación:** revisión de accesibilidad básica y prueba con 2 conductores reales.
 
-### I15 · Observabilidad y soporte  `[~]` 02-10-2026 parcial: señal de vida (versión, pendientes, última sincronización), registro de errores y enviar diagnóstico; falta el panel de salud en la web
+### I15 · Observabilidad y soporte  `[x]` 16-11-2026 disponible en Desarrollo
 - **Qué:** registro de errores de la app (sin datos personales), "enviar diagnóstico" desde Perfil, versión de
   app en cada petición, panel de salud (última sincronización por conductor) en la web.
 - **Aceptación:** ante un reclamo se puede ver qué versión usa el conductor y cuándo sincronizó por última vez.
+- En **Supervisor → Salud de Steps Móvil**, soporte busca al conductor y
+  consulta la versión, la última sincronización confirmada, el último reporte
+  de la app y los registros pendientes. La consulta se actualiza cada
+  30 segundos con el panel abierto. Un reporte atrasado conserva la fecha
+  más reciente ya confirmada. El diagnóstico que se envía desde Perfil
+  recoge la hora y la categoría del error.
+- **Bitácora 16-11-2026:** Tracker 1.9.0 en Desarrollo, paquete
+  `919c72bf48bbe73ca443b1eb798323cd26f83262`. JS servido
+  `assets/index-BEEVrIOa.js`, SHA-256
+  `1313cd6e14f1d407f26e81a45b1f9fea582572d375e3ad8c045a40e499b679f1`.
+  TypeScript, 194 pruebas de la app y 92 de API. Prueba de navegador a 375 px,
+  ensayo PostgreSQL con usuario administrador y conductor y consulta real
+  en Desarrollo con la sesión de un administrador. El rechazo para un
+  conductor se comprobó en la copia. La API utiliza la base y las tablas vigentes.
 
 ---
 
