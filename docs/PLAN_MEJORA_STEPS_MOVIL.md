@@ -187,11 +187,24 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 
 ## Bloque E — Experiencia y calidad
 
-### I14 · Experiencia de terreno  `[~]` 02-10-2026 parcial: modo noche, modo guantes, tamaño de letra, sonido/vibración, ayuda de primer uso, versión y buscar actualización; falta revisión de accesibilidad con conductores reales
+### I14 · Experiencia de terreno  `[~]` 16-11-2026 accesibilidad básica verificada; pendiente prueba con dos conductores
 - **Qué:** botones grandes y modo guantes, modo noche, voz/sonidos de aviso, textos en español claro,
   tamaño de letra ajustable, accesibilidad (lector de pantalla, contraste), pantalla de ayuda "primer uso"
   con permisos de ubicación paso a paso, y versión visible con "buscar actualización".
 - **Aceptación:** revisión de accesibilidad básica y prueba con 2 conductores reales.
+- **Bitácora 16-11-2026:** Tracker 1.9.1 disponible en Desarrollo, paquete
+  `f9d9d2bf26fc8b6d8791ce2428ef8cf3ac09d3da`. JS servido
+  `assets/index-B_oKcBea.js`, SHA-256
+  `d870aa9d07248e38966ed5acea256c609ff6c233e937cbd93df11048b6d26f6d`.
+  La ayuda, los formularios de Jornada y el cierre toman el foco al abrir,
+  se pueden cerrar con Escape y devuelven el foco al control que los abrió.
+  La sección activa mantiene el contraste con el modo claro u oscuro
+  seleccionado en Perfil. Los encabezados y etiquetas responden al tamaño
+  elegido. Probados navegador a 320 y 375 px, modo guantes, letra grande,
+  teclado, nombres accesibles y alternativa para WebViews antiguos. Pasaron
+  TypeScript y 194 pruebas. El ensayo en copia de Desarrollo comprobó el SOS
+  con la API existente. Quedan pendientes el lector de pantalla en teléfono
+  y la prueba de terreno con dos conductores.
 
 ### I15 · Observabilidad y soporte  `[x]` 16-11-2026 disponible en Desarrollo
 - **Qué:** registro de errores de la app (sin datos personales), "enviar diagnóstico" desde Perfil, versión de
