@@ -7,7 +7,7 @@ from odoo import Command
 from odoo.tests.common import new_test_user
 from odoo.tools.safe_eval import safe_eval
 from odoo.addons.step_budget_design.tests.test_design import BudgetDesignCase, save_general_budget_form
-from odoo.addons.step_management_costs_agriculture.tests.test_estimation_entry import (
+from odoo.addons.step_management_estimation_entry.tests.test_entry import (
     estimation_entry_sample, exercise_estimation_entry,
 )
 

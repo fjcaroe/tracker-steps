@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_estimation_entry_form" model="ir.ui.view">
+        <field name="name">step.management.estimation.entry.form</field>
+        <field name="model">step.management.estimation</field>
+        <field name="inherit_id" ref="step_management_costs_agriculture.view_estimation_catalog_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group/group/field[@name='company_id']" position="after">
+                <field name="farm_id" readonly="state != 'draft'" options="{'no_create': True}"/>
+            </xpath>
+            <xpath expr="//field[@name='center_ids']" position="attributes">
+                <attribute name="domain">[('company_id', '=', company_id)] + ([('fundo_id', '=', farm_id)] if farm_id else []) + ([('especie_id', '=', species_id)] if species_id else []) + ([('variedad_id', '=', variety_id)] if variety_id else [])</attribute>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']/list/field[@name='center_id']" position="attributes">
+                <attribute name="readonly">False</attribute>
+                <attribute name="options">{'no_create': True}</attribute>
+                <attribute name="domain">[('company_id', '=', parent.company_id)] + ([('fundo_id', '=', parent.farm_id)] if parent.farm_id else []) + ([('especie_id', '=', parent.species_id)] if parent.species_id else []) + ([('variedad_id', '=', parent.variety_id)] if parent.variety_id else [])</attribute>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']/list/field[@name='plot']" position="before">
+                <field name="cuartel_ids" widget="many2many_tags" readonly="True" options="{'no_open': True}"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']/list/field[@name='plot']" position="attributes">
+                <attribute name="optional">hide</attribute>
+                <attribute name="readonly">True</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

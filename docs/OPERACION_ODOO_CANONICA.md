@@ -1,7 +1,8 @@
 # Operación y publicación de Odoo
 
 T226 amplía el paquete `budget-design` en Desarrollo, Cerro y QA-Cerro con
-`step_management_costs_agriculture`. Permite seleccionar centros en el
+`step_management_estimation_entry`. Extiende el puente agrícola instalado y
+permite seleccionar centros en el
 detalle de estimaciones, toma plantas, superficie y cuarteles del maestro,
 y agrega Fundo al encabezado. Ambos selectores respetan Fundo, Especie y
 Variedad. Conservar las estimaciones históricas y sus importes y probar los
