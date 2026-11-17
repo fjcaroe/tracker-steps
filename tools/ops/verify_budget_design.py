@@ -97,11 +97,12 @@ try:
     exercise_estimation_entry(estimate.with_user(user), center, other, plots)
     assert env.ref('step_management_costs.menu_estimation').id in visible
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({
-        'tickets': [77, 224, 225, 226], 'versions': EXPECTED, 'menus': True, 'forms': True,
+        'tickets': [77, 224, 225, 226, 227], 'versions': EXPECTED, 'menus': True, 'forms': True,
         'pruning_formula': True, 'hectare_scaling': True, 'approval_revision': True,
         'summary': True, 'real_season_months': True, 'general_form_save': True,
         'detail_product_group': True, 'activity_catalog': True, 'legacy_activity_preserved': True,
         'estimate_entry': True, 'estimate_filters': True, 'native_plots': True,
+        'estimate_per_plot': True, 'independent_plot_yield': True,
     }))
 finally:
     env.cr.rollback()

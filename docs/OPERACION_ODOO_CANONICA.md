@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+T227 amplía `step_management_estimation_entry` a 18.0.1.1.0 dentro de
+`budget-design`, en Desarrollo, Cerro y QA-Cerro. Calcular detalle genera
+una línea por cuartel nativo con sus hectáreas y plantas, conservando los
+rendimientos editados por cuartel. Los borradores previos se despliegan al
+recalcular. La migración permite varios cuarteles del mismo centro sin
+reescribir filas, cantidades ni validaciones históricas. Probar cálculo,
+duplicados, revisiones y el caso reportado en copias frescas antes de publicar
+el mismo paquete con respaldo, bloqueo compartido, paridad y aislamiento.
+
 T226 amplía el paquete `budget-design` en Desarrollo, Cerro y QA-Cerro con
 `step_management_estimation_entry`. Extiende el puente agrícola instalado y
 permite seleccionar centros en el
