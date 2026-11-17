@@ -132,7 +132,7 @@ class TestEstimationEntry(TransactionCase):
         line = estimation.line_ids[0]
         with self.assertRaises(ValidationError), self.env.cr.savepoint():
             line.write({"center_id": other.id, "cuartel_id": plots[0].id})
-        with mute_logger("odoo.sql_db"), self.assertRaises((IntegrityError, ValidationError)):
+        with mute_logger("odoo.sql_db"), self.assertRaises(IntegrityError):
             with self.env.cr.savepoint():
                 line.copy()
 
@@ -156,7 +156,7 @@ class TestEstimationEntry(TransactionCase):
         line = self.env["step.management.estimation.line"].create({
             "estimation_id": estimation.id, "center_id": center.id,
         })
-        with mute_logger("odoo.sql_db"), self.assertRaises((IntegrityError, ValidationError)):
+        with mute_logger("odoo.sql_db"), self.assertRaises(IntegrityError):
             with self.env.cr.savepoint():
                 line.copy()
 
@@ -164,6 +164,8 @@ class TestEstimationEntry(TransactionCase):
         estimation, center, other, plots = estimation_entry_sample(self.env)
         estimation.center_ids = center
         estimation.action_compute_lines()
+        estimation.line_ids[0].yield_ue = 5
+        estimation.line_ids[1].yield_ue = 2
         category = self.env["step.management.fruit.category"].create({
             "name": "QA T227 fruta", "code": "QA-T227",
         })
