@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T224 actualiza `budget-design` en Desarrollo, Cerro y QA-Cerro. Permite editar
+y guardar la distribución de un presupuesto general manual. La cuadratura
+se exige al validar y aprobar el presupuesto con todos sus meses guardados.
+Probar el guardado del formulario en copias frescas y publicar primero en
+Desarrollo. Los dos destinos Cerro deben recibir el mismo paquete, con
+respaldo, bloqueo compartido y preservación de los presupuestos existentes.
+
 T220 autoriza publicar en Cerro y QA-Cerro la ampliación instalada de
 Presupuestos de Gestión y Costos, con el paquete `budget-design`.
 La versión y los archivos deben coincidir con Desarrollo. Certificar el

@@ -9,6 +9,58 @@ from ..models.excel import ExcelValues
 from ..models.template import season_months
 
 
+def save_general_budget_form(env, template, seed):
+    center = seed.allocation_ids.center_id
+    line_values = {
+        'center_id': center.id,
+        'group_id': template.line_ids.group_id.id,
+        'category': 'labor',
+        'indicator': 'Labor mensual',
+    }
+    budget = env['step.management.operational.budget'].create({
+        'name': 'QA T224',
+        'description': 'Presupuesto general mensual',
+        'budget_type': 'general',
+        'season_id': seed.season_id.id,
+        'currency_id': env.ref('base.CLP').id,
+        'allocation_ids': [Command.create({'center_id': center.id, 'hectares': 0})],
+        'line_ids': [Command.create(dict(
+            line_values, quantity=12, unit_price=25000,
+            month_ids=[Command.create({
+                'month': 'aug', 'period_date': '2027-08-01',
+                'quantity': 12, 'unit_price': 25000,
+            })],
+        ))],
+    })
+    env.invalidate_all()
+    months = [
+        ('sep', '2026-09-01'), ('oct', '2026-10-01'), ('nov', '2026-11-01'),
+        ('dec', '2026-12-01'), ('jan', '2027-01-01'), ('feb', '2027-02-01'),
+    ]
+    budget.web_save({
+        'line_ids': [
+            Command.update(budget.line_ids.id, {
+                'quantity': 84,
+                'month_ids': [
+                    Command.create({
+                        'month': month, 'period_date': period,
+                        'quantity': 12, 'unit_price': 25000,
+                    })
+                    for month, period in months
+                ],
+            }),
+            Command.create(dict(
+                line_values, indicator='Segunda labor', quantity=10, unit_price=40000,
+                month_ids=[Command.create({
+                    'month': 'aug', 'period_date': '2027-08-01',
+                    'quantity': 10, 'unit_price': 40000,
+                })],
+            )),
+        ],
+    }, {'line_ids': {'fields': {'amount': {}, 'monthly_amount': {}, 'distribution_complete': {}}}})
+    return budget
+
+
 # The role test resolves menus across installed applications. Run after the
 # entire registry is loaded, including applications outside this package.
 @tagged('post_install', '-at_install')
@@ -32,6 +84,26 @@ class BudgetDesignCase(TransactionCase):
         budget=env['step.management.operational.budget'].create({'description':'QA T77 budget','template_id':template.id,
             'allocation_ids':[Command.create({'center_id':center.id,'hectares':4})]})
         return template,budget
+
+    def test_save_general_budget_after_expanding_monthly_distribution(self):
+        template, seed = self.sample()
+        budget = save_general_budget_form(self.env, template, seed)
+        line = budget.line_ids.filtered(lambda row: row.quantity == 84)
+        self.assertEqual(line.monthly_quantity, 84)
+        self.assertEqual(line.amount, 2100000)
+        self.assertEqual(line.monthly_amount, line.amount)
+        self.assertEqual(budget.total_amount, 2500000)
+        self.assertEqual(budget.incomplete_line_count, 0)
+
+        # A real mismatch is visible on the line and prevents validation.
+        month = line.month_ids[0]
+        month.unit_price = 24000
+        self.assertEqual(budget.incomplete_line_count, 1)
+        with self.assertRaises(UserError):
+            budget.action_prepare_general()
+        month.unit_price = 25000
+        budget.action_prepare_general()
+        self.assertEqual(budget.state, 'calculated')
 
     def test_pruning_unitary_quantity_and_hectare_application(self):
         template,budget=self.sample();line=template.line_ids

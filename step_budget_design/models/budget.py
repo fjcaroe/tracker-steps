@@ -98,6 +98,20 @@ class BudgetLine(models.Model):
     calculation_uom_id=fields.Many2one('step.management.budget.calculation.uom',string='UdM cálculo')
     expected_kg=fields.Float(string='Kilos estimados del centro')
 
+    @api.constrains(
+        'month_ids', 'quantity', 'uom_id', 'unit_price', 'direct_amount',
+        'calculation_mode',
+    )
+    def _check_monthly_distribution(self):
+        # Saving the form writes the nested monthly rows before all stored
+        # totals are recomputed. Manual budgets already reconcile every line
+        # once the edit is complete, at validation and again at approval.
+        strict_lines = self.filtered(
+            lambda line: line.budget_id.budget_type != 'general'
+            or line.budget_id.import_id
+        )
+        super(BudgetLine, strict_lines)._check_monthly_distribution()
+
     @api.model_create_multi
     def create(self,vals_list):
         for vals in vals_list:

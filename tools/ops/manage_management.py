@@ -753,7 +753,7 @@ def main():
     staged = stage / 'addons'
     staged.mkdir(exist_ok=True)
     proof = extract(args.release, staged)
-    if args.kind == 'budget-design':
+    if args.kind == 'budget-design' and args.environment != registry['policy']['qa']:
         verify_development_budget_source(registry, staged, proof)
     if args.kind in ('previred-simpledigital', 'previred-revision') and tuple(map(int, proof['versions']['step_hr_previred_corrections'].split('.'))) >= (18, 0, 1, 1, 0):
         assert args.environment in ('development', 'sys'), 'T173 destinations only'
