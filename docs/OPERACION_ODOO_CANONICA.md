@@ -16,6 +16,12 @@ movimiento y usa la valoración estándar de Inventario en Cerro. Comprobar
 el formulario, el flujo, la distribución y el aislamiento por empresa en
 copias frescas. No generar ni confirmar consumos reales al publicar.
 
+T222 publica `activities-company` 18.0.1.3.0 en Cerro y QA-Cerro con el
+paquete ya instalado en Desarrollo. Validar los seis menús de Actividades,
+el formulario de cuadrilla y el guardado del trabajador con la empresa y
+el contratista correctos. Comprobar en copias el rechazo de trabajadores de
+otra empresa o contratista. Conservar las cuadrillas, sus líneas y accesos.
+
 T218 usa `reception-excel` en Desarrollo, Cerro y QA-Cerro. Packing →
 Maestros → Materiales de embalajes abre las fichas nativas de productos de
 la categoría de embalajes y sus subcategorías. Verificar el menú, listado,
