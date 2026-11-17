@@ -1,6 +1,8 @@
 from odoo import api, fields, models, Command, _
-from odoo.exceptions import UserError, ValidationError
-from odoo.addons.step_management_costs.models.operational_budget import PROTECTED_HEADER_FIELDS, REVISION_LINE_FIELDS, FROZEN_STATES
+from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.addons.step_management_costs.models.operational_budget import (
+    FROZEN_STATES, MANAGER_GROUP, PROTECTED_HEADER_FIELDS, REVISION_LINE_FIELDS,
+)
 from odoo.addons.step_management_costs.models.budget_import import MONTH_KEY_BY_NUMBER
 from .template import season_months
 
@@ -97,6 +99,24 @@ class BudgetLine(models.Model):
     activity_id=fields.Many2one('account.analytic.account',string='Actividad',check_company=True)
     calculation_uom_id=fields.Many2one('step.management.budget.calculation.uom',string='UdM cálculo')
     expected_kg=fields.Float(string='Kilos estimados del centro')
+
+    @api.model
+    def action_open_activity_catalog(self):
+        if not self.env.user.has_group(MANAGER_GROUP):
+            raise AccessError(_('Necesita el perfil de administrador de Gestión y Costos.'))
+        action = self.env['ir.actions.actions']._for_xml_id('step_budget_design.activity_catalog_window')
+        # An activity account can be managed without granting access to edit analytic plans.
+        plans = self.env['account.analytic.plan'].sudo().search([('name', '=', 'Actividad')], limit=2)
+        action['context'] = {'default_plan_id': plans.id} if len(plans) == 1 else {'create': False}
+        return action
+
+    @api.onchange('group_id')
+    def _onchange_group_product(self):
+        for line in self:
+            if line.product_id and (
+                not line.group_id or line.product_id.management_budget_group_id != line.group_id
+            ):
+                line.product_id = False
 
     @api.constrains(
         'month_ids', 'quantity', 'uom_id', 'unit_price', 'direct_amount',

@@ -19,9 +19,58 @@
   <record id="operational_form" model="ir.ui.view"><field name="name">budget.operational.design.form</field><field name="model">step.management.operational.budget</field><field name="inherit_id" ref="step_management_costs.view_operational_budget_form"/><field name="arch" type="xml">
     <xpath expr="//field[@name='season']" position="before"><field name="season_id" required="not id" readonly="state in ('approved','closed','superseded')"/><field name="budget_version_id" required="not id" readonly="state in ('approved','closed','superseded')"/></xpath>
     <xpath expr="//field[@name='line_ids']/list/field[@name='indicator']" position="after"><field name="origin_id" optional="show"/><field name="activity_id" optional="show"/><field name="calculation_uom_id" optional="hide"/><field name="expected_kg" optional="hide"/></xpath>
-    <xpath expr="//field[@name='line_ids']/form//field[@name='indicator']" position="after"><field name="origin_id"/><field name="activity_id" domain="[('plan_id.name','=','Actividad')]"/><field name="calculation_uom_id"/><field name="expected_kg"/></xpath>
+    <xpath expr="//field[@name='line_ids']/form//field[@name='indicator']" position="after">
+      <field name="origin_id"/>
+      <field name="activity_id" domain="[('plan_id.name','=','Actividad')]"/>
+      <field name="product_id" domain="[('management_budget_group_id', '=', group_id or -1)]"
+             options="{'no_create': True}"/>
+      <field name="calculation_uom_id"/>
+      <field name="expected_kg"/>
+    </xpath>
+    <xpath expr="//field[@name='line_ids']/form//field[@name='activity']" position="replace"/>
     <xpath expr="//field[@name='month_ids']/list/field[@name='month']" position="before"><field name="period_date"/></xpath>
   </field></record>
+  <record id="activity_catalog_form" model="ir.ui.view">
+    <field name="name">account.analytic.account.form.budget.activity</field>
+    <field name="model">account.analytic.account</field>
+    <field name="mode">primary</field>
+    <field name="inherit_id" ref="analytic.view_account_analytic_account_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='plan_id']" position="attributes">
+        <attribute name="readonly">True</attribute>
+        <attribute name="options">{'no_open': True}</attribute>
+      </xpath>
+    </field>
+  </record>
+  <record id="activity_catalog_window" model="ir.actions.act_window">
+    <field name="name">Actividades</field>
+    <field name="res_model">account.analytic.account</field>
+    <field name="view_mode">list,form</field>
+    <field name="domain">[('plan_id.name', '=', 'Actividad')]</field>
+  </record>
+  <record id="activity_catalog_form_binding" model="ir.actions.act_window.view">
+    <field name="sequence">20</field>
+    <field name="view_mode">form</field>
+    <field name="view_id" ref="activity_catalog_form"/>
+    <field name="act_window_id" ref="activity_catalog_window"/>
+  </record>
+  <record id="activity_catalog_list_binding" model="ir.actions.act_window.view">
+    <field name="sequence">10</field>
+    <field name="view_mode">list</field>
+    <field name="view_id" ref="analytic.view_account_analytic_account_list"/>
+    <field name="act_window_id" ref="activity_catalog_window"/>
+  </record>
+  <record id="activity_catalog_action" model="ir.actions.server">
+    <field name="name">Actividades</field>
+    <field name="model_id" ref="step_management_costs.model_step_management_budget_line"/>
+    <field name="state">code</field>
+    <field name="code">action = model.action_open_activity_catalog()</field>
+    <field name="groups_id" eval="[(4, ref('step_management_costs.group_management_manager'))]"/>
+  </record>
+  <menuitem id="activity_catalog_menu" name="Actividades"
+            parent="step_management_costs.menu_management_configuration"
+            action="activity_catalog_action"
+            groups="step_management_costs.group_management_manager" sequence="20"/>
   <record id="group_form" model="ir.ui.view"><field name="name">budget.group.design.form</field><field name="model">step.management.budget.group</field><field name="inherit_id" ref="step_management_costs.view_budget_group_form"/><field name="arch" type="xml"><xpath expr="//field[@name='flow_type']" position="after"><field name="origin_id"/><field name="phenology_id"/></xpath></field></record>
   <record id="product_form" model="ir.ui.view"><field name="name">product.agricultural.budget.group</field><field name="model">product.template</field><field name="inherit_id" ref="step_hr.step_view_product_template_form"/><field name="arch" type="xml"><xpath expr="//page[@name='agricola']/group" position="inside"><group><field name="management_budget_group_id"/></group></xpath></field></record>
   <record id="import_form" model="ir.ui.view"><field name="name">budget.import.design.form</field><field name="model">step.management.budget.import</field><field name="inherit_id" ref="step_management_costs.view_budget_import_form"/><field name="arch" type="xml"><xpath expr="//field[@name='filename']" position="after"><field name="target_budget_type" readonly="state != 'draft'"/><field name="season_master_id" readonly="state != 'draft'"/><field name="version_master_id" readonly="state != 'draft'"/></xpath></field></record>

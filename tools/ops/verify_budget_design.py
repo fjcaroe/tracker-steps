@@ -3,7 +3,9 @@ import importlib,json
 from pathlib import Path
 from types import SimpleNamespace
 from lxml import etree
+from odoo import Command
 from odoo.tests.common import new_test_user
+from odoo.tools.safe_eval import safe_eval
 from odoo.addons.step_budget_design.tests.test_design import BudgetDesignCase, save_general_budget_form
 
 try:
@@ -41,9 +43,58 @@ try:
     line=general.line_ids.filtered(lambda row: row.quantity==84)
     assert line.monthly_quantity==84 and line.amount==line.monthly_amount==2100000
     assert general.total_amount==2500000 and general.incomplete_line_count==0
+
+    detail = form.xpath('.//field[@name="line_ids"]/form')[0]
+    product_field = detail.xpath('.//field[@name="activity_id"]/following-sibling::*[1][@name="product_id"]')[0]
+    assert not detail.xpath('.//field[@name="activity"]')
+    catalog_menu = env.ref('step_budget_design.activity_catalog_menu')
+    catalog_action = env.ref('step_budget_design.activity_catalog_action')
+    assert catalog_menu.id in visible and catalog_menu.action == catalog_action
+    action = catalog_action.with_user(user).run()
+    assert action['res_model'] == 'account.analytic.account'
+    catalog = env[action['res_model']].with_user(user)
+    catalog_domain = safe_eval(action['domain'])
+    activity = template.line_ids.activity_id
+    assert activity.id in catalog.search(catalog_domain).ids
+    assert budget.allocation_ids.center_id.id not in catalog.search(catalog_domain).ids
+    assert action['context']['default_plan_id'] == activity.plan_id.id
+    catalog_view = catalog.get_view(view_id=env.ref('step_budget_design.activity_catalog_form').id,
+                                    view_type='form')
+    assert etree.fromstring(catalog_view['arch'].encode()).xpath('.//field[@name="plan_id"][@readonly="True"]')
+    added = catalog.with_context(**action['context']).web_save({'name': 'QA T225 Actividad'}, {'name': {}})
+    activity = catalog.browse(added[0]['id'])
+    assert activity.sudo().plan_id.id == action['context']['default_plan_id']
+
+    product = template.line_ids.product_id
+    product.management_budget_group_id = line.group_id
+    wrong_group = env['step.management.budget.group'].create({
+        'name': 'QA T225 otro grupo', 'code': 'QA-T225-%s' % general.id,
+    })
+    wrong_product = env['product.product'].create({
+        'name': 'QA T225 otro grupo', 'management_budget_group_id': wrong_group.id,
+    })
+    products = env['product.product'].with_user(user)
+    domain_expr = product_field.get('domain')
+    choices = dict(products.name_search(args=safe_eval(domain_expr, {'group_id': line.group_id.id})))
+    assert product.id in choices and wrong_product.id not in choices
+    assert not products.name_search(args=safe_eval(domain_expr, {'group_id': False}))
+    editing = line.new({'group_id': wrong_group.id, 'product_id': product.id})
+    editing._onchange_group_product()
+    assert not editing.product_id
+    line.activity = 'QA texto histórico'
+    general.web_save({'line_ids': [Command.update(line.id, {
+        'product_id': product.id, 'activity_id': activity.id,
+    })]}, {'line_ids': {'fields': {'product_id': {}, 'activity_id': {}}}})
+    assert line.product_id == product and line.activity_id == activity and line.activity == 'QA texto histórico'
+
     general.action_prepare_general()
     general.action_approve()
     assert general.state=='approved'
-    print('MANAGEMENT_REGISTRY_OK '+json.dumps({'tickets':[77,224],'versions':EXPECTED,'menus':True,'forms':True,'pruning_formula':True,'hectare_scaling':True,'approval_revision':True,'summary':True,'real_season_months':True,'general_form_save':True,'general_total_clp':2500000}))
+    print('MANAGEMENT_REGISTRY_OK '+json.dumps({
+        'tickets': [77, 224, 225], 'versions': EXPECTED, 'menus': True, 'forms': True,
+        'pruning_formula': True, 'hectare_scaling': True, 'approval_revision': True,
+        'summary': True, 'real_season_months': True, 'general_form_save': True,
+        'detail_product_group': True, 'activity_catalog': True, 'legacy_activity_preserved': True,
+    }))
 finally:
     env.cr.rollback()

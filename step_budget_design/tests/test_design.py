@@ -71,7 +71,8 @@ class BudgetDesignCase(TransactionCase):
         version=env['step.management.budget.version'].create({'code':'QA-'+str(season.id),'name':'QA T77 version'})
         species=env['step.especie'].create({'name':'QA T77 species','type_especie':'frutal','group_especie':'baya'})
         plan=env['account.analytic.plan'].create({'name':'QA T77 centers'})
-        activity_plan=env['account.analytic.plan'].create({'name':'Actividad'})
+        plans=env['account.analytic.plan']
+        activity_plan=plans.search([('name','=','Actividad')],limit=1) or plans.create({'name':'Actividad'})
         activity=env['account.analytic.account'].create({'name':'QA T77 pruning','plan_id':activity_plan.id})
         center=env['account.analytic.account'].create({'name':'QA T77 4ha','plan_id':plan.id,'hectares':4,'company_id':env.company.id})
         group=env['step.management.budget.group'].create({'name':'QA T77 own labor','code':'QA-'+str(season.id),'origin_id':env.ref('step_budget_design.origin_labor').id})

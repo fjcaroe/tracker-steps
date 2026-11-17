@@ -1,5 +1,13 @@
 # Operación y publicación de Odoo
 
+T225 actualiza `budget-design` en Desarrollo, Cerro y QA-Cerro. En el detalle
+del presupuesto, Producto aparece debajo de Actividad y usa el grupo asignado
+en la ficha de producto. El campo libre de actividad se retira de la vista sin
+reescribir sus datos. Configuración → Actividades abre las cuentas del plan
+existente Actividad para el perfil administrador de Gestión y Costos.
+Comprobar selección, guardado y el maestro nativo en copias frescas antes de
+promover el mismo paquete con respaldo, bloqueo compartido y paridad.
+
 T224 actualiza `budget-design` en Desarrollo, Cerro y QA-Cerro. Permite editar
 y guardar la distribución de un presupuesto general manual. La cuadratura
 se exige al validar y aprobar el presupuesto con todos sus meses guardados.
