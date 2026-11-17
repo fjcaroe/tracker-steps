@@ -1,5 +1,5 @@
-from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.exceptions import AccessError, UserError
+from odoo.tests.common import TransactionCase, new_test_user, tagged
 
 
 @tagged("post_install", "-at_install")
@@ -33,6 +33,7 @@ class TestBpaInventoryBridge(TransactionCase):
         self.assertEqual(move.product_uom_qty, 5.0)
         self.assertEqual(move.location_id.name, "BPA/Stock")
         self.assertEqual(application.consumption_line_ids.inventory_move_id, move)
+        self.assertNotEqual(picking.state, "done")
 
     def test_generate_inventory_move_is_idempotent(self):
         application = self._application()
@@ -89,10 +90,22 @@ class TestBpaInventoryBridge(TransactionCase):
         ])
         application.action_generate_inventory_move()
         move = application.inventory_picking_id.move_ids
-        self.assertEqual(
-            move.analytic_distribution,
-            {str(account_a.id): 75.0, str(account_b.id): 25.0},
-        )
+        distribution = {str(account_a.id): 75.0, str(account_b.id): 25.0}
+        self.assertEqual(move.step_bpa_analytic_distribution, distribution)
+        valuation = move._generate_valuation_lines_data(False, 10, 100, 100, 1, 2, False, "Consumo BPA")
+        self.assertEqual(valuation["debit_line_vals"]["analytic_distribution"], distribution)
+        self.assertFalse(valuation["credit_line_vals"].get("analytic_distribution"))
+
+    def test_consumption_lines_are_private_to_the_application_company(self):
+        other = self.env["res.company"].create({"name": "Otra empresa prueba BPA"})
+        other_user = new_test_user(self.env, login="bpa-other-company", groups="base.group_user",
+                                   company_id=other.id, company_ids=[(6, 0, other.ids)])
+        application = self._application()
+        line = self.env["step.bpa.inventory.consumption.line"].create({
+            "application_id": application.id, "product_id": self.product.id, "product_qty": 1.0,
+        })
+        with self.assertRaises(AccessError):
+            line.with_user(other_user).with_context(allowed_company_ids=other.ids).write({"product_qty": 100.0})
 
     def test_generate_inventory_move_without_cuarteles_has_no_distribution(self):
         application = self._application()
@@ -101,4 +114,4 @@ class TestBpaInventoryBridge(TransactionCase):
         })
         application.action_generate_inventory_move()
         move = application.inventory_picking_id.move_ids
-        self.assertFalse(move.analytic_distribution)
+        self.assertFalse(move.step_bpa_analytic_distribution)

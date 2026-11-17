@@ -8,6 +8,14 @@ menús de presupuesto, la plantilla por temporada, el cálculo y la revisión
 de un presupuesto. Mantener los registros históricos, los permisos y la
 capacitación. Publicar con respaldo y bloqueo compartido.
 
+T221 usa `bpa-inventory` en Desarrollo, Cerro y QA-Cerro. El menú habitual de
+Aplicaciones foliares conserva el ingreso manual de productos. Inventario
+prepara el movimiento desde el tipo Consumo BPA de la empresa de la aplicación
+y Bodega conserva la validación. El reparto por hectáreas se guarda con el
+movimiento y usa la valoración estándar de Inventario en Cerro. Comprobar
+el formulario, el flujo, la distribución y el aislamiento por empresa en
+copias frescas. No generar ni confirmar consumos reales al publicar.
+
 T218 usa `reception-excel` en Desarrollo, Cerro y QA-Cerro. Packing →
 Maestros → Materiales de embalajes abre las fichas nativas de productos de
 la categoría de embalajes y sus subcategorías. Verificar el menú, listado,
