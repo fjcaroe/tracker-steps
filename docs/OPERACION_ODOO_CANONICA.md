@@ -1,5 +1,13 @@
 # Operación y publicación de Odoo
 
+T226 amplía el paquete `budget-design` en Desarrollo, Cerro y QA-Cerro con
+`step_management_costs_agriculture`. Permite seleccionar centros en el
+detalle de estimaciones, toma plantas, superficie y cuarteles del maestro,
+y agrega Fundo al encabezado. Ambos selectores respetan Fundo, Especie y
+Variedad. Conservar las estimaciones históricas y sus importes y probar los
+métodos Plantas, Hectáreas y Kilos en copias frescas antes de publicar el
+mismo paquete con respaldo, bloqueo, paridad y aislamiento.
+
 T225 actualiza `budget-design` en Desarrollo, Cerro y QA-Cerro. En el detalle
 del presupuesto, Producto aparece debajo de Actividad y usa el grupo asignado
 en la ficha de producto. El campo libre de actividad se retira de la vista sin

@@ -1,7 +1,7 @@
 {
     "name": "Steps - Gestión y Costos (puente agrícola)",
     "summary": "Enlaza Gestión y Costos con los maestros agrícolas Community",
-    "version": "18.0.2.2.0",
+    "version": "18.0.2.3.0",
     "author": "Steps Consulting",
     "category": "Operations/Planning",
     "license": "LGPL-3",

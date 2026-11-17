@@ -7,6 +7,9 @@ from odoo import Command
 from odoo.tests.common import new_test_user
 from odoo.tools.safe_eval import safe_eval
 from odoo.addons.step_budget_design.tests.test_design import BudgetDesignCase, save_general_budget_form
+from odoo.addons.step_management_costs_agriculture.tests.test_estimation_entry import (
+    estimation_entry_sample, exercise_estimation_entry,
+)
 
 try:
     for name,version in EXPECTED.items():
@@ -90,11 +93,15 @@ try:
     general.action_prepare_general()
     general.action_approve()
     assert general.state=='approved'
+    estimate, center, other, plots = estimation_entry_sample(env)
+    exercise_estimation_entry(estimate.with_user(user), center, other, plots)
+    assert env.ref('step_management_costs.menu_estimation').id in visible
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({
-        'tickets': [77, 224, 225], 'versions': EXPECTED, 'menus': True, 'forms': True,
+        'tickets': [77, 224, 225, 226], 'versions': EXPECTED, 'menus': True, 'forms': True,
         'pruning_formula': True, 'hectare_scaling': True, 'approval_revision': True,
         'summary': True, 'real_season_months': True, 'general_form_save': True,
         'detail_product_group': True, 'activity_catalog': True, 'legacy_activity_preserved': True,
+        'estimate_entry': True, 'estimate_filters': True, 'native_plots': True,
     }))
 finally:
     env.cr.rollback()

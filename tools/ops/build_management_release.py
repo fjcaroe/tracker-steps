@@ -221,7 +221,7 @@ def main():
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         modules = ('step_bpa_inventory',)
     if args.kind == 'budget-design':
-        modules = ('step_budget_design',)
+        modules = ('step_budget_design', 'step_management_costs_agriculture')
     if args.kind == 'shipment-provision':
         modules = ('step_export_shipment_provision',)
     if args.kind == 'daily-estimate':
