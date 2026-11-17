@@ -1,5 +1,13 @@
 # Operación y publicación de Odoo
 
+T220 autoriza publicar en Cerro y QA-Cerro la ampliación instalada de
+Presupuestos de Gestión y Costos, con el paquete `budget-design`.
+La versión y los archivos deben coincidir con Desarrollo. Certificar el
+mismo paquete en Desarrollo y en copias de ambos destinos. Verificar los
+menús de presupuesto, la plantilla por temporada, el cálculo y la revisión
+de un presupuesto. Mantener los registros históricos, los permisos y la
+capacitación. Publicar con respaldo y bloqueo compartido.
+
 T218 usa `reception-excel` en Desarrollo, Cerro y QA-Cerro. Packing →
 Maestros → Materiales de embalajes abre las fichas nativas de productos de
 la categoría de embalajes y sus subcategorías. Verificar el menú, listado,
