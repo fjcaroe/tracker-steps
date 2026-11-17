@@ -47,14 +47,14 @@ def tree(path):
             if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc'}
 
 
-def runtime_contract(conf):
+def runtime_contract(conf, modules=MODULES):
     config = configparser.ConfigParser(interpolation=None); config.read(conf)
     opts = config['options']
     versions = json.loads(sql(opts['db_name'], "SELECT coalesce(json_object_agg(name,latest_version),'{}'::json) "
         "FROM ir_module_module WHERE state='installed'"))
     roots = [Path(p.strip()) for p in opts['addons_path'].split(',')]
     sources = {}
-    for name in MODULES:
+    for name in modules:
         source = next((root / name for root in roots if (root / name / '__manifest__.py').exists()), None)
         if name in versions:
             assert source, 'Missing installed module source: ' + name

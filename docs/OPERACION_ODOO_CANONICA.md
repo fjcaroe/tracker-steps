@@ -22,6 +22,15 @@ el formulario de cuadrilla y el guardado del trabajador con la empresa y
 el contratista correctos. Comprobar en copias el rechazo de trabajadores de
 otra empresa o contratista. Conservar las cuadrillas, sus líneas y accesos.
 
+T223 compara Tesorería y Multimoneda con las versiones efectivas de
+Desarrollo. Para Cerro productivo, `publish_treasury_enterprise.py` usa el
+núcleo del paquete `82a3e8f` con el puente Enterprise de esa misma revisión.
+Los cinco menús conservan sus acciones, permisos e identificadores. Exigir una
+copia fresca de Cerro, comparar los archivos del núcleo con Desarrollo y
+verificar los cinco accesos, el panel de Tesorería y el formulario de Pago.
+Publicar con respaldo y bloqueo compartido. Los informes Community siguen
+el circuito autorizado para Desarrollo y QA-Cerro.
+
 T218 usa `reception-excel` en Desarrollo, Cerro y QA-Cerro. Packing →
 Maestros → Materiales de embalajes abre las fichas nativas de productos de
 la categoría de embalajes y sus subcategorías. Verificar el menú, listado,
