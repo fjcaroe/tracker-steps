@@ -32,10 +32,15 @@ def is_read_request(path, body):
     path = urlsplit(path).path
     if path in READ_POSTS:
         return True
-    if not path.startswith("/web/dataset/call_kw"):
+    if path != "/web/dataset/call_kw" and not path.startswith("/web/dataset/call_kw/"):
         return False
     try:
-        return json.loads(body).get("params", {}).get("method") in READ_METHODS
+        method = json.loads(body).get("params", {}).get("method")
+        if path != "/web/dataset/call_kw":
+            parts = path.split("/")
+            if len(parts) != 6 or parts[-1] != method:
+                return False
+        return method in READ_METHODS
     except (ValueError, AttributeError):
         return False
 
