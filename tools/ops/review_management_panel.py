@@ -99,11 +99,12 @@ def main():
                     return
                 path = urlsplit(self.path).path
                 if self.command == "GET" and not (
-                    path in ("/web", "/odoo") or path.startswith(("/odoo/", "/web/assets/",
+                    path in ("/web", "/odoo", "/web/manifest.webmanifest", "/web/service-worker.js") or path.startswith(("/odoo/", "/web/assets/",
                     "/web/image", "/web/content/", "/web/webclient/", "/web/binary/company_logo",
                     "/bus/websocket_worker_bundle"))
                     or "/static/" in path
                 ):
+                    print("MANAGEMENT_PANEL_REVIEW_BLOCKED " + path, flush=True)
                     self.send_error(403, "Read-only panel review")
                     return
                 if urlsplit(self.path).path.startswith(("/websocket", "/web/login", "/web/database")):
