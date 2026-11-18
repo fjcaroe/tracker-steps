@@ -3,3 +3,4 @@ from . import budget
 from . import machinery
 from . import imports
 from . import reports
+from . import dashboard

@@ -1,5 +1,16 @@
 # Operación y publicación de Odoo
 
+T228 actualiza `step_budget_design` a 18.0.1.2.0 dentro de `budget-design` en
+Desarrollo, Cerro y QA-Cerro. El panel filtra temporada y especie desde los
+maestros, presenta importes en CLP o USD y separa las etapas Inversión y
+Crecimiento de la operación. El resultado por especie respeta la naturaleza
+del grupo. Los presupuestos recientes muestran Cosecha, Mantención, Valor
+total, Kilos estimados, Costo unitario y Costo ha. Los kilos corresponden a la
+estimación validada más reciente por centro y temporada, sin duplicar revisiones
+ni multiplicar su total por cuartel. Indicar datos o tasas faltantes. Probar
+sumas, filtros, conversiones y aislamiento en copias frescas, revisar el panel
+en navegador y publicar el mismo paquete con respaldo, bloqueo y paridad.
+
 T227 amplía `step_management_estimation_entry` a 18.0.1.1.0 dentro de
 `budget-design`, en Desarrollo, Cerro y QA-Cerro. Calcular detalle genera
 una línea por cuartel nativo con sus hectáreas y plantas, conservando los

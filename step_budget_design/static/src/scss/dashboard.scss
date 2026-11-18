@@ -1,0 +1,29 @@
+.o_mgmt_dashboard_t228 {
+    .o_mgmt_filters, .o_mgmt_rate_notice { max-width: 1500px; margin: 14px auto; }
+    .o_mgmt_filters { display: flex; flex-wrap: wrap; gap: 12px; }
+    .o_mgmt_filters label { display: flex; flex: 1 1 180px; flex-direction: column; gap: 5px; font-weight: 600; }
+    .o_mgmt_filters select { min-height: 38px; }
+    .o_mgmt_kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .o_mgmt_kpi strong { font-size: clamp(18px, 1.7vw, 25px); overflow-wrap: anywhere; }
+    .o_mgmt_kpi--investment { border-top-color: #c07824; }
+    .o_mgmt_full { grid-column: 1 / -1; }
+    .o_mgmt_rate_notice { padding: 12px; border-radius: 8px; background: #fff2d8; color: #70490c; }
+    .o_mgmt_table_scroll { overflow-x: auto; }
+    .o_mgmt_table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .o_mgmt_table th, .o_mgmt_table td { padding: 12px 10px; border-top: 1px solid #edf1ef; vertical-align: top; text-align: right; white-space: nowrap; }
+    .o_mgmt_table thead th { color: #61726a; font-size: 12px; }
+    .o_mgmt_table th:first-child { text-align: left; }
+    .o_mgmt_budget_table { min-width: 1070px; }
+    .o_mgmt_budget_table th:first-child { min-width: 245px; white-space: normal; }
+    .o_mgmt_budget_link { border: 0; padding: 0; text-align: left; color: #135f4b; background: transparent; }
+    .o_mgmt_budget_link strong, .o_mgmt_budget_link small, .o_mgmt_budget_meta, .o_mgmt_missing { display: block; }
+    .o_mgmt_budget_link small, .o_mgmt_budget_meta, .o_mgmt_missing { font-size: 11px; color: #73807b; margin-top: 5px; font-weight: 400; }
+    .o_mgmt_caption { color: #73807b; font-size: 12px; margin: 12px 0 0; }
+    .o_mgmt_negative { color: #b43d32; }
+    .o_mgmt_workflow ol { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+    @media(max-width: 1200px) { .o_mgmt_kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media(max-width: 760px) {
+        .o_mgmt_kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .o_mgmt_workflow ol { grid-template-columns: 1fr; gap: 4px; }
+    }
+}

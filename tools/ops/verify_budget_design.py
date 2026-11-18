@@ -7,6 +7,7 @@ from odoo import Command
 from odoo.tests.common import new_test_user
 from odoo.tools.safe_eval import safe_eval
 from odoo.addons.step_budget_design.tests.test_design import BudgetDesignCase, save_general_budget_form
+from odoo.addons.step_budget_design.tests.test_dashboard import dashboard_sample
 from odoo.addons.step_management_estimation_entry.tests.test_entry import (
     estimation_entry_sample, exercise_estimation_entry,
 )
@@ -96,13 +97,43 @@ try:
     estimate, center, other, plots = estimation_entry_sample(env)
     exercise_estimation_entry(estimate.with_user(user), center, other, plots)
     assert env.ref('step_management_costs.menu_estimation').id in visible
+    company = env['res.company'].create({'name': 'QA T228 Panel', 'currency_id': env.ref('base.CLP').id})
+    dashboard_env = env['res.company'].with_company(company).with_context(allowed_company_ids=company.ids).env
+    dashboard = dashboard_sample(dashboard_env)
+    planner = new_test_user(dashboard_env, login='qa-t228-panel-live',
+        groups='step_management_costs.group_management_manager', company_id=company.id,
+        company_ids=[Command.set(company.ids)])
+    panel = dashboard['budget'].with_user(planner)
+    result = panel.get_management_dashboard(season_id=dashboard['season'].id)
+    assert result['budgets']['amount'] == 650 and result['budgets']['investment'] == 300
+    assert [(row['income'], row['cost'], row['result']) for row in result['projected']] == [(1000, 500, 500), (500, 150, 350)]
+    row = result['recent'][0]
+    assert (row['harvest'], row['maintenance'], row['amount'], row['cost_per_ha']) == (450, 500, 950, 95)
+    assert row['estimated_kg'] is None and row['cost_per_kg'] is None
+    estimate = dashboard['estimate'].with_user(planner)
+    estimate.action_validate()
+    row = panel.get_management_dashboard(season_id=dashboard['season'].id)['recent'][0]
+    assert row['estimated_kg'] == estimate.total_kg == 2000 and row['cost_per_kg'] == .475
+    filtered = panel.get_management_dashboard(season_id=dashboard['season'].id, species_id=dashboard['species'][0].id)
+    assert filtered['budgets']['amount'] == 500 and filtered['budgets']['investment'] == 200
+    assert filtered['recent'][0]['estimated_kg'] == 1200
+    dashboard_env['step.management.exchange.rate'].create({
+        'currency_id': env.ref('base.USD').id, 'year': 2026, 'month': '11', 'company_value_per_unit': 1000,
+    })
+    converted = panel.get_management_dashboard(season_id=dashboard['season'].id, currency_id=env.ref('base.USD').id)
+    assert converted['currencies']['selected'] == 'USD'
+    assert abs(converted['budgets']['amount'] - .65) < 1e-9
+    assert abs(converted['recent'][0]['amount'] - .95) < 1e-9
+    assert not panel.get_management_dashboard(season_id=dashboard['other_season'].id)['recent']
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({
-        'tickets': [77, 224, 225, 226, 227], 'versions': EXPECTED, 'menus': True, 'forms': True,
+        'tickets': [77, 224, 225, 226, 227, 228], 'versions': EXPECTED, 'menus': True, 'forms': True,
         'pruning_formula': True, 'hectare_scaling': True, 'approval_revision': True,
         'summary': True, 'real_season_months': True, 'general_form_save': True,
         'detail_product_group': True, 'activity_catalog': True, 'legacy_activity_preserved': True,
         'estimate_entry': True, 'estimate_filters': True, 'native_plots': True,
         'estimate_per_plot': True, 'independent_plot_yield': True,
+        'dashboard_filters': True, 'investment_split': True, 'projected_result': True,
+        'harvest_columns': True, 'current_estimation': True, 'currency_conversion': True,
     }))
 finally:
     env.cr.rollback()
