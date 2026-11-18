@@ -1,0 +1,68 @@
+name: Steps Apple beta
+on:
+  push:
+    branches: [codex/steps-ios-watch-pilot]
+    paths: ['mobile/**', 'tools/ios/**', '.github/workflows/steps-apple-beta.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: steps-apple-beta-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  demo-build:
+    runs-on: macos-26
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select stable Xcode 26 for current Apple SDK requirements
+        run: python3 tools/ios/select_xcode.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Dependencies and client checks
+        working-directory: mobile
+        run: |
+          npm ci
+          npm test
+          npm run build
+          node --test ../tools/ios/check_pilot_config.test.mjs
+      - name: Prepare iPhone and Watch demonstration
+        working-directory: mobile
+        env:
+          STEPS_BUILD_NUMBER: ${{ github.run_number }}
+        run: npm run ios:demo
+      - name: Compile iPhone and embedded Watch for simulator
+        working-directory: mobile
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme Steps -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/steps-simulator" CODE_SIGNING_ALLOWED=NO build > "$RUNNER_TEMP/steps-simulator.log" 2>&1 || { tail -100 "$RUNNER_TEMP/steps-simulator.log"; exit 1; }
+          ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/steps-simulator/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/Steps-demo-simulator.zip"
+      - name: Compile device archive (unsigned, signing still required)
+        working-directory: mobile
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme Steps -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Steps-demo-unsigned.xcarchive" CODE_SIGNING_ALLOWED=NO archive > "$RUNNER_TEMP/steps-device.log" 2>&1 || { tail -100 "$RUNNER_TEMP/steps-device.log"; exit 1; }
+          ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/Steps-demo-unsigned.xcarchive" "$RUNNER_TEMP/Steps-demo-unsigned.zip"
+      - name: Install and launch on iPhone simulator
+        working-directory: mobile
+        run: |
+          python3 ../tools/ios/simulator_smoke.py "$RUNNER_TEMP/steps-simulator/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/Steps-demo-iphone.png"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Steps-Apple-demo-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/Steps-demo-*.zip
+            ${{ runner.temp }}/Steps-demo-*.png
+            ${{ runner.temp }}/steps-*.log
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Steps-Xcode-project-${{ github.sha }}
+          path: |
+            mobile/ios/App/App.xcodeproj/project.pbxproj
+            mobile/ios/App/App.xcodeproj/xcshareddata/xcschemes/Steps.xcscheme
+          retention-days: 14
