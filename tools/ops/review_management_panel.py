@@ -83,6 +83,14 @@ def main():
                 if self.command == "POST" and not is_read_request(self.path, body):
                     self.send_error(403, "Read-only panel review")
                     return
+                path = urlsplit(self.path).path
+                if self.command == "GET" and not (
+                    path in ("/web", "/odoo") or path.startswith(("/odoo/", "/web/assets/",
+                    "/web/image", "/web/content/", "/web/webclient/", "/web/binary/company_logo"))
+                    or "/static/" in path
+                ):
+                    self.send_error(403, "Read-only panel review")
+                    return
                 if urlsplit(self.path).path.startswith(("/websocket", "/web/login", "/web/database")):
                     self.send_error(403, "Read-only panel review")
                     return
