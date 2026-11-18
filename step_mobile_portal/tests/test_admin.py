@@ -35,6 +35,13 @@ class TestAdministration(PortalCase):
     def as_(self, user):
         return self.env["step.app.membership"].with_user(user)
 
+    def test_administrador_del_sistema_accede_al_portal(self):
+        self.nobody.write({"groups_id": [(4, self.env.ref("base.group_system").id)]})
+        self.assertTrue(self.nobody.has_group("step_mobile_portal.group_step_app_manager"))
+        menu = self.env.ref("step_mobile_portal.menu_step_app_root")
+        self.assertIn(menu.id, self.env["ir.ui.menu"].with_user(self.nobody)._visible_menu_ids())
+        self.assertEqual(self.nobody.company_ids, self.company_a)
+
     def test_usuario_sin_permisos_no_ve_nada(self):
         for model in ("step.app.membership", "step.app.person", "step.app.grant", "step.app.invitation", "step.app.audit", "step.app.device"):
             with self.assertRaises(AccessError, msg=model):

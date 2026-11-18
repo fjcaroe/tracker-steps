@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- The existing system administrator configures the new app. No new internal
+         user, password or rights on other companies are created. -->
+    <record id="base.user_admin" model="res.users">
+        <field name="groups_id" eval="[(4, ref('step_mobile_portal.group_step_app_manager'))]"/>
+    </record>
+</odoo>

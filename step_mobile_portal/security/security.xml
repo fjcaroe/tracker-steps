@@ -16,4 +16,10 @@
         <field name="implied_ids" eval="[(4, ref('group_step_app_user'))]"/>
         <field name="comment">Invita, aprueba, suspende y asigna módulos solo en las empresas que tiene permitidas.</field>
     </record>
+
+    <!-- System administrators configure the portal in their existing allowed
+         companies; ordinary internal users keep their current permissions. -->
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('step_mobile_portal.group_step_app_manager'))]"/>
+    </record>
 </odoo>

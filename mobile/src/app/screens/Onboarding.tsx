@@ -33,7 +33,7 @@ export default function Onboarding() {
       {me && !me.email_verified && (
         <Card label="Confirmar correo">
           <h3>Confirma tu correo</h3>
-          <p className="muted">Te enviamos un código a {me.person.email}. Lo necesitas para aceptar una invitación.</p>
+          <p className="muted">Para aceptar una invitación, confirma {me.person.email} con el código recibido. Si no recibes un código, pide a tu administrador que revise tu cuenta.</p>
           <Field label="Código de verificación"><input value={code} onChange={(e) => setCode(e.target.value)} autoCapitalize="none" /></Field>
           <Button disabled={busy || !code} onClick={() => void run(async () => { await session.api.verifyEmail({ email: me.person.email ?? '', code: code.trim() }); setCode(''); return 'Correo confirmado.'; })}>Confirmar</Button>
         </Card>
