@@ -80,13 +80,27 @@ def main():
                     self.send_error(413)
                     return
                 body = self.rfile.read(length) if length else b""
+                # Webclient boot asks for an optional IoT channel. The native
+                # method can create one, so keep IoT disabled in this read-only
+                # review instead of creating a channel or changing its config.
+                if urlsplit(self.path).path == "/web/dataset/call_kw/iot.channel/get_iot_channel":
+                    payload = json.loads(body)
+                    data = json.dumps({"jsonrpc": "2.0", "id": payload.get("id"), "result": ""}).encode()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
                 if self.command == "POST" and not is_read_request(self.path, body):
+                    print("MANAGEMENT_PANEL_REVIEW_BLOCKED " + urlsplit(self.path).path, flush=True)
                     self.send_error(403, "Read-only panel review")
                     return
                 path = urlsplit(self.path).path
                 if self.command == "GET" and not (
                     path in ("/web", "/odoo") or path.startswith(("/odoo/", "/web/assets/",
-                    "/web/image", "/web/content/", "/web/webclient/", "/web/binary/company_logo"))
+                    "/web/image", "/web/content/", "/web/webclient/", "/web/binary/company_logo",
+                    "/bus/websocket_worker_bundle"))
                     or "/static/" in path
                 ):
                     self.send_error(403, "Read-only panel review")
