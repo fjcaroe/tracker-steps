@@ -24,7 +24,8 @@ READ_METHODS = {
     "systray_get_activities", "get_discuss_settings", "get_formview_action",
 }
 READ_POSTS = {"/web/action/load", "/web/session/get_session_info", "/mail/data",
-              "/bus/has_missed_notifications", "/web/webclient/version_info"}
+              "/bus/has_missed_notifications", "/web/webclient/version_info",
+              "/hr_attendance/attendance_user_data"}
 
 
 def is_read_request(path, body):
