@@ -223,9 +223,31 @@ class ActualCost(models.Model):
     def _search_activities(self, operator, value):
         return self._search_dimension("activity", operator, value)
 
+    @api.model
+    def _product_group_for_company(self, product, company):
+        # Read native links first, then resolve them through the user's rules.
+        # Inspecting company_id on an unreadable foreign group would fail before
+        # the existing product helper can skip that group and try its category.
+        groups = self.env["step.management.budget.group"]
+        candidates = product.management_budget_group_id
+        category = product.categ_id
+        while category:
+            candidates |= category.management_budget_group_id
+            category = category.parent_id
+        allowed = groups.with_context(active_test=False).search([
+            ("id", "in", candidates.ids), ("company_id", "=", company.id)])
+        for candidate in candidates:
+            if candidate.id in allowed.ids:
+                return allowed.browse(candidate.id)
+        return groups
+
     def _compute_group(self):
+        cache = {}
         for row in self:
-            group = row.product_id._get_management_budget_group(row.company_id) if row.product_id else False
+            key = (row.product_id.id, row.company_id.id)
+            if key not in cache:
+                cache[key] = self._product_group_for_company(row.product_id, row.company_id) if row.product_id else False
+            group = cache[key]
             row.group_id = group
             row.origin_id = group.origin_id if group else False
 
@@ -233,7 +255,7 @@ class ActualCost(models.Model):
     def _search_master(self, field, operator, value):
         if operator in ("like", "ilike", "=like", "=ilike", "not like", "not ilike"):
             model = "step.management.budget.origin" if field == "origin_id" else "step.management.budget.group"
-            value = self.env[model].search([("name", operator.replace("not ", ""), value)]).ids
+            value = self.env[model].with_context(active_test=False).search([("name", operator.replace("not ", ""), value)]).ids
             operator = "not in" if operator.startswith("not ") else "in"
         if operator not in ("=", "!=", "in", "not in"):
             raise UserError(_("Use una selección del maestro presupuestario para filtrar."))
@@ -245,7 +267,7 @@ class ActualCost(models.Model):
                 ("analytic_distribution", "!=", False)], ["product_id"])
             products = self.env["product.product"].browse([product.id for product, in groups if product])
             def matches_master(product):
-                group = product._get_management_budget_group(company)
+                group = self._product_group_for_company(product, company)
                 return (group.origin_id.id if field == "origin_id" else group.id) in value
             matches = products.filtered(matches_master)
             product_domain = [("product_id", "in", matches.ids)]

@@ -1,6 +1,6 @@
 # Operación y publicación de Odoo
 
-T229 actualiza `step_budget_design` a 18.0.1.3.1 con `budget-design` en
+T229 actualiza `step_budget_design` a 18.0.1.3.2 con `budget-design` en
 Desarrollo, Cerro y QA-Cerro. Control de costos → Costos reales consulta
 apuntes publicados con distribución analítica, sin copiar montos a otra tabla.
 Desglosa centros, conserva una fila sin centro para la parte no asignada y
@@ -11,8 +11,11 @@ originales y el libro operacional contabilizado de Steps cuando corresponde;
 conservar su fecha/tasa fijada al registrar el comprobante. Solo si no aplica
 ese libro, convertir con la tasa real de la fecha. Los faltantes quedan vacíos y el
 redondeo conserva el total del apunte. Intersectar permisos y reglas del apunte
-original en búsquedas y lecturas directas. Probar filtros, reversas, repartos,
-descarga y preservación en copias frescas y revisar listado, formulario y Excel
+original en búsquedas y lecturas directas. Resolver grupo y origen con la
+jerarquía producto → subcategoría → categoría, la empresa del apunte y las
+reglas nativas de grupos. Probar filtros, reversas, repartos, descarga,
+preservación y lectura con el perfil empresarial existente en copias frescas;
+revisar listado, formulario y Excel
 antes de publicar el mismo paquete con respaldo, bloqueo y paridad. No publicar
 ni modificar comprobantes existentes durante la verificación.
 

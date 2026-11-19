@@ -98,6 +98,37 @@ def exercise_booked_operational_currency(sample, user, zero_foreign=False):
     return rows
 
 
+def exercise_group_company_scope(sample, user):
+    env = sample["env"]
+    other = env["res.company"].create({"name": "QA T229 otra clasificación",
+                                     "currency_id": env.ref("base.CLP").id})
+    foreign = env["step.management.budget.group"].create({
+        "name": "QA T229 grupo ajeno", "code": "QA229-FOREIGN-%s" % other.id,
+        "company_id": other.id, "origin_id": env.ref("step_budget_design.origin_labor").id})
+    assert not foreign.with_user(user).search([("id", "=", foreign.id)])
+    product = sample["product"]
+    product.management_budget_group_id = foreign
+    move = actual_cost_move(sample)
+    # Simulate a new business-user request, without the creator's cached fields.
+    env.invalidate_all()
+    rows = actual_cost_rows(sample, move, user)
+    # A foreign product override must still allow the valid parent category.
+    assert rows.group_id == sample["group"]
+    parent = product.categ_id.parent_id
+    parent.management_budget_group_id = foreign
+    links = (product.management_budget_group_id.id, parent.management_budget_group_id.id)
+    env.invalidate_all()
+    assert not rows.group_id and not rows.origin_id
+    assert sum(rows.mapped("debit_clp")) == 100000
+    model = rows.env[rows._name]
+    assert model.search([("move_id", "=", move.id), ("group_id", "=", False)]) == rows
+    assert not model.search([("move_id", "=", move.id), ("group_id", "=", foreign.id)])
+    sheet = openpyxl.load_workbook(io.BytesIO(rows._excel_bytes()), data_only=True).active
+    assert sheet["P3"].value is None and sheet["Q3"].value is None
+    assert links == (product.management_budget_group_id.id, parent.management_budget_group_id.id)
+    return rows
+
+
 @tagged("post_install", "-at_install")
 class ActualCostCase(TransactionCase):
     @classmethod
@@ -200,6 +231,9 @@ class ActualCostCase(TransactionCase):
             self.skipTest("The optional Steps operational ledger is not installed")
         for zero_foreign in (False, True):
             exercise_booked_operational_currency(self.sample, self.reader, zero_foreign=zero_foreign)
+
+    def test_foreign_product_groups_preserve_native_company_rules_and_category_fallback(self):
+        exercise_group_company_scope(self.sample, self.reader)
 
     def test_excel_contract_and_native_source_are_preserved(self):
         move = actual_cost_move(self.sample, name='=HYPERLINK("https://example.invalid","test")')

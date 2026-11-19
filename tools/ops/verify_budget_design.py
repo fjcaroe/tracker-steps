@@ -8,7 +8,8 @@ from odoo.tests.common import new_test_user
 from odoo.tools.safe_eval import safe_eval
 from odoo.addons.step_budget_design.tests.test_design import BudgetDesignCase, save_general_budget_form
 from odoo.addons.step_budget_design.tests.test_dashboard import dashboard_sample
-from odoo.addons.step_budget_design.tests.test_actual_costs import actual_cost_sample, actual_cost_move, actual_cost_rows, exercise_booked_operational_currency
+from odoo.addons.step_budget_design.tests.test_actual_costs import actual_cost_sample, actual_cost_move, actual_cost_rows, exercise_booked_operational_currency, exercise_group_company_scope
+from native_business_profile import scoped_business_environment
 from odoo.addons.step_budget_design.models.actual_costs import default_plan, ROLE_FIELDS
 from odoo.addons.step_management_estimation_entry.tests.test_entry import (
     estimation_entry_sample, exercise_estimation_entry,
@@ -23,6 +24,12 @@ try:
     audit_source = Path(PROBE_TOOLS) / 'audit_actual_costs_currency.py'
     exec(compile(audit_source.read_text(), str(audit_source), 'exec'), globals())
     booked_currency_proof = proof
+    business = scoped_business_environment(env)
+    business_rows = business['step.management.actual.cost.report'].search([], limit=80)
+    business_rows.read(['move_id','date','account_id','product_id','name','quantity','uom_id',
+        'season_ids','center_id','activity_ids','debit_clp','credit_clp','debit_usd','credit_usd',
+        'category_id','group_id','origin_id'])
+    env.cr.rollback()
     env=env(context=dict(env.context,no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True))
     for role, field_name in ROLE_FIELDS.items():
         expected_plan = default_plan(env, role)
@@ -164,6 +171,7 @@ try:
         preview.write_bytes(real_rows._excel_bytes())
         preview.chmod(0o600)
         print('ACTUAL_COSTS_XLSX_PROOF '+str(preview))
+    exercise_group_company_scope(ledger, accountant)
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({
         'tickets': [77, 224, 225, 226, 227, 228, 229], 'versions': EXPECTED, 'menus': True, 'forms': True,
         'pruning_formula': True, 'hectare_scaling': True, 'approval_revision': True,
@@ -177,6 +185,7 @@ try:
         'actual_costs_excel': True, 'actual_costs_filters': True, 'native_ledger_permissions': True,
         'booked_operational_currency': True,
         'booked_usd_audit': booked_currency_proof,
+        'native_business_profile_read': True, 'foreign_group_scope': True,
     }))
 finally:
     env.cr.rollback()
