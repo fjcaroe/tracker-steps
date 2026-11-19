@@ -58,6 +58,13 @@ class ActualCost(models.Model):
     _description = "Costos reales de comprobantes contables"
     _auto = False
     _order = "date desc, move_line_id desc, center_id, id"
+    _depends = {
+        "account.move.line": ["parent_state", "analytic_distribution", "move_id", "date", "company_id",
+            "account_id", "product_id", "name", "quantity", "product_uom_id"],
+        "res.company": list(ROLE_FIELDS.values()),
+        "account.analytic.account": ["plan_id"],
+        "account.analytic.plan": ["parent_id"],
+    }
 
     move_line_id = fields.Many2one("account.move.line", string="Apunte contable", readonly=True)
     move_id = fields.Many2one("account.move", string="Comprobante", readonly=True)
@@ -162,9 +169,8 @@ class ActualCost(models.Model):
             return self, partial(AccessError, _("Necesita acceso de consulta a Gestión y Costos y a Contabilidad."))
         source = self.env["account.move.line"]
         if self.ids:
-            self.env.cr.execute(SQL("SELECT id,move_line_id FROM %s WHERE id IN %s",
-                SQL.identifier(self._table), tuple(self.ids)))
-            mapping = dict(self.env.cr.fetchall())
+            mapping = dict(self.env.execute_query(SQL("SELECT id,move_line_id FROM %s WHERE id IN %s",
+                self._table_sql, tuple(self.ids))))
             source = source.browse(set(mapping.values()))
             result = source._check_access("read")
             if result:
@@ -177,9 +183,9 @@ class ActualCost(models.Model):
         return None
 
     def _compute_dimensions(self):
-        self.env.cr.execute(SQL("SELECT id,season_accounts,activity_accounts FROM %s WHERE id IN %s",
-            SQL.identifier(self._table), tuple(self.ids) or (0,)))
-        data = {key: (seasons, activities) for key, seasons, activities in self.env.cr.fetchall()}
+        data = {key: (seasons, activities) for key, seasons, activities in self.env.execute_query(SQL(
+            "SELECT id,season_accounts,activity_accounts FROM %s WHERE id IN %s",
+            self._table_sql, tuple(self.ids) or (0,)))}
         ids = {value for dimensions in data.values() for values in dimensions for value in (values or [])}
         accounts = self.env["account.analytic.account"].search([("id", "in", list(ids))])
         for row in self:
@@ -202,7 +208,7 @@ class ActualCost(models.Model):
         column = "season_accounts" if role == "season" else "activity_accounts"
         ids = [v for v in value if v]
         condition = SQL("%s && %s::integer[]", SQL.identifier(column), ids) if ids or text_search else SQL("cardinality(%s)>0", SQL.identifier(column))
-        matched = SQL("SELECT id FROM %s WHERE %s", SQL.identifier(self._table), condition)
+        matched = SQL("(SELECT id FROM %s WHERE %s)", self._table_sql, condition)
         negative = operator in ("!=", "not in")
         if not ids and not text_search:
             negative = not negative
@@ -272,10 +278,10 @@ class ActualCost(models.Model):
 
     def _compute_currency_amounts(self):
         currencies = {key: self.env.ref("base." + key.upper()) for key in ("clp", "usd")}
-        self.env.cr.execute(SQL("SELECT id,move_line_id,percentage FROM %s WHERE move_line_id IN %s ORDER BY move_line_id,center_id NULLS LAST",
-            SQL.identifier(self._table), tuple(self.move_line_id.ids) or (0,)))
         allocations = {}
-        for key, source_id, weight in self.env.cr.fetchall():
+        for key, source_id, weight in self.env.execute_query(SQL(
+            "SELECT id,move_line_id,percentage FROM %s WHERE move_line_id IN %s ORDER BY move_line_id,center_id NULLS LAST",
+            self._table_sql, tuple(self.move_line_id.ids) or (0,))):
             allocations.setdefault(source_id, []).append((key, float(weight)))
         results = {}
         for source in self.move_line_id:

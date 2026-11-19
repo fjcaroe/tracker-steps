@@ -77,7 +77,8 @@ class ActualCostCase(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         company = cls.env["res.company"].create({"name": "QA T229 empresa", "currency_id": cls.env.ref("base.CLP").id})
-        cls.env = cls.env["res.company"].with_company(company).with_context(allowed_company_ids=company.ids).env
+        cls.env = cls.env["res.company"].with_company(company).with_context(
+            allowed_company_ids=company.ids, no_reset_password=True).env
         cls.sample = actual_cost_sample(cls.env)
         cls.reader = new_test_user(cls.env, login="qa-t229-reader", company_id=company.id,
             company_ids=[Command.set(company.ids)],
