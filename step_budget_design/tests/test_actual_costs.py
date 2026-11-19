@@ -144,16 +144,18 @@ class ActualCostCase(TransactionCase):
         sample = self.sample
         third = self.env["account.analytic.account"].create({"name": "QA T229 Centro C", "plan_id": sample["plans"][1].id, "company_id": self.env.company.id})
         centers = sample["centers"] | third
-        distribution = {str(center.id): pct for center, pct in zip(centers, (33.3333, 33.3333, 33.3334))}
+        # Odoo stores analytical percentages at two decimal places. Test a
+        # complete split, then verify currency rounding in stable numeric order.
+        distribution = {str(center.id): pct for center, pct in zip(centers, (33.33, 33.33, 33.34))}
         pending = actual_cost_move(sample, distribution, amount=100, post=False)
         move = actual_cost_move(sample, distribution, amount=100)
-        rows = actual_cost_rows(sample, move, self.reader)
+        rows = actual_cost_rows(sample, move, self.reader).sorted("id")
         ids = rows.ids
         self.assertEqual(rows.mapped("debit_clp"), [33, 33, 34])
         self.assertEqual(rows.mapped("debit_usd"), [.03, .03, .04])
         self.assertAlmostEqual(sum(rows.mapped("quantity")), 10)
         pending.action_post()
-        self.assertEqual(actual_cost_rows(sample, move, self.reader).ids, ids)
+        self.assertEqual(actual_cost_rows(sample, move, self.reader).sorted("id").ids, ids)
 
     def test_missing_real_rate_leaves_excel_cells_and_totals_empty(self):
         self.env["res.currency.rate"].search([("company_id", "in", [False, self.env.company.id]), ("currency_id", "=", self.env.ref("base.USD").id)]).unlink()
