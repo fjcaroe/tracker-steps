@@ -9,7 +9,7 @@ from odoo import api, SUPERUSER_ID
 
 
 assert env.cr.dbname in ('LAB_TAREAS', 'CERRO_EL_PLOMO', 'QA-CERROELPLOMO') or re.fullmatch(
-    r'MANAGEMENT_QA_(DEVELOPMENT|CERRO|QA-CERRO)_t229_[0-9a-f]{8}(?:_r[1-9][0-9]*)?', env.cr.dbname)
+    r'MANAGEMENT_QA_(DEVELOPMENT|CERRO|QA-CERRO)_t(?:229|230)_[0-9a-f]{8}(?:_r[1-9][0-9]*)?', env.cr.dbname)
 env.cr.rollback()
 env.cr.execute('SET TRANSACTION READ ONLY')
 try:

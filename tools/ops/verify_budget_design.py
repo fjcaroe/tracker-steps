@@ -29,6 +29,12 @@ try:
     business_rows.read(['move_id','date','account_id','product_id','name','quantity','uom_id',
         'season_ids','center_id','activity_ids','debit_clp','credit_clp','debit_usd','credit_usd',
         'category_id','group_id','origin_id'])
+    business_panel = business['step.management.operational.budget'].get_management_dashboard()
+    assert len({row['id'] for row in business_panel['recent_centers']}) == len(business_panel['recent_centers'])
+    assert business_panel['recent_total']['hectares'] == sum(row['hectares'] for row in business_panel['recent_centers'])
+    business_actuals = business['step.management.operational.budget']._panel_accounting_rows(
+        0, False, False, business.ref('base.CLP'), only_costs=True)
+    assert business_actuals['access'] is True
     env.cr.rollback()
     env=env(context=dict(env.context,no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True))
     for role, field_name in ROLE_FIELDS.items():
@@ -186,6 +192,7 @@ try:
         'booked_operational_currency': True,
         'booked_usd_audit': booked_currency_proof,
         'native_business_profile_read': True, 'foreign_group_scope': True,
+        'dashboard_center_totals': True, 'dashboard_ledger_reader': True,
     }))
 finally:
     env.cr.rollback()

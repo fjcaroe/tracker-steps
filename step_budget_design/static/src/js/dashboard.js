@@ -47,6 +47,11 @@ export class StepManagementDashboard extends Component {
             res_model: "step.management.operational.budget", res_id: id,
             views: [[false, "form"]], target: "current"});
     }
+    openCenter(id) {
+        return this.action.doAction({type: "ir.actions.act_window",
+            res_model: "account.analytic.account", res_id: id,
+            views: [[false, "form"]], target: "current"});
+    }
     number(value, digits = 0) {
         if (value === null || value === undefined) return "—";
         return new Intl.NumberFormat("es-CL", {minimumFractionDigits: digits, maximumFractionDigits: digits}).format(value);

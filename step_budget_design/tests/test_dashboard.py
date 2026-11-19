@@ -3,6 +3,8 @@ from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.tests.common import new_test_user
 
+from .test_actual_costs import actual_cost_sample, actual_cost_move, exercise_booked_operational_currency
+
 
 def dashboard_sample(env):
     """A mixed, native budget: operation, investment and growth, two species."""
@@ -170,3 +172,101 @@ class DashboardCase(TransactionCase):
         self.assertNotIn(foreign_season.id, [row["id"] for row in data["filters"]["seasons"]])
         with self.assertRaises(ValidationError):
             model.get_management_dashboard(season_id=foreign_season.id)
+
+    def test_center_rows_do_not_repeat_hectares_or_the_same_validated_estimate(self):
+        self.estimate.with_user(self.user).action_validate()
+        center = self.sample["centers"][0]
+        duplicate = self.budget.copy({"description": "QA T230 otro presupuesto",
+            "allocation_ids": [Command.clear(), Command.create({"center_id": center.id, "hectares": 999})],
+            "line_ids": [Command.clear(), Command.create({"center_id": center.id,
+                "group_id": self.sample["groups"][0].id,
+                "activity_id": self.sample["activities"][0].id,
+                "category": "labor", "indicator": "QA T230 costo adicional",
+                "calculation_mode": "direct", "direct_amount": 100})]})
+        data = self.panel()
+        rows = {row["id"]: row for row in data["recent_centers"]}
+        self.assertEqual(len(rows), 4)
+        self.assertEqual((rows[center.id]["hectares"], rows[center.id]["estimated_kg"]), (2, 1000))
+        self.assertEqual((rows[center.id]["harvest"], rows[center.id]["maintenance"], rows[center.id]["amount"]), (400, 200, 600))
+        self.assertEqual(data["recent_total"]["hectares"], 10)
+        self.assertEqual(data["recent_total"]["estimated_kg"], 2000)
+        self.assertEqual(data["recent_total"]["amount"], 1050)
+        self.assertAlmostEqual(data["recent_total"]["cost_per_kg"], (.6 + 1 + 100 / 300 + .3) / 4)
+        self.assertAlmostEqual(data["recent_total"]["cost_per_ha"], (300 + 200 + 100 / 3 + 150 / 4) / 4)
+        self.assertEqual(data["projected_total"], {"income": 1500, "cost": 750, "result": 750})
+        self.assertEqual(duplicate.allocation_ids.hectares, 999)
+
+    def test_center_totals_keep_missing_currency_and_kilos_visible(self):
+        data = self.panel(currency_id=self.env.ref("base.USD").id)
+        self.assertIsNone(data["recent_total"]["amount"])
+        self.assertIsNone(data["recent_total"]["estimated_kg"])
+        self.assertIsNone(data["recent_total"]["cost_per_kg"])
+        self.assertIsNone(data["projected_total"]["cost"])
+        data = self.budget.with_user(self.user).get_management_dashboard(season_id=self.sample["other_season"].id)
+        self.assertFalse(data["recent_centers"])
+        self.assertEqual(data["recent_total"]["hectares"], 0)
+
+
+@tagged("post_install", "-at_install")
+class DashboardActualsCase(TransactionCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        company = cls.env["res.company"].create({"name": "QA T230 empresa", "currency_id": cls.env.ref("base.CLP").id})
+        cls.env = cls.env["res.company"].with_company(company).with_context(allowed_company_ids=company.ids).env
+        cls.sample = actual_cost_sample(cls.env)
+        cls.sample["centers"][0].write({"etapa_costo": "ope", "hectares": 2})
+        cls.sample["centers"][1].write({"etapa_costo": "inver", "hectares": 1})
+        cls.sample["analytics"][3].name = "Cosechar"
+        cls.maintenance = cls.env["account.analytic.account"].create({"name": "Mantener",
+            "company_id": company.id, "plan_id": cls.sample["plans"][2].id})
+        cls.user = new_test_user(cls.env, login="qa-t230-reader", company_id=company.id,
+            company_ids=[Command.set(company.ids)],
+            groups="step_management_costs.group_management_readonly,account.group_account_readonly")
+
+    def actuals(self, only_costs=True, currency="CLP", user=None):
+        return self.env["step.management.operational.budget"].with_user(user or self.user)._panel_accounting_rows(
+            0, False, False, self.env.ref("base." + currency), only_costs=only_costs)
+
+    def test_correlated_centers_and_activities_keep_harvest_separate(self):
+        season, center_a, center_b, harvest = self.sample["analytics"]
+        distribution = {f"{season.id},{center_a.id},{harvest.id}": 40,
+                        f"{season.id},{center_b.id},{self.maintenance.id}": 60}
+        actual_cost_move(self.sample, distribution)
+        actual_cost_move(self.sample, distribution, amount=999000, post=False)
+        data = self.actuals()
+        self.assertTrue(data["access"])
+        rows = {row["id"]: row for row in data["rows"]}
+        self.assertEqual((rows[center_a.id]["stage"], rows[center_a.id]["harvest"], rows[center_a.id]["maintenance"]), ("ope", 40000, 0))
+        self.assertEqual((rows[center_b.id]["stage"], rows[center_b.id]["harvest"], rows[center_b.id]["maintenance"]), ("inver", 0, 60000))
+
+    def test_independent_activity_plan_is_prorated_without_repeating_center_amounts(self):
+        season, center_a, center_b, harvest = self.sample["analytics"]
+        actual_cost_move(self.sample, {str(season.id): 100, str(center_a.id): 40,
+            str(center_b.id): 60, str(harvest.id): 25, str(self.maintenance.id): 75}, amount=200000)
+        rows = {row["id"]: row for row in self.actuals()["rows"]}
+        self.assertEqual((rows[center_a.id]["harvest"], rows[center_a.id]["maintenance"]), (20000, 60000))
+        self.assertEqual((rows[center_b.id]["harvest"], rows[center_b.id]["maintenance"]), (30000, 90000))
+        self.assertEqual(sum(row["amount"] for row in rows.values()), 200000)
+
+    def test_account_scope_is_explicit_and_budget_permission_does_not_grant_ledger_access(self):
+        actual_cost_move(self.sample)
+        income = self.env["account.account"].create({"name": "QA T230 ingreso", "code": "Q230I" + str(self.env.company.id),
+            "account_type": "income", "company_ids": [Command.set(self.env.company.ids)]})
+        move = self.env["account.move"].with_context(validate_analytic=False).create({
+            "move_type": "entry", "journal_id": self.sample["journal"].id, "date": "2026-11-15",
+            "line_ids": [Command.create({"name": "QA T230 ingreso", "account_id": income.id, "credit": 50000,
+                "analytic_distribution": {str(self.sample["centers"][0].id): 100}}),
+                Command.create({"name": "QA T230 contrapartida", "account_id": self.sample["accounts"][1].id, "debit": 50000})]})
+        move.action_post()
+        self.assertEqual(sum(row["amount"] for row in self.actuals()["rows"]), 100000)
+        self.assertEqual(sum(row["amount"] for row in self.actuals(only_costs=False)["rows"]), 50000)
+        planner = new_test_user(self.env, login="qa-t230-no-ledger", company_id=self.env.company.id,
+            company_ids=[Command.set(self.env.company.ids)], groups="step_management_costs.group_management_readonly")
+        self.assertEqual(self.actuals(user=planner), {"access": False, "rows": []})
+
+    def test_usd_uses_the_booked_operational_ledger_even_without_historical_rates(self):
+        exercise_booked_operational_currency(self.sample, self.user)
+        data = self.actuals(currency="USD")
+        self.assertEqual(sum(row["amount"] for row in data["rows"]), 80)
+        self.assertTrue(all(row["available"] for row in data["rows"]))

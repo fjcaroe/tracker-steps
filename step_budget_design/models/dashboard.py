@@ -21,6 +21,18 @@ def species_key(center):
     return ("master", center.especie_id.id) if center.especie_id else ("legacy", token(center.species))
 
 
+def table_totals(rows, sums, averages=()):
+    """A missing amount stays missing; averages follow Excel's blank handling."""
+    result = {}
+    for name in sums:
+        values = [row[name] for row in rows]
+        result[name] = sum(values) if all(value is not None for value in values) else None
+    for name in averages:
+        values = [row[name] for row in rows if row[name] is not None]
+        result[name] = sum(values) / len(values) if values else None
+    return result
+
+
 class BudgetDashboard(models.Model):
     _inherit = "step.management.operational.budget"
 
@@ -51,6 +63,48 @@ class BudgetDashboard(models.Model):
             "estimated_centers": len(centers) - len(missing),
             "center_count": len(centers),
         }
+
+    @api.model
+    def _panel_center_budgets(self, budgets, estimates, matches, conversion):
+        """One native center per row, without repeating its hectares or estimates."""
+        rows, estimate_keys = {}, {}
+        for budget in budgets:
+            lines = budget.line_ids.filtered(lambda line: matches(line.center_id))
+            centers = (budget.allocation_ids.center_id | lines.center_id).filtered(matches)
+            factor = conversion(budget)
+            for center in centers:
+                row = rows.setdefault(center.id, {
+                    "id": center.id, "name": center.display_name, "hectares": center.hectares,
+                    "harvest": 0.0, "maintenance": 0.0, "amount": 0.0,
+                    "estimated_kg": 0.0, "conversion_available": True,
+                    "estimation_available": True,
+                })
+                costs = lines.filtered(lambda line: line.center_id == center and line.flow_type != "income")
+                amount = sum(costs.mapped("amount"))
+                harvest = sum(costs.filtered(lambda line: token(line.activity_id.name) == "cosechar").mapped("amount"))
+                row["conversion_available"] &= factor["available"] or not amount
+                row["harvest"] += harvest * factor["factor"]
+                row["maintenance"] += (amount - harvest) * factor["factor"]
+                row["amount"] += amount * factor["factor"]
+                estimate = estimates.filtered(lambda candidate: season_matches(candidate, budget.season_id, budget.season)
+                    and center in candidate.line_ids.center_id)[:1]
+                if not estimate:
+                    row["estimation_available"] = False
+                    continue
+                key = (center.id, estimate.id)
+                if key not in estimate_keys:
+                    row["estimated_kg"] += sum(estimate.line_ids.filtered(lambda line: line.center_id == center).mapped("total_kg"))
+                    estimate_keys[key] = True
+        for row in rows.values():
+            if not row["estimation_available"]:
+                row["estimated_kg"] = None
+            if not row["conversion_available"]:
+                row.update(harvest=None, maintenance=None, amount=None)
+            row["cost_per_kg"] = (row["amount"] / row["estimated_kg"]
+                if row["conversion_available"] and row["estimated_kg"] else None)
+            row["cost_per_ha"] = (row["amount"] / row["hectares"]
+                if row["conversion_available"] and row["hectares"] else None)
+        return list(rows.values())
 
     @api.model
     def get_management_dashboard(self, days=0, season_id=False, species_id=False, currency_id=False):
@@ -148,6 +202,7 @@ class BudgetDashboard(models.Model):
                 **kilo_data,
             })
 
+        recent_centers = self._panel_center_budgets(selected_budgets, estimates, center_matches, factor)
         for row in projected.values():
             row["result"] = row["income"] - row["cost"]
             if not row["available"]:
@@ -211,7 +266,12 @@ class BudgetDashboard(models.Model):
                 "reporting_available": len(selected_budgets) - totals["missing_rates"], **totals,
             },
             "projected": sorted(projected.values(), key=lambda row: row["species"]),
+            "projected_total": table_totals(list(projected.values()), ("income", "cost", "result")),
             "recent": recent[:6],
+            "recent_centers": recent_centers,
+            "recent_total": table_totals(recent_centers,
+                ("hectares", "harvest", "maintenance", "amount", "estimated_kg"),
+                ("cost_per_kg", "cost_per_ha")),
             "centers": {"total": len(centers), "hectares": sum(centers.mapped("hectares"))},
             "templates": len(templates),
             "plans": {"total": len(plans), "open": len(plans.filtered(lambda row: row.state not in ("done", "cancelled")))},

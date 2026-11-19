@@ -5,3 +5,4 @@ from . import imports
 from . import reports
 from . import dashboard
 from . import actual_costs
+from . import dashboard_actuals

@@ -1,5 +1,17 @@
 # Operación y publicación de Odoo
 
+T230 está en preparación en `codex/t230-panel-modificacion-2`, sin publicación.
+El adjunto 3615 pide totalizar la proyección, mostrar presupuestos por centro
+con hectáreas y promedios y ubicar Maestros después del Flujo recomendado.
+Se preparan esos cambios y la lectura de contabilidad publicada por centro y
+actividad, con el mismo libro y permisos del informe T229. Se prueba en copia
+privada de Desarrollo. Faltan dos definiciones solicitadas en este chat:
+la fórmula de los indicadores superiores (el cociente escrito contradice el
+ejemplo negativo) y si el gasto incluye únicamente cuentas de costo o también
+ingresos. No se presenta este avance como T230 resuelto. La publicación final
+requiere el paquete completo en Desarrollo, Cerro y QA-Cerro, copias frescas,
+respaldo, bloqueo, preservación y revisión del panel y de su flujo.
+
 T229 actualiza `step_budget_design` a 18.0.1.3.2 con `budget-design` en
 Desarrollo, Cerro y QA-Cerro. Control de costos → Costos reales consulta
 apuntes publicados con distribución analítica, sin copiar montos a otra tabla.

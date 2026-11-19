@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--database', required=True)
 args = parser.parse_args()
 assert args.database in ('LAB_TAREAS', 'CERRO_EL_PLOMO', 'QA-CERROELPLOMO') or re.fullmatch(
-    r'MANAGEMENT_QA_(DEVELOPMENT|CERRO|QA-CERRO)_t229_[0-9a-f]{8}(?:_r[1-9][0-9]*)?', args.database)
+    r'MANAGEMENT_QA_(DEVELOPMENT|CERRO|QA-CERRO)_t(?:229|230)_[0-9a-f]{8}(?:_r[1-9][0-9]*)?', args.database)
 query = """
 BEGIN READ ONLY;
 SET LOCAL statement_timeout = '45s';
