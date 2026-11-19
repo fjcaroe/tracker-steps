@@ -34,16 +34,20 @@ def is_read_request(path, body):
     path = urlsplit(path).path
     if path in READ_POSTS:
         return True
-    if path != "/web/dataset/call_kw" and not path.startswith("/web/dataset/call_kw/"):
+    route = next((route for route in ("/web/dataset/call_kw", "/web/dataset/call_button")
+                  if path == route or path.startswith(route + "/")), None)
+    if not route:
         return False
     try:
         params = json.loads(body).get("params", {})
         method = params.get("method")
+        if route.endswith("call_button") and method not in ("action_open_move", "action_export_excel"):
+            return False
         if method in ("action_open_move", "action_export_excel") and params.get("model") != "step.management.actual.cost.report":
             return False
-        if path != "/web/dataset/call_kw":
+        if path != route:
             parts = path.split("/")
-            if len(parts) != 6 or parts[-1] != method:
+            if len(parts) != 6 or parts[-1] != method or parts[-2] != params.get("model"):
                 return False
         return method in READ_METHODS
     except (ValueError, AttributeError):
