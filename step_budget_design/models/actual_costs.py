@@ -269,11 +269,9 @@ class ActualCost(models.Model):
             return True, source.debit, source.credit
         # Steps keeps a second, booked ledger. Its transaction date/rate may
         # differ from the posting date; never retranslate its stored amounts.
-        operational = {"operational_currency_id", "operational_debit", "operational_credit", "operational_exchange_rate"}
+        operational = {"operational_currency_id", "operational_debit", "operational_credit"}
         if operational <= source._fields.keys() and source.operational_currency_id == currency:
-            available = bool(source.operational_exchange_rate or source.operational_debit
-                             or source.operational_credit or not source.balance)
-            return available, source.operational_debit, source.operational_credit
+            return True, source.operational_debit, source.operational_credit
         if source.currency_id == currency:
             return True, max(source.amount_currency, 0), max(-source.amount_currency, 0)
         rate = self.env["res.currency.rate"].search([
