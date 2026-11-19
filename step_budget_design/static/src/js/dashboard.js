@@ -63,6 +63,15 @@ export class StepManagementDashboard extends Component {
         return new Intl.NumberFormat("es-CL", {style: "currency", currency,
             minimumFractionDigits: precision, maximumFractionDigits: precision}).format(value);
     }
+    percentage(value) {
+        if (value === null || value === undefined) return "—";
+        return new Intl.NumberFormat("es-CL", {style: "percent", minimumFractionDigits: 2,
+            maximumFractionDigits: 2}).format(value);
+    }
+    varianceClass(value) {
+        if (value === null || value === undefined) return "";
+        return value > 0 ? "o_mgmt_variance_positive" : "o_mgmt_variance_nonpositive";
+    }
     stateLabel(state) {
         return ({draft: "Borrador", calculated: "Calculado", approved: "Aprobado",
             closed: "Cerrado", cancelled: "Cancelado"})[state] || state;

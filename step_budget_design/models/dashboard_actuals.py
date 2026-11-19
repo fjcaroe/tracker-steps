@@ -6,11 +6,40 @@ from dateutil.relativedelta import relativedelta
 from odoo import api, fields, models
 from odoo.exceptions import AccessError
 
-from .dashboard import token
+from .dashboard import relative_variance, table_totals, token
 
 
 class BudgetDashboardActuals(models.Model):
     _inherit = "step.management.operational.budget"
+
+    @api.model
+    def _panel_control_data(self, accounting, budgets):
+        actuals = {row["id"]: row for row in accounting["rows"] if row["stage"] == "ope"}
+        planned = {row["id"]: row for row in budgets if row["stage"] == "ope"}
+        rows = []
+        for ident in dict.fromkeys([*planned, *actuals]):
+            budget, actual = planned.get(ident), actuals.get(ident)
+            master = budget or actual
+            available = accounting["access"] and (not actual or actual["available"])
+            row = {"id": ident, "name": master["name"], "hectares": master["hectares"],
+                "maintenance": actual["maintenance"] if actual else 0.0 if available else None,
+                "harvest": actual["harvest"] if actual else 0.0 if available else None,
+                "amount": actual["amount"] if actual else 0.0 if available else None,
+                "budget": budget["amount"] if budget else 0.0}
+            row["difference"] = row["amount"] - row["budget"] if row["amount"] is not None and row["budget"] is not None else None
+            row["variation"] = relative_variance(row["amount"], row["budget"])
+            row["cost_per_ha"] = row["amount"] / row["hectares"] if row["amount"] is not None and row["hectares"] else None
+            rows.append(row)
+        total = table_totals(rows, ("hectares", "maintenance", "harvest", "amount", "budget", "difference"))
+        if not accounting["access"]:
+            total.update(maintenance=None, harvest=None, amount=None, difference=None)
+        total["variation"] = relative_variance(total["amount"], total["budget"])
+        total["cost_per_ha"] = total["amount"] / total["hectares"] if total["amount"] is not None and total["hectares"] else None
+        sums = {stage: table_totals([row for row in accounting["rows"] if row["stage"] in stages], ("amount",))["amount"]
+                if accounting["access"] else None for stage, stages in (("operating", ("ope",)), ("investment", ("inver", "cre")))}
+        return {"access": accounting["access"], "rows": rows, "total": total,
+            "operating_actual": sums["operating"], "investment_actual": sums["investment"],
+            "unavailable_centers": sum(not row["available"] for row in accounting["rows"])}
 
     @api.model
     def _panel_harvest_share(self, row, analytics):

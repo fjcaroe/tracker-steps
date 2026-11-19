@@ -1,16 +1,18 @@
 # Operación y publicación de Odoo
 
-T230 está en preparación en `codex/t230-panel-modificacion-2`, sin publicación.
-El adjunto 3615 pide totalizar la proyección, mostrar presupuestos por centro
-con hectáreas y promedios y ubicar Maestros después del Flujo recomendado.
-Se preparan esos cambios y la lectura de contabilidad publicada por centro y
-actividad, con el mismo libro y permisos del informe T229. Se prueba en copia
-privada de Desarrollo. Faltan dos definiciones solicitadas en este chat:
-la fórmula de los indicadores superiores (el cociente escrito contradice el
-ejemplo negativo) y si el gasto incluye únicamente cuentas de costo o también
-ingresos. No se presenta este avance como T230 resuelto. La publicación final
-requiere el paquete completo en Desarrollo, Cerro y QA-Cerro, copias frescas,
-respaldo, bloqueo, preservación y revisión del panel y de su flujo.
+T230 actualiza `step_budget_design` a 18.0.1.4.0 con `budget-design` en
+Desarrollo, Cerro y QA-Cerro. La respuesta del usuario en este chat confirma
+Variación = (Real − Presupuesto) / Presupuesto y solo cuentas de gastos/costos
+publicadas. Separar Operación de Inversión/Crecimiento, respetar el libro
+contabilizado y los permisos de T229. Mostrar rojo si la variación es positiva
+y azul en los demás valores calculables; bases en cero o datos faltantes quedan
+sin porcentaje. Proyección lleva totales. Presupuestos muestra una fila por
+centro con hectáreas del maestro y estimaciones vigentes sin duplicar revisiones;
+las dos últimas columnas promedian los valores disponibles. CONTROL compara
+solo centros en Operación, separa Cosechar de las demás actividades y calcula
+diferencia, variación y costo real por hectárea. Maestros va debajo del Flujo
+recomendado. Exigir copias frescas, mismo paquete, respaldo, bloqueo, preservación
+y revisión del panel, sus filtros, los formularios y el flujo en los tres destinos.
 
 T229 actualiza `step_budget_design` a 18.0.1.3.2 con `budget-design` en
 Desarrollo, Cerro y QA-Cerro. Control de costos → Costos reales consulta

@@ -33,6 +33,10 @@ def table_totals(rows, sums, averages=()):
     return result
 
 
+def relative_variance(actual, budget):
+    return (actual - budget) / budget if actual is not None and budget not in (None, 0) else None
+
+
 class BudgetDashboard(models.Model):
     _inherit = "step.management.operational.budget"
 
@@ -75,6 +79,7 @@ class BudgetDashboard(models.Model):
             for center in centers:
                 row = rows.setdefault(center.id, {
                     "id": center.id, "name": center.display_name, "hectares": center.hectares,
+                    "stage": center.etapa_costo,
                     "harvest": 0.0, "maintenance": 0.0, "amount": 0.0,
                     "estimated_kg": 0.0, "conversion_available": True,
                     "estimation_available": True,
@@ -164,7 +169,7 @@ class BudgetDashboard(models.Model):
             selected_centers |= centers
             costs = lines.filtered(lambda line: line.flow_type != "income")
             investment = costs.filtered(lambda line: line.center_id.etapa_costo in ("inver", "cre"))
-            operational = costs - investment
+            operational = costs.filtered(lambda line: line.center_id.etapa_costo == "ope")
             conversion = factor(budget)
             available = conversion["available"]
             multiplier = conversion["factor"]
@@ -174,7 +179,7 @@ class BudgetDashboard(models.Model):
             hectares = sum(allocations.mapped("hectares")) if allocations else sum(centers.mapped("hectares"))
             totals["hectares"] += hectares
 
-            for line in lines.filtered(lambda row: row.center_id.etapa_costo not in ("inver", "cre")):
+            for line in lines.filtered(lambda row: row.center_id.etapa_costo == "ope"):
                 key = species_key(line.center_id)
                 row = projected.setdefault(key, {
                     "key": "%s:%s" % key,
@@ -227,20 +232,10 @@ class BudgetDashboard(models.Model):
             and (not species or row.budget_id in selected_budgets
                  or any(center_matches(center) for center in row.center_ids))
         )
-        cost_domain = [("company_id", "=", company.id)]
-        if days:
-            cost_domain.append(("date", ">=", start))
-        costs = self.env["step.management.historical.cost"].search(cost_domain).filtered(
-            lambda row: (not season or token(row.season) in {token(season.name), token(season.code)})
-            and (not species or center_matches(row.center_id))
-            and row.center_id.etapa_costo not in ("inver", "cre")
-        )
-        real_results, budget_results = [], []
-        for cost in costs:
-            for amount, results in ((cost.actual_amount, real_results), (cost.budget_amount, budget_results)):
-                results.append(exchange.get_conversion(
-                    amount, cost.currency_id, currency, company, cost.date, "actual",
-                ))
+        accounting = self._panel_accounting_rows(days, season, species, currency, only_costs=True)
+        control = self._panel_control_data(accounting, recent_centers)
+        control["operating_variation"] = relative_variance(control["operating_actual"], totals["amount"])
+        control["investment_variation"] = relative_variance(control["investment_actual"], totals["investment"])
         stock_domain = [("company_id", "=", company.id), ("requirement_id.active", "=", True)]
         if days:
             stock_domain.append(("requirement_id.date", ">=", start))
@@ -275,7 +270,9 @@ class BudgetDashboard(models.Model):
             "centers": {"total": len(centers), "hectares": sum(centers.mapped("hectares"))},
             "templates": len(templates),
             "plans": {"total": len(plans), "open": len(plans.filtered(lambda row: row.state not in ("done", "cancelled")))},
-            "costs": self._dashboard_costs_block(real_results, budget_results),
+            "control": control,
+            "costs": {"actual": control["total"]["amount"], "budget": control["total"]["budget"],
+                "variance": control["total"]["difference"]},
             "hectares_by_farm_species": _hectares_breakdown(centers, ("farm", "species")),
             "hectares_by_variety": _hectares_breakdown(centers, ("variety",)),
             "stock": {

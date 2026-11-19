@@ -215,6 +215,7 @@ class DashboardActualsCase(TransactionCase):
         company = cls.env["res.company"].create({"name": "QA T230 empresa", "currency_id": cls.env.ref("base.CLP").id})
         cls.env = cls.env["res.company"].with_company(company).with_context(allowed_company_ids=company.ids).env
         cls.sample = actual_cost_sample(cls.env)
+        cls.sample["centers"].type_costo = "fruta"
         cls.sample["centers"][0].write({"etapa_costo": "ope", "hectares": 2})
         cls.sample["centers"][1].write({"etapa_costo": "inver", "hectares": 1})
         cls.sample["analytics"][3].name = "Cosechar"
@@ -270,3 +271,47 @@ class DashboardActualsCase(TransactionCase):
         data = self.actuals(currency="USD")
         self.assertEqual(sum(row["amount"] for row in data["rows"]), 80)
         self.assertTrue(all(row["available"] for row in data["rows"]))
+
+    def full_panel_sample(self):
+        season, center_a, center_b, harvest = self.sample["analytics"]
+        native_season = self.env["step.temporada"].create({"name": season.name, "company_id": self.env.company.id})
+        budget = self.env["step.management.operational.budget"].create({
+            "description": "QA T230 control", "company_id": self.env.company.id,
+            "budget_type": "general", "season_id": native_season.id, "currency_id": self.env.ref("base.CLP").id,
+            "allocation_ids": [Command.create({"center_id": center.id, "hectares": center.hectares}) for center in self.sample["centers"]],
+            "line_ids": [Command.create({"center_id": center.id, "group_id": self.sample["group"].id,
+                "activity_id": activity.id, "category": "labor", "indicator": "QA T230 control",
+                "calculation_mode": "direct", "direct_amount": amount}) for center, activity, amount in
+                ((center_a, harvest, 50000), (center_a, self.maintenance, 50000), (center_b, self.maintenance, 30000))]})
+        actual_cost_move(self.sample, {f"{season.id},{center_a.id},{harvest.id}": 40,
+            f"{season.id},{center_b.id},{self.maintenance.id}": 60}, amount=200000)
+        return budget, native_season
+
+    def test_whole_panel_uses_confirmed_variation_formula_and_operational_control(self):
+        budget, season = self.full_panel_sample()
+        data = budget.with_user(self.user).get_management_dashboard(season_id=season.id)
+        self.assertTrue(data["control"]["access"])
+        self.assertEqual(data["budgets"]["amount"], 100000)
+        self.assertEqual(data["budgets"]["investment"], 30000)
+        self.assertAlmostEqual(data["control"]["operating_variation"], -.2)
+        self.assertAlmostEqual(data["control"]["investment_variation"], 3)
+        self.assertEqual(len(data["control"]["rows"]), 1)
+        row = data["control"]["rows"][0]
+        self.assertEqual(row["id"], self.sample["centers"][0].id)
+        self.assertEqual((row["hectares"], row["maintenance"], row["harvest"], row["amount"]), (2, 0, 80000, 80000))
+        self.assertEqual((row["budget"], row["difference"], row["variation"], row["cost_per_ha"]), (100000, -20000, -.2, 40000))
+        self.assertEqual(data["control"]["total"]["amount"], 80000)
+
+    def test_zero_bases_and_budget_only_profile_never_show_invented_percentages(self):
+        budget, season = self.full_panel_sample()
+        budget.line_ids.filtered(lambda line: line.center_id.etapa_costo == "ope").unlink()
+        self.sample["centers"][0].hectares = 0
+        data = budget.with_user(self.user).get_management_dashboard(season_id=season.id)
+        self.assertIsNone(data["control"]["operating_variation"])
+        self.assertIsNone(data["control"]["rows"][0]["variation"])
+        self.assertIsNone(data["control"]["rows"][0]["cost_per_ha"])
+        planner = new_test_user(self.env, login="qa-t230-panel-no-ledger", company_id=self.env.company.id,
+            company_ids=[Command.set(self.env.company.ids)], groups="step_management_costs.group_management_manager")
+        restricted = budget.with_user(planner).get_management_dashboard(season_id=season.id)
+        self.assertFalse(restricted["control"]["access"])
+        self.assertIsNone(restricted["control"]["operating_variation"])

@@ -32,9 +32,8 @@ try:
     business_panel = business['step.management.operational.budget'].get_management_dashboard()
     assert len({row['id'] for row in business_panel['recent_centers']}) == len(business_panel['recent_centers'])
     assert business_panel['recent_total']['hectares'] == sum(row['hectares'] for row in business_panel['recent_centers'])
-    business_actuals = business['step.management.operational.budget']._panel_accounting_rows(
-        0, False, False, business.ref('base.CLP'), only_costs=True)
-    assert business_actuals['access'] is True
+    assert business_panel['control']['access'] is True
+    assert len({row['id'] for row in business_panel['control']['rows']}) == len(business_panel['control']['rows'])
     env.cr.rollback()
     env=env(context=dict(env.context,no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True))
     for role, field_name in ROLE_FIELDS.items():
@@ -179,7 +178,7 @@ try:
         print('ACTUAL_COSTS_XLSX_PROOF '+str(preview))
     exercise_group_company_scope(ledger, accountant)
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({
-        'tickets': [77, 224, 225, 226, 227, 228, 229], 'versions': EXPECTED, 'menus': True, 'forms': True,
+        'tickets': [77, 224, 225, 226, 227, 228, 229, 230], 'versions': EXPECTED, 'menus': True, 'forms': True,
         'pruning_formula': True, 'hectare_scaling': True, 'approval_revision': True,
         'summary': True, 'real_season_months': True, 'general_form_save': True,
         'detail_product_group': True, 'activity_catalog': True, 'legacy_activity_preserved': True,
@@ -193,6 +192,7 @@ try:
         'booked_usd_audit': booked_currency_proof,
         'native_business_profile_read': True, 'foreign_group_scope': True,
         'dashboard_center_totals': True, 'dashboard_ledger_reader': True,
+        'dashboard_real_control': True, 'dashboard_variation_ratio': True,
     }))
 finally:
     env.cr.rollback()
