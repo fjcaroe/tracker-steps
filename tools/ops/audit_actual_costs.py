@@ -38,7 +38,7 @@ SELECT json_build_object(
 ROLLBACK;
 """
 result = subprocess.run(['sudo', '-u', 'postgres', 'psql', '-XqAt', '-v', 'ON_ERROR_STOP=1',
-    '-d', args.database, '-c', query], text=True, capture_output=True)
+    '-d', args.database, '-f', '-'], input=query, text=True, capture_output=True)
 assert result.returncode == 0, result.stderr
 proof = json.loads(result.stdout)
 for field in ('coverage_errors', 'quantity_errors', 'weight_errors', 'duplicate_ids', 'browser_id_errors', 'missing_plan_roles'):
