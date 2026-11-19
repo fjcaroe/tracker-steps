@@ -71,6 +71,29 @@ def actual_cost_rows(sample, move, user=None):
     return model.search([("move_id", "=", move.id)], order="center_id,id")
 
 
+def exercise_booked_operational_currency(sample, user):
+    env = sample["env"]
+    usd = env.ref("base.USD")
+    move = actual_cost_move(sample, foreign=False, post=False)
+    move.write({"operational_currency_id": usd.id})
+    move.observed_exchange_rate = 1250
+    move.action_post()
+    source = move.line_ids.filtered("analytic_distribution")
+    assert source.operational_debit == 80 and source.debit == 100000
+    # The existing ledger remains usable when historical rates are corrected
+    # or removed. Only the fixture's own company rates are touched.
+    env["res.currency.rate"].search([
+        ("company_id", "=", sample["company"].id), ("currency_id", "=", usd.id)]).unlink()
+    before = (source.debit, source.credit, source.amount_currency, source.operational_debit,
+              source.operational_credit, source.operational_exchange_rate)
+    rows = actual_cost_rows(sample, move, user)
+    assert rows.mapped("debit_usd") == [32, 48] and all(rows.mapped("usd_available"))
+    assert sum(rows.mapped("debit_clp")) == 100000
+    assert before == (source.debit, source.credit, source.amount_currency, source.operational_debit,
+                      source.operational_credit, source.operational_exchange_rate)
+    return rows
+
+
 @tagged("post_install", "-at_install")
 class ActualCostCase(TransactionCase):
     @classmethod
@@ -167,6 +190,11 @@ class ActualCostCase(TransactionCase):
         self.assertIsNone(book.active["M3"].value)
         self.assertIsNone(book.active["M5"].value)
         self.assertIn("sin tasa contable", book.active["A7"].value)
+
+    def test_operational_usd_uses_the_booked_ledger_not_a_later_rate(self):
+        if "operational_debit" not in self.env["account.move.line"]._fields:
+            self.skipTest("The optional Steps operational ledger is not installed")
+        exercise_booked_operational_currency(self.sample, self.reader)
 
     def test_excel_contract_and_native_source_are_preserved(self):
         move = actual_cost_move(self.sample, name='=HYPERLINK("https://example.invalid","test")')

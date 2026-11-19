@@ -8,7 +8,7 @@ from odoo.tests.common import new_test_user
 from odoo.tools.safe_eval import safe_eval
 from odoo.addons.step_budget_design.tests.test_design import BudgetDesignCase, save_general_budget_form
 from odoo.addons.step_budget_design.tests.test_dashboard import dashboard_sample
-from odoo.addons.step_budget_design.tests.test_actual_costs import actual_cost_sample, actual_cost_move, actual_cost_rows
+from odoo.addons.step_budget_design.tests.test_actual_costs import actual_cost_sample, actual_cost_move, actual_cost_rows, exercise_booked_operational_currency
 from odoo.addons.step_budget_design.models.actual_costs import default_plan, ROLE_FIELDS
 from odoo.addons.step_management_estimation_entry.tests.test_entry import (
     estimation_entry_sample, exercise_estimation_entry,
@@ -152,6 +152,8 @@ try:
     assert real_rows.action_export_excel()['target'] == 'download'
     assert real_rows[0].action_open_move()['res_id'] == source_move.id
     assert before == [(line.id,line.debit,line.credit,line.amount_currency,line.analytic_distribution) for line in source_move.line_ids]
+    if 'operational_debit' in env['account.move.line']._fields:
+        exercise_booked_operational_currency(ledger, accountant)
     if env.cr.dbname.startswith('MANAGEMENT_QA_') and '_t229_' in env.cr.dbname:
         preview = Path('/tmp') / ('t229-costs-'+env.cr.dbname+'.xlsx')
         preview.write_bytes(real_rows._excel_bytes())
@@ -168,6 +170,7 @@ try:
         'harvest_columns': True, 'current_estimation': True, 'currency_conversion': True,
         'actual_costs': True, 'ledger_source_unchanged': True, 'allocated_amounts': True,
         'actual_costs_excel': True, 'actual_costs_filters': True, 'native_ledger_permissions': True,
+        'booked_operational_currency': True,
     }))
 finally:
     env.cr.rollback()
