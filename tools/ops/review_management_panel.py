@@ -19,7 +19,7 @@ from urllib.parse import urlsplit
 
 
 READ_METHODS = {
-    "get_management_dashboard", "read", "web_read", "search_read", "web_search_read",
+    "get_management_dashboard", "read", "web_read", "search", "search_read", "web_search_read",
     "get_views", "get_view", "fields_get", "name_search", "search_count",
     "check_access_rights", "check_access", "has_group", "has_groups", "context_get",
     "systray_get_activities", "get_discuss_settings", "get_formview_action", "read_group", "web_read_group",
