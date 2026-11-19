@@ -973,6 +973,16 @@ def main():
             if args.kind == 'management':
                 run('/usr/bin/python3.10', '-c', import_probe)
             assert not query('postgres', "SELECT 1 FROM pg_database WHERE datname='%s'" % qa_db), 'Use a fresh run_id'
+            data_directory = Path(query('postgres', 'SHOW data_directory'))
+            storage = os.statvfs(data_directory)
+            available = storage.f_bavail * storage.f_frsize
+            source_bytes = int(query(database, 'SELECT pg_database_size(current_database())'))
+            required = max(1024**3, 2 * source_bytes + 512 * 1024**2)
+            assert available >= required, (
+                'Insufficient PostgreSQL data space for a private clone; retire superseded '
+                'copies with retained snapshots before retrying', available, required)
+            print('MANAGEMENT_DATA_SPACE_OK '+json.dumps({'available_bytes': available,
+                'required_bytes': required, 'database': database}), flush=True)
             (stage / 'baseline.json').write_text(json.dumps(baseline, indent=2))
             with (stage / 'source.dump').open('wb') as stream:
                 run('sudo', '-u', 'postgres', 'pg_dump', '-Fc', database, stdout=stream)
