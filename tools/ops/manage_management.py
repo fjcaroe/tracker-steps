@@ -1387,7 +1387,7 @@ def verify(base, options, database, source, opts, proof, stage, installed):
         assert 'TICKET_NATIVE_FLOW_OK' in result.stdout
     if TICKET_REVISION == 'sag-traceability':
         assert 'MANAGEMENT_CANONICAL_FRUIT_FKS_OK' in result.stdout
-    print('\n'.join(line for line in result.stdout.splitlines() if line.startswith(('MANAGEMENT_REGISTRY_OK','MANAGEMENT_CANONICAL_FRUIT_FKS_OK','TICKET_NATIVE_FLOW_OK'))), flush=True)
+    print('\n'.join(line for line in result.stdout.splitlines() if line.startswith(('MANAGEMENT_REGISTRY_OK','MANAGEMENT_CANONICAL_FRUIT_FKS_OK','TICKET_NATIVE_FLOW_OK','ACTUAL_COSTS_BOOKED_USD_AUDIT'))), flush=True)
     if homepage:
         from verify_home_heading_http import verify_http
         verify_http(base, options, database, source, opts, stage)

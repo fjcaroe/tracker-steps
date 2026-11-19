@@ -19,6 +19,10 @@ try:
         module=env['ir.module.module'].search([('name','=',name)])
         assert module.state=='installed' and module.latest_version==version
         assert Path(importlib.import_module('odoo.addons.'+name).__file__).resolve().parent==Path(ROOT)/name
+    assert 'operational_debit' in env['account.move.line']._fields, 'Canonical destinations retain the booked Steps ledger'
+    audit_source = Path(PROBE_TOOLS) / 'audit_actual_costs_currency.py'
+    exec(compile(audit_source.read_text(), str(audit_source), 'exec'), globals())
+    booked_currency_proof = proof
     env=env(context=dict(env.context,no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True))
     for role, field_name in ROLE_FIELDS.items():
         expected_plan = default_plan(env, role)
@@ -171,6 +175,7 @@ try:
         'actual_costs': True, 'ledger_source_unchanged': True, 'allocated_amounts': True,
         'actual_costs_excel': True, 'actual_costs_filters': True, 'native_ledger_permissions': True,
         'booked_operational_currency': True,
+        'booked_usd_audit': booked_currency_proof,
     }))
 finally:
     env.cr.rollback()
