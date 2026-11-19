@@ -649,6 +649,10 @@ no una base para copiar ciegamente a los demás ambientes.
 2. Resolver URL, puerto y nombre del ambiente con el registro; verificar por SSH
    la configuración, base, servicio y rutas efectivas de addons. Una API sin
    acceso no demuestra que el servidor sea inaccesible: SSH sigue disponible.
+   Si HTTPS responde pero la conexión directa a SSH agota su tiempo, usar el
+   acceso de Google Cloud con `--tunnel-through-iap`. Comprobar la huella del
+   servidor contra `~/.ssh/google_compute_known_hosts` y fijarla en el cliente;
+   conservar las claves y los permisos existentes.
 3. Inventariar versión instalada, versión de manifiesto y hash del código que
    realmente carga cada servicio. `audit_runtime.py` no imprime contraseñas.
 4. Consultar el manifiesto de la última entrega instalada, no elegir por la fecha
