@@ -24,9 +24,23 @@ def sql(statement):
         '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', statement], text=True).strip()
 
 
-def cleanup(apply):
+def cleanup(apply, include_completed_final=False):
+    pairs = list(PAIRS)
+    if include_completed_final:
+        # Final copies are retired only after all three publications have receipts.
+        for environment in ('development', 'cerro', 'qa-cerro'):
+            stage = ROOT / ('management_' + environment + '_t229_d94b5042_r1')
+            proof = json.loads((stage/'qa_passed.json').read_text())
+            assert proof['commit'] == 'd94b5042a3d9b1874827567f8e212a543e435744'
+            assert proof['release_sha256'] == 'dacfaf3974fb99748b3e0232cd8de2cd175ded6e637f3f0ba2a653d8f20a9dcf'
+            assert 'MANAGEMENT_REGISTRY_OK' in (stage/('verify-'+proof['database']+'.log')).read_text()
+            receipts = [json.loads(path.read_text()) for path in
+                Path('/opt/steps_backups').glob('management_'+environment+'_'+ '*'+'/deployment.json')]
+            assert any(receipt.get('commit') == proof['commit'] and
+                receipt.get('sha256') == proof['release_sha256'] for receipt in receipts)
+            pairs.append((environment, 'd94b5042_r1'))
     plan = []
-    for environment, tag in PAIRS:
+    for environment, tag in pairs:
         database = 'MANAGEMENT_QA_' + environment.upper() + '_t229_' + tag
         stage = ROOT / ('management_' + environment + '_t229_' + tag)
         assert stage.resolve() == stage and stage.parent == ROOT and not stage.is_symlink()
@@ -52,7 +66,9 @@ def cleanup(apply):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply', action='store_true')
+    parser.add_argument('--include-completed-final', action='store_true',
+        help='Also retire the final copies after all three exact publication receipts exist')
     args = parser.parse_args()
     with open('/run/lock/steps-environments.lock', 'a') as lease:
         fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        cleanup(args.apply)
+        cleanup(args.apply, args.include_completed_final)
