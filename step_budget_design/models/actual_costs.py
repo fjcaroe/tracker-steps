@@ -2,6 +2,7 @@
 import base64
 from functools import partial
 import io
+import textwrap
 
 import xlsxwriter
 
@@ -337,7 +338,8 @@ class ActualCost(models.Model):
         header = book.add_format({"bold": True, "bg_color": "#135F4B", "font_color": "white", "text_wrap": True, "valign": "vcenter"})
         date_format = book.add_format({"num_format": "dd/mm/yyyy"})
         number = book.add_format({"num_format": "#,##0.00"})
-        quantity = book.add_format({"num_format": "#,##0.####"})
+        quantity = book.add_format({"num_format": "#,##0.0000"})
+        wrapped = book.add_format({"text_wrap": True, "valign": "top"})
         total = book.add_format({"num_format": "#,##0.00", "bold": True, "top": 1})
         sheet.write(0, 0, "Costos reales", title)
         sheet.write_row(1, 0, HEADERS, header)
@@ -358,7 +360,10 @@ class ActualCost(models.Model):
             for col, value in enumerate(values):
                 if value is None:
                     continue
-                sheet.write(index, col, value, date_format if col == 1 else quantity if col == 5 else number if 10 <= col <= 13 else None)
+                sheet.write(index, col, value, date_format if col == 1 else quantity if col == 5 else number if 10 <= col <= 13 else wrapped)
+            text_columns = (0, 2, 3, 4, 6, 7, 8, 9, 14, 15, 16)
+            lines = max(len(textwrap.wrap(str(values[col]), width=int(widths[col]) - 3)) or 1 for col in text_columns)
+            sheet.set_row(index, 16 * lines + 4)
             for col in range(4):
                 sums[col] += values[col + 10] or 0
                 complete[col] &= values[col + 10] is not None
