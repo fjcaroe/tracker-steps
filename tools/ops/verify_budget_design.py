@@ -9,6 +9,7 @@ from odoo.tools.safe_eval import safe_eval
 from odoo.addons.step_budget_design.tests.test_design import BudgetDesignCase, save_general_budget_form
 from odoo.addons.step_budget_design.tests.test_dashboard import dashboard_sample
 from odoo.addons.step_budget_design.tests.test_actual_costs import actual_cost_sample, actual_cost_move, actual_cost_rows
+from odoo.addons.step_budget_design.models.actual_costs import default_plan, ROLE_FIELDS
 from odoo.addons.step_management_estimation_entry.tests.test_entry import (
     estimation_entry_sample, exercise_estimation_entry,
 )
@@ -19,6 +20,11 @@ try:
         assert module.state=='installed' and module.latest_version==version
         assert Path(importlib.import_module('odoo.addons.'+name).__file__).resolve().parent==Path(ROOT)/name
     env=env(context=dict(env.context,no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True))
+    for role, field_name in ROLE_FIELDS.items():
+        expected_plan = default_plan(env, role)
+        if expected_plan:
+            assert all(company[field_name] for company in env['res.company'].sudo().search([])), (
+                'Existing companies must retain or initialize the native analytical role', role)
     user=new_test_user(env,login='qa-t77-live-planner',groups='step_management_costs.group_management_manager')
     visible=env['ir.ui.menu'].with_user(user)._visible_menu_ids()
     for key in ('template_import_menu','machinery_menu','data_menu','summary_menu','days_menu','center_menu','labor_menu'):

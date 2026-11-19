@@ -108,12 +108,12 @@ class ActualCost(models.Model):
           FROM account_move_line l JOIN res_company co ON co.id=l.company_id
           CROSS JOIN LATERAL (
             WITH atoms AS (
-              SELECT regexp_replace(d.key,'\s','','g') key,d.value::numeric percentage,
+              SELECT regexp_replace(d.key,'\s','','g') AS analytic_key,d.value::numeric percentage,
                 a.id account_id,r.root_id
               FROM jsonb_each_text(CASE WHEN jsonb_typeof(l.analytic_distribution)='object'
                 THEN l.analytic_distribution ELSE '{}'::jsonb END) d
-              CROSS JOIN LATERAL regexp_split_to_table(d.key, ',') key
-              JOIN account_analytic_account a ON a.id=CASE WHEN btrim(key) ~ '^[0-9]+$' THEN btrim(key)::integer END
+              CROSS JOIN LATERAL regexp_split_to_table(d.key, ',') AS token(account_token)
+              JOIN account_analytic_account a ON a.id=CASE WHEN btrim(token.account_token) ~ '^[0-9]+$' THEN btrim(token.account_token)::integer END
               JOIN roots r ON r.id=a.plan_id
             ), centers AS (
               SELECT account_id center_id,SUM(percentage) percentage FROM atoms
@@ -133,9 +133,9 @@ class ActualCost(models.Model):
               SELECT array_agg(DISTINCT a.account_id) FILTER(WHERE a.root_id=co.management_actual_season_plan_id) all_seasons,
                 array_agg(DISTINCT a.account_id) FILTER(WHERE a.root_id=co.management_actual_activity_plan_id) all_activities,
                 array_agg(DISTINCT a.account_id) FILTER(WHERE a.root_id=co.management_actual_season_plan_id
-                  AND (weights.center_id IS NULL OR weights.center_id::text=ANY(string_to_array(a.key,',')))) local_seasons,
+                  AND (weights.center_id IS NULL OR weights.center_id::text=ANY(string_to_array(a.analytic_key,',')))) local_seasons,
                 array_agg(DISTINCT a.account_id) FILTER(WHERE a.root_id=co.management_actual_activity_plan_id
-                  AND (weights.center_id IS NULL OR weights.center_id::text=ANY(string_to_array(a.key,',')))) local_activities
+                  AND (weights.center_id IS NULL OR weights.center_id::text=ANY(string_to_array(a.analytic_key,',')))) local_activities
               FROM atoms a
             ) d
           ) w
@@ -333,7 +333,7 @@ class ActualCost(models.Model):
         number = book.add_format({"num_format": "#,##0.00"})
         quantity = book.add_format({"num_format": "#,##0.####"})
         total = book.add_format({"num_format": "#,##0.00", "bold": True, "top": 1})
-        sheet.merge_range(0, 0, 0, 16, "Costos reales", title)
+        sheet.write(0, 0, "Costos reales", title)
         sheet.write_row(1, 0, HEADERS, header)
         sheet.set_row(1, 32)
         widths = [24, 12, 34, 30, 42, 12, 12, 20, 30, 26, 18, 18, 18, 18, 26, 26, 26]
