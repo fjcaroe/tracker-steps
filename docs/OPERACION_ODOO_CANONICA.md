@@ -1,5 +1,19 @@
 # Operación y publicación de Odoo
 
+T229 actualiza `step_budget_design` a 18.0.1.3.0 con `budget-design` en
+Desarrollo, Cerro y QA-Cerro. Control de costos → Costos reales consulta
+apuntes publicados con distribución analítica, sin copiar montos a otra tabla.
+Desglosa centros, conserva una fila sin centro para la parte no asignada y
+evita duplicar importes por planes independientes. Los planes de temporada,
+centros y actividades son relaciones configurables a los maestros existentes.
+El Excel conserva las 17 columnas del anexo. CLP y USD usan el importe original
+de su moneda o la tasa real de la fecha; los faltantes quedan vacíos y el
+redondeo conserva el total del apunte. Intersectar permisos y reglas del apunte
+original en búsquedas y lecturas directas. Probar filtros, reversas, repartos,
+descarga y preservación en copias frescas y revisar listado, formulario y Excel
+antes de publicar el mismo paquete con respaldo, bloqueo y paridad. No publicar
+ni modificar comprobantes existentes durante la verificación.
+
 T228 actualiza `step_budget_design` a 18.0.1.2.0 dentro de `budget-design` en
 Desarrollo, Cerro y QA-Cerro. El panel filtra temporada y especie desde los
 maestros, presenta importes en CLP o USD y separa las etapas Inversión y

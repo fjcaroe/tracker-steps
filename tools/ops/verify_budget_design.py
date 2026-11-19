@@ -8,6 +8,7 @@ from odoo.tests.common import new_test_user
 from odoo.tools.safe_eval import safe_eval
 from odoo.addons.step_budget_design.tests.test_design import BudgetDesignCase, save_general_budget_form
 from odoo.addons.step_budget_design.tests.test_dashboard import dashboard_sample
+from odoo.addons.step_budget_design.tests.test_actual_costs import actual_cost_sample, actual_cost_move, actual_cost_rows
 from odoo.addons.step_management_estimation_entry.tests.test_entry import (
     estimation_entry_sample, exercise_estimation_entry,
 )
@@ -125,8 +126,33 @@ try:
     assert abs(converted['budgets']['amount'] - .65) < 1e-9
     assert abs(converted['recent'][0]['amount'] - .95) < 1e-9
     assert not panel.get_management_dashboard(season_id=dashboard['other_season'].id)['recent']
+    ledger = actual_cost_sample(dashboard_env)
+    accountant = new_test_user(dashboard_env, login='qa-t229-ledger-live', company_id=company.id,
+        company_ids=[Command.set(company.ids)],
+        groups='step_management_costs.group_management_readonly,account.group_account_readonly')
+    source_move = actual_cost_move(ledger)
+    before = [(line.id,line.debit,line.credit,line.amount_currency,line.analytic_distribution) for line in source_move.line_ids]
+    real_rows = actual_cost_rows(ledger, source_move, accountant)
+    assert len(real_rows) == 2 and real_rows.mapped('quantity') == [4,6]
+    assert sum(real_rows.mapped('debit_clp')) == 100000 and sum(real_rows.mapped('debit_usd')) == 100
+    assert real_rows.season_ids == ledger['analytics'][0] and real_rows.activity_ids == ledger['analytics'][3]
+    assert real_rows.group_id == ledger['group'] and real_rows.origin_id == ledger['group'].origin_id
+    real_visible = env['ir.ui.menu'].with_user(accountant)._visible_menu_ids()
+    real_menu = env.ref('step_budget_design.actual_costs_menu')
+    assert real_menu.id in real_visible and real_menu.action.res_model == real_rows._name
+    for kind in ('list','form','search'):
+        view = real_rows.get_view(view_id=env.ref('step_budget_design.actual_costs_'+kind).id,view_type=kind)
+        assert 'center_id' in view['arch']
+    assert real_rows.action_export_excel()['target'] == 'download'
+    assert real_rows[0].action_open_move()['res_id'] == source_move.id
+    assert before == [(line.id,line.debit,line.credit,line.amount_currency,line.analytic_distribution) for line in source_move.line_ids]
+    if env.cr.dbname.startswith('MANAGEMENT_QA_') and '_t229_' in env.cr.dbname:
+        preview = Path('/tmp') / ('t229-costs-'+env.cr.dbname+'.xlsx')
+        preview.write_bytes(real_rows._excel_bytes())
+        preview.chmod(0o600)
+        print('ACTUAL_COSTS_XLSX_PROOF '+str(preview))
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({
-        'tickets': [77, 224, 225, 226, 227, 228], 'versions': EXPECTED, 'menus': True, 'forms': True,
+        'tickets': [77, 224, 225, 226, 227, 228, 229], 'versions': EXPECTED, 'menus': True, 'forms': True,
         'pruning_formula': True, 'hectare_scaling': True, 'approval_revision': True,
         'summary': True, 'real_season_months': True, 'general_form_save': True,
         'detail_product_group': True, 'activity_catalog': True, 'legacy_activity_preserved': True,
@@ -134,6 +160,8 @@ try:
         'estimate_per_plot': True, 'independent_plot_yield': True,
         'dashboard_filters': True, 'investment_split': True, 'projected_result': True,
         'harvest_columns': True, 'current_estimation': True, 'currency_conversion': True,
+        'actual_costs': True, 'ledger_source_unchanged': True, 'allocated_amounts': True,
+        'actual_costs_excel': True, 'actual_costs_filters': True, 'native_ledger_permissions': True,
     }))
 finally:
     env.cr.rollback()

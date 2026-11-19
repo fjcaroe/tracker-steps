@@ -1,0 +1,71 @@
+<odoo>
+  <record id="actual_costs_list" model="ir.ui.view">
+    <field name="name">step.management.actual.cost.report.list</field><field name="model">step.management.actual.cost.report</field>
+    <field name="arch" type="xml">
+      <list string="Costos reales" create="False" edit="False" delete="False" import="False" export_xlsx="False" decoration-warning="fx_note">
+        <header><button name="action_export_excel" type="object" string="Exportar Excel" class="btn-primary"/></header>
+        <field name="move_id"/><field name="date"/><field name="account_id"/><field name="product_id"/><field name="name"/>
+        <field name="quantity"/><field name="uom_id"/><field name="season_ids" widget="many2many_tags" options="{'no_create': True, 'no_open': True}"/>
+        <field name="center_id"/><field name="activity_ids" widget="many2many_tags" options="{'no_create': True, 'no_open': True}"/>
+        <field name="debit_clp" invisible="not clp_available"/><field name="credit_clp" invisible="not clp_available"/>
+        <field name="debit_usd" invisible="not usd_available"/><field name="credit_usd" invisible="not usd_available"/>
+        <field name="category_id"/><field name="group_id"/><field name="origin_id"/>
+        <field name="percentage" optional="hide"/><field name="fx_note" optional="hide"/>
+        <field name="move_line_id" optional="hide"/><field name="company_id" optional="hide"/>
+        <field name="clp_id" column_invisible="True"/><field name="usd_id" column_invisible="True"/>
+        <field name="clp_available" column_invisible="True"/><field name="usd_available" column_invisible="True"/>
+      </list>
+    </field>
+  </record>
+  <record id="actual_costs_form" model="ir.ui.view">
+    <field name="name">step.management.actual.cost.report.form</field><field name="model">step.management.actual.cost.report</field>
+    <field name="arch" type="xml">
+      <form string="Costo real" create="False" edit="False" delete="False">
+        <header><button name="action_open_move" type="object" string="Ver comprobante" class="btn-primary"/><button name="action_export_excel" type="object" string="Exportar Excel"/></header>
+        <sheet><div class="alert alert-warning" invisible="not fx_note"><field name="fx_note"/></div>
+          <group><group><field name="move_id"/><field name="move_line_id"/><field name="date"/><field name="company_id"/><field name="account_id"/><field name="product_id"/><field name="name"/></group>
+            <group><field name="quantity"/><field name="uom_id"/><field name="percentage"/><field name="season_ids" widget="many2many_tags"/><field name="center_id"/><field name="activity_ids" widget="many2many_tags"/>
+              </group></group>
+          <group><group><field name="debit_clp" invisible="not clp_available"/><field name="credit_clp" invisible="not clp_available"/><field name="debit_usd" invisible="not usd_available"/><field name="credit_usd" invisible="not usd_available"/></group>
+            <group><field name="category_id"/><field name="group_id"/><field name="origin_id"/></group></group>
+          <field name="clp_id" invisible="True"/><field name="usd_id" invisible="True"/><field name="clp_available" invisible="True"/><field name="usd_available" invisible="True"/>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="actual_costs_search" model="ir.ui.view">
+    <field name="name">step.management.actual.cost.report.search</field><field name="model">step.management.actual.cost.report</field>
+    <field name="arch" type="xml"><search string="Costos reales">
+      <field name="move_id"/><field name="name"/><field name="date"/><field name="account_id"/><field name="product_id"/>
+      <field name="season_ids"/><field name="center_id"/><field name="activity_ids"/><field name="category_id"/><field name="group_id"/><field name="origin_id"/>
+      <separator/><filter name="date" string="Fecha" date="date"/>
+      <filter name="costs" string="Gastos" domain="[('account_id.account_type', 'in', ['expense', 'expense_depreciation', 'expense_direct_cost'])]"/>
+      <filter name="income" string="Ingresos" domain="[('account_id.account_type', 'in', ['income', 'income_other'])]"/>
+      <filter name="without_center" string="Sin centro de costo" domain="[('center_id', '=', False)]"/>
+      <filter name="invalid_distribution" string="Distribución por revisar" domain="[('distribution_valid', '=', False)]"/>
+      <group expand="0" string="Agrupar por"><filter name="by_date" string="Mes" context="{'group_by': 'date:month'}"/><filter name="by_move" string="Comprobante" context="{'group_by': 'move_id'}"/>
+        <filter name="by_account" string="Cuenta" context="{'group_by': 'account_id'}"/><filter name="by_center" string="Centro de costo" context="{'group_by': 'center_id'}"/><filter name="by_product" string="Producto" context="{'group_by': 'product_id'}"/>
+        <filter name="by_company" string="Empresa" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/></group>
+    </search></field>
+  </record>
+  <record id="actual_costs_action" model="ir.actions.act_window">
+    <field name="name">Costos reales</field><field name="res_model">step.management.actual.cost.report</field><field name="view_mode">list,form</field>
+    <field name="view_id" ref="actual_costs_list"/><field name="search_view_id" ref="actual_costs_search"/>
+    <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    <field name="help" type="html"><p class="o_view_nocontent_smiling_face">No hay comprobantes publicados con distribución analítica.</p><p>El informe consulta los apuntes contables de todas las aplicaciones. Seleccione movimientos para descargarlos en Excel.</p></field>
+  </record>
+  <record id="actual_costs_excel_action" model="ir.actions.server">
+    <field name="name">Exportar Costos reales a Excel</field><field name="model_id" ref="model_step_management_actual_cost_report"/><field name="binding_model_id" ref="model_step_management_actual_cost_report"/>
+    <field name="binding_view_types">list,form</field><field name="state">code</field><field name="code">action = records.action_export_excel()</field>
+  </record>
+  <menuitem id="actual_costs_menu" name="Costos reales" parent="step_management_costs.menu_management_control" action="actual_costs_action" sequence="5" groups="account.group_account_readonly"/>
+  <record id="actual_costs_plans_form" model="ir.ui.view">
+    <field name="name">step.management.actual.cost.plans.form</field><field name="model">step.management.actual.cost.plans</field>
+    <field name="arch" type="xml"><form string="Planes de costos reales"><group><field name="company_id"/><field name="season_plan_id" string="Temporada"/><field name="center_plan_id" string="Centros de costo"/><field name="activity_plan_id" string="Actividades"/></group>
+      <footer><button name="action_apply" type="object" string="Guardar" class="btn-primary"/><button string="Cancelar" special="cancel"/></footer></form></field>
+  </record>
+  <record id="actual_costs_plans_action" model="ir.actions.act_window">
+    <field name="name">Planes de costos reales</field><field name="res_model">step.management.actual.cost.plans</field><field name="view_mode">form</field><field name="target">new</field><field name="view_id" ref="actual_costs_plans_form"/>
+  </record>
+  <menuitem id="actual_costs_plans_menu" name="Planes de costos reales" parent="step_management_costs.menu_management_configuration" action="actual_costs_plans_action" sequence="80" groups="base.group_system"/>
+</odoo>

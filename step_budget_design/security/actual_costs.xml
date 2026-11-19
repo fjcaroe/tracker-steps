@@ -1,0 +1,21 @@
+<odoo>
+  <record id="actual_costs_reader" model="ir.model.access">
+    <field name="name">Costos reales: lectura contable</field><field name="model_id" ref="model_step_management_actual_cost_report"/>
+    <field name="group_id" ref="account.group_account_readonly"/>
+    <field name="perm_read" eval="True"/><field name="perm_write" eval="False"/><field name="perm_create" eval="False"/><field name="perm_unlink" eval="False"/>
+  </record>
+  <record id="actual_costs_company" model="ir.rule">
+    <field name="name">Costos reales: empresas autorizadas</field><field name="model_id" ref="model_step_management_actual_cost_report"/>
+    <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+  </record>
+  <record id="actual_costs_export_reader" model="ir.model.access">
+    <field name="name">Costos reales: descarga propia</field><field name="model_id" ref="model_step_management_actual_cost_export"/>
+    <field name="group_id" ref="account.group_account_readonly"/>
+    <field name="perm_read" eval="True"/><field name="perm_write" eval="False"/><field name="perm_create" eval="True"/><field name="perm_unlink" eval="True"/>
+  </record>
+  <record id="actual_costs_plans_admin" model="ir.model.access">
+    <field name="name">Costos reales: configuración de planes</field><field name="model_id" ref="model_step_management_actual_cost_plans"/>
+    <field name="group_id" ref="base.group_system"/>
+    <field name="perm_read" eval="True"/><field name="perm_write" eval="True"/><field name="perm_create" eval="True"/><field name="perm_unlink" eval="True"/>
+  </record>
+</odoo>
