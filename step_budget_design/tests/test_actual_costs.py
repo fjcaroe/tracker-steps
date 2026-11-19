@@ -45,7 +45,7 @@ def actual_cost_sample(env):
         "centers": analytics[1:3], "group": group, "product": product, "accounts": accounts, "journal": journal}
 
 
-def actual_cost_move(sample, distribution=None, amount=100000, foreign=True, post=True, name="QA T229 gasto"):
+def actual_cost_move(sample, distribution=None, amount=100000, foreign=True, post=True, name="QA T229 gasto", foreign_amount=None):
     env, analytics = sample["env"], sample["analytics"]
     if distribution is None:
         distribution = {",".join(str(row.id) for row in (analytics[0], center, analytics[3])): pct
@@ -54,7 +54,8 @@ def actual_cost_move(sample, distribution=None, amount=100000, foreign=True, pos
     move = env["account.move"].with_context(validate_analytic=False).create({
         "move_type": "entry", "journal_id": sample["journal"].id, "date": "2026-11-15",
         "line_ids": [Command.create({"name": name, "account_id": sample["accounts"][0].id,
-            "debit": amount, "currency_id": currency.id, "amount_currency": amount / 1000 if foreign else amount,
+            "debit": amount, "currency_id": currency.id,
+            "amount_currency": foreign_amount if foreign_amount is not None else amount / 1000 if foreign else amount,
             "quantity": 10, "product_id": sample["product"].id, "product_uom_id": env.ref("uom.product_uom_unit").id,
             "analytic_distribution": distribution}),
             Command.create({"name": "QA T229 contrapartida", "account_id": sample["accounts"][1].id, "credit": amount})],
@@ -71,15 +72,18 @@ def actual_cost_rows(sample, move, user=None):
     return model.search([("move_id", "=", move.id)], order="center_id,id")
 
 
-def exercise_booked_operational_currency(sample, user):
+def exercise_booked_operational_currency(sample, user, zero_foreign=False):
     env = sample["env"]
     usd = env.ref("base.USD")
-    move = actual_cost_move(sample, foreign=False, post=False)
+    move = actual_cost_move(sample, foreign=zero_foreign, post=False,
+                           foreign_amount=0 if zero_foreign else None)
     move.write({"operational_currency_id": usd.id})
     move.observed_exchange_rate = 1250
     move.action_post()
     source = move.line_ids.filtered("analytic_distribution")
     assert source.operational_debit == 80 and source.debit == 100000
+    if zero_foreign:
+        assert source.currency_id == usd and source.amount_currency == 0
     # The existing ledger remains usable when historical rates are corrected
     # or removed. Only the fixture's own company rates are touched.
     env["res.currency.rate"].search([
@@ -194,7 +198,8 @@ class ActualCostCase(TransactionCase):
     def test_operational_usd_uses_the_booked_ledger_not_a_later_rate(self):
         if "operational_debit" not in self.env["account.move.line"]._fields:
             self.skipTest("The optional Steps operational ledger is not installed")
-        exercise_booked_operational_currency(self.sample, self.reader)
+        for zero_foreign in (False, True):
+            exercise_booked_operational_currency(self.sample, self.reader, zero_foreign=zero_foreign)
 
     def test_excel_contract_and_native_source_are_preserved(self):
         move = actual_cost_move(self.sample, name='=HYPERLINK("https://example.invalid","test")')

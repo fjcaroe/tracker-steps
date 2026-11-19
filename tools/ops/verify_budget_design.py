@@ -157,7 +157,8 @@ try:
     assert real_rows[0].action_open_move()['res_id'] == source_move.id
     assert before == [(line.id,line.debit,line.credit,line.amount_currency,line.analytic_distribution) for line in source_move.line_ids]
     if 'operational_debit' in env['account.move.line']._fields:
-        exercise_booked_operational_currency(ledger, accountant)
+        for zero_foreign in (False, True):
+            exercise_booked_operational_currency(ledger, accountant, zero_foreign=zero_foreign)
     if env.cr.dbname.startswith('MANAGEMENT_QA_') and '_t229_' in env.cr.dbname:
         preview = Path('/tmp') / ('t229-costs-'+env.cr.dbname+'.xlsx')
         preview.write_bytes(real_rows._excel_bytes())
