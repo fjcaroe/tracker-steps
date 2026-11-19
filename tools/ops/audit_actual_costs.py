@@ -18,7 +18,7 @@ WITH source AS (
     AND jsonb_typeof(analytic_distribution)='object' AND analytic_distribution<>'{}'::jsonb
 ), report AS (
   SELECT move_line_id,SUM(quantity) quantity,SUM(percentage) percentage,
-    bool_and(distribution_valid) valid FROM step_management_actual_cost_report GROUP BY move_line_id
+    bool_and(distribution_valid) AS is_valid FROM step_management_actual_cost_report GROUP BY move_line_id
 )
 SELECT json_build_object(
   'source_lines',(SELECT count(*) FROM source),
@@ -26,9 +26,9 @@ SELECT json_build_object(
   'coverage_errors',(SELECT count(*) FROM source s FULL JOIN report r ON r.move_line_id=s.id
     WHERE s.id IS NULL OR r.move_line_id IS NULL),
   'quantity_errors',(SELECT count(*) FROM source s JOIN report r ON r.move_line_id=s.id
-    WHERE r.valid AND abs(s.quantity-r.quantity)>0.000001),
-  'weight_errors',(SELECT count(*) FROM report WHERE valid AND abs(percentage-100)>0.00001),
-  'source_distributions_to_review',(SELECT count(*) FROM report WHERE NOT valid),
+    WHERE r.is_valid AND abs(s.quantity-r.quantity)>0.000001),
+  'weight_errors',(SELECT count(*) FROM report WHERE is_valid AND abs(percentage-100)>0.00001),
+  'source_distributions_to_review',(SELECT count(*) FROM report WHERE NOT is_valid),
   'duplicate_ids',(SELECT count(*) FROM (SELECT id FROM step_management_actual_cost_report GROUP BY id HAVING count(*)>1) d),
   'browser_id_errors',(SELECT count(*) FROM step_management_actual_cost_report WHERE id>9007199254740991 OR id<=0),
   'missing_plan_roles',(SELECT count(*) FROM res_company c WHERE c.id IN (
