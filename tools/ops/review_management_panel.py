@@ -1,8 +1,9 @@
 """Temporarily review the panel through loopback, without exposing credentials.
 
 Use an SSH loopback tunnel to this port. A native session retains an existing
-business editor's permissions; the proxy accepts only read operations and is
-removed with its session on termination. It never changes users or passwords.
+business editor's permissions; the proxy accepts reads and the actual-cost
+report's owner-only transient download. It never changes business records,
+users or passwords, and removes its session on termination.
 """
 import argparse
 import configparser
@@ -36,7 +37,10 @@ def is_read_request(path, body):
     if path != "/web/dataset/call_kw" and not path.startswith("/web/dataset/call_kw/"):
         return False
     try:
-        method = json.loads(body).get("params", {}).get("method")
+        params = json.loads(body).get("params", {})
+        method = params.get("method")
+        if method in ("action_open_move", "action_export_excel") and params.get("model") != "step.management.actual.cost.report":
+            return False
         if path != "/web/dataset/call_kw":
             parts = path.split("/")
             if len(parts) != 6 or parts[-1] != method:
