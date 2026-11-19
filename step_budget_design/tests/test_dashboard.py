@@ -206,6 +206,17 @@ class DashboardCase(TransactionCase):
         self.assertFalse(data["recent_centers"])
         self.assertEqual(data["recent_total"]["hectares"], 0)
 
+    def test_legacy_budget_centers_without_stage_remain_in_budget_and_projection(self):
+        legacy = self.sample["centers"][0]
+        legacy.etapa_costo = False
+        data = self.panel()
+        self.assertEqual(data["budgets"]["amount"], 650)
+        self.assertEqual(data["projected_total"], {"income": 1500, "cost": 650, "result": 850})
+        self.assertEqual(len(data["projected"]), 2)
+        self.assertIn(legacy.id, [row["id"] for row in data["recent_centers"]])
+        self.assertNotIn(legacy.id, [row["id"] for row in data["control"]["rows"]])
+        self.assertEqual(data["control"]["total"]["budget"], 150)
+
 
 @tagged("post_install", "-at_install")
 class DashboardActualsCase(TransactionCase):

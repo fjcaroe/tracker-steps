@@ -1,12 +1,13 @@
 # Operación y publicación de Odoo
 
-T230 actualiza `step_budget_design` a 18.0.1.4.0 con `budget-design` en
+T230 actualiza `step_budget_design` a 18.0.1.4.1 con `budget-design` en
 Desarrollo, Cerro y QA-Cerro. La respuesta del usuario en este chat confirma
 Variación = (Real − Presupuesto) / Presupuesto y solo cuentas de gastos/costos
 publicadas. Separar Operación de Inversión/Crecimiento, respetar el libro
 contabilizado y los permisos de T229. Mostrar rojo si la variación es positiva
 y azul en los demás valores calculables; bases en cero o datos faltantes quedan
-sin porcentaje. Proyección lleva totales. Presupuestos muestra una fila por
+sin porcentaje. Monto presupuestado y Proyección conservan su alcance previo,
+incluidos los centros antiguos sin etapa; Proyección agrega totales. Presupuestos muestra una fila por
 centro con hectáreas del maestro y estimaciones vigentes sin duplicar revisiones;
 las dos últimas columnas promedian los valores disponibles. CONTROL compara
 solo centros en Operación, separa Cosechar de las demás actividades y calcula

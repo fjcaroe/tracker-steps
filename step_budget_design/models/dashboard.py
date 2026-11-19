@@ -169,7 +169,7 @@ class BudgetDashboard(models.Model):
             selected_centers |= centers
             costs = lines.filtered(lambda line: line.flow_type != "income")
             investment = costs.filtered(lambda line: line.center_id.etapa_costo in ("inver", "cre"))
-            operational = costs.filtered(lambda line: line.center_id.etapa_costo == "ope")
+            operational = costs - investment
             conversion = factor(budget)
             available = conversion["available"]
             multiplier = conversion["factor"]
@@ -179,7 +179,7 @@ class BudgetDashboard(models.Model):
             hectares = sum(allocations.mapped("hectares")) if allocations else sum(centers.mapped("hectares"))
             totals["hectares"] += hectares
 
-            for line in lines.filtered(lambda row: row.center_id.etapa_costo == "ope"):
+            for line in lines.filtered(lambda row: row.center_id.etapa_costo not in ("inver", "cre")):
                 key = species_key(line.center_id)
                 row = projected.setdefault(key, {
                     "key": "%s:%s" % key,
