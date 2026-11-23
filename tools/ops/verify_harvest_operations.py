@@ -60,6 +60,7 @@ try:
     assert 'root_plan_id.name' in tariff_arch.xpath("//field[@name='cost_ids']")[0].get('domain')
     for kind in ('propio', 'contratista'):
         action = env.ref('step_cosecha.step_pricelist_action_' + kind + '_cosecha')
+        assert action._get_action_dict()['views'][0] == (False, 'list')
         assert (tariff_view.id, 'form') in action._get_action_dict()['views']
         rates = env['product.pricelist'].search([('cosecha', '=', True), ('group_type', '=', kind)], limit=5)
         rates.web_read({'name': {}, 'cost_ids': {'fields': {'display_name': {}}},

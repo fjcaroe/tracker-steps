@@ -22,6 +22,13 @@ class HarvestTariffCase(TransactionCase):
             'name': 'Private T231 rate', 'cosecha': True, 'group_type': kind,
             'company_id': self.company.id, 'currency_id': self.company.currency_id.id})
 
+    def test_tariff_menus_open_existing_rates_before_the_native_form(self):
+        for kind in ('propio', 'contratista'):
+            action = self.env.ref('step_cosecha.step_pricelist_action_' + kind + '_cosecha')
+            views = action._get_action_dict()['views']
+            self.assertEqual(views[0], (False, 'list'))
+            self.assertIn((self.view.id, 'form'), views[1:])
+
     def test_reported_form_save_own_and_contractor(self):
         for kind in ('propio', 'contratista'):
             ctx = {'step_propio_cosecha' if kind == 'propio' else 'step_contra_cosecha': 1}
