@@ -14,9 +14,8 @@
                 <field name="labor_id" domain="[('cosecha', '=', True)]" required="True"/>
                 <field name="uom_id" required="True"/>
             </xpath>
-            <xpath expr="//field[@name='item_ids']/form//field[@name='labor_id']" position="attributes">
-                <attribute name="required">True</attribute>
-                <attribute name="domain">[('cosecha', '=', True)]</attribute>
+            <xpath expr="//field[@name='item_ids']/form//field[@name='product_tmpl_id']" position="before">
+                <field name="labor_id" domain="[('cosecha', '=', True)]" required="True"/>
             </xpath>
             <xpath expr="//field[@name='item_ids']/form//field[@name='uom_id']" position="attributes">
                 <attribute name="required">True</attribute>
