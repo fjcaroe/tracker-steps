@@ -45,7 +45,7 @@ def main():
     parser.add_argument('--focused-extensions',action='store_true',help='Development only: run the new operational extension tests')
     parser.add_argument('--quality-extension',action='store_true',help='Real pinned OCA Quality and original native consumer reference')
     parser.add_argument('--focused-quality',action='store_true',help='Development only: Quality contracts and the repeated original PDF')
-    parser.add_argument('--focused-history-storage',action='store_true',help='Development only: U storage and atomic deletion contracts')
+    parser.add_argument('--focused-history-storage',action='store_true',help='U storage and atomic deletion without unrelated addon upgrades')
     parser.add_argument('--quality-oca',type=Path)
     parser.add_argument('--critical-extension',action='store_true',help='Explicit R generation: actual PKIX/CRL, HR admission and invoice application')
     parser.add_argument('--critical-generation',choices=('R3','S','T','U'),default='R3')
@@ -58,7 +58,10 @@ def main():
     args=parser.parse_args()
     assert (args.storage_schema_plan is not None) == (args.critical_generation == 'U')
     assert args.critical_generation != 'U' or args.mode != 'community' or args.numeric_input_engine
-    assert not args.focused_history_storage or (args.critical_generation == 'U' and not any((args.focused_multifront,args.focused_extensions,args.focused_quality)))
+    if args.focused_history_storage:
+        assert args.profile == 'simpledigital' and args.critical_generation == 'U'
+        assert not any((args.multifront, args.accelerated, args.custody_grouping,
+                        args.operational_extensions, args.quality_extension, args.critical_extension))
     full_book=args.profile in ('book-install','book-history')
     binary_book=args.profile=='book-install'
     own_book=args.profile in ('book-consumers','book-install','book-history')
@@ -70,7 +73,7 @@ def main():
     assert not args.operational_extensions or args.multifront
     assert not args.focused_extensions or (args.operational_extensions and not args.focused_multifront)
     assert not args.critical_extension or args.quality_extension
-    assert args.critical_generation == 'R3' or (args.critical_extension and not any(
+    assert args.critical_generation == 'R3' or args.focused_history_storage or (args.critical_extension and not any(
         (args.focused_multifront,args.focused_extensions,args.focused_quality)))
     assert not args.quality_extension or (args.operational_extensions and args.quality_oca)
     assert not args.focused_quality or (args.quality_extension and not args.focused_extensions and not args.focused_multifront)
@@ -115,7 +118,16 @@ def main():
     assert all((source/m/'__manifest__.py').exists() for m in MODULES)
     if args.critical_generation in ('S', 'T', 'U'):
         from audit_multifront_installation import GENERATION_VERSIONS,GENERATION_FILES
-        assert len(fp) == GENERATION_FILES[args.critical_generation], 'Exact source file count differs before database creation'
+        if args.focused_history_storage:
+            from audit_multifront_installation import HISTORY_STORAGE_MODULES
+            from original_history_engine_contract import sha
+
+            candidate = json.loads((root/'candidate.json').read_bytes())
+            assert set(MODULES) == {*HISTORY_STORAGE_MODULES, 'l10n_cl_simpledigital_payroll'}
+            assert candidate['owned_modules'] == list(HISTORY_STORAGE_MODULES)
+            assert candidate['archive_sha256'] == sha((root/'candidate.tar').read_bytes())
+        else:
+            assert len(fp) == GENERATION_FILES[args.critical_generation], 'Exact source file count differs before database creation'
         for name, version in GENERATION_VERSIONS[args.critical_generation].items():
             assert ast.literal_eval((source/name/'__manifest__.py').read_text(encoding='utf-8-sig'))['version'] == version
     if args.critical_generation == 'U':
@@ -334,7 +346,7 @@ def main():
         if not pure:
             existing=['step_hr_previred']+(['step_hr_previred_simpledigital'] if bridge else []) if previred else []
             if own_book:existing.append('step_hr_remuneration_book')
-            if args.accelerated:
+            if args.accelerated or args.focused_history_storage:
                 installed=set(sql(args.database,"SELECT name FROM ir_module_module WHERE state='installed'").splitlines())
                 existing=[name for name in modules.split(',') if name in installed]
                 from packaging.version import Version

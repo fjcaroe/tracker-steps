@@ -13,9 +13,11 @@ import re
 import subprocess
 
 
-OWN_MODULES = (
+HISTORY_STORAGE_MODULES = (
     'step_payroll_contracts', 'step_payroll_oca_api', 'step_payroll_enterprise_reference',
     'step_simpledigital_oca_base', 'step_simpledigital_oca_security',
+)
+OWN_MODULES = HISTORY_STORAGE_MODULES + (
     'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital',
     'step_payroll_engine_transition', 'steps_hr_payroll_correction', 'step_payroll_batch_period',
     'step_accounting_multicurrency_core', 'step_account_balance_analytic', 'step_bank_export_core',
