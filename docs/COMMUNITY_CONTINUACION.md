@@ -11,9 +11,13 @@ bajo UID7: 120 maestros, modelo 600/reporte 462 y permisos conservados (118/2).
 G validó cinco formularios y cuatro menús contra el Source nativo real, sin
 ampliar permisos. Metadatos, flujos legados, históricos y fórmulas siguen
 pendientes. La referencia SyS readonly y R3/S se conservan.
-Inventario actual: 101 apps propias en Cerro, 134 en repo/37 fuera de Cerro
-y 55 con caminos EE. Quedan certificación de Nómina, DTE, Calidad y conversión
-integral restaurable. Producción conserva 140 EE. El 31 sigue en riesgo alto.
+El 23-11 se completó la clasificación U2 de historia y alias de almacenamiento
+original. U4 se detuvo antes de crear bases por la reserva de PostgreSQL.
+El candidato funcional sigue en una rama separada.
+Inventario refrescado el 23-11: 133 apps propias instaladas en Cerro,
+170 en repo/40 fuera de Cerro y 74 con caminos EE. Quedan certificación de
+Nómina, DTE, Calidad y conversión integral restaurable. Cerro productivo
+conserva 140 EE. El vencimiento del 31 de octubre sigue sin resolverse.
 El contenido inferior conserva su alcance histórico.
 
 ## Pedido y límites
