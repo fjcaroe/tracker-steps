@@ -72,6 +72,7 @@ class HarvestNativeScopeCase(HttpCase):
                 self.clear_company_cookie()
                 self.opener.cookies.set('cids', separator.join(map(str, reversed(self.companies.ids))))
                 session = self.get_payload('/api/harvest/session')
+                self.assertEqual(self.get_payload('/api/harvest/health')['scope'], session['scope'])
                 data = self.get_payload('/api/harvest/bootstrap')
                 self.assertEqual(data['company']['id'], self.companies[1].id)
                 self.assertEqual(data['scope'], session['scope'])

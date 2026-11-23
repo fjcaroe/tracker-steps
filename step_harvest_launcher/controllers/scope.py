@@ -37,6 +37,11 @@ class ScopedHarvestApi(StepHarvestApi):
         return None
 
     @http.route()
+    def health(self, **kwargs):
+        error = self._active_company()
+        return error if error is not None else super().health(**kwargs)
+
+    @http.route()
     def session(self, **kwargs):
         error = self._active_company()
         return error if error is not None else super().session(**kwargs)
