@@ -29,16 +29,19 @@ class HarvestNativeScopeCase(HttpCase):
         cls.users = cls.env['res.users']
         cls.workers = cls.env['hr.employee']
         for index, company in enumerate(cls.companies):
+            for code in ('step_cosecha_pro_seq', 'step_cosecha_contra_seq'):
+                cls.env['ir.sequence'].create({'name': 'Private T232 sequence', 'code': code,
+                    'company_id': company.id, 'implementation': 'no_gap', 'prefix': 'PRIVATE'})
             user = new_test_user(cls.env, login='private_harvest_scope_%s' % index,
                 password='private-fixture', company_id=company.id,
                 company_ids=[Command.set(company.ids)], groups='base.group_user,hr.group_hr_user')
             cls.users |= user
-            cls.workers |= cls.env['hr.employee'].create({
-                'name': 'Private Harvest worker %s' % index, 'company_id': company.id, 'pin': 'T232%s' % index})
+            cls.workers |= cls.env['hr.employee'].with_company(company).create({
+                'name': 'Private Harvest worker %s' % index, 'company_id': company.id, 'pin': str(9823100 + index)})
         cls.orders = cls.env['step.cosecha.registry']
         for index, company in enumerate(cls.companies):
             reference = 'PRIVATE-T232-%s' % index
-            cls.orders |= cls.env['step.cosecha.registry'].create({
+            cls.orders |= cls.env['step.cosecha.registry'].with_company(company).create({
                 'name': reference, 'folio': reference, 'mobile_work_order': reference,
                 'type_tarea': 'propio', 'product_uom_id': cls.env.ref('uom.product_uom_kgm').id,
                 'date': fields.Datetime.now(), 'company_id': company.id,
