@@ -114,7 +114,7 @@ print('HARVEST_REVIEW_SESSION_OK')
         # The tool bundle remains private to root. Pass this versioned helper
         # as shell input rather than widening access to the bundle directory.
         header = (tools/'native_business_profile.py').read_text()+'\n'
-        header += 'SESSION_FILE='+repr(str(session_file))+'\nCLEANUP='+repr(cleanup)+'\nCOMPANY_ID='+repr(args.company_id)+'\nMULTI_COMPANY='+repr(args.multi_company)+'\n'
+        header += 'SESSION_FILE='+repr(str(session_file))+'\nCLEANUP='+repr(cleanup)+'\nCOMPANY_ID='+repr(args.company_id)+'\nMULTI_COMPANY='+repr(args.multi_company or frontend['version'] == '0.0.4')+'\n'
         result = subprocess.run(odoo+['shell', *common, '--no-http', '--log-level=error'],
             input=header+session_script, text=True, capture_output=True)
         assert result.returncode == 0 and 'HARVEST_REVIEW_SESSION_OK' in result.stdout, result.stderr[-1200:]
