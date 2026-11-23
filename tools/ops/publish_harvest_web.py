@@ -10,6 +10,8 @@ import re
 import shutil
 import subprocess
 import tarfile
+import time
+import urllib.error
 import urllib.request
 
 HOSTS = {'development': 'desarrollo.stepsapp.cl', 'cerro': 'cerroelplomo.stepsapp.cl',
@@ -123,16 +125,25 @@ def extract(package, web):
     return validate(web)
 
 
-def public_hashes(host, manifest):
-    hashes = {}
-    for name, expected in manifest['files'].items():
-        url = 'https://'+host+'/cosecha/'+name.removeprefix('app/')
-        response = urllib.request.urlopen(urllib.request.Request(url, headers={'Cache-Control': 'no-cache'}), timeout=40)
-        hashes[name] = hashlib.sha256(response.read()).hexdigest()
-        assert hashes[name] == expected, url
-        if name.endswith(('index.html', 'sw.js', 'manifest.webmanifest')):
-            assert 'no-cache' in response.headers.get('Cache-Control', '')
-    return hashes
+def public_hashes(host, manifest, attempts=1):
+    # nginx reload returns before its new workers have taken over. Require the
+    # entire immutable package, allowing only a bounded handover after reload.
+    assert 1 <= attempts <= 20
+    for attempt in range(attempts):
+        hashes = {}
+        try:
+            for name, expected in manifest['files'].items():
+                url = 'https://'+host+'/cosecha/'+name.removeprefix('app/')
+                response = urllib.request.urlopen(urllib.request.Request(url, headers={'Cache-Control': 'no-cache'}), timeout=40)
+                hashes[name] = hashlib.sha256(response.read()).hexdigest()
+                assert hashes[name] == expected, url
+                if name.endswith(('index.html', 'sw.js', 'manifest.webmanifest')):
+                    assert 'no-cache' in response.headers.get('Cache-Control', ''), url
+            return hashes
+        except (OSError, urllib.error.URLError, AssertionError):
+            if attempt + 1 == attempts:
+                raise
+            time.sleep(0.5)
 
 
 def current_javascript_hash(host):
@@ -211,7 +222,7 @@ def main():
         try:
             subprocess.run(['nginx', '-t'], check=True)
             subprocess.run(['systemctl', 'reload', 'nginx'], check=True)
-            served = public_hashes(HOSTS[args.environment], manifest)
+            served = public_hashes(HOSTS[args.environment], manifest, attempts=20)
         except BaseException:
             config_path.write_text(original)
             subprocess.run(['nginx', '-t'], check=True)
