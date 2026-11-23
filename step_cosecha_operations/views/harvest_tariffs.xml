@@ -1,0 +1,38 @@
+<odoo>
+    <record id="harvest_pricelist_form" model="ir.ui.view">
+        <field name="name">product.pricelist.harvest.form</field>
+        <field name="model">product.pricelist</field>
+        <field name="inherit_id" ref="product.product_pricelist_view"/>
+        <field name="mode">primary</field>
+        <field name="priority">95</field>
+        <field name="arch" type="xml">
+            <field name="cost_ids" position="attributes">
+                <attribute name="domain">[('root_plan_id.name', 'in', ['Centro de costos', 'Centro Costos', 'Centro de Costos']), '|', ('company_id', '=', False), ('company_id', '=', company_id)]</attribute>
+                <attribute name="options">{'no_create': True}</attribute>
+            </field>
+            <xpath expr="//field[@name='item_ids']/list/field[@name='name']" position="before">
+                <field name="labor_id" domain="[('cosecha', '=', True)]" required="True"/>
+                <field name="uom_id" required="True"/>
+            </xpath>
+            <xpath expr="//field[@name='item_ids']/form//field[@name='labor_id']" position="attributes">
+                <attribute name="required">True</attribute>
+                <attribute name="domain">[('cosecha', '=', True)]</attribute>
+            </xpath>
+            <xpath expr="//field[@name='item_ids']/form//field[@name='uom_id']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+        </field>
+    </record>
+    <record id="harvest_own_tariff_form" model="ir.actions.act_window.view">
+        <field name="sequence">20</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="harvest_pricelist_form"/>
+        <field name="act_window_id" ref="step_cosecha.step_pricelist_action_propio_cosecha"/>
+    </record>
+    <record id="harvest_contractor_tariff_form" model="ir.actions.act_window.view">
+        <field name="sequence">20</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="harvest_pricelist_form"/>
+        <field name="act_window_id" ref="step_cosecha.step_pricelist_action_contratista_cosecha"/>
+    </record>
+</odoo>

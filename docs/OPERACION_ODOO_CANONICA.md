@@ -1,5 +1,16 @@
 # Operación y publicación de Odoo
 
+T231 actualiza `step_cosecha_operations` a 18.0.1.0.1 con `harvest-operations`
+en Desarrollo, Cerro y QA-Cerro. Los accesos originales de tarifas propias y
+contratistas abren el formulario heredado de Cosecha con labor y unidad visibles.
+Conservar la relación nativa entre labor y producto y proponer la unidad de su
+ficha, respetando una unidad explícita. El selector de centros admite el plan
+raíz existente Centro Costos / Centro de costos y sus hijos, limitado a la
+compañía del documento o registros compartidos. No recalcular tarifas ni alterar
+maestros al actualizar. Probar creación, modificación, cálculo nativo y selección
+de centros en copias frescas; verificar menú, formulario y flujo antes de publicar
+el mismo paquete con respaldo, bloqueo compartido, paridad y aislamiento.
+
 T230 actualiza `step_budget_design` a 18.0.1.4.1 con `budget-design` en
 Desarrollo, Cerro y QA-Cerro. La respuesta del usuario en este chat confirma
 Variación = (Real − Presupuesto) / Presupuesto y solo cuentas de gastos/costos

@@ -48,8 +48,24 @@ try:
             records.web_read({'name': {}, 'partner_id': {'fields': {'display_name': {}}},
                               'salary_id_contrac': {'fields': {'display_name': {}}},
                               'registry_tarja_line': {'fields': {'employee_id': {'fields': {'display_name': {}}}}}})
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102], 'versions': EXPECTED,
+    tariff_view = env.ref('step_cosecha_operations.harvest_pricelist_form')
+    tariff_arch = etree.fromstring(env['product.pricelist'].get_view(
+        view_id=tariff_view.id, view_type='form')['arch'])
+    check_fields('product.pricelist', tariff_arch)
+    for field in ('labor_id', 'uom_id'):
+        assert tariff_arch.xpath("//field[@name='item_ids']/list/field[@name='%s']" % field)
+        assert tariff_arch.xpath("//field[@name='item_ids']/form//field[@name='%s'][@required='True']" % field)
+    assert 'root_plan_id.name' in tariff_arch.xpath("//field[@name='cost_ids']")[0].get('domain')
+    for kind in ('propio', 'contratista'):
+        action = env.ref('step_cosecha.step_pricelist_action_' + kind + '_cosecha')
+        assert (tariff_view.id, 'form') in action._get_action_dict()['views']
+        rates = env['product.pricelist'].search([('cosecha', '=', True), ('group_type', '=', kind)], limit=5)
+        rates.web_read({'name': {}, 'cost_ids': {'fields': {'display_name': {}}},
+            'item_ids': {'fields': {'labor_id': {'fields': {'display_name': {}}},
+                                   'uom_id': {'fields': {'display_name': {}}}, 'fixed_price': {}}}})
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102, 231], 'versions': EXPECTED,
           'native_masters': True, 'contractor_header': True, 'nested_fields_valid': True,
-          'existing_records_web_read': True}))
+          'existing_records_web_read': True, 'harvest_tariff_menu_form': True,
+          'harvest_tariff_native_labor_unit': True, 'harvest_tariff_center_scope': True}))
 finally:
     env.cr.rollback()
