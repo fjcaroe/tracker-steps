@@ -75,7 +75,6 @@ def main():
 import json
 from pathlib import Path
 from odoo import http
-from native_business_profile import scoped_business_environment
 proof=Path(SESSION_FILE)
 if CLEANUP:
     saved=json.loads(proof.read_text())
@@ -100,7 +99,9 @@ print('HARVEST_REVIEW_SESSION_OK')
 """
 
     def session(cleanup=False):
-        header = 'import sys\nsys.path.insert(0,'+repr(str(tools))+')\n'
+        # The tool bundle remains private to root. Pass this versioned helper
+        # as shell input rather than widening access to the bundle directory.
+        header = (tools/'native_business_profile.py').read_text()+'\n'
         header += 'SESSION_FILE='+repr(str(session_file))+'\nCLEANUP='+repr(cleanup)+'\nCOMPANY_ID='+repr(args.company_id)+'\n'
         result = subprocess.run(odoo+['shell', *common, '--no-http', '--log-level=error'],
             input=header+session_script, text=True, capture_output=True)
