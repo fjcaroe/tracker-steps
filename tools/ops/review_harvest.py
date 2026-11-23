@@ -207,6 +207,10 @@ print('HARVEST_REVIEW_SESSION_OK')
                     self.send_response(response.status)
                     for name, value in response.getheaders():
                         if name.lower() not in ('set-cookie', 'content-length', 'transfer-encoding', 'connection'):
+                            if name.lower() == 'location':
+                                redirect = urlsplit(value)
+                                if redirect.hostname == host:
+                                    value = redirect.path + ('?' + redirect.query if redirect.query else '')
                             self.send_header(name, value)
                     self.send_header('Content-Length', str(len(data)))
                     self.end_headers()

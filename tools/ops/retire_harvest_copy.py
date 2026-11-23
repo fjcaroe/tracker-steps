@@ -38,7 +38,7 @@ def main():
                 assert state in ('failed', 'inactive')
                 assert not (stage/'qa_passed.json').exists()
                 logs = list(stage.glob('qa-*.log'))
-                assert len(logs) == 1 and re.search(r'\b[1-9][0-9]* error\(s\)', logs[0].read_text())
+                assert len(logs) == 1 and re.search(r'\b[1-9][0-9]* (?:failed|error\(s\))', logs[0].read_text())
             else:
                 proof = json.loads((stage/'qa_passed.json').read_text())
                 assert proof['database'] == database and proof['commit'].startswith(commit_prefix)

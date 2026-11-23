@@ -1,4 +1,5 @@
 import json
+from urllib.parse import urlsplit
 
 from odoo import Command, fields
 from odoo.tests import HttpCase, TransactionCase, tagged
@@ -61,7 +62,9 @@ class HarvestNativeScopeCase(HttpCase):
     def test_private_launcher_never_redirects_the_review_to_production(self):
         response = self.url_open('/harvest/open', allow_redirects=False)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers['Location'], '/cosecha/')
+        target = urlsplit(response.headers['Location'])
+        self.assertEqual(target.path, '/cosecha/')
+        self.assertIn(target.hostname, (None, '127.0.0.1', 'localhost'))
 
     def test_native_reads_follow_the_authenticated_company(self):
         scopes = []
