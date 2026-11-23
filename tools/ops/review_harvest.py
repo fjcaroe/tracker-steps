@@ -28,6 +28,7 @@ def main():
     parser.add_argument('--web-root', required=True, type=Path, help='Extracted immutable web release')
     parser.add_argument('--stage', type=Path, help='Certified private destination copy; omit for published review')
     parser.add_argument('--company-id', type=int)
+    parser.add_argument('--multi-company', action='store_true', help='Prefer an existing business editor already authorized in several companies')
     parser.add_argument('--port', type=int, required=True)
     parser.add_argument('--minutes', type=int, default=25)
     args = parser.parse_args()
@@ -91,6 +92,12 @@ else:
     assert not proof.exists()
     company=env['res.company'].browse(COMPANY_ID).exists() if COMPANY_ID else None
     business=scoped_business_environment(env,company=company)
+    if MULTI_COMPANY:
+        editors=env['res.users'].search([('active','=',True),('share','=',False),('id','!=',1),
+            ('company_ids','in',business.company.ids)],order='id').filtered(lambda user:
+                len(user.company_ids)>1 and user.has_group('base.group_system') and user.has_group('account.group_account_manager'))
+        assert editors, 'Existing multi-company business editor required; do not grant permissions'
+        business=env(user=editors[:1],su=False,context=dict(env.context,allowed_company_ids=business.company.ids))
     user=business.user
     session=http.root.session_store.new()
     session.update({'db':env.cr.dbname,'uid':user.id,'login':user.login,
@@ -107,7 +114,7 @@ print('HARVEST_REVIEW_SESSION_OK')
         # The tool bundle remains private to root. Pass this versioned helper
         # as shell input rather than widening access to the bundle directory.
         header = (tools/'native_business_profile.py').read_text()+'\n'
-        header += 'SESSION_FILE='+repr(str(session_file))+'\nCLEANUP='+repr(cleanup)+'\nCOMPANY_ID='+repr(args.company_id)+'\n'
+        header += 'SESSION_FILE='+repr(str(session_file))+'\nCLEANUP='+repr(cleanup)+'\nCOMPANY_ID='+repr(args.company_id)+'\nMULTI_COMPANY='+repr(args.multi_company)+'\n'
         result = subprocess.run(odoo+['shell', *common, '--no-http', '--log-level=error'],
             input=header+session_script, text=True, capture_output=True)
         assert result.returncode == 0 and 'HARVEST_REVIEW_SESSION_OK' in result.stdout, result.stderr[-1200:]
