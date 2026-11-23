@@ -138,6 +138,31 @@ def assess(catalog, runtime=None):
         'financial_certified': False, 'integral_conversion': False}
 
 
+def anchored_field_aliases(source, target):
+    original = {(row['module'], row['name']): row for row in source['field_xmlids']}
+    current = {(row['module'], row['name']): row for row in target['field_xmlids']}
+    need(len(original) == len(source['field_xmlids']) and len(current) == len(target['field_xmlids']),
+        'unique-field-aliases-required')
+    field_ids = {(row['model'], row['name']): row['id'] for row in source['fields']}
+    expected = {}
+    for model, table, field, *_ in SPECS:
+        name = 'field_' + table + '__' + field
+        expected[('payroll', name)] = field_ids[(model, field)]
+        if model != 'hr.salary.rule':
+            expected[('step_payroll_oca_api', name)] = field_ids[(model, field)]
+
+    added = current.keys() - original.keys()
+    recognized = {key for key in added if key in expected
+                  and current[key]['model'] == 'ir.model.fields'
+                  and current[key]['res_id'] == expected[key]
+                  and current[key]['noupdate'] is False}
+    missing = original.keys() - current.keys()
+    changed = {key for key in original.keys() & current.keys() if original[key] != current[key]}
+    return {'original_count': len(original), 'originals_preserved': bool(original) and not missing and not changed,
+        'missing_originals': sorted(missing), 'changed_originals': sorted(changed),
+        'recognized_additions': sorted(recognized), 'unclassified_additions': sorted(added - recognized)}
+
+
 def compare(source, target):
     need(source['profile'] == 'native-reference' and target['profile'] in PROFILES[:2], 'explicit-source-target-profiles-required')
     for value in (source, target):
@@ -146,13 +171,18 @@ def compare(source, target):
     first, last = source['metadata_before'], target['metadata_before']
     projected = lambda data: [{key: row[key] for key in ('table_name', 'column_name', 'typname', 'typmod', 'not_null', 'has_default')}
         for row in data['columns']]
-    identity = None
+    identity = aliases = None
     if target['profile'] == 'anchored-community':
+        target_db = target['database']
+        need(re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+', target_db)
+            and source['database'] == target_db.replace('_ORIGINAL_HANDOVER_', '_ORIGINAL_REFERENCE_', 1),
+            'exact-private-handover-reference-pair-required')
         identity = {name: first[name] == last[name] for name in ('models', 'fields', 'field_xmlids')}
+        aliases = anchored_field_aliases(first, last)
     return {'schema': 1, 'source_database': source['database'], 'target_database': target['database'],
         'target_profile': target['profile'], 'four_column_contracts_equal': projected(first) == projected(last),
         'calendar_fk_equal': first['calendar_fk'] == last['calendar_fk'],
-        'anchored_original_metadata_identity': identity,
+        'anchored_original_metadata_identity': identity, 'anchored_field_aliases': aliases,
         'normal_installation_identity_equivalence_claimed': False, 'other_columns_waived': [],
         'historical_rows_assessed': False, 'adoption_authorized': False, 'integral_conversion': False}
 

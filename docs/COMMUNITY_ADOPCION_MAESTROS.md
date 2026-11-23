@@ -1,5 +1,34 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## Reanudación e inventario — 23-11-2026
+
+La automatización reanudó la migración en un worktree propio desde la canónica
+actualizada. T2 sigue siendo la última pareja multifrente aceptada. Se recuperó
+el candidato de almacenamiento de Nómina que había quedado en pausa en
+`4312b0f7`. U3 había ejecutado 684 pruebas Community; la referencia nativa
+quedó interrumpida y su objetivo de 467 casos sigue sin certificar.
+
+| Producto | Instalados | Enterprise | Propios instalados | Propios con caminos Enterprise en el código candidato |
+| --- | ---: | ---: | ---: | ---: |
+| Cerro | 414 | 140 | 133 | 74 |
+| Steps | 310 | 123 | 19 | 9 |
+| SyS | 336 | 142 | 21 | 14 |
+
+Se inventariaron los módulos instalados con PostgreSQL en solo lectura y se
+contrastaron sus manifiestos efectivos con los del repositorio. El repositorio
+contiene 170 módulos propios con manifiesto. 40 quedan fuera de Cerro y tres
+propios instalados en Cerro existen sólo en fuentes privadas. Se verificó el
+origen activo de Simple Digital AGPL en los tres productos. Para Steps,
+`steps_transport` tiene una fuente identificada fuera de las rutas activas y
+queda pendiente reconciliar su ruta efectiva antes de migrarlo. Studio conserva
+su registro en el inventario. Los grafos de manifiestos quedan pendientes de
+contraste funcional de imports, vistas, assets, datos y permisos.
+
+La auditoría y las matrices completas por producto quedan en
+`~/.codex/local-artifacts/community-resume-20261123`. El inventario nuevo
+corresponde a los servicios vigentes. Los conteos de T2, S7 y la matriz de
+octubre corresponden a sus respaldos y paquetes respectivos.
+
 La pareja normal vigente es **T2**, congelada en `10278323`: **671 casos
 Community y 462 nativos, cero fallos y errores**. Foundation **1.16.0** corrige
 la FK de seguridad detectada después de S7 mediante la API original de Odoo.

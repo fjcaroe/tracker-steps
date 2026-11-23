@@ -27,9 +27,11 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
    WORKFLOW_GIT_COMPARTIDO.md, PLAN_COMMUNITY_CERRO.md, COMMUNITY_CONTINUACION.md,
    el último documento de aceptación (actualmente COMMUNITY_ADOPCION_MAESTROS.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
-2. Revisar el inventario completo antes de implementar. La matriz
-   COMMUNITY_INVENTARIO_ENTERPRISE_20261030.md distingue 101 apps propias instaladas,
-   55 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
+2. Revisar el inventario completo antes de implementar. El inventario del 23-11 en
+   [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md) distingue
+   133 apps propias instaladas en Cerro, 74 con clausuras Enterprise pendientes
+   y los módulos propios fuera de Cerro. La matriz del 30-10 conserva el alcance
+   histórico de T2.
    Auditar también fuentes privadas instaladas, imports, vistas/JS/assets,
    modelos y datos efectivos. Cero dependencias declaradas no prueba equivalencia.
 3. Elegir un bloque concreto que desbloquee la siguiente puerta. Registrar una

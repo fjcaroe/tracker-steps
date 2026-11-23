@@ -113,7 +113,10 @@ class StorageAuditCase(unittest.TestCase):
     def test_normal_installation_never_claims_original_identity_but_anchor_reports_collision(self):
         data = fixture()
         def report(profile, metadata):
-            return {'profile': profile, 'database': 'PRIVATE', 'read_only': True, 'database_writes': False,
+            suffix = {'native-reference': 'REFERENCE_FIXTURE', 'anchored-community': 'HANDOVER_FIXTURE',
+                'normal-community': 'COMMUNITY_FIXTURE'}[profile]
+            database = 'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_' + suffix
+            return {'profile': profile, 'database': database, 'read_only': True, 'database_writes': False,
                 'metadata_before': metadata, 'metadata_after': deepcopy(metadata)}
         source = report('native-reference', data)
         changed = deepcopy(data); changed['fields'][0]['id'] += 100
@@ -123,9 +126,32 @@ class StorageAuditCase(unittest.TestCase):
         self.assertFalse(normal['normal_installation_identity_equivalence_claimed'])
         anchored = audit.compare(source, report('anchored-community', changed))
         self.assertFalse(anchored['anchored_original_metadata_identity']['fields'])
+        self.assertIsNone(normal['anchored_field_aliases'])
+        mismatch = report('anchored-community', data); mismatch['database'] += '_OTHER'
+        with self.assertRaises(ValueError): audit.compare(source, mismatch)
         unstable = report('anchored-community', data); unstable['metadata_after']['fields'].pop()
         with self.assertRaises(ValueError): audit.compare(source, unstable)
         with self.assertRaises(ValueError): audit.compare(source, source)
+
+    def test_anchor_distinguishes_unchanged_original_ids_from_new_bound_aliases(self):
+        old = fixture()
+        original = {'module': 'hr_payroll', 'name': 'field_hr_payslip_line__name',
+                    'model': 'ir.model.fields', 'res_id': 1, 'noupdate': False, 'id': 20}
+        old['field_xmlids'] = [original]
+        new = deepcopy(old)
+        candidate = dict(original, module='payroll', id=30)
+        new['field_xmlids'].append(candidate)
+        report = audit.anchored_field_aliases(old, new)
+        self.assertTrue(report['originals_preserved'])
+        self.assertEqual(report['recognized_additions'], [('payroll', original['name'])])
+        self.assertFalse(report['unclassified_additions'])
+
+        candidate['res_id'] = 2
+        new['field_xmlids'][0]['id'] = 21
+        report = audit.anchored_field_aliases(old, new)
+        self.assertFalse(report['originals_preserved'])
+        self.assertEqual(report['changed_originals'], [('hr_payroll', original['name'])])
+        self.assertEqual(report['unclassified_additions'], [('payroll', original['name'])])
 
     def test_real_provider_wrappers_are_discoverable_and_never_compute_a_paid_fixture(self):
         root = Path(__file__).resolve().parents[2]
