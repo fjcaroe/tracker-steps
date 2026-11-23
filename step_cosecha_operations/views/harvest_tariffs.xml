@@ -5,9 +5,14 @@
         <field name="mode">primary</field>
         <field name="priority">95</field>
         <field name="arch" type="xml">
-            <form string="Tarifas de cosecha">
+            <form string="Tarifas de cosecha" class="o_step_harvest_tariffs">
                 <sheet>
                     <field name="cosecha" invisible="True"/>
+                    <div class="o_step_harvest_tariff_header">
+                        <span>STEPS · COSECHA</span>
+                        <h2>Tarifas de trato</h2>
+                        <p>Defina la vigencia, los centros de costo y el precio de cada labor de cosecha.</p>
+                    </div>
                     <div class="oe_title"><h1><field name="name" placeholder="Nombre de la tarifa"/></h1></div>
                     <group><group>
                         <field name="currency_id"/>

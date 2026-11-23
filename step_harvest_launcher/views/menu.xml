@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_open_harvest" model="ir.actions.act_url">
+        <field name="name">Steps Harvest</field>
+        <field name="url">/harvest/open</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_harvest_root"
+              name="Harvest"
+              action="action_open_harvest"
+              sequence="11"
+              groups="base.group_user"
+              web_icon="step_harvest_launcher,static/description/icon.png"/>
+</odoo>

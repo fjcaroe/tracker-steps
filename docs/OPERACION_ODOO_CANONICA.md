@@ -1,8 +1,32 @@
 # Operación y publicación de Odoo
 
+Decisión explícita del usuario, 23-11-2026: los requerimientos pueden exigir
+modificar también el core propio. Sustituir las aplicaciones y pantallas Studio
+afectadas por código versionado con layout y marca Steps, conservando relaciones,
+registros y flujo. Esta autorización de implementación mantiene los destinos
+de cada requerimiento y los controles de copia, publicación, respaldo y bloqueo.
+
+T231/T232 se prueban y publican con `harvest-app`: `step_cosecha_operations`
+18.0.1.0.1 y `step_harvest_launcher` 18.0.1.2.0 en Desarrollo, Cerro y QA-Cerro.
+La PWA tiene su repositorio propio `stepconsulting/step_harvest`, rama canónica
+`main` (checkout independiente `step_harvest_web`); no corresponde al repositorio
+legado `fjcaroe/step_harvest`. Certificar sus mismos archivos compilados junto
+al paquete Odoo en copias de los tres destinos. El API identifica su contexto
+por base, UUID, usuario y empresa efectivos, y rechaza sincronizaciones sin ese
+contexto o con uno diferente antes de crear registros. Las lecturas conservan
+las relaciones, permisos y controles de compañía nativos. La PWA no ofrece datos
+de ejemplo cuando falta sesión o una lista está vacía; sus pendientes se separan
+por contexto. Los datos locales antiguos sin atribución se conservan para revisión
+y no se asignan automáticamente. El service worker almacena solo archivos de
+la app, sin respuestas del API ni autenticación y sin borrar cachés de otras apps.
+Mantener paquetes estáticos y despliegues separados por destino para no publicar
+en Cerro al revisar Desarrollo. Exigir menú, formulario de tarifas, lectura real,
+contexto, cola local y paridad de los paquetes publicados.
+
 T231 actualiza `step_cosecha_operations` a 18.0.1.0.1 con `harvest-operations`
 en Desarrollo, Cerro y QA-Cerro. Los accesos originales de tarifas propias y
-contratistas abren el formulario heredado de Cosecha con labor y unidad visibles.
+contratistas abren el formulario propio de Cosecha con labor y unidad visibles,
+sin heredar los subformularios Studio de la tarifa general.
 Conservar la relación nativa entre labor y producto y proponer la unidad de su
 ficha, respetando una unidad explícita. El selector de centros admite el plan
 raíz existente Centro Costos / Centro de costos y sus hijos, limitado a la

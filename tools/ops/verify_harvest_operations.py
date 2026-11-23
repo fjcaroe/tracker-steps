@@ -49,9 +49,11 @@ try:
                               'salary_id_contrac': {'fields': {'display_name': {}}},
                               'registry_tarja_line': {'fields': {'employee_id': {'fields': {'display_name': {}}}}}})
     tariff_view = env.ref('step_cosecha_operations.harvest_pricelist_form')
+    assert not tariff_view.inherit_id, 'Harvest uses its own versioned native form'
     tariff_arch = etree.fromstring(env['product.pricelist'].get_view(
         view_id=tariff_view.id, view_type='form')['arch'])
     check_fields('product.pricelist', tariff_arch)
+    assert not tariff_arch.xpath(".//field[starts-with(@name, 'x_')]")
     for field in ('labor_id', 'uom_id'):
         assert tariff_arch.xpath("//field[@name='item_ids']/list/field[@name='%s']" % field)
         assert tariff_arch.xpath("//field[@name='item_ids']/form//field[@name='%s'][@required='True']" % field)
@@ -63,9 +65,16 @@ try:
         rates.web_read({'name': {}, 'cost_ids': {'fields': {'display_name': {}}},
             'item_ids': {'fields': {'labor_id': {'fields': {'display_name': {}}},
                                    'uom_id': {'fields': {'display_name': {}}}, 'fixed_price': {}}}})
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102, 231], 'versions': EXPECTED,
+    if 'step_harvest_launcher' in EXPECTED:
+        from odoo.addons.step_harvest_launcher.controllers.scope import environment_scope
+        assert len(environment_scope(env)) == 64
+        assert env.ref('step_harvest_launcher.menu_harvest_root').action == env.ref('step_harvest_launcher.action_open_harvest')
+        assert env.ref('step_harvest_launcher.action_open_harvest').url == '/harvest/open'
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102, 231, *([232] if 'step_harvest_launcher' in EXPECTED else [])], 'versions': EXPECTED,
           'native_masters': True, 'contractor_header': True, 'nested_fields_valid': True,
           'existing_records_web_read': True, 'harvest_tariff_menu_form': True,
-          'harvest_tariff_native_labor_unit': True, 'harvest_tariff_center_scope': True}))
+          'harvest_tariff_native_labor_unit': True, 'harvest_tariff_center_scope': True,
+          'harvest_own_form_without_studio': True,
+          'harvest_api_context_scope': 'step_harvest_launcher' in EXPECTED}))
 finally:
     env.cr.rollback()
