@@ -189,7 +189,7 @@ print('HARVEST_REVIEW_SESSION_OK')
                     if not allowed or path == '/api/harvest/sync':
                         self.send_error(403, 'Read-only Harvest review')
                         return
-                if self.command == 'GET' and not (path in ('/web', '/odoo', '/web/manifest.webmanifest', '/web/service-worker.js',
+                if self.command == 'GET' and not (path in ('/web', '/odoo', '/harvest/open', '/web/manifest.webmanifest', '/web/service-worker.js',
                     '/api/harvest/session', '/api/harvest/bootstrap', '/api/harvest/health') or
                     path.startswith(('/odoo/', '/cosecha/', '/web/assets/', '/web/image', '/web/content/', '/web/webclient/', '/bus/websocket_worker_bundle')) or '/static/' in path):
                     self.send_error(403, 'Read-only Harvest review')

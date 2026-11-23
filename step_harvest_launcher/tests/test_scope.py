@@ -58,6 +58,11 @@ class HarvestNativeScopeCase(HttpCase):
         self.assertFalse(data['scope'])
         self.assertFalse(data['company'])
 
+    def test_private_launcher_never_redirects_the_review_to_production(self):
+        response = self.url_open('/harvest/open', allow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers['Location'], '/cosecha/')
+
     def test_native_reads_follow_the_authenticated_company(self):
         scopes = []
         for index, user in enumerate(self.users):

@@ -27,9 +27,34 @@ class ScopedHarvestApi(StepHarvestApi):
         if not record:
             raise ValidationError(_('El registro seleccionado ya no está disponible.'))
         record.check_access('read')
-        if 'company_id' in record._fields and record.company_id != request.env.company and not (shared and not record.company_id):
+        if 'company_ids' in record._fields:
+            if record.company_ids and request.env.company not in record.company_ids:
+                raise ValidationError(_('El maestro seleccionado no está habilitado para esta empresa.'))
+        elif 'company_id' in record._fields and record.company_id != request.env.company and not (shared and not record.company_id):
             raise ValidationError(_('El registro seleccionado pertenece a otra empresa.'))
         return record
+
+    def _reference_data(self, resource, query=None, limit=None):
+        if resource not in ('varieties', 'cost_centers'):
+            return super()._reference_data(resource, query, limit)
+        company = request.env.company
+        if resource == 'varieties':
+            model = request.env['step.variedad']
+            domain = (['|', ('company_ids', '=', False), ('company_ids', 'in', company.ids)]
+                      if 'company_ids' in model._fields else [('company_id', 'in', [False, company.id])])
+        else:
+            model = request.env['account.analytic.account']
+            domain = [('company_id', 'in', [False, company.id])]
+            plan = company.management_actual_center_plan_id if 'management_actual_center_plan_id' in company._fields else False
+            domain += ([('root_plan_id', '=', plan.id)] if plan else
+                       [('root_plan_id.name', 'in', ['Centro de costos', 'Centro Costos', 'Centro de Costos'])])
+        if query:
+            domain.append(('name', 'ilike', query))
+        records = model.search(domain, order='name,id', limit=max(1, min(int(limit or 500), 5000)))
+        if resource == 'varieties':
+            return [self._item(record, species=record.especie_id.display_name if record.especie_id else '') for record in records]
+        return [self._item(record, farm_id=record.fundo_id.id if record.fundo_id else False,
+                           variety_id=record.variedad_id.id if record.variedad_id else False) for record in records]
 
     def _get_or_create_order(self, data):
         values = data.get('work_order') if isinstance(data.get('work_order'), dict) else {}
@@ -46,7 +71,7 @@ class ScopedHarvestApi(StepHarvestApi):
         if existing:
             return existing
         farm = self._native_record('step.fundo', values.get('farm_id'))
-        variety = self._native_record('step.variedad', values.get('variety_id'))
+        variety = self._native_record('step.variedad', values.get('variety_id'), shared=True)
         center = self._native_record('account.analytic.account', values.get('cost_id'), shared=True)
         crew = self._native_record('hr.salary.custom', values.get('crew_id'))
         kind = crew.group_type

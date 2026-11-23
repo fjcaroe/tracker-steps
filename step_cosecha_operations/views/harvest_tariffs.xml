@@ -22,7 +22,7 @@
                         <field name="date_end"/>
                         <field name="escalonado"/>
                         <field name="cost_ids" widget="many2many_tags" options="{'no_create': True}"
-                            domain="[('root_plan_id.name', 'in', ['Centro de costos', 'Centro Costos', 'Centro de Costos']), '|', ('company_id', '=', False), ('company_id', '=', company_id)]"/>
+                            domain="[('root_plan_id.name', 'in', ['Centro de costos', 'Centro Costos', 'Centro de Costos']), '|', ('company_id', '=', False), ('company_id', 'in', [company_id] if company_id else context.get('allowed_company_ids', []))]"/>
                     </group><group>
                         <field name="country_group_ids" widget="many2many_tags"/>
                         <field name="create_uid" readonly="True"/>

@@ -2,6 +2,18 @@
 from odoo import api, models
 
 
+class HarvestPricelist(models.Model):
+    _inherit = 'product.pricelist'
+
+    @api.model
+    def default_get(self, names):
+        values = super().default_get(names)
+        if 'company_id' in names and not values.get('company_id') and (
+                self.env.context.get('step_propio_cosecha') or self.env.context.get('step_contra_cosecha')):
+            values['company_id'] = self.env.company.id
+        return values
+
+
 class HarvestPricelistItem(models.Model):
     _inherit = 'product.pricelist.item'
 

@@ -20,7 +20,15 @@ class HarvestRedirect(http.Controller):
         sitemap=False,
     )
     def open_harvest(self, **kwargs):
-        target = request.env['ir.config_parameter'].sudo().get_param('steps.harvest.url', '')
+        database = request.env.cr.dbname
+        hosts = {'LAB_TAREAS': 'desarrollo.stepsapp.cl',
+                 'CERRO_EL_PLOMO': 'cerroelplomo.stepsapp.cl',
+                 'QA-CERROELPLOMO': 'qa-cerroelplomo.stepsapp.cl'}
+        if database.startswith('MANAGEMENT_QA_'):
+            # Certified copies stay behind their private static review proxy.
+            return request.redirect('/cosecha/', code=302)
+        target = ('https://' + hosts[database] + '/cosecha/' if database in hosts else
+                  request.env['ir.config_parameter'].sudo().get_param('steps.harvest.url', ''))
         parsed = urlsplit(target)
         valid_host = parsed.hostname == 'stepsapp.cl' or (
             parsed.hostname and parsed.hostname.endswith('.stepsapp.cl')

@@ -27,7 +27,7 @@ class HarvestTariffCase(TransactionCase):
             ctx = {'step_propio_cosecha' if kind == 'propio' else 'step_contra_cosecha': 1}
             with Form(self.env['product.pricelist'].with_context(**ctx), view=self.view) as form:
                 form.name = 'Private T231 form ' + kind
-                form.company_id = self.company
+                self.assertEqual(form.company_id, self.company)
                 form.date_init = fields.Date.to_date('2026-11-01')
                 form.date_end = fields.Date.to_date('2026-12-31')
                 with form.item_ids.new() as line:
@@ -93,6 +93,11 @@ class HarvestTariffCase(TransactionCase):
         self.assertIn(accounts[0], selected)
         self.assertNotIn(accounts[1], selected)
         self.assertNotIn(accounts[2], selected)
+        shared_domain = safe_eval(node.get('domain'), {'company_id': False,
+            'context': {'allowed_company_ids': self.company.ids}})
+        shared = self.env['account.analytic.account'].search(shared_domain)
+        self.assertIn(accounts[0], shared)
+        self.assertNotIn(accounts[2], shared)
         tariff = self.tariff()
         with Form(tariff, view=self.view) as form:
             form.cost_ids.add(accounts[0])

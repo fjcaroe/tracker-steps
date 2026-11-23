@@ -14,7 +14,12 @@ legado `fjcaroe/step_harvest`. Certificar sus mismos archivos compilados junto
 al paquete Odoo en copias de los tres destinos. El API identifica su contexto
 por base, UUID, usuario y empresa efectivos, y rechaza sincronizaciones sin ese
 contexto o con uno diferente antes de crear registros. Las lecturas conservan
-las relaciones, permisos y controles de compañía nativos. La PWA no ofrece datos
+las relaciones, permisos y controles de compañía nativos. El acceso Harvest
+resuelve el dominio de los tres destinos por la base real, aunque un parámetro
+antiguo apunte a Desarrollo; una copia privada conserva su ruta local. Las
+jornadas nuevas enlazan IDs nativos de fundo, variedad, centro y cuadrilla, y las
+existentes se seleccionan por su ID. Rechazar trabajadores o documentos de otra
+empresa, así como identificaciones ambiguas. La PWA no ofrece datos
 de ejemplo cuando falta sesión o una lista está vacía; sus pendientes se separan
 por contexto. Los datos locales antiguos sin atribución se conservan para revisión
 y no se asignan automáticamente. El service worker almacena solo archivos de
