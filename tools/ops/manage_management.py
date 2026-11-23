@@ -1056,7 +1056,10 @@ def main():
                 run('sudo','-u','postgres','/usr/bin/python3.10',str(BPA_SOURCE/'migrate_schema.py'),'prepare',qa_db)
             if args.kind == 'agriculture-records':
                 agriculture_migrate('prepare', qa_db, AGRICULTURE_SOURCE)
-            result = subprocess.run(base + qa_options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data)] + init_options + update_options + ['--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
+            from private_report_http import customer_qa_test_loopback
+            test_loopback = customer_qa_test_loopback(qa_db, private_port, opts) if args.kind == 'harvest-app' and args.environment == 'qa-cerro' else nullcontext()
+            with test_loopback:
+                result = subprocess.run(base + qa_options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data)] + init_options + update_options + ['--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
             text = log.read_text(errors='replace')
             print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-7000:], flush=True)
             results = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database ' + re.escape("'" + qa_db + "'"), text)
