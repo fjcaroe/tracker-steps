@@ -135,6 +135,16 @@ def public_hashes(host, manifest):
     return hashes
 
 
+def current_javascript_hash(host):
+    base = 'https://'+host
+    request = urllib.request.Request(base+'/cosecha/', headers={'Cache-Control': 'no-cache'})
+    html = urllib.request.urlopen(request, timeout=40).read().decode('utf-8')
+    scripts = re.findall(r'<script\b[^>]*\bsrc="([^"]+\.js)"', html)
+    assert len(scripts) == 1 and scripts[0].startswith('/cosecha/assets/')
+    assert '..' not in scripts[0] and '://' not in scripts[0]
+    return hashlib.sha256(urllib.request.urlopen(base+scripts[0], timeout=40).read()).hexdigest()
+
+
 def main():
     import fcntl
     parser = argparse.ArgumentParser(description=__doc__)
@@ -143,6 +153,7 @@ def main():
     parser.add_argument('--web', required=True, type=Path)
     parser.add_argument('--package', type=Path)
     parser.add_argument('--stage', type=Path)
+    parser.add_argument('--expected-js-sha256', help='Observed pre-deployment build; reject concurrent static changes')
     args = parser.parse_args()
     assert os.geteuid() == 0
     web = args.web
@@ -165,6 +176,9 @@ def main():
         assert review['reviewed'] is True and review['web_commit'] == manifest['commit']
         assert review['backend_commit'] == passed['commit'] and review['database'] == passed['database']
         assert all(review[key] for key in ('tariff_form', 'native_centers', 'harvest_menu', 'native_context', 'no_sample_data'))
+        assert re.fullmatch('[a-f0-9]{64}', args.expected_js_sha256 or ''), 'Require the observed static baseline'
+        previous_js = current_javascript_hash(HOSTS[args.environment])
+        assert previous_js == args.expected_js_sha256, 'Concurrent Harvest build changed; integrate it before publication'
         config = configparser.ConfigParser(interpolation=None)
         config.read(target['config'])
         backend = Path('/opt/steps-managed/releases')/args.environment/passed['commit']
@@ -204,6 +218,7 @@ def main():
             subprocess.run(['systemctl', 'reload', 'nginx'], check=True)
             raise
         receipt = {'environment': args.environment, 'web_commit': manifest['commit'],
+            'previous_js_sha256': previous_js,
             'backend_commit': passed['commit'], 'root': str(root), 'served': served,
             'nginx_before_sha256': sha(backup/'nginx.conf'), 'nginx_after_sha256': sha(config_path),
             'backup': str(backup)}
