@@ -1264,6 +1264,9 @@ def main():
                 result = subprocess.run(base + options + ['-d', database] + init_options + update_options + ['--stop-after-init', '--logfile=' + str(log)])
                 text = log.read_text(errors='replace')
                 assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text, allowed_missing), str(log)
+                if args.environment == 'qa-cerro':
+                    from provision_cerro_qa import restore_cron_neutralization
+                    restore_cron_neutralization(database, backup)
                 if args.kind == 'reception-revision':
                     packing_schema('finalize',database,release_root,stage)
                 if args.kind == 'product-bpa':

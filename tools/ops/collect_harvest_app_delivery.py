@@ -56,11 +56,14 @@ def main():
     with open('/run/lock/steps-environments.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         result = subprocess.run(['/usr/bin/python3.10', '-c', 'from provision_cerro_qa import verify; verify()'],
-            cwd=tools, text=True, capture_output=True, check=True)
+            cwd=tools, text=True, capture_output=True)
         isolation = result.stdout+result.stderr
+        (output/'isolation.log').write_text(isolation)
+        assert result.returncode == 0, 'QA isolation failed: '+str(output/'isolation.log')
         assert all(marker in isolation for marker in (
             'CUSTOMER_QA_VERIFY_OK', 'CUSTOMER_QA_EGRESS_BLOCKED', 'CUSTOMER_QA_SOURCE_DB_DENIED'))
-        (output/'isolation.log').write_text(isolation)
+        rules = subprocess.check_output(['/usr/sbin/iptables', '-S', 'OUTPUT'], text=True)
+        assert not any(marker in rules for marker in ('STEPS_PRIVATE_TEST_', 'STEPS_PRIVATE_REPORT_'))
         result = subprocess.run(['/usr/bin/python3.10', str(tools/'verify_cerro_release_pair.py'),
             '--module', 'step_cosecha_operations', '--module', 'step_harvest_launcher',
             '--output', str(output/'pair.json')], text=True, capture_output=True, check=True)
