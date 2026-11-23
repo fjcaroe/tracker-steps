@@ -6,21 +6,21 @@ try:
     import pwd
 except ModuleNotFoundError:  # Windows authoring; the operation runs on Linux.
     with patch.dict('sys.modules', {'pwd': SimpleNamespace(getpwnam=lambda name: None)}):
-        from private_report_http import customer_qa_test_loopback
+        import private_report_http as report
 else:
-    from private_report_http import customer_qa_test_loopback
+    import private_report_http as report
 
 
 class LoopbackCase(unittest.TestCase):
     def test_exact_endpoint_removed_after_success_and_failure(self):
         for failure in (False, True):
-            with self.subTest(failure=failure), patch('private_report_http.os.geteuid', return_value=0), \
-                    patch('private_report_http.pwd.getpwnam', return_value=SimpleNamespace(pw_uid=992)), \
-                    patch('private_report_http.subprocess.run', side_effect=[
+            with self.subTest(failure=failure), patch.object(report.os, 'geteuid', return_value=0, create=True), \
+                    patch.object(report.pwd, 'getpwnam', return_value=SimpleNamespace(pw_uid=992)), \
+                    patch.object(report.subprocess, 'run', side_effect=[
                         SimpleNamespace(returncode=1), SimpleNamespace(returncode=0),
                         SimpleNamespace(returncode=0), SimpleNamespace(returncode=1)]) as run:
                 try:
-                    with customer_qa_test_loopback('MANAGEMENT_QA_QA-CERRO_t231232_43b2c8e1', 12345, {'db_user': 'cerroqa_odoo18'}):
+                    with report.customer_qa_test_loopback('MANAGEMENT_QA_QA-CERRO_t231232_43b2c8e1', 12345, {'db_user': 'cerroqa_odoo18'}):
                         if failure:
                             raise RuntimeError('private test failed')
                 except RuntimeError:
@@ -33,10 +33,10 @@ class LoopbackCase(unittest.TestCase):
                 self.assertEqual(inserted[inserted.index('--uid-owner')+1], '992')
 
     def test_original_database_is_rejected_before_firewall_access(self):
-        with patch('private_report_http.os.geteuid', return_value=0), \
-                patch('private_report_http.subprocess.run') as run:
+        with patch.object(report.os, 'geteuid', return_value=0, create=True), \
+                patch.object(report.subprocess, 'run') as run:
             with self.assertRaises(AssertionError):
-                with customer_qa_test_loopback('QA-CERROELPLOMO', 12345, {'db_user': 'cerroqa_odoo18'}):
+                with report.customer_qa_test_loopback('QA-CERROELPLOMO', 12345, {'db_user': 'cerroqa_odoo18'}):
                     pass
             run.assert_not_called()
 
