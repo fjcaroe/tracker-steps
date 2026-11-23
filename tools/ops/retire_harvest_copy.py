@@ -30,7 +30,7 @@ def main():
         fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
         for stage in args.stages:
             assert stage.resolve() == stage and stage.parent == Path('/opt/steps-validation')
-            match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231|t232|t231232)_([0-9a-f]{8})', stage.name)
+            match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231|t232|t231232|harvestcompany)_([0-9a-f]{8})', stage.name)
             assert match and not stage.is_symlink()
             environment, ticket, commit_prefix = match.groups()
             database = 'MANAGEMENT_QA_' + environment.upper() + '_' + ticket + '_' + commit_prefix
@@ -45,7 +45,12 @@ def main():
                 assert len(logs) == 1 and re.search(r'\b[1-9][0-9]* (?:failed|error\(s\))', logs[0].read_text())
             else:
                 proof = json.loads((stage/'qa_passed.json').read_text())
-                assert proof['database'] == database and proof['commit'].startswith(commit_prefix)
+                assert proof['database'] == database
+                if ticket == 'harvestcompany':
+                    assert proof['feature'] == 'harvest-company-selector' and proof['readonly_copy'] and proof['business_preserved']
+                    assert proof['harvest_web']['commit'].startswith(commit_prefix)
+                else:
+                    assert proof['commit'].startswith(commit_prefix)
                 assert 'MANAGEMENT_REGISTRY_OK' in (stage/('verify-'+database+'.log')).read_text()
             snapshot = stage/'source.dump'
             assert snapshot.resolve() == snapshot and not snapshot.is_symlink()

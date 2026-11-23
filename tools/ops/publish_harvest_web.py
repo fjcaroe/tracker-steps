@@ -104,7 +104,7 @@ def patch_config(source, host, root):
 def validate(web):
     manifest = json.loads((web/'release.json').read_text())
     assert manifest['repository'] == 'stepconsulting/step_harvest'
-    assert re.fullmatch('[a-f0-9]{40}', manifest['commit']) and manifest['version'] == '0.0.3'
+    assert re.fullmatch('[a-f0-9]{40}', manifest['commit']) and manifest['version'] in ('0.0.3', '0.0.4')
     assert len(manifest['files']) == 5
     for name, expected in manifest['files'].items():
         path = web/name
@@ -187,11 +187,20 @@ def main():
         assert review['reviewed'] is True and review['web_commit'] == manifest['commit']
         assert review['backend_commit'] == passed['commit'] and review['database'] == passed['database']
         assert all(review[key] for key in ('tariff_form', 'native_centers', 'harvest_menu', 'native_context', 'no_sample_data'))
+        if manifest['version'] == '0.0.4':
+            assert passed['feature'] == 'harvest-company-selector' and passed['readonly_copy'] and passed['business_preserved']
+            assert passed['harvest_web'] == manifest
+            assert all(review[key] for key in ('company_selector', 'authorized_companies_only', 'company_round_trip', 'pending_preserved', 'mobile_layout'))
+            if args.environment != 'development':
+                assert validate(Path('/var/www/steps-harvest-releases/development')/manifest['commit']) == manifest
+                public_hashes(HOSTS['development'], manifest)
         assert re.fullmatch('[a-f0-9]{64}', args.expected_js_sha256 or ''), 'Require the observed static baseline'
         previous_js = current_javascript_hash(HOSTS[args.environment])
         assert previous_js == args.expected_js_sha256, 'Concurrent Harvest build changed; integrate it before publication'
         config = configparser.ConfigParser(interpolation=None)
         config.read(target['config'])
+        if passed.get('readonly_copy'):
+            assert sha(Path(target['config'])) == json.loads((stage/'baseline.json').read_text())['config_sha256'], 'Backend configuration changed after copy certification'
         backend = Path('/opt/steps-managed/releases')/args.environment/passed['commit']
         assert config['options']['addons_path'].split(',')[0] == str(backend)
         release = json.loads((backend/'release.json').read_text())
@@ -213,6 +222,13 @@ def main():
         backup.mkdir(mode=0o700)
         shutil.copy2(config_path, backup/'nginx.conf')
         old_roots = set(re.findall(r'alias\s+(/var/www/[^;]*cosecha)/', original))
+        old_roots.update(re.findall(r'alias\s+(/var/www/steps-harvest-releases/'+re.escape(args.environment)+r'/[a-f0-9]{40}/app)/', original))
+        for old in old_roots:
+            old_release = Path(old).parent/'release.json'
+            if old_release.is_file():
+                previous = json.loads(old_release.read_text())
+                assert previous['repository'] == manifest['repository']
+                assert tuple(map(int, manifest['version'].split('.'))) >= tuple(map(int, previous['version'].split('.'))), 'Harvest downgrade refused'
         with tarfile.open(backup/'previous-static.tar.gz', 'w:gz') as archive:
             for old in sorted(old_roots):
                 assert Path(old).is_dir() and not Path(old).is_symlink()

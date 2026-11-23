@@ -1,5 +1,18 @@
 # Operación y publicación de Odoo
 
+El selector de empresa solicitado el 23-11-2026 amplía Harvest a 0.0.4 en
+Desarrollo, QA-Cerro y Cerro. Usa las empresas autorizadas de la sesión nativa
+y su cookie `cids`, sin cambiar permisos, empresas predeterminadas ni maestros.
+Conservar los pendientes por base, usuario y empresa; bloquear el cambio sin
+conexión o mientras se sincroniza, y verificar el contexto nuevo antes de
+habilitar el registro. El backend 43b2c8e1 no cambia. Certificar el mismo
+paquete estático en copias frescas con `prepare_harvest_web_copy.py`, sin
+actualizar addons ni duplicar migraciones ya probadas. Probar el selector en
+móvil, ida y vuelta entre empresas, pendientes conservados y separación de
+datos. `publish_harvest_web.py` exige esas pruebas, Desarrollo publicado primero,
+respaldo, bloqueo compartido, backend idéntico, ausencia de downgrade y de cambios
+concurrentes. Conservar la capacitación y el aislamiento de QA-Cerro.
+
 Decisión explícita del usuario, 23-11-2026: los requerimientos pueden exigir
 modificar también el core propio. Sustituir las aplicaciones y pantallas Studio
 afectadas por código versionado con layout y marca Steps, conservando relaciones,
