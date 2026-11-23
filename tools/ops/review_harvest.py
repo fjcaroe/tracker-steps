@@ -201,7 +201,7 @@ print('HARVEST_REVIEW_SESSION_OK')
                     self.send_error(403)
                     return
                 headers = {name: value for name, value in self.headers.items() if name.lower() not in ('cookie', 'host', 'connection', 'accept-encoding')}
-                headers.update({'Host': host, 'Cookie': 'session_id='+auth['session_id'], 'X-Forwarded-Proto': 'https', 'Connection': 'close'})
+                headers.update({'Host': host, 'Cookie': 'session_id='+auth['session_id']+'; cids='+str(auth['company_id']), 'X-Forwarded-Proto': 'https', 'Connection': 'close'})
                 connection = http.client.HTTPConnection('127.0.0.1', private_port, timeout=90) if stage else http.client.HTTPSConnection(host, timeout=90)
                 try:
                     connection.request(self.command, self.path, body=body or None, headers=headers)

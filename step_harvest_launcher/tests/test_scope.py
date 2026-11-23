@@ -35,7 +35,7 @@ class HarvestNativeScopeCase(HttpCase):
                     'company_id': company.id, 'implementation': 'no_gap', 'prefix': 'PRIVATE'})
             user = new_test_user(cls.env, login='private_harvest_scope_%s' % index,
                 password='private-fixture', company_id=company.id,
-                company_ids=[Command.set(company.ids)], groups='base.group_user,hr.group_hr_user')
+                company_ids=[Command.set(cls.companies.ids if index == 0 else company.ids)], groups='base.group_user,hr.group_hr_user')
             cls.users |= user
             cls.workers |= cls.env['hr.employee'].with_company(company).create({
                 'name': 'Private Harvest worker %s' % index, 'company_id': company.id, 'pin': str(9823100 + index)})
@@ -58,6 +58,45 @@ class HarvestNativeScopeCase(HttpCase):
         self.assertFalse(data['connected'])
         self.assertFalse(data['scope'])
         self.assertFalse(data['company'])
+
+    def clear_company_cookie(self):
+        for cookie in list(self.opener.cookies):
+            if cookie.name == 'cids':
+                self.opener.cookies.clear(cookie.domain, cookie.path, cookie.name)
+
+    def test_company_selection_uses_the_native_cookie_before_reads_and_uploads(self):
+        self.authenticate(self.users[0].login, 'private-fixture')
+        original = self.get_payload('/api/harvest/bootstrap')['scope']
+        try:
+            for separator in ('-', ','):
+                self.clear_company_cookie()
+                self.opener.cookies.set('cids', separator.join(map(str, reversed(self.companies.ids))))
+                session = self.get_payload('/api/harvest/session')
+                data = self.get_payload('/api/harvest/bootstrap')
+                self.assertEqual(data['company']['id'], self.companies[1].id)
+                self.assertEqual(data['scope'], session['scope'])
+                self.assertNotEqual(data['scope'], original)
+                self.assertEqual([row['odoo_id'] for row in data['orders']], self.orders[1].ids)
+                self.assertNotIn(self.workers[0].id, [row['id'] for row in data['workers']])
+                response = self.url_open('/api/harvest/sync', data=json.dumps({'scope': original,
+                    'records': [{'client_uuid': 'private_old_company_cookie'}]}),
+                    headers={'Content-Type': 'application/json'})
+                self.assertEqual(response.status_code, 409)
+        finally:
+            self.clear_company_cookie()
+
+    def test_foreign_or_malformed_company_cookie_is_rejected(self):
+        self.authenticate(self.users[1].login, 'private-fixture')
+        try:
+            for value in (str(self.companies[0].id), str(self.companies[1].id)+'-invalid'):
+                self.clear_company_cookie()
+                self.opener.cookies.set('cids', value)
+                for route in ('session', 'bootstrap'):
+                    response = self.url_open('/api/harvest/'+route)
+                    self.assertEqual(response.status_code, 403)
+                    self.assertFalse(response.json()['ok'])
+        finally:
+            self.clear_company_cookie()
 
     def test_private_launcher_never_redirects_the_review_to_production(self):
         response = self.url_open('/harvest/open', allow_redirects=False)

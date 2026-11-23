@@ -20,6 +20,37 @@ def environment_scope(env):
 
 
 class ScopedHarvestApi(StepHarvestApi):
+    def _active_company(self):
+        """HTTP routes retain the native web client's selected company cookie."""
+        raw = request.httprequest.cookies.get('cids')
+        if not request.session.uid or not raw:
+            return None
+        try:
+            selected = [int(value) for value in raw.replace(',', '-').split('-')]
+            allowed = request.env.user.company_ids.ids
+            if not selected or any(value not in allowed for value in selected):
+                raise ValueError('Company not allowed')
+            request.update_context(allowed_company_ids=list(dict.fromkeys(selected)))
+        except (ValueError, TypeError):
+            return self._json({'ok': False, 'error': _(
+                'La empresa seleccionada ya no está disponible. Revise la selección en Odoo.')}, status=403)
+        return None
+
+    @http.route()
+    def session(self, **kwargs):
+        error = self._active_company()
+        return error if error is not None else super().session(**kwargs)
+
+    @http.route()
+    def bootstrap(self, **kwargs):
+        error = self._active_company()
+        return error if error is not None else super().bootstrap(**kwargs)
+
+    @http.route()
+    def reference(self, resource, **kwargs):
+        error = self._active_company()
+        return error if error is not None else super().reference(resource, **kwargs)
+
     def _native_record(self, model, identifier, shared=False):
         if not str(identifier or '').isdigit():
             raise ValidationError(_('Seleccione un registro del maestro de esta empresa.'))
@@ -121,6 +152,9 @@ class ScopedHarvestApi(StepHarvestApi):
 
     @http.route()
     def sync(self, **kwargs):
+        error = self._active_company()
+        if error is not None:
+            return error
         expected = self._payload().get('scope')
         if not isinstance(expected, str) or not hmac.compare_digest(expected, environment_scope(request.env)):
             return self._json({'ok': False, 'error': _(
