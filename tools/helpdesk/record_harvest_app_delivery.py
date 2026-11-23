@@ -19,13 +19,18 @@ def main():
         web = json.loads((root/(target+'-web.json')).read_text())
         review = json.loads((root/(target+'-live-review.json')).read_text())
         assert qa['commit'] == web['backend_commit'] == review['backend_commit'] == delivery['backend_commit']
-        assert qa['release_sha256'] == delivery['backend_sha256'] and qa['versions'] == versions
+        assert qa['release_sha256'] == delivery['backend_sha256']
         assert web['web_commit'] == review['web_commit'] == delivery['web_commit']
         assert web['served'] == delivery['web_files'] and web['backup']
         assert review['environment'] == target and review['reviewed'] is True
         assert all(review[key] for key in ('tariff_form', 'native_centers', 'harvest_menu', 'native_context', 'no_sample_data'))
         assert re.search(r'0 failed, 0 error\(s\) of 18 tests', (root/(target+'-qa.log')).read_text())
-        assert 'MANAGEMENT_VERIFY_OK' in (root/(target+'-live.log')).read_text()
+        live = (root/(target+'-live.log')).read_text()
+        assert 'MANAGEMENT_VERIFY_OK' in live
+        installed = [json.loads(line.split('MANAGEMENT_REGISTRY_OK ', 1)[1])
+            for line in live.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
+        assert any(row['versions'] == versions and row['harvest_own_form_without_studio']
+            and row['harvest_api_context_scope'] for row in installed)
     pair = json.loads((root/'pair.json').read_text())
     for module, version in versions.items():
         assert pair['cerro'][module]['version'] == pair['qa-cerro'][module]['version'] == version
