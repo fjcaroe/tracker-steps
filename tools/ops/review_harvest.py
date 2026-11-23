@@ -116,7 +116,7 @@ print('HARVEST_REVIEW_SESSION_OK')
         process = None
         if stage:
             command = odoo+common+['--http-interface=127.0.0.1', '--http-port='+str(private_port),
-                '--smtp-server=127.0.0.1', '--smtp-port=1', '--logfile='+str(stage/'harvest-review-http.log')]
+                '--smtp=127.0.0.1', '--smtp-port=1', '--logfile='+str(stage/'harvest-review-http.log')]
             launch_log = stage/'harvest-review-launch.log'
             launch_output = cleanup.enter_context(launch_log.open('a'))
             process = subprocess.Popen(command, stdout=launch_output, stderr=subprocess.STDOUT, start_new_session=True)
