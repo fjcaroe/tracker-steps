@@ -110,8 +110,8 @@ def restore_cron_neutralization(database, backup):
         previous = {'database': DB, 'active_ids_before': active, 'completed': False}
         audit.write_text(json.dumps(previous, indent=2))
         if active:
-            changed = query(database,'UPDATE ir_cron SET active=false WHERE active AND id IN ('+
-                ','.join(map(str, active))+') RETURNING id')
+            changed = query(database,'WITH changed AS (UPDATE ir_cron SET active=false WHERE active AND id IN ('+
+                ','.join(map(str, active))+') RETURNING id) SELECT id FROM changed ORDER BY id')
             assert sorted(map(int, changed.splitlines())) == active
         verify_neutralization(database)
         previous['completed'] = True
