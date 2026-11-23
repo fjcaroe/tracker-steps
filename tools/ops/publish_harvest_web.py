@@ -198,7 +198,7 @@ def main():
         original = config_path.read_text()
         replacement = patch_config(original, HOSTS[args.environment], root/'app')
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
-        backup = Path('/opt/steps-backups')/('harvest-web-'+args.environment+'-'+stamp)
+        backup = Path('/opt/steps_backups')/('harvest-web-'+args.environment+'-'+stamp)
         backup.mkdir(mode=0o700)
         shutil.copy2(config_path, backup/'nginx.conf')
         old_roots = set(re.findall(r'alias\s+(/var/www/[^;]*cosecha)/', original))
