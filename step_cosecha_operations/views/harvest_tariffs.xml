@@ -35,7 +35,8 @@
                     <notebook><page name="pricelist_rules" string="Reglas de precio">
                         <field name="item_ids" context="{'default_applied_on': '1_product', 'default_base': 'list_price'}">
                             <list>
-                                <field name="labor_id"/>
+                                <field name="product_tmpl_id" string="Labor / Tarea"/>
+                                <field name="product_id" string="Variante" optional="hide"/>
                                 <field name="uom_id"/>
                                 <field name="name" optional="hide"/>
                                 <field name="price"/>
@@ -47,13 +48,11 @@
                             </list>
                             <form string="Regla de tarifa de cosecha"><sheet>
                                 <group><group>
-                                    <field name="labor_id" domain="[('cosecha', '=', True)]" required="True"/>
+                                    <field name="labor_id" invisible="True"/>
+                                    <field name="product_tmpl_id" string="Labor / Tarea" domain="[('cosecha', '=', True)]" required="not product_id"/>
                                     <field name="uom_id" required="True"/>
                                     <field name="applied_on"/>
                                     <field name="categ_id" invisible="applied_on != '2_product_category'"/>
-                                    <field name="product_tmpl_id" domain="[('cosecha', '=', True)]"
-                                        invisible="applied_on not in ('1_product', '0_product_variant')"
-                                        required="applied_on in ('1_product', '0_product_variant')"/>
                                     <field name="product_id" invisible="applied_on != '0_product_variant'"
                                         required="applied_on == '0_product_variant'"/>
                                 </group><group>
