@@ -20,6 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('stages', nargs='+', type=Path)
     parser.add_argument('--apply', action='store_true')
+    parser.add_argument('--failed-unit', help='Exact inactive private QA unit, for a failed copy without a certificate')
     args = parser.parse_args()
     plan = []
     with open('/run/lock/steps-environments.lock', 'a') as lease:
@@ -30,9 +31,18 @@ def main():
             assert match and not stage.is_symlink()
             environment, ticket, commit_prefix = match.groups()
             database = 'MANAGEMENT_QA_' + environment.upper() + '_' + ticket + '_' + commit_prefix
-            proof = json.loads((stage/'qa_passed.json').read_text())
-            assert proof['database'] == database and proof['commit'].startswith(commit_prefix)
-            assert 'MANAGEMENT_REGISTRY_OK' in (stage/('verify-'+database+'.log')).read_text()
+            if args.failed_unit:
+                assert len(args.stages) == 1 and environment == 'development'
+                assert args.failed_unit == 'steps-'+ticket+'-qa-dev-'+commit_prefix
+                state = subprocess.check_output(['systemctl', 'show', '--value', '--property=ActiveState', args.failed_unit], text=True).strip()
+                assert state in ('failed', 'inactive')
+                assert not (stage/'qa_passed.json').exists()
+                logs = list(stage.glob('qa-*.log'))
+                assert len(logs) == 1 and re.search(r'\b[1-9][0-9]* error\(s\)', logs[0].read_text())
+            else:
+                proof = json.loads((stage/'qa_passed.json').read_text())
+                assert proof['database'] == database and proof['commit'].startswith(commit_prefix)
+                assert 'MANAGEMENT_REGISTRY_OK' in (stage/('verify-'+database+'.log')).read_text()
             snapshot = stage/'source.dump'
             assert snapshot.resolve() == snapshot and not snapshot.is_symlink()
             with snapshot.open('rb') as stream:
