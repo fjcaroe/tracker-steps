@@ -83,6 +83,16 @@
             </form>
         </field>
     </record>
+    <record id="harvest_own_tariff_list" model="ir.actions.act_window.view">
+        <field name="sequence">10</field>
+        <field name="view_mode">list</field>
+        <field name="act_window_id" ref="step_cosecha.step_pricelist_action_propio_cosecha"/>
+    </record>
+    <record id="harvest_contractor_tariff_list" model="ir.actions.act_window.view">
+        <field name="sequence">10</field>
+        <field name="view_mode">list</field>
+        <field name="act_window_id" ref="step_cosecha.step_pricelist_action_contratista_cosecha"/>
+    </record>
     <record id="harvest_own_tariff_form" model="ir.actions.act_window.view">
         <field name="sequence">20</field>
         <field name="view_mode">form</field>
