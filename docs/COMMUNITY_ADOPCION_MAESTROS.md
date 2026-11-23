@@ -29,6 +29,49 @@ La auditoría y las matrices completas por producto quedan en
 corresponde a los servicios vigentes. Los conteos de T2, S7 y la matriz de
 octubre corresponden a sus respaldos y paquetes respectivos.
 
+### Almacenamiento histórico y custodia de U2
+
+Se completó la clasificación pendiente sobre las dos bases privadas U2 de
+octubre, con 17 consultas verificadas en solo lectura. Permanecen exactos los
+3.965 registros originales de mensajería, seguimiento, seguidores, actividades
+y adjuntos. El único adjunto agregado es un candidato a icono técnico de menú.
+Los 552 vínculos de grupos de menús originales quedaron iguales. Los siete
+vínculos adicionales pertenecen a menús nuevos. Los valores de vencimiento
+comparados quedaron iguales. La clasificación conserva el estado sin aceptar
+la conversión. SHA256: `b7263606cf4e2cb01a966349e9cbd8ca8fc5ca618fd5faf79c37c4109a619ff6`.
+
+El catálogo de la referencia nativa U2 (382 instalados) y el de su copia
+anclada con OCA (144 instalados, cero Enterprise) coinciden en los cuatro
+contratos de columna y en la FK Calendar con SET NULL. Se conservaron los IDs
+y la metadata de los cuatro campos y sus modelos, y los cinco XML IDs de
+campo originales con `noupdate` íntegro. Los siete alias adicionales del
+motor y el puente apuntan a esos mismos campos. Comparación privada:
+`1d333ddef8fdd82bf22cb62764d309ded692664d6df1c4235c054fd0106452ff`.
+Siguen pendientes 32 diferencias de obligatoriedad y la revisión de las
+32 FK adicionales. Esta revisión de catálogos no certifica escrituras sobre
+históricos pagados ni la operación de los demás productos.
+
+Se preparó U4 en una raíz privada con cinco addons propios y el proveedor
+AGPL. El perfil de almacenamiento deja fuera actualizaciones independientes,
+incluida la migración T155 que envuelve dos fórmulas de asignaciones. Los dos
+modos adquirieron el bloqueo compartido y detuvieron antes de crear una base:
+`SHOW data_directory` apuntó al volumen con 1,90 GiB disponibles frente a la
+reserva de 5 GiB. Artefactos tenía 12,0 GiB. El inventario posterior encontró
+30 ensayos con prefijo de Nómina en ese volumen y un total de 2,33 GiB contando
+incluso T2 y casos a preservar. Esa limpieza por sí sola no cubre el déficit.
+No se retiraron copias ni respaldos. Se conservaron ambos recibos de capacidad.
+Pasaron 63 pruebas locales de herramientas y contratos de evidencia. El
+paquete de ejecución queda en `origin/codex/community-resume-20261123` a la
+espera de la pareja funcional nueva.
+
+La siguiente ejecución debe verificar la reserva en el `data_directory` real,
+crear raíz y bases privadas nuevas, y repetir el paquete de almacenamiento
+exacto en Community y la referencia fresca de Cerro. Después corresponde
+revisar las 32 columnas y 32 FK pendientes en una adopción anclada nueva.
+Conservar F/G y el testigo de 71 reglas. Mantener abiertos días, redondeos,
+YTD, asientos, Previred/libro, consumidores, DTE/CAF/SII, Tesorería, Calidad,
+Studio/Documentos/Firma, demás productos y recuperación integral cero Enterprise.
+
 La pareja normal vigente es **T2**, congelada en `10278323`: **671 casos
 Community y 462 nativos, cero fallos y errores**. Foundation **1.16.0** corrige
 la FK de seguridad detectada después de S7 mediante la API original de Odoo.
