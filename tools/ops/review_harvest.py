@@ -117,7 +117,9 @@ print('HARVEST_REVIEW_SESSION_OK')
         if stage:
             command = odoo+common+['--http-interface=127.0.0.1', '--http-port='+str(private_port),
                 '--smtp-server=127.0.0.1', '--smtp-port=1', '--logfile='+str(stage/'harvest-review-http.log')]
-            process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+            launch_log = stage/'harvest-review-launch.log'
+            launch_output = cleanup.enter_context(launch_log.open('a'))
+            process = subprocess.Popen(command, stdout=launch_output, stderr=subprocess.STDOUT, start_new_session=True)
 
             def stop_backend():
                 if process.poll() is None:
@@ -129,7 +131,7 @@ print('HARVEST_REVIEW_SESSION_OK')
                         process.wait(timeout=10)
             cleanup.callback(stop_backend)
             for attempt in range(90):
-                assert process.poll() is None, 'Private Harvest review server stopped'
+                assert process.poll() is None, 'Private Harvest review server stopped: '+launch_log.read_text()[-1200:]
                 try:
                     connection = http.client.HTTPConnection('127.0.0.1', private_port, timeout=2)
                     connection.request('GET', '/web/health', headers={'Host': host})
