@@ -18,6 +18,15 @@ def write(root, name, value):
     path.write_text(json.dumps(value), encoding='utf-8')
 
 
+def october_critical_test_sources(modules):
+    root = Path(__file__).resolve().parents[2]
+    source = {path.relative_to(root).as_posix(): path.read_bytes()
+              for module in modules for path in (root / module).rglob('*.py')}
+    # T155 shipped after the frozen October package inventories.
+    source.pop('step_hr_contract_days/tests/test_allowance_days.py', None)
+    return source
+
+
 def packet_fixture(operational_extensions=False, quality_extension=False):
     provider = {'__manifest__.py': repr({'license': 'AGPL-3'}).encode()}
     provider.update({'synthetic_%02d.txt' % index: str(index).encode() for index in range(51)})
@@ -104,9 +113,7 @@ def repeated_pdf_fixture(root):
 
 class MultifrontEvidenceCase(unittest.TestCase):
     def test_u_225_173_methods_and_extra_helpers_are_explicit_without_changing_prior_generations(self):
-        root = Path(__file__).resolve().parents[2]
-        source = {path.relative_to(root).as_posix(): path.read_bytes() for module in verifier.own_modules(True, True)
-            for path in (root / module).rglob('*.py')}
+        source = october_critical_test_sources(verifier.own_modules(True, True))
         keys = {cls.name + '.' + method.name for name, body in source.items() if '/tests/test_' in name
             for cls in ast.parse(body.decode('utf-8-sig')).body if isinstance(cls, ast.ClassDef)
             for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_')}
@@ -297,9 +304,7 @@ class MultifrontEvidenceCase(unittest.TestCase):
         self.assertEqual(verifier.expected_tests(True, True), {'community': 646, 'cerro-reference': 441})
 
     def test_s_212_168_methods_require_every_mode_specific_test_once(self):
-        root = Path(__file__).resolve().parents[2]
-        source = {path.relative_to(root).as_posix(): path.read_bytes() for module in verifier.own_modules(True, True)
-            for path in (root / module).rglob('*.py')}
+        source = october_critical_test_sources(verifier.own_modules(True, True))
         keys = {cls.name + '.' + method.name for name, body in source.items() if '/tests/test_' in name
             for cls in ast.parse(body.decode('utf-8-sig')).body if isinstance(cls, ast.ClassDef)
             for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_')}
@@ -565,9 +570,7 @@ class MultifrontEvidenceCase(unittest.TestCase):
                     verifier.verify_packets(root, source)
 
     def test_103_97_new_functional_methods_must_run_exactly_once(self):
-        root = Path(__file__).resolve().parents[2]
-        source = {path.relative_to(root).as_posix(): path.read_bytes() for module in verifier.OWN_MODULES
-                  for path in (root / module).rglob('*.py')}
+        source = october_critical_test_sources(verifier.OWN_MODULES)
         for mode, expected in (('community', 103), ('cerro-reference', 97)):
             modules = verifier.NEW_MODULES if mode == 'community' else verifier.NEW_MODULES[:-1]
             keys = []
