@@ -31,6 +31,48 @@ def concrete_test_count(source, module, only_class=None):
         for method in cls.body if isinstance(method,ast.FunctionDef) and method.name.startswith('test_'))
 
 
+def capture_original_native_visibility(source, stage, args, conf, paths, data, owner):
+    """Observe original payroll permissions on the fresh restore before upgrades."""
+    from probe_original_master_visibility import CAPSULE_SHA256, sha, source_inventory_graph
+
+    vault = Path('/opt/steps-validation')
+    capsule_source = vault / 'community-original-config-20261029/configuration-capsule-C.json'
+    inputs = [(args.original_source_inventory, 'source-inventory.json', source_inventory_graph),
+              (capsule_source, 'original-capsule.json', lambda body: sha(body) == CAPSULE_SHA256)]
+    for original, name, verify in inputs:
+        assert original.is_file() and not original.is_symlink() and original.resolve().is_relative_to(vault)
+        body = original.read_bytes()
+        assert verify(body)
+        destination = stage / name
+        with os.fdopen(os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
+            stream.write(body)
+        os.chown(destination, owner.pw_uid, owner.pw_gid)
+
+    tools = source / 'tools/community'
+    proof = stage / 'original-source-visibility.json'
+    expression = (
+        f'import sys; sys.path.insert(0, {str(tools)!r}); '
+        'from probe_original_master_visibility import run; '
+        f'run(env, {str(stage / "original-capsule.json")!r}, {CAPSULE_SHA256!r}, '
+        f'output={str(proof)!r}, source_inventory_path={str(stage / "source-inventory.json")!r})'
+    )
+    log_path = stage / 'original-source-visibility.log'
+    command = ['sudo', '-u', owner.pw_name, '/usr/bin/python3.10',
+        str(tools / 'original_external_references_readonly_bootstrap.py'),
+        str(args.runtime), str(args.runtime / 'odoo-bin'), args.database, 'shell',
+        '-c', str(conf), '-d', args.database, '--db-filter=^' + args.database + '$',
+        '--addons-path=' + paths, '--db_host=/var/run/postgresql', '--data-dir=' + str(data),
+        '--load=base,web', '--workers=0', '--max-cron-threads=0', '--no-http',
+        '--without-demo=all', '--stop-after-init', '--logfile=' + str(log_path)]
+    with (stage / 'original-source-visibility-bootstrap.log').open('x') as log:
+        status = subprocess.run(offline_odoo(command), input=expression, text=True, stdout=log, stderr=subprocess.STDOUT)
+    assert status.returncode == 0 and proof.is_file(), 'Original source observation failed; inspect private logs'
+    assert not re.search(r' (ERROR|CRITICAL) ', log_path.read_text(errors='replace'))
+    result = json.loads(proof.read_bytes())
+    print('ORIGINAL_SOURCE_VISIBILITY_OK', result['engine']['installed'],
+          result['allowed_master_ids'], result['denied_master_ids'], flush=True)
+
+
 def main():
     global MODULES
     parser=argparse.ArgumentParser(description=__doc__)
@@ -49,6 +91,8 @@ def main():
     parser.add_argument('--quality-oca',type=Path)
     parser.add_argument('--critical-extension',action='store_true',help='Explicit R generation: actual PKIX/CRL, HR admission and invoice application')
     parser.add_argument('--critical-generation',choices=('R3','S','T','U'),default='R3')
+    parser.add_argument('--original-source-inventory', type=Path,
+        help='Run the sealed original payroll permission witness on the untouched native addon graph')
     parser.add_argument('--storage-schema-plan',type=Path)
     parser.add_argument('--numeric-input-engine', action='store_true', help='Pinned LGPL real-engine overlay: NUMERIC amount from first init')
     parser.add_argument('--accelerated',action='store_true',help='Install the exact HR, banking and CAF package together')
@@ -56,6 +100,9 @@ def main():
     parser.add_argument('--runtime',type=Path,required=True)
     parser.add_argument('--oca',type=Path,required=True)
     args=parser.parse_args()
+    if args.original_source_inventory:
+        assert args.mode == 'cerro-reference' and args.focused_history_storage
+        assert re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_REFERENCE_[A-Za-z0-9_]+', args.database)
     assert (args.storage_schema_plan is not None) == (args.critical_generation == 'U')
     assert args.critical_generation != 'U' or args.mode != 'community' or args.numeric_input_engine
     if args.focused_history_storage:
@@ -298,6 +345,8 @@ def main():
             for name,value in [('business-before',baseline),('identity-before',original),('history-before',history)]:dump_json(name,value)
         for p in [stage,*stage.rglob('*')]:
             if not p.is_symlink():os.chown(p,identity.pw_uid,identity.pw_gid)
+        if args.original_source_inventory:
+            capture_original_native_visibility(source, stage, args, conf, config['options']['addons_path'], data, identity)
         with socket.socket() as listener:listener.bind(('127.0.0.1',0));port=listener.getsockname()[1]
         paths=(str(hr_overlay)+',' if hr_overlay else '')+str(overlay)+','+(str(args.runtime/'addons') if pure else config['options']['addons_path'])
         entry=args.runtime/'odoo-bin' if pure else source/'tools/ops/run_agriculture_upgrade.py'
