@@ -19,6 +19,7 @@ import manage_management as management
 from customer_qa_clone_access import clone_database_access
 from provision_cerro_qa import business_snapshot
 from publish_harvest_web import validate
+from harvest_web_policy import static_copy_identity
 
 
 def run(*args, **kwargs):
@@ -35,8 +36,7 @@ def main():
     web = args.web
     assert web.resolve() == web and web.is_relative_to('/opt/steps-validation')
     frontend = validate(web)
-    assert frontend['version'] == '0.0.4'
-    run_id = 'harvestcompany_'+frontend['commit'][:8]
+    run_id, feature = static_copy_identity(frontend, args.environment)
     stage = Path('/opt/steps-validation')/('management_'+args.environment+'_'+run_id)
     database = 'MANAGEMENT_QA_'+args.environment.upper()+'_'+run_id
     tools = Path(__file__).resolve().parent
@@ -110,7 +110,7 @@ def main():
             assert result.returncode == 0 and 'MANAGEMENT_REGISTRY_OK' in result.stdout, str(log)
             assert business_snapshot(database) == before, 'Native review must preserve all original business records'
             assert baseline['config_sha256'] == management.digest(Path(target['config']))
-            proof = {'feature': 'harvest-company-selector', 'readonly_copy': True,
+            proof = {'feature': feature, 'readonly_copy': True,
                 'commit': backend['commit'], 'release_sha256': management.digest(args.backend),
                 'database': database, 'log': str(log), 'harvest_web': frontend,
                 'business_preserved': True, 'created_at': datetime.now(timezone.utc).isoformat()}

@@ -13,6 +13,8 @@ import tarfile
 import time
 import urllib.error
 import urllib.request
+from harvest_web_policy import (SUPPORTED_VERSIONS, require_authorized_environment,
+                                validate_android_review, validate_static_copy)
 
 HOSTS = {'development': 'desarrollo.stepsapp.cl', 'cerro': 'cerroelplomo.stepsapp.cl',
          'qa-cerro': 'qa-cerroelplomo.stepsapp.cl'}
@@ -104,7 +106,7 @@ def patch_config(source, host, root):
 def validate(web):
     manifest = json.loads((web/'release.json').read_text())
     assert manifest['repository'] == 'stepconsulting/step_harvest'
-    assert re.fullmatch('[a-f0-9]{40}', manifest['commit']) and manifest['version'] in ('0.0.3', '0.0.4', '0.0.5', '0.0.6')
+    assert re.fullmatch('[a-f0-9]{40}', manifest['commit']) and manifest['version'] in SUPPORTED_VERSIONS
     assert len(manifest['files']) == 5
     for name, expected in manifest['files'].items():
         path = web/name
@@ -170,9 +172,12 @@ def main():
     web = args.web
     assert web.resolve() == web and web.is_relative_to('/opt/steps-validation')
     if args.action == 'extract':
-        print('HARVEST_WEB_EXTRACTED '+json.dumps(extract(args.package, web)))
+        manifest = extract(args.package, web)
+        require_authorized_environment(manifest, args.environment)
+        print('HARVEST_WEB_EXTRACTED '+json.dumps(manifest))
         return
     manifest = validate(web)
+    require_authorized_environment(manifest, args.environment)
     target = json.loads((Path(__file__).parent/'environments.json').read_text())['environments'][args.environment]
     assert target['url'].rstrip('/') == 'https://'+HOSTS[args.environment]
     with open('/run/lock/steps-environments.lock', 'a') as lease:
@@ -188,9 +193,10 @@ def main():
         assert review['backend_commit'] == passed['commit'] and review['database'] == passed['database']
         assert all(review[key] for key in ('tariff_form', 'native_centers', 'harvest_menu', 'native_context', 'no_sample_data'))
         if manifest['version'] == '0.0.4':
-            assert passed['feature'] == 'harvest-company-selector' and passed['readonly_copy'] and passed['business_preserved']
-            assert passed['harvest_web'] == manifest
+            validate_static_copy(manifest, args.environment, stage.name, passed)
             assert all(review[key] for key in ('company_selector', 'authorized_companies_only', 'company_round_trip', 'pending_preserved', 'mobile_layout'))
+        if manifest['version'] == '0.0.7':
+            validate_android_review(manifest, args.environment, stage.name, passed, review)
         if manifest['version'] == '0.0.5':
             assert re.fullmatch(r'management_'+args.environment+r'_t233_[a-f0-9]{8}', stage.name)
             assert all(review[key] for key in ('plot_selector', 'plots_filtered_by_center',

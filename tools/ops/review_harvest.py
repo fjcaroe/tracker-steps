@@ -1,4 +1,4 @@
-"""Review the exact Harvest build and native forms through a temporary read-only tunnel."""
+"""Review an exact Harvest build through a temporary, restricted private tunnel."""
 import argparse
 from contextlib import ExitStack
 import configparser
@@ -20,6 +20,9 @@ from urllib.parse import unquote, urlsplit
 
 from manage_management import query
 from review_management_panel import is_read_request, is_action_breadcrumb_read
+from harvest_web_policy import (SUPPORTED_VERSIONS, require_authorized_environment,
+                                validate_static_copy, require_copy_sync_certificate,
+                                is_copy_sync_request)
 
 
 def main():
@@ -28,11 +31,16 @@ def main():
     parser.add_argument('--web-root', required=True, type=Path, help='Extracted immutable web release')
     parser.add_argument('--stage', type=Path, help='Certified private destination copy; omit for published review')
     parser.add_argument('--company-id', type=int)
+    parser.add_argument('--user-id', type=int, help='Review one existing internal user without changing credentials or permissions')
     parser.add_argument('--multi-company', action='store_true', help='Prefer an existing business editor already authorized in several companies')
+    parser.add_argument('--allow-copy-sync', action='store_true', help='Allow only same-origin Harvest sync writes in the certified private Android copy')
     parser.add_argument('--port', type=int, required=True)
     parser.add_argument('--minutes', type=int, default=25)
     args = parser.parse_args()
     assert os.geteuid() == 0 and 1024 < args.port < 65536 and 1 <= args.minutes <= 30
+    assert args.user_id is None or args.user_id > 1, 'Select an existing non-superuser profile'
+    assert args.company_id is None or args.company_id > 0, 'Select an existing company'
+    assert not args.allow_copy_sync or args.stage is not None, 'Sync testing requires a certified private copy'
 
     def abort_startup(*unused):
         raise SystemExit(0)
@@ -47,7 +55,8 @@ def main():
     web = args.web_root.resolve()
     assert web.is_relative_to('/opt/steps-validation') and web == args.web_root
     frontend = json.loads((web/'release.json').read_text())
-    assert frontend['repository'] == 'stepconsulting/step_harvest' and frontend['version'] in ('0.0.3', '0.0.4', '0.0.5', '0.0.6')
+    assert frontend['repository'] == 'stepconsulting/step_harvest' and frontend['version'] in SUPPORTED_VERSIONS
+    require_authorized_environment(frontend, args.environment)
     for name, expected in frontend['files'].items():
         path = web/name
         assert path.resolve().is_relative_to(web) and not path.is_symlink()
@@ -58,16 +67,17 @@ def main():
     stage = args.stage
     if stage:
         assert stage.resolve() == stage and stage.parent == Path('/opt/steps-validation')
-        match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231232|harvestcompany|t233|t234|t235)_([a-f0-9]{8})', stage.name)
+        match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231232|harvestcompany|harvestandroid|t233|t234|t235)_([a-f0-9]{8})', stage.name)
         assert match and match[1] == args.environment
         proof = json.loads((stage/'qa_passed.json').read_text())
         database = proof['database']
         assert database == 'MANAGEMENT_QA_'+args.environment.upper()+'_'+match[2]+'_'+match[3]
-        if match[2] == 'harvestcompany':
-            assert proof['feature'] == 'harvest-company-selector' and proof['readonly_copy'] and proof['business_preserved']
-            assert proof['harvest_web'] == frontend and frontend['commit'].startswith(match[3])
+        if match[2] in ('harvestcompany', 'harvestandroid'):
+            validate_static_copy(frontend, args.environment, stage.name, proof)
         else:
             assert proof['commit'].startswith(match[3])
+        if args.allow_copy_sync:
+            require_copy_sync_certificate(frontend, args.environment, stage.name, proof)
         source_options = ['--addons-path='+str(stage/'addons')+','+options['addons_path'], '--data-dir='+str(stage/'data')]
         with socket.socket() as listener:
             listener.bind(('127.0.0.1', 0))
@@ -91,13 +101,17 @@ if CLEANUP:
 else:
     assert not proof.exists()
     company=env['res.company'].browse(COMPANY_ID).exists() if COMPANY_ID else None
-    business=scoped_business_environment(env,company=company)
-    if MULTI_COMPANY:
+    assert COMPANY_ID is None or len(company)==1, 'The requested company no longer exists'
+    business=(scoped_existing_user_environment(env,USER_ID,company=company) if USER_ID
+              else scoped_business_environment(env,company=company))
+    if MULTI_COMPANY and not USER_ID:
         editors=env['res.users'].search([('active','=',True),('share','=',False),('id','!=',1),
             ('company_ids','in',business.company.ids)],order='id').filtered(lambda user:
                 len(user.company_ids)>1 and user.has_group('base.group_system') and user.has_group('account.group_account_manager'))
         assert editors, 'Existing multi-company business editor required; do not grant permissions'
         business=env(user=editors[:1],su=False,context=dict(env.context,allowed_company_ids=business.company.ids))
+    elif MULTI_COMPANY:
+        assert len(business.user.company_ids)>1, 'The requested existing user is not authorized in several companies'
     user=business.user
     session=http.root.session_store.new()
     session.update({'db':env.cr.dbname,'uid':user.id,'login':user.login,
@@ -113,7 +127,7 @@ else:
         if action:
             assert action._name in ('ir.actions.client','ir.actions.act_window')
             actions.append(action.id)
-    proof.write_text(json.dumps({'session_id':session.sid,'company_id':business.company.id,
+    proof.write_text(json.dumps({'session_id':session.sid,'company_id':business.company.id,'user_id':user.id,
         'breadcrumb_actions':actions}))
     proof.chmod(0o600)
 env.cr.rollback()
@@ -124,7 +138,7 @@ print('HARVEST_REVIEW_SESSION_OK')
         # The tool bundle remains private to root. Pass this versioned helper
         # as shell input rather than widening access to the bundle directory.
         header = (tools/'native_business_profile.py').read_text()+'\n'
-        header += 'SESSION_FILE='+repr(str(session_file))+'\nCLEANUP='+repr(cleanup)+'\nCOMPANY_ID='+repr(args.company_id)+'\nMULTI_COMPANY='+repr(args.multi_company or frontend['version'] == '0.0.4')+'\n'
+        header += 'SESSION_FILE='+repr(str(session_file))+'\nCLEANUP='+repr(cleanup)+'\nCOMPANY_ID='+repr(args.company_id)+'\nUSER_ID='+repr(args.user_id)+'\nMULTI_COMPANY='+repr(args.multi_company or frontend['version'] == '0.0.4')+'\n'
         result = subprocess.run(odoo+['shell', *common, '--no-http', '--log-level=error'],
             input=header+session_script, text=True, capture_output=True)
         assert result.returncode == 0 and 'HARVEST_REVIEW_SESSION_OK' in result.stdout, result.stderr[-1200:]
@@ -169,6 +183,15 @@ print('HARVEST_REVIEW_SESSION_OK')
         cleanup.callback(lambda: session(True) if session_file.exists() else None)
         session()
         auth = json.loads(session_file.read_text())
+        review_policy = {'environment': args.environment, 'database': database,
+            'web_commit': frontend['commit'], 'company_id': auth['company_id'],
+            'user_id': auth['user_id'], 'read_only': not args.allow_copy_sync,
+            'copy_sync_allowed': args.allow_copy_sync,
+            'sync_origin': 'http://127.0.0.1:'+str(args.port) if args.allow_copy_sync else None}
+        if stage:
+            policy_file = stage/'harvest-review-policy.json'
+            policy_file.write_text(json.dumps(review_policy, indent=2))
+            policy_file.chmod(0o600)
 
         class Proxy(BaseHTTPRequestHandler):
             def log_message(self, *unused):
@@ -204,6 +227,8 @@ print('HARVEST_REVIEW_SESSION_OK')
                     self.wfile.write(data)
                     return
                 if self.command == 'POST':
+                    copy_sync = is_copy_sync_request(args.allow_copy_sync, self.command,
+                        self.path, self.headers.get('Origin'), args.port)
                     allowed = is_read_request(self.path, body) or path == '/web/session/get_session_info'
                     if path == '/web/action/load_breadcrumbs':
                         allowed = is_action_breadcrumb_read(body, auth['breadcrumb_actions'], ('step.cosecha.registry',))
@@ -215,8 +240,10 @@ print('HARVEST_REVIEW_SESSION_OK')
                         allowed |= params.get('model') in ('product.pricelist', 'product.pricelist.item', 'res.config.settings') and params.get('method') in ('onchange', 'default_get')
                     except (ValueError, AttributeError):
                         pass
-                    if not allowed or path == '/api/harvest/sync':
-                        self.send_error(403, 'Read-only Harvest review')
+                    if path == '/api/harvest/sync':
+                        allowed = copy_sync
+                    if not allowed:
+                        self.send_error(403, 'Harvest review request not allowed')
                         return
                 if self.command == 'GET' and not (path in ('/web', '/odoo', '/harvest/open', '/web/manifest.webmanifest', '/web/service-worker.js',
                     '/api/harvest/session', '/api/harvest/bootstrap', '/api/harvest/health') or
@@ -233,6 +260,8 @@ print('HARVEST_REVIEW_SESSION_OK')
                     self.send_error(400, 'Invalid company cookie')
                     return
                 headers.update({'Host': host, 'Cookie': 'session_id='+auth['session_id']+'; cids='+selected, 'X-Forwarded-Proto': 'https', 'Connection': 'close'})
+                if self.command == 'POST' and path == '/api/harvest/sync':
+                    headers['Origin'] = 'https://'+host
                 connection = http.client.HTTPConnection('127.0.0.1', private_port, timeout=90) if stage else http.client.HTTPSConnection(host, timeout=90)
                 try:
                     connection.request(self.command, self.path, body=body or None, headers=headers)
@@ -268,8 +297,7 @@ print('HARVEST_REVIEW_SESSION_OK')
         signal.signal(signal.SIGTERM, stop)
         signal.signal(signal.SIGINT, stop)
         print('HARVEST_REVIEW_READY '+json.dumps({'url': 'http://127.0.0.1:%s/cosecha/' % args.port,
-            'environment': args.environment, 'database': database, 'company_id': auth['company_id'],
-            'web_commit': frontend['commit'], 'read_only': True}), flush=True)
+            **review_policy}), flush=True)
         deadline = time.monotonic()+args.minutes*60
         while not stopped and time.monotonic() < deadline:
             server.handle_request()

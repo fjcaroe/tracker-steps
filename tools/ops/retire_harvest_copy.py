@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+from harvest_web_policy import validate_static_copy
 
 
 def sql(statement):
@@ -30,7 +31,7 @@ def main():
         fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
         for stage in args.stages:
             assert stage.resolve() == stage and stage.parent == Path('/opt/steps-validation')
-            match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231|t232|t231232|harvestcompany|t233|t234|t235)_([0-9a-f]{8})', stage.name)
+            match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231|t232|t231232|harvestcompany|harvestandroid|t233|t234|t235)_([0-9a-f]{8})', stage.name)
             assert match and not stage.is_symlink()
             environment, ticket, commit_prefix = match.groups()
             database = 'MANAGEMENT_QA_' + environment.upper() + '_' + ticket + '_' + commit_prefix
@@ -46,9 +47,8 @@ def main():
             else:
                 proof = json.loads((stage/'qa_passed.json').read_text())
                 assert proof['database'] == database
-                if ticket == 'harvestcompany':
-                    assert proof['feature'] == 'harvest-company-selector' and proof['readonly_copy'] and proof['business_preserved']
-                    assert proof['harvest_web']['commit'].startswith(commit_prefix)
+                if ticket in ('harvestcompany', 'harvestandroid'):
+                    validate_static_copy(proof['harvest_web'], environment, stage.name, proof)
                 else:
                     assert proof['commit'].startswith(commit_prefix)
                 assert 'MANAGEMENT_REGISTRY_OK' in (stage/('verify-'+database+'.log')).read_text()

@@ -1,5 +1,30 @@
 # Operación y publicación de Odoo
 
+La revisión solicitada el 24-11-2026 autoriza preparar Harvest 0.0.7 y un APK
+Android de prueba exclusivamente para Desarrollo. El contenedor usa el HTTPS
+canónico y la sesión nativa Odoo; conservar usuarios, credenciales, perfiles y
+empresas existentes. La identidad del usuario y empresa del piloto debe quedar
+confirmada antes de acreditar su acceso. No autoriza publicar esta versión en
+Cerro, QA-Cerro ni los demás ambientes. Certificar los mismos archivos web en
+una copia fresca mediante `prepare_harvest_web_copy.py`, con backend idéntico,
+registros conservados y feature `harvest-android-pilot` / etapa `harvestandroid`.
+Revisar la captura móvil y manual, almacenamiento durable y conservación de
+pendientes, selector de empresas y cuarteles, junto a los formularios nativos.
+Publicar solo el paquete revisado, con respaldo, bloqueo compartido y rechazo
+de cambios concurrentes o downgrade. El proxy temporal de revisión admite
+`--user-id` para comprobar un perfil existente sin ampliar permisos ni cambiar
+claves; sigue siendo de solo lectura y no acredita un login con contraseña ni
+una escritura desde hardware Android. La opción explícita `--allow-copy-sync`
+solo habilita `POST /api/harvest/sync` en la copia `harvestandroid` certificada,
+con origen loopback exacto y destino privado; conserva bloqueadas las demás
+escrituras y los ambientes publicados. Registrar su política sin sesión en
+`harvest-review-policy.json`, comprobar la sincronización nativa y su reintento
+sin duplicados y retirar las sesiones al terminar. La certificación preserva
+el backend y los registros iniciales; ese ensayo posterior puede crear sus
+registros de prueba únicamente en la copia. Registrar por separado compilación,
+pruebas web y prueba real en dispositivo. La distribución del piloto debe
+identificar su APK, versión, hash y resultado de instalación.
+
 T235 amplía `step_cosecha_operations` a 18.0.1.2.0 con `harvest-app` en
 Desarrollo, QA-Cerro y Cerro, completando la entrega conjunta T233/T234/T235.
 La hoja de costeo toma la labor y unidad de la cabecera cuando faltan en las
