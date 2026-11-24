@@ -19,7 +19,7 @@ import time
 from urllib.parse import unquote, urlsplit
 
 from manage_management import query
-from review_management_panel import is_read_request
+from review_management_panel import is_read_request, is_action_breadcrumb_read
 
 
 def main():
@@ -104,7 +104,17 @@ else:
         'context':dict(user.with_user(user).context_get(),allowed_company_ids=business.company.ids),
         'session_token':user._compute_session_token(session.sid)})
     http.root.session_store.save(session)
-    proof.write_text(json.dumps({'session_id':session.sid,'company_id':business.company.id}))
+    actions=[]
+    for xmlid in ('step_cosecha.action_step_cosecha_dashboard',
+            'step_cosecha_operations.action_harvest_dashboard_settings',
+            'step_cosecha.action_step_cosecha_costo_pro',
+            'step_cosecha.action_step_cosecha_registry_costo'):
+        action=env.ref(xmlid,raise_if_not_found=False)
+        if action:
+            assert action._name in ('ir.actions.client','ir.actions.act_window')
+            actions.append(action.id)
+    proof.write_text(json.dumps({'session_id':session.sid,'company_id':business.company.id,
+        'breadcrumb_actions':actions}))
     proof.chmod(0o600)
 env.cr.rollback()
 print('HARVEST_REVIEW_SESSION_OK')
@@ -195,6 +205,8 @@ print('HARVEST_REVIEW_SESSION_OK')
                     return
                 if self.command == 'POST':
                     allowed = is_read_request(self.path, body) or path == '/web/session/get_session_info'
+                    if path == '/web/action/load_breadcrumbs':
+                        allowed = is_action_breadcrumb_read(body, auth['breadcrumb_actions'], ('step.cosecha.registry',))
                     try:
                         params = json.loads(body).get('params', {})
                         allowed |= params.get('model') == 'step.cosecha.registry' and params.get('method') == 'get_dashboard_data'
