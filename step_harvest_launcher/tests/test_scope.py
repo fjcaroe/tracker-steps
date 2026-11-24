@@ -180,7 +180,8 @@ class HarvestNativeScopeCase(HttpCase):
         ])
         farm = env['step.fundo'].create({'name': 'Private T233 farm', 'company_id': company.id})
         species = env['step.especie'].create({
-            'name': 'Private T233 species', 'type_especie': 'frutal', 'company_id': company.id})
+            'name': 'Private T233 species', 'type_especie': 'frutal',
+            'group_especie': 'baya', 'company_id': company.id})
         group = env['step.grupo.variedad'].create({
             'name': 'Private T233 group', 'especie_id': species.id, 'company_id': company.id})
         variety = env['step.variedad'].create({
