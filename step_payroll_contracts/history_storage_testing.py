@@ -121,8 +121,18 @@ class HistoryStorageCases:
 
     def case_contract_calendar_is_nullable_and_actual_fk_sets_null(self):
         case = self.case
-        calendar = case.scope['resource.calendar'].create({'name': 'Private removable history calendar',
-            'company_id': case.company.id, 'attendance_ids': [Command.clear()]})
+        # An empty schedule makes the native HR hourly-cost computation divide by zero.
+        calendar = case.scope['resource.calendar'].create({
+            'name': 'Private removable history calendar',
+            'company_id': case.company.id,
+            'attendance_ids': [
+                Command.clear(),
+                Command.create({
+                    'name': 'Private shift', 'dayofweek': '0',
+                    'hour_from': 8, 'hour_to': 12, 'day_period': 'morning',
+                }),
+            ],
+        })
         contract = case.contract.with_env(self.env).copy({'name': 'Private nullable calendar contract',
             'state': 'draft', 'resource_calendar_id': calendar.id}).with_env(case.scope)
         self.assertFalse(contract.env.su)
