@@ -169,7 +169,10 @@ class HarvestNativeScopeCase(HttpCase):
     def test_plot_catalog_tracks_center_and_upload_saves_native_relation(self):
         company, foreign_company = self.companies
         env = self.env(context=dict(self.env.context, allowed_company_ids=self.companies.ids))
-        plan = env['account.analytic.plan'].create({'name': 'Centro Costos'})
+        plan = (company.management_actual_center_plan_id
+                if 'management_actual_center_plan_id' in company._fields else False)
+        if not plan:
+            plan = env['account.analytic.plan'].create({'name': 'Centro Costos'})
         first, other, foreign = env['account.analytic.account'].create([
             {'name': 'Private T233 A', 'company_id': company.id, 'plan_id': plan.id},
             {'name': 'Private T233 B', 'company_id': company.id, 'plan_id': plan.id},
@@ -192,7 +195,10 @@ class HarvestNativeScopeCase(HttpCase):
 
         self.authenticate(self.users[0].login, 'private-fixture')
         data = self.get_payload('/api/harvest/bootstrap')
+        self.assertEqual(data['company']['id'], company.id)
         choices = {center['id']: center['cuarteles'] for center in data['cost_centers']}
+        self.assertIn(first.id, choices)
+        self.assertIn(other.id, choices)
         self.assertEqual([plot['id'] for plot in choices[first.id]], plots[0].ids)
         self.assertEqual([plot['id'] for plot in choices[other.id]], plots[1].ids)
         self.assertNotIn(foreign.id, choices)
