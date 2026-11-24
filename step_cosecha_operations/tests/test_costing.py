@@ -23,7 +23,7 @@ class HarvestCostingCase(TransactionCase):
             'company_id': self.company.id, 'currency_id': self.company.currency_id.id,
             'cosecha': True, 'group_type': 'propio'})
         self.rule = self.env['product.pricelist.item'].create({'pricelist_id': self.tariff.id,
-            'product_tmpl_id': self.labor.id, 'uom_id': self.box.id, 'fixed_price': 1575,
+            'product_tmpl_id': self.labor.id, 'uom_id': self.box.id, 'fixed_price': 1200,
             'min_quantity': 10, 'applied_on': '1_product',
             'date_start': '2026-11-23 13:00:00', 'date_end': '2026-11-30 13:00:00'})
 
@@ -32,7 +32,7 @@ class HarvestCostingCase(TransactionCase):
             'company_id': self.company.id, 'type_tarea': 'propio', 'state': 'costo',
             'date': '2026-11-24 12:00:00', 'product_uom_id': self.box.id,
             'labor_id': self.labor.id, 'pricelist_id': self.tariff.id,
-            'registry_line': [Command.create({'quantity': 15, 'hrs': 8, 'sueldo_base': 18451.77})],
+            'registry_line': [Command.create({'quantity': 15, 'hrs': 8, 'sueldo_base': 15000})],
             **values})
 
     def original_inputs(self, record):
@@ -47,23 +47,23 @@ class HarvestCostingCase(TransactionCase):
         self.assertFalse(line.labor_id)
         self.assertFalse(line.uom_id)
         self.assertEqual(line.harvest_min_quantity, 10)
-        self.assertEqual(line.harvest_unit_price, 1575)
-        self.assertEqual(line.total_trato, 23625)
-        self.assertAlmostEqual(line.variable_trato, 5173.23)
-        self.assertAlmostEqual(line.harvest_salary_base, 18451.77)
+        self.assertEqual(line.harvest_unit_price, 1200)
+        self.assertEqual(line.total_trato, 18000)
+        self.assertAlmostEqual(line.variable_trato, 3000)
+        self.assertAlmostEqual(line.harvest_salary_base, 15000)
 
     def test_minimum_target_remains_visible_below_target_with_zero_variable(self):
         line = self.harvest().registry_line
         line.quantity = 5
         self.assertEqual(line.harvest_min_quantity, 10)
-        self.assertEqual(line.harvest_unit_price, 1575)
-        self.assertEqual(line.total_trato, 7875)
+        self.assertEqual(line.harvest_unit_price, 1200)
+        self.assertEqual(line.total_trato, 6000)
         self.assertEqual(line.variable_trato, 0)
 
     def test_recorded_unit_selects_the_rate_instead_of_the_labor_product_unit(self):
         self.rule.copy({'uom_id': self.kg.id, 'fixed_price': 700, 'min_quantity': 0})
         record = self.harvest()
-        self.assertEqual(record.registry_line.harvest_unit_price, 1575)
+        self.assertEqual(record.registry_line.harvest_unit_price, 1200)
         record.product_uom_id = self.kg
         self.assertEqual(record.registry_line.harvest_unit_price, 700)
         self.assertEqual(record.registry_line.total_trato, 10500)
@@ -99,16 +99,16 @@ class HarvestCostingCase(TransactionCase):
     def test_unsaved_form_line_uses_its_actual_inputs(self):
         record = self.harvest()
         line = self.env['step.cosecha.registry.line'].new({'registry_id': record.id,
-            'quantity': 17, 'hrs': 8, 'sueldo_base': 18451.77})
-        self.assertEqual(line.harvest_unit_price, 1575)
-        self.assertEqual(line.total_trato, 26775)
-        self.assertAlmostEqual(line.variable_trato, 8323.23)
+            'quantity': 17, 'hrs': 8, 'sueldo_base': 15000})
+        self.assertEqual(line.harvest_unit_price, 1200)
+        self.assertEqual(line.total_trato, 20400)
+        self.assertAlmostEqual(line.variable_trato, 5400)
 
     def test_dashboard_virtual_costs_match_the_worksheet_preview(self):
         record = self.harvest()
         before = self.original_inputs(record)
-        self.assertEqual(record.registry_line.cost_empresa, 23625)
-        self.assertEqual(record._dashboard_metrics()['total_cost'], 23625)
+        self.assertEqual(record.registry_line.cost_empresa, 18000)
+        self.assertEqual(record._dashboard_metrics()['total_cost'], 18000)
         self.assertEqual(self.original_inputs(record), before)
 
     def test_costing_and_return_to_approved_keep_lines_and_snapshot_native_inputs(self):
@@ -118,15 +118,15 @@ class HarvestCostingCase(TransactionCase):
         self.assertEqual(record.state, 'costo')
         self.assertEqual(line.labor_id, self.labor)
         self.assertEqual(line.uom_id, self.box)
-        self.assertEqual(line.tarifa, 1575)
+        self.assertEqual(line.tarifa, 1200)
         self.assertEqual(line.cant_minima, 10)
         record.action_return_approved()
         self.assertEqual(record.state, 'apro')
         self.assertEqual(record.registry_line, line)
-        self.rule.fixed_price = 1600
+        self.rule.fixed_price = 1300
         record.action_costeo()
-        self.assertEqual(line.tarifa, 1600)
-        self.assertEqual(line.total_trato, 24000)
+        self.assertEqual(line.tarifa, 1300)
+        self.assertEqual(line.total_trato, 19500)
 
     def test_posted_worksheet_keeps_its_snapshot_after_rate_changes(self):
         record = self.harvest(state='apro')
@@ -134,15 +134,15 @@ class HarvestCostingCase(TransactionCase):
         record.state = 'cont'
         before = self.original_inputs(record)
         self.rule.fixed_price = 9999
-        self.assertEqual(record.registry_line.harvest_unit_price, 1575)
-        self.assertEqual(record.registry_line.total_trato, 23625)
+        self.assertEqual(record.registry_line.harvest_unit_price, 1200)
+        self.assertEqual(record.registry_line.total_trato, 18000)
         self.assertEqual(self.original_inputs(record), before)
         with self.assertRaises(UserError):
             record.action_return_approved()
 
     def test_missing_or_expired_rate_prevents_costing_without_using_another_unit(self):
         record = self.harvest(state='apro')
-        self.assertEqual(record.registry_line.harvest_unit_price, 1575)
+        self.assertEqual(record.registry_line.harvest_unit_price, 1200)
         self.rule.date_end = '2026-11-23 23:59:00'
         self.assertEqual(record.registry_line.harvest_unit_price, 0)
         with self.assertRaises(UserError):
@@ -159,9 +159,9 @@ class HarvestCostingCase(TransactionCase):
         record = self.harvest(type_tarea='contratista', registry_line=[],
             registry_tarja_line=[Command.create({'quantity': 16, 'hrs': 8})])
         line = record.registry_tarja_line
-        self.assertEqual(line.harvest_unit_price, 1575)
+        self.assertEqual(line.harvest_unit_price, 1200)
         self.assertEqual(line.harvest_min_quantity, 10)
-        self.assertEqual(line.trato_total, 25200)
+        self.assertEqual(line.trato_total, 19200)
         self.assertIsNotNone(line.employee_id_domain)
 
     def test_native_accounting_uses_the_saved_rate_when_it_changes_state(self):
@@ -207,9 +207,9 @@ class HarvestCostingCase(TransactionCase):
         self.assertFalse(record.env.su)
         self.assertEqual(record.state, 'cont')
         self.assertEqual(record.invoice_id.state, 'draft')
-        self.assertEqual(sum(record.invoice_id.line_ids.mapped('debit')), 23625)
-        self.assertEqual(sum(record.invoice_id.line_ids.mapped('credit')), 23625)
-        self.assertEqual(record.registry_line.tarifa, 1575)
+        self.assertEqual(sum(record.invoice_id.line_ids.mapped('debit')), 18000)
+        self.assertEqual(sum(record.invoice_id.line_ids.mapped('credit')), 18000)
+        self.assertEqual(record.registry_line.tarifa, 1200)
         with self.assertRaises(UserError):
             record.action_return_approved()
         with self.assertRaises(UserError):
