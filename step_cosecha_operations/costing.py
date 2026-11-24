@@ -46,7 +46,7 @@ class HarvestCosting(models.Model):
             raise UserError(_('La tarifa de cosecha debe pertenecer a la empresa del registro o ser compartida.'))
         moment = fields.Datetime.to_datetime(self.date or fields.Datetime.now())
         rules = self.pricelist_id.item_ids.filtered(lambda item:
-            (item.product_id == labor.product_variant_id or
+            ((item.product_id and item.product_id == labor.product_variant_id) or
              (not item.product_id and (item.product_tmpl_id or item.labor_id) == labor))
             and (not item.date_start or item.date_start <= moment)
             and (not item.date_end or item.date_end >= moment))

@@ -17,15 +17,17 @@ def main():
     args = parser.parse_args()
     base = args.base
     assert base.resolve() == base and base.parent == Path('/opt/steps-validation')
-    assert re.fullmatch('(t231232|t234)_[a-f0-9]{8}', args.run_id)
-    panel = args.run_id.startswith('t234_')
+    assert re.fullmatch('(t231232|t234|t235)_[a-f0-9]{8}', args.run_id)
+    costing = args.run_id.startswith('t235_')
+    panel = args.run_id.startswith(('t234_', 't235_'))
     reviewed = dict(tuple(map(int, item.split(':'))) for item in args.reviewed_message)
-    assert not panel or set(reviewed) == {233, 234}, 'Identify the human replies reviewed for this delivery'
+    assert not panel or set(reviewed) == ({233, 234, 235} if costing else {233, 234}), 'Identify the human replies reviewed for this delivery'
     output = base/'delivery'
     output.mkdir(mode=0o700, exist_ok=True)
     manifest = json.loads((base/'web/release.json').read_text())
     sha = hashlib.sha256((base/('harvest-odoo.tar.gz' if panel else 'harvest.tar.gz')).read_bytes()).hexdigest()
     commits = set()
+    counts_by_target = {}
     for target in ('development', 'qa-cerro', 'cerro'):
         stage = Path('/opt/steps-validation')/('management_'+target+'_'+args.run_id)
         qa_file = stage/'qa_passed.json'
@@ -34,7 +36,8 @@ def main():
         commits.add(qa['commit'])
         test = Path(qa['log'])
         counts = re.findall(r'0 failed, 0 error\(s\) of (\d+) tests when loading database', test.read_text())
-        assert counts and int(counts[-1]) >= (28 if panel else 18)
+        assert counts and int(counts[-1]) >= (43 if costing else 28 if panel else 18)
+        counts_by_target[target] = int(counts[-1])
         flow = stage/('verify-'+qa['database']+'.log')
         assert 'MANAGEMENT_REGISTRY_OK' in flow.read_text()
         live = base/('deploy-'+target+'.log')
@@ -78,11 +81,12 @@ def main():
         (output/'pair.log').write_text(result.stdout)
     (output/'delivery.json').write_text(json.dumps({'backend_commit': commits.pop(),
         'backend_sha256': sha, 'web_commit': manifest['commit'], 'web_files': manifest['files'],
-        'tests': 84 if panel else 54, 'frontend_tests': 23 if panel else 14,
+        'tests': sum(counts_by_target.values()), 'tests_by_target': counts_by_target,
+        'frontend_tests': 23 if panel else 14,
         'cost_state_labels': ['Costeo', 'Contabilizado'] if panel else [],
         'reviewed_messages': reviewed if panel else {'231': 10595, '232': 10598}}, indent=2))
     print('HARVEST_DELIVERY_COLLECTED targets=3 server_tests=%s frontend_tests=%s' %
-        (84 if panel else 54, 23 if panel else 14))
+        (sum(counts_by_target.values()), 23 if panel else 14))
 
 
 if __name__ == '__main__':

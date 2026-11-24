@@ -197,11 +197,15 @@ def main():
                                               'plot_selection_reset', 'mobile_layout'))
             assert review['backend_sha256'] == passed['release_sha256']
         if manifest['version'] == '0.0.6':
-            assert re.fullmatch(r'management_'+args.environment+r'_t234_[a-f0-9]{8}', stage.name)
+            assert re.fullmatch(r'management_'+args.environment+r'_(t234|t235)_[a-f0-9]{8}', stage.name)
             assert review['backend_sha256'] == passed['release_sha256']
             assert all(review[key] for key in ('plot_selector', 'plots_filtered_by_center',
                 'plot_selection_reset', 'plot_all_location_modes', 'mobile_layout',
                 'harvest_dashboard_filters', 'harvest_dashboard_table', 'harvest_dashboard_settings'))
+            if '_t235_' in stage.name:
+                assert all(review[key] for key in ('harvest_dashboard_workforce',
+                    'harvest_costing_form', 'harvest_costing_native_flow'))
+                assert args.environment != 'qa-cerro' or review['harvest_costing_reported_case']
         if manifest['version'] in ('0.0.4', '0.0.5', '0.0.6') and args.environment != 'development':
             assert validate(Path('/var/www/steps-harvest-releases/development')/manifest['commit']) == manifest
             public_hashes(HOSTS['development'], manifest)

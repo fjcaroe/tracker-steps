@@ -68,6 +68,15 @@ class HarvestCostingCase(TransactionCase):
         self.assertEqual(record.registry_line.harvest_unit_price, 700)
         self.assertEqual(record.registry_line.total_trato, 10500)
 
+    def test_labor_without_a_variant_never_matches_an_unrelated_template_rate(self):
+        record = self.harvest()
+        unresolved = self.env['product.template'].new({'name': 'Private unresolved T235 labor',
+            'uom_id': self.kg.id, 'uom_po_id': self.kg.id})
+        item, price, minimum = record._harvest_cost_rate(unresolved, 15, self.box)
+        self.assertFalse(item)
+        self.assertEqual(price, 0)
+        self.assertEqual(minimum, 0)
+
     def test_compatible_unit_converts_both_price_and_minimum(self):
         self.rule.write({'uom_id': self.kg.id, 'fixed_price': 1000, 'min_quantity': 10})
         grams = self.env.ref('uom.product_uom_gram')
