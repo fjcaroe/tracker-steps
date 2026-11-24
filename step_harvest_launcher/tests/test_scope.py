@@ -63,6 +63,12 @@ class HarvestNativeScopeCase(HttpCase):
         self.assertFalse(data['scope'])
         self.assertFalse(data['company'])
 
+    def test_harvest_job_catalog_uses_native_reference_route(self):
+        self.authenticate(self.users[0].login, 'private-fixture')
+        result = self.get_payload('/api/harvest/ref/jobs')
+        self.assertTrue(result['ok'])
+        self.assertIsInstance(result['items'], list)
+
     def clear_company_cookie(self):
         for cookie in list(self.opener.cookies):
             if cookie.name == 'cids':

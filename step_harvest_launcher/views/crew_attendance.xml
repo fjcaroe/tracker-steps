@@ -1,0 +1,26 @@
+<odoo>
+    <record id="harvest_attendance_list" model="ir.ui.view">
+        <field name="name">harvest.attendance.list</field><field name="model">hr.attendance</field>
+        <field name="arch" type="xml"><list string="Asistencia Cosecha" create="false">
+            <field name="employee_id"/><field name="harvest_crew_id"/><field name="check_in"/><field name="check_out"/><field name="worked_hours" sum="Horas"/>
+        </list></field>
+    </record>
+    <record id="harvest_attendance_form" model="ir.ui.view">
+        <field name="name">harvest.attendance.form</field><field name="model">hr.attendance</field>
+        <field name="arch" type="xml"><form string="Asistencia Cosecha" create="false"><sheet><group>
+            <field name="employee_id" readonly="1"/><field name="harvest_crew_id" readonly="1"/><field name="check_in"/><field name="check_out"/><field name="worked_hours"/>
+        </group></sheet></form></field>
+    </record>
+    <record id="harvest_attendance_own" model="ir.actions.act_window">
+        <field name="name">Asistencia propia Cosecha</field><field name="res_model">hr.attendance</field><field name="view_mode">list,form</field>
+        <field name="view_id" ref="harvest_attendance_list"/><field name="domain">[('harvest_crew_id.group_type','=','propio'),('harvest_crew_id.company_id','=',allowed_company_ids[0])]</field>
+    </record>
+    <record id="harvest_attendance_contractor" model="ir.actions.act_window">
+        <field name="name">Asistencia contratistas Cosecha</field><field name="res_model">hr.attendance</field><field name="view_mode">list,form</field>
+        <field name="view_id" ref="harvest_attendance_list"/><field name="domain">[('harvest_crew_id.group_type','=','contratista'),('harvest_crew_id.company_id','=',allowed_company_ids[0])]</field>
+    </record>
+    <record id="harvest_attendance_own_form" model="ir.actions.act_window.view"><field name="act_window_id" ref="harvest_attendance_own"/><field name="view_mode">form</field><field name="view_id" ref="harvest_attendance_form"/></record>
+    <record id="harvest_attendance_contractor_form" model="ir.actions.act_window.view"><field name="act_window_id" ref="harvest_attendance_contractor"/><field name="view_mode">form</field><field name="view_id" ref="harvest_attendance_form"/></record>
+    <menuitem id="menu_harvest_attendance_own" name="Asistencia" parent="step_cosecha.menu_step_cosecha_main" action="harvest_attendance_own" sequence="25" groups="hr_attendance.group_hr_attendance_officer"/>
+    <menuitem id="menu_harvest_attendance_contractor" name="Asistencia" parent="step_cosecha.menu_step_cosecha_main_contra" action="harvest_attendance_contractor" sequence="35" groups="hr_attendance.group_hr_attendance_officer"/>
+</odoo>

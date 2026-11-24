@@ -6,8 +6,8 @@
     'category': 'Operations/Agriculture',
     'author': 'Steps Consulting',
     'license': 'LGPL-3',
-    'depends': ['base', 'step_cosecha'],
-    'data': ['views/menu.xml'],
+    'depends': ['base', 'step_cosecha', 'hr_attendance'],
+    'data': ['views/menu.xml', 'views/crew_attendance.xml'],
     'application': True,
     'installable': True,
 }
