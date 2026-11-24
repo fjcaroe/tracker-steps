@@ -1,0 +1,28 @@
+<odoo>
+    <record id="harvest_costing_form" model="ir.ui.view">
+        <field name="name">step.cosecha.registry.native.costing</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="inherit_id" ref="step_cosecha.view_step_cosecha_registry_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='action_costeo']" position="after">
+                <field name="purchase_id" invisible="True"/>
+                <button name="action_return_approved" type="object" string="Volver a Aprobado" invisible="state != 'costo' or invoice_id or reception_picking_id or purchase_id or cos_recibida"/>
+            </xpath>
+            <xpath expr="//field[@name='registry_line']/list/field[@name='cant_minima']" position="replace">
+                <field name="harvest_min_quantity" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='registry_line']/list/field[@name='tarifa']" position="replace">
+                <field name="harvest_unit_price" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='registry_line']/list/field[@name='sueldo_base']" position="replace">
+                <field name="harvest_salary_base" optional="show" sum="Sueldo Base"/>
+            </xpath>
+            <xpath expr="//field[@name='registry_tarja_line']/list/field[@name='cant_minima']" position="replace">
+                <field name="harvest_min_quantity" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='registry_tarja_line']/list/field[@name='tarifa']" position="replace">
+                <field name="harvest_unit_price" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

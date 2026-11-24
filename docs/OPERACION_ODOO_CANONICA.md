@@ -1,5 +1,18 @@
 # Operación y publicación de Odoo
 
+T235 amplía `step_cosecha_operations` a 18.0.1.2.0 con `harvest-app` en
+Desarrollo, QA-Cerro y Cerro, después de la entrega conjunta T233/T234.
+La hoja de costeo toma la labor y unidad de la cabecera cuando faltan en las
+líneas. Busca la tarifa vigente en la unidad registrada; muestra su mínimo y
+calcula Total trato = Tarifa × Cantidad, Variable trato = máximo(Total trato −
+Sueldo base, 0). La consulta usa copias virtuales y conserva los insumos
+históricos. Al costear o contabilizar se guardan explícitamente los insumos
+nativos; lo contabilizado conserva esa tarifa. Volver a Aprobado solo opera
+desde Costeo sin documentos asociados, con el permiso original de escritura.
+Probar el caso adjunto de QA-Cerro y las transiciones en copias frescas de los
+tres destinos. Publicar el mismo paquete con respaldo, bloqueo y paridad, sin
+actualizar el núcleo Cosecha ni cambiar maestros o documentos reales.
+
 T233 revisión móvil y T234 se entregan juntos con `harvest-app` en Desarrollo,
 QA-Cerro y Cerro: Harvest 0.0.6 y `step_cosecha_operations` 18.0.1.1.1.
 Cuartel permanece visible en Nueva OT en todos los modos de ubicación; se exige
