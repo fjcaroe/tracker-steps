@@ -13,7 +13,8 @@ class HarvestLifecycleCase(HttpCase):
         super().setUpClass()
         cls.company = cls.env['res.company'].create({'name': 'Private Harvest lifecycle'})
         cls.user = new_test_user(cls.env, login='private_harvest_lifecycle', password='private-fixture',
-            company_id=cls.company.id, company_ids=[Command.set(cls.company.ids)], groups='base.group_user,hr.group_hr_user')
+            company_id=cls.company.id, company_ids=[Command.set(cls.company.ids)],
+            groups='base.group_user,hr.group_hr_user,analytic.group_analytic_accounting')
         cls.worker = cls.env['hr.employee'].with_company(cls.company).create({
             'name': 'Private lifecycle worker', 'company_id': cls.company.id, 'pin': '984236'})
         cls.order = cls.env['step.cosecha.registry'].with_company(cls.company).create({
