@@ -90,6 +90,7 @@ class HarvestCrewCase(TransactionCase):
             invalid = deepcopy(values); invalid['entries'][0].update(changes)
             with self.assertRaises(ValidationError), self.cr.savepoint():
                 self.own.harvest_record_attendance(invalid)
+        self.assertEqual(attendance.check_out.hour, 16)
 
     def test_enrollment_and_attendance_respect_native_user_permissions(self):
         worker = self.own.harvest_enroll_worker(self.enrollment())
@@ -99,4 +100,3 @@ class HarvestCrewCase(TransactionCase):
             self.own.with_user(user).harvest_enroll_worker(dict(self.enrollment(), client_uuid='no-access', nip='9237003'))
         with self.assertRaises(AccessError), self.cr.savepoint():
             self.own.with_user(user).harvest_record_attendance(self.attendance(worker))
-        self.assertEqual(attendance.check_out.hour, 16)

@@ -97,13 +97,37 @@ try:
         existing.web_read({'name': {}, 'state': {}, 'registry_line': {'fields': {
             'harvest_min_quantity': {}, 'harvest_unit_price': {}, 'harvest_salary_base': {},
             'total_trato': {}, 'variable_trato': {}, 'cost_empresa': {}}}})
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102, 231, *([232] if 'step_harvest_launcher' in EXPECTED else []), *([234] if dashboard else []), *([235] if costing else [])], 'versions': EXPECTED,
+    lifecycle = 'mobile_state_date' in env['step.cosecha.registry']._fields
+    crew_attendance = 'harvest_crew_id' in env['hr.attendance']._fields if 'hr.attendance' in env else False
+    if lifecycle:
+        arch = etree.fromstring(env['step.cosecha.registry'].get_view(
+            view_id=env.ref('step_cosecha.view_step_cosecha_registry_form').id, view_type='form')['arch'])
+        for field in ('mobile_status', 'mobile_state_date', 'mobile_state_user_id'):
+            assert arch.xpath(".//field[@name='%s']" % field), field
+    if crew_attendance:
+        for kind, parent in (('own', 'menu_step_cosecha_main'), ('contractor', 'menu_step_cosecha_main_contra')):
+            menu = env.ref('step_harvest_launcher.menu_harvest_attendance_' + kind)
+            assert menu.active and menu.parent_id == env.ref('step_cosecha.' + parent)
+            assert menu.action == env.ref('step_harvest_launcher.harvest_attendance_' + kind)
+            assert menu.action.res_model == 'hr.attendance'
+        for kind in ('list', 'form'):
+            view = env.ref('step_harvest_launcher.harvest_attendance_' + kind)
+            arch = etree.fromstring(env['hr.attendance'].get_view(view_id=view.id, view_type=kind)['arch'])
+            check_fields('hr.attendance', arch)
+            for field in ('employee_id', 'harvest_crew_id', 'check_in', 'check_out', 'worked_hours'):
+                assert arch.xpath(".//field[@name='%s']" % field), field
+        env['hr.attendance'].search([('harvest_crew_id.company_id', '=', env.company.id)], limit=8).web_read({
+            'employee_id': {'fields': {'display_name': {}}}, 'harvest_crew_id': {'fields': {'display_name': {}}},
+            'check_in': {}, 'check_out': {}, 'worked_hours': {}})
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102, 231, *([232] if 'step_harvest_launcher' in EXPECTED else []), *([234] if dashboard else []), *([235] if costing else []), *([236] if lifecycle else []), *([237] if crew_attendance else [])], 'versions': EXPECTED,
           'native_masters': True, 'contractor_header': True, 'nested_fields_valid': True,
           'existing_records_web_read': True, 'harvest_tariff_menu_form': True,
           'harvest_tariff_native_labor_unit': True, 'harvest_tariff_center_scope': True,
           'harvest_own_form_without_studio': True,
           'harvest_api_context_scope': 'step_harvest_launcher' in EXPECTED,
           'harvest_dashboard_native_filters_table_settings': dashboard,
-          'harvest_costing_native_rate_and_return': costing}))
+          'harvest_costing_native_rate_and_return': costing,
+          'harvest_mobile_lifecycle_form': lifecycle,
+          'harvest_crew_attendance_menu_form': crew_attendance}))
 finally:
     env.cr.rollback()

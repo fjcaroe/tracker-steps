@@ -188,6 +188,7 @@ print('HARVEST_REVIEW_SESSION_OK')
         auth = json.loads(session_file.read_text())
         review_policy = {'environment': args.environment, 'database': database,
             'web_commit': frontend['commit'], 'company_id': auth['company_id'],
+            'harvest_web': frontend,
             'user_id': auth['user_id'], 'read_only': not args.allow_copy_sync,
             'copy_sync_allowed': args.allow_copy_sync,
             'sync_origin': 'http://127.0.0.1:'+str(args.port) if args.allow_copy_sync else None}
