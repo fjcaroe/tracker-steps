@@ -35,8 +35,9 @@ class LifecycleHarvestApi(ScopedHarvestApi):
     def _order(self, record):
         return dict(super()._order(record),
                     can_transition=record.has_access('write'),
+                    erp_state=record.state,
                     state_changed_at=str(record.mobile_state_date or ''),
-                    erp_url='/odoo/step.cosecha.registry/%s' % record.id)
+                    erp_url='/web#model=step.cosecha.registry&id=%s&view_type=form' % record.id)
 
     def _sync_record(self, data):
         identifier = str(data.get('client_uuid') or data.get('id') or '').strip()
