@@ -1,0 +1,15 @@
+<odoo>
+    <record id="view_harvest_lifecycle" model="ir.ui.view">
+        <field name="name">step.cosecha.registry.harvest.lifecycle</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="inherit_id" ref="step_cosecha.view_step_cosecha_registry_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='folio']" position="after">
+                <field name="mobile_work_order" readonly="1" invisible="not mobile_work_order"/>
+                <field name="mobile_status" readonly="1" invisible="not mobile_work_order"/>
+                <field name="mobile_state_date" invisible="not mobile_state_date"/>
+                <field name="mobile_state_user_id" invisible="not mobile_state_user_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
