@@ -53,12 +53,15 @@ def exercise_operations(client, policy, run_uuid=None):
     orders = [row for row in bootstrap['orders'] if positive_id(row.get('odoo_id'))
               and row.get('status') == 'En proceso' and row.get('erp_state') == 'in'
               and row.get('can_transition') is True]
-    workers = [row for row in bootstrap['workers'] if positive_id(row.get('id'))]
-    assert orders and workers, 'The copy company needs an existing writable OT in ERP in/mobile progress and an accessible worker'
-    order = orders[0]
+    workers = {row['id']: row for row in bootstrap['workers'] if positive_id(row.get('id'))}
+    crews = {row['id']: row for row in bootstrap.get('crews', []) if positive_id(row.get('id'))}
+    candidates = [(order, workers[identifier]) for order in orders
+                  for identifier in crews.get(order.get('crew_id'), {}).get('worker_ids', []) if identifier in workers]
+    assert candidates, 'The copy company needs an existing writable OT in ERP in/mobile progress with an accessible member of its native crew'
+    order, worker = candidates[0]
     run_uuid = run_uuid or 'QA-HARVEST-OPS-' + uuid.uuid4().hex
     assert re.fullmatch(r'QA-HARVEST-OPS-[a-f0-9]{32}', run_uuid)
-    record = {'client_uuid': run_uuid, 'worker_id': workers[0]['id'],
+    record = {'client_uuid': run_uuid, 'worker_id': worker['id'],
         'work_order': {'odoo_id': order['odoo_id']}, 'tarja': 'QA-OPS-' + run_uuid[-12:],
         'row': 'QA-OPERATIONS', 'boxes': 1, 'kilos': 1,
         'event_datetime': datetime.now(timezone.utc).isoformat()}
@@ -119,6 +122,7 @@ def exercise_operations(client, policy, run_uuid=None):
         'sync_idempotency': True, 'unconfirmed_delivery_blocks_close': True, 'ot_close': True,
         'ot_review': True, 'ot_send_confirmation': True, 'close_retry_idempotency': True,
         'new_delivery_rejected_after_close': True, 'erp_state_preserved': True,
+        'native_order_id': order['odoo_id'], 'native_line_id': native_id,
         'new_lines': 1, 'existing_relations_only': True, 'credentials_or_session_ids_supplied': False}
 
 
