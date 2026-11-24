@@ -198,7 +198,9 @@ print('HARVEST_REVIEW_SESSION_OK')
                     try:
                         params = json.loads(body).get('params', {})
                         allowed |= params.get('model') == 'step.cosecha.registry' and params.get('method') == 'get_dashboard_data'
-                        allowed |= params.get('model') in ('product.pricelist', 'product.pricelist.item') and params.get('method') in ('onchange', 'default_get')
+                        # Native initial forms need defaults/onchanges; persistence
+                        # (web_save/execute) remains blocked in the review proxy.
+                        allowed |= params.get('model') in ('product.pricelist', 'product.pricelist.item', 'res.config.settings') and params.get('method') in ('onchange', 'default_get')
                     except (ValueError, AttributeError):
                         pass
                     if not allowed or path == '/api/harvest/sync':
