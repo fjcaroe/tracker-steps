@@ -10,9 +10,12 @@ import xmlrpc.client
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('evidence', type=Path)
+    parser.add_argument('--defer-plot-masters', action='store_true',
+        help='Record the delivered field but keep T233 waiting for the master-data decision')
     args = parser.parse_args()
     root = args.evidence
     delivery = json.loads((root/'delivery.json').read_text(encoding='utf-8'))
+    assert not args.defer_plot_masters or delivery.get('pending_plot_master')
     flags = ('plot_selector', 'plots_filtered_by_center', 'plot_selection_reset',
         'plot_all_location_modes', 'mobile_layout', 'harvest_dashboard_filters',
         'harvest_dashboard_table', 'harvest_dashboard_settings')
@@ -88,15 +91,20 @@ def main():
             'y 23 de Harvest. Backend '+delivery['backend_commit']+'; Harvest '+delivery['web_commit']+'.')
         if ticket == 234:
             body += ' Estados con costo: '+', '.join(delivery['cost_state_labels'])+'.'
+        if ticket == 233 and args.defer_plot_masters:
+            body += ' El ticket permanece pendiente de la decisión sobre los maestros: '+delivery['pending_plot_master']
+        elif ticket == 233 and delivery.get('plot_master_decision'):
+            body += ' Configuración de maestros: '+delivery['plot_master_decision']
         note = call('mail.message', 'create', [{'model': 'helpdesk.ticket', 'res_id': ticket,
             'message_type': 'comment', 'subtype_id': subtype, 'author_id': author,
             'partner_ids': [(6, 0, [])], 'body': '<p>'+html.escape(body)+'</p>'}])
-        call('helpdesk.ticket', 'write', [[ticket], {'stage_id': 4}])
-        assert call('helpdesk.ticket', 'read', [[ticket]], {'fields': ['stage_id']})[0]['stage_id'][0] == 4
+        stage = 6 if ticket == 233 and args.defer_plot_masters else 4
+        call('helpdesk.ticket', 'write', [[ticket], {'stage_id': stage}])
+        assert call('helpdesk.ticket', 'read', [[ticket]], {'fields': ['stage_id']})[0]['stage_id'][0] == stage
         domain = [('mail_message_id.model', '=', 'helpdesk.ticket'), ('mail_message_id.res_id', '=', ticket)]
         for name, ids in before[ticket].items():
             assert set(call(name, 'search', [domain])) == ids
-        print('HARVEST_PANEL_DELIVERY_RECORDED ticket=%s note=%s NO_NOTIFICATIONS_OK' % (ticket, note))
+        print('HARVEST_PANEL_DELIVERY_RECORDED ticket=%s note=%s stage=%s NO_NOTIFICATIONS_OK' % (ticket, note, stage))
 
 
 if __name__ == '__main__':
