@@ -10,7 +10,13 @@ CONTRACT_OUTPUTS = ('cost_id_domain', 'employee_id_domain', 'trato_total')
 
 
 def preview(line):
-    virtual = line.with_context(step_harvest_native_cost_preview=True).new(origin=line)
+    # Unsaved form lines and the dashboard's virtual lines may themselves have
+    # NewIds. Copy their inputs explicitly: a NewId is not a database origin.
+    names = ('registry_id', 'employee_id', 'contract_id', 'cost_id', 'labor_id',
+        'uom_id', 'quantity', 'hrs', 'hrs_extra', 'cant_minima', 'tarifa', 'sueldo_base')
+    values = {name: line[name] for name in names if name in line._fields}
+    virtual = line.with_context(step_harvest_native_cost_preview=True).new(
+        values, origin=line._origin or None)
     registry = line.registry_id
     if registry.state != 'cont':
         virtual.labor_id = line.labor_id or registry.labor_id

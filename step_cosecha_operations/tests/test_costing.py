@@ -83,7 +83,17 @@ class HarvestCostingCase(TransactionCase):
         record.registry_line.read(['harvest_min_quantity', 'harvest_unit_price',
             'harvest_salary_base', 'total_trato', 'variable_trato', 'cost_empresa'])
         record._dashboard_metrics()
+        record.registry_line.with_context(step_harvest_native_cost_preview=True).read([
+            'harvest_unit_price', 'cost_empresa'])
         self.assertEqual(self.original_inputs(record), before)
+
+    def test_unsaved_form_line_uses_its_actual_inputs(self):
+        record = self.harvest()
+        line = self.env['step.cosecha.registry.line'].new({'registry_id': record.id,
+            'quantity': 17, 'hrs': 8, 'sueldo_base': 18451.77})
+        self.assertEqual(line.harvest_unit_price, 1575)
+        self.assertEqual(line.total_trato, 26775)
+        self.assertAlmostEqual(line.variable_trato, 8323.23)
 
     def test_costing_and_return_to_approved_keep_lines_and_snapshot_native_inputs(self):
         record = self.harvest(state='apro')
