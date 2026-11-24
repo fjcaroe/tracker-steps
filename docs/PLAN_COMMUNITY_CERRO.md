@@ -11,9 +11,12 @@ bajo UID7: 120 maestros, modelo 600/reporte 462 y permisos conservados (118/2).
 G validó cinco formularios y cuatro menús contra el Source nativo real, sin
 ampliar permisos. Metadatos, flujos legados, históricos y fórmulas siguen
 pendientes. La referencia SyS readonly y R3/S se conservan.
-Inventario actual: 101 apps propias en Cerro, 134 en repo/37 fuera de Cerro
-y 55 con caminos EE. Quedan certificación de Nómina, DTE, Calidad y conversión
-integral restaurable. Producción conserva 140 EE. El 31 sigue en riesgo alto.
+Inventario U9: 133 apps propias instaladas en Cerro, 170 en repo y 40
+fuera de Cerro. Hay 74 apps propias instaladas con caminos Enterprise.
+U9 observó los cuatro menús originales de Nómina. Siguen pendientes la adopción
+anclada, la certificación financiera y de HR, DTE, Tesorería, Calidad, Studio,
+Documentos/Firma, los demás productos y la conversión integral restaurable.
+Cerro conserva 140 Enterprise. El vencimiento del 31 sigue sin resolverse.
 El contenido inferior conserva su alcance histórico.
 
 Autorizado por el usuario el 27-10-2026: preparar el plan y comenzar su ejecución,

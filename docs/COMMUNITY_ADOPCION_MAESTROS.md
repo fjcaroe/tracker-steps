@@ -1,5 +1,50 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U9 — cuatro menús originales de Nómina, 24-11-2026
+
+El candidato `b0c8ffd9` recupera el observador de menús nativos y
+el verificador que consume su recibo. Los ejecuta antes del upgrade en el mismo
+proceso de solo lectura que el testigo de maestros. Cada ruta conserva XML IDs,
+modelo, acción con modo formulario y cadena de menús y grupos del respaldo. El gerente
+original UID7 vio Estructuras, Reglas y Tipos de entrada. Categorías quedó oculto.
+Se volvieron a observar 118 accesos, dos denegaciones, las 71 reglas y las cuatro
+estructuras, con modelo 600, reporte 462, políticas y contadores conservados.
+La verificación local del recibo real rechazó atribuirlo a otra copia.
+
+El inventario fresco preserva los conteos de Cerro, Steps y SyS. En Cerro
+cambió la versión de `step_cosecha_operations` y las huellas de ese módulo y
+`step_harvest_launcher`, con dependencias declaradas iguales. El observador
+contrasta el grafo instalado completo (414 módulos, 140 Enterprise) y la
+versión vigente de cada módulo. Cerro conserva 74 propios con caminos
+Enterprise, Steps nueve y SyS 14. El repo suma 170 propios, 40 fuera de Cerro.
+Se conservan las tres fuentes privadas de Cerro y el caso de ruta de
+`steps_transport` en Steps.
+
+Las bases privadas nuevas se ejecutaron en serie bajo el bloqueo compartido.
+Pasaron 13 pruebas en Community oficial (68 módulos, cero Enterprise), cinco en
+la referencia nativa (417 módulos tras el upgrade, 140 Enterprise) y 34 locales.
+Coincidieron 164 archivos de addons, los cuatro contratos de almacenamiento y
+la FK Calendar. La referencia preservó 1.168 contratos de negocio y contadores
+y 60.654 XML IDs originales. El respaldo y filestore quedan en
+`/opt/steps-validation/community-multifront-parallel-20261124U9`. Evidencia
+local en `~/.codex/local-artifacts/community-resume-20261124/U9`.
+
+- Paquete SHA256 `bd310e7543209c9bc37fe99b806eee14a387946ccd5ed0f0de585d29c7b808a2`.
+- Recibo de menús `afd3c69bf1acf7a2b5993993eec35a1869d92502b90187b43c2ac000104c4905`.
+- Recibo de maestros `b9ff0c8f1cbf0d0e3d83e4439461251b9bf71e473ca15f72acd517f6562a0e8c`.
+- Comparación de almacenamiento `535d7a84533a1c6c301ec7716416c2b456f6531704337a4715f587da2e0b441a`.
+
+U9 certifica la referencia de identidad y permisos de menús. La adopción OCA
+anclada sigue pendiente. Recuperar el lanzador y el consumidor de `2802bcde`
+en una pareja nueva, usando el mismo respaldo para referencia y destino y
+capturando ambos recibos nativos antes de ejecutar el candidato. Repetir las 71
+relaciones idempotentes, cinco formularios y cuatro menús F/G, después aplicar
+`review_original_anchor.py` y la puerta física U7. Restaurar las obligaciones
+por proveedor con altas y ediciones reales sin defaults inventados. T2 conserva
+la aceptación multifrente. Siguen pendientes Nómina financiera y consumidores
+HR, DTE/CAF/SII, Tesorería, Calidad, Studio/Documentos/Firma, los demás
+productos y la restauración integral cero Enterprise.
+
 ## U8 — permisos originales en el inventario actual, 24-11-2026
 
 El observador recuperado de `2802bcde` se actualizó al inventario completo de

@@ -19,6 +19,12 @@ gerente original, incluidas las 71 reglas y cuatro estructuras. Modelo 600 y
 reporte 462 conservados. Incorporar ese testigo de permisos a una nueva pareja
 anclada del mismo respaldo antes de restaurar obligatoriedad por proveedor.
 
+U9 observó menú y permisos del gerente original en una copia fresca con el
+grafo vigente de Cerro. Estructuras, Reglas y Tipos de entrada visibles,
+Categorías oculto y partición 118/2 intacta. Los dos recibos se validan juntos
+antes del upgrade. Consumirlos en la nueva pareja anclada del mismo respaldo
+y repetir F/G y la puerta física antes de restaurar obligatoriedad.
+
 U7 añadió una puerta física para la adopción anclada. La pareja retenida U2
 demostró que las 32 FK adicionales corresponden a columnas nuevas sin
 referencias pobladas y que las 32 columnas que perdieron obligatoriedad
