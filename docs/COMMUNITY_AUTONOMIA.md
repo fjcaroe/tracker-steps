@@ -75,10 +75,12 @@ incluida la nueva app de T139/T140. Quedan Nómina certificada, DTE completo,
 Calidad y copia integral restaurable cero EE. El 31 sigue en riesgo alto;
 mantener límites y programación activa. El corte de producción queda fuera.
 
-U6, 24-11: 13 pruebas Community y cinco en referencia fresca nativa, con
-los cuatro contratos de almacenamiento y el borrado atómico Community
-validados. La próxima puerta es la adopción anclada de columnas obligatorias
-y FK adicionales. Ver [aceptación U6](COMMUNITY_ADOPCION_MAESTROS.md).
+U7, 24-11: puerta de relaciones físicas ejercitada en U2. Las 32 FK nuevas
+carecen de referencias pobladas y las 32 columnas que perdieron obligatoriedad
+carecen de nulos en ese ensayo. Adaptar el perfil anclado y su testigo de origen
+al inventario actual y comprobar la obligatoriedad por proveedor en una copia
+nueva. Conservar proyección de 71 reglas y permisos F/G.
+Ver [estado de aceptación](COMMUNITY_ADOPCION_MAESTROS.md).
 
 ## Orden de trabajo y puertas de aceptación
 

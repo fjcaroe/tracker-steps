@@ -13,8 +13,11 @@ ampliar permisos. Metadatos, flujos legados, históricos y fórmulas siguen
 pendientes. La referencia SyS readonly y R3/S se conservan.
 U6 verificó el 24-11 los cuatro contratos de almacenamiento original con
 13 pruebas en Community oficial y cinco en una copia fresca nativa de Cerro.
-Sigue pendiente la adopción anclada de las 32 diferencias de obligatoriedad
-y las 32 FK adicionales. La evidencia y el alcance están en el estado vigente.
+U7 añadió una puerta física para la adopción anclada. La pareja retenida U2
+demostró que las 32 FK adicionales corresponden a columnas nuevas sin
+referencias pobladas y que las 32 columnas que perdieron obligatoriedad
+carecen de nulos. La restauración de esos contratos en la copia actual sigue
+pendiente. La evidencia y el alcance están en el estado vigente.
 El 23-11 se completó la clasificación U2 de historia y alias de almacenamiento
 original. U4 se detuvo antes de crear bases por la reserva de PostgreSQL.
 U6 completó la validación enfocada que había quedado pendiente en U4.

@@ -1,5 +1,55 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U7 — admisión física de relaciones nuevas, 24-11-2026
+
+`tools/community/check_original_anchor_relations.py` incorpora una puerta
+ejecutable para la revisión de una pareja anclada privada. Contrasta el catálogo
+real de PostgreSQL con la revisión de esa pareja. Comprueba los extremos,
+la validación, las acciones de borrado y la ausencia física de la columna en
+el origen. Rechaza cambios de restricciones originales y exige una prueba
+específica cuando una relación nueva ya tiene referencias pobladas.
+Ejecutar la puerta bajo el bloqueo compartido tras `review_original_anchor.py`,
+con `--stage`, `--review` y un `--output` privado nuevo. Conservar el recibo
+junto al plan y la revisión de la misma pareja.
+
+Sobre la pareja retenida U2, 194 consultas de solo lectura demostraron que
+las 32 FK revisadas viven sobre columnas nuevas y carecen de referencias
+pobladas. Once pertenecen a tablas con filas previas. Las 26 políticas
+`SET NULL` y seis `RESTRICT` coinciden con el catálogo revisado. Los dos
+`register_id` son adiciones vacías y siguen pendientes de una prueba de
+uso. La huella del recibo privado es
+`6ab9a01788d74c3154140908c4c3cac219740ef563dffb9083f646b1425cedff`.
+Tres pruebas negativas contra los catálogos reales rechazaron una definición
+alterada, una restricción ausente y una revisión atribuida a otra pareja.
+
+El candidato `b665caa7` pasó 13 pruebas en Community oficial y cinco en
+una copia fresca de Cerro con el motor nativo. El paquete se ensayó en bases
+nuevas en serie bajo el bloqueo compartido. La verificación de la puerta
+anclada usó U2, con el respaldo y el control nativo de ese ensayo.
+Los 164 archivos de addons coincidieron y la comparación de los cuatro
+contratos de almacenamiento y la FK Calendar pasó. La referencia fresca
+conservó 971 tablas/proyecciones, 197 contadores y 60.638 XML IDs.
+La huella de la comparación física es
+`561701108a0b0c2a253cda6c21dcfd06f6b801c71e3699e61a2600c3e6aa5370`.
+El lanzador SSH falló al interpretar su argumento de salida después de
+emitirse ambos recibos. Se verificaron los recibos y las huellas por separado.
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261124/U7`
+y en la raíz del servidor
+`/opt/steps-validation/community-multifront-parallel-20261124U7`.
+
+Las 32 columnas originales que perdieron `NOT NULL` carecen de nulos en U2.
+En ocho casos la tabla está vacía. El resultado permite usar los valores
+existentes como testigos al restaurar los contratos campo a campo. Sigue
+pendiente la obligatoriedad de nuevas escrituras para esos campos y la
+adopción en una copia actual. Los cinco campos de configuración con
+admisión explícita OCA mantienen ese control y la evidencia F/G.
+
+El inventario PostgreSQL de los tres productos coincidió módulo por módulo
+con el del 24-11. Conserva las fuentes privadas y la excepción de
+`steps_transport`. Sigue la certificación del motor y de los consumidores
+HR, días, YTD, redondeos, contabilización, Previred/libro, DTE/CAF/SII,
+Tesorería, Calidad, Studio/Documentos/Firma y la restauración integral.
+
 ## U6 — almacenamiento original de Nómina, 24-11-2026
 
 Se cerró el ensayo enfocado del candidato `c363608a`. El mismo inventario de

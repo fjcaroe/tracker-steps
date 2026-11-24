@@ -13,11 +13,15 @@ ampliar permisos. Metadatos, flujos legados, históricos y fórmulas siguen
 pendientes. La referencia SyS readonly y R3/S se conservan.
 U6 verificó el 24-11 los cuatro contratos de almacenamiento original con
 13 pruebas en Community oficial y cinco en una copia fresca nativa de Cerro.
-Sigue pendiente la adopción anclada de las 32 diferencias de obligatoriedad
-y las 32 FK adicionales. La evidencia y el alcance están en el estado vigente.
-Inventario actual: 101 apps propias en Cerro, 134 en repo/37 fuera de Cerro
-y 55 con caminos EE. Quedan certificación de Nómina, DTE, Calidad y conversión
-integral restaurable. Producción conserva 140 EE. El 31 sigue en riesgo alto.
+U7 añadió una puerta física para la adopción anclada. La pareja retenida U2
+demostró que las 32 FK adicionales corresponden a columnas nuevas sin
+referencias pobladas y que las 32 columnas que perdieron obligatoriedad
+carecen de nulos. La restauración de esos contratos en la copia actual sigue
+pendiente. La evidencia y el alcance están en el estado vigente.
+Inventario del 24-11: 133 apps propias instaladas en Cerro, 170 en el repo
+y 40 fuera de Cerro. Hay 74 apps instaladas con caminos Enterprise en el
+código candidato. Quedan certificación de Nómina, DTE, Calidad y conversión
+integral restaurable. Cerro productivo conserva 140 módulos Enterprise.
 El contenido inferior conserva su alcance histórico.
 
 ## Contrato del bloque
