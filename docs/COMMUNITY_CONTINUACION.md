@@ -11,9 +11,13 @@ bajo UID7: 120 maestros, modelo 600/reporte 462 y permisos conservados (118/2).
 G validó cinco formularios y cuatro menús contra el Source nativo real, sin
 ampliar permisos. Metadatos, flujos legados, históricos y fórmulas siguen
 pendientes. La referencia SyS readonly y R3/S se conservan.
+U6 verificó el 24-11 los cuatro contratos de almacenamiento original con
+13 pruebas en Community oficial y cinco en una copia fresca nativa de Cerro.
+Sigue pendiente la adopción anclada de las 32 diferencias de obligatoriedad
+y las 32 FK adicionales. La evidencia y el alcance están en el estado vigente.
 El 23-11 se completó la clasificación U2 de historia y alias de almacenamiento
 original. U4 se detuvo antes de crear bases por la reserva de PostgreSQL.
-El candidato funcional sigue en una rama separada.
+U6 completó la validación enfocada que había quedado pendiente en U4.
 Inventario refrescado el 23-11: 133 apps propias instaladas en Cerro,
 170 en repo/40 fuera de Cerro y 74 con caminos EE. Quedan certificación de
 Nómina, DTE, Calidad y conversión integral restaurable. Cerro productivo

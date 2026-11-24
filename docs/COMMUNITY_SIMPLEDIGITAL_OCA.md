@@ -11,6 +11,10 @@ bajo UID7: 120 maestros, modelo 600/reporte 462 y permisos conservados (118/2).
 G validó cinco formularios y cuatro menús contra el Source nativo real, sin
 ampliar permisos. Metadatos, flujos legados, históricos y fórmulas siguen
 pendientes. La referencia SyS readonly y R3/S se conservan.
+U6 verificó el 24-11 los cuatro contratos de almacenamiento original con
+13 pruebas en Community oficial y cinco en una copia fresca nativa de Cerro.
+Sigue pendiente la adopción anclada de las 32 diferencias de obligatoriedad
+y las 32 FK adicionales. La evidencia y el alcance están en el estado vigente.
 Inventario actual: 101 apps propias en Cerro, 134 en repo/37 fuera de Cerro
 y 55 con caminos EE. Quedan certificación de Nómina, DTE, Calidad y conversión
 integral restaurable. Producción conserva 140 EE. El 31 sigue en riesgo alto.

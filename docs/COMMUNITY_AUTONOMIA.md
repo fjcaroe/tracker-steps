@@ -75,6 +75,11 @@ incluida la nueva app de T139/T140. Quedan Nómina certificada, DTE completo,
 Calidad y copia integral restaurable cero EE. El 31 sigue en riesgo alto;
 mantener límites y programación activa. El corte de producción queda fuera.
 
+U6, 24-11: 13 pruebas Community y cinco en referencia fresca nativa, con
+los cuatro contratos de almacenamiento y el borrado atómico Community
+validados. La próxima puerta es la adopción anclada de columnas obligatorias
+y FK adicionales. Ver [aceptación U6](COMMUNITY_ADOPCION_MAESTROS.md).
+
 ## Orden de trabajo y puertas de aceptación
 
 | Frente | Estado y condición de cierre |

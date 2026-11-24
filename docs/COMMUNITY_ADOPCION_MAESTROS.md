@@ -1,5 +1,48 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U6 — almacenamiento original de Nómina, 24-11-2026
+
+Se cerró el ensayo enfocado del candidato `c363608a`. El mismo inventario de
+164 archivos de cinco addons propios y Simple Digital AGPL se verificó en
+Community oficial (68 instalados, 0 Enterprise, 13 pruebas) y en una copia
+fresca privada de Cerro con el motor nativo (417 instalados, 140 Enterprise,
+5 pruebas). Ambos terminaron con cero fallos y errores. El paquete conserva el
+nombre literal de línea, el nombre traducible de regla, el nombre nullable de
+días trabajados y el calendario nullable de contrato con FK `SET NULL`.
+El catálogo físico y los campos de los dos registros de Odoo se verificaron
+con conexiones de solo lectura. En Community también se probó el borrado
+atómico de borradores y el rechazo al intentar borrar históricos protegidos.
+
+La copia nativa conservó 970 tablas/proyecciones, 198 contadores, 60.638
+XML IDs y la evidencia de históricos antes y después. El preflight de ambas
+bases, las restauraciones y las pruebas se ejecutaron en serie con el bloqueo
+compartido. U5 había aprobado Community, pero el calendario sin horas del
+fixture provocó una división por cero en el costo horario del RR. HH. nativo.
+U6 añadió un turno al calendario de prueba y repitió ambas ejecuciones en
+bases nuevas. Se conservaron el respaldo privado y la evidencia de U5.
+
+Huella del inventario idéntico:
+`72f053b06900c7a3725c624b2fca733fb21f18f81c3d9f87903803855269e4ae`.
+Comparación física:
+`9bc18fb4bc88108ee5dc3d1b01e9a91a582e99754b87319778f2f514e8b0093a`.
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261124/U6`
+y respaldo en la raíz privada U6 del servidor. Pasaron además 74 pruebas locales.
+
+La auditoría de solo lectura del 24-11 confirmó los inventarios instalados
+de la tabla siguiente. Cambiaron las huellas de dos módulos de Cosecha en
+Cerro, sin altas ni bajas. Las tres matrices de dependencias, las rutas de
+fuentes privadas y el caso `steps_transport` están en el directorio privado
+de la ejecución.
+
+El próximo bloque es una adopción anclada nueva que compruebe las 32
+diferencias de obligatoriedad y las 32 FK adicionales, antes de ampliar
+consumidores o dependencias. Sigue vigente el alcance de F/G para las 71
+reglas y la interfaz. U6 certifica almacenamiento y borrado de borradores
+con fixtures. La preservación de identidad al convertir, la nómina
+financiera, DTE/CAF/SII, Tesorería, Calidad, Studio/Documentos/Firma, los
+demás productos y la restauración integral cero Enterprise siguen abiertos.
+La pareja multifrente T2 conserva su alcance.
+
 ## Reanudación e inventario — 23-11-2026
 
 La automatización reanudó la migración en un worktree propio desde la canónica
@@ -62,7 +105,7 @@ incluso T2 y casos a preservar. Esa limpieza por sí sola no cubre el déficit.
 No se retiraron copias ni respaldos. Se conservaron ambos recibos de capacidad.
 Pasaron 63 pruebas locales de herramientas y contratos de evidencia. El
 paquete de ejecución queda en `origin/codex/community-resume-20261123` a la
-espera de la pareja funcional nueva.
+espera de la pareja funcional nueva, completada después en U6.
 
 La [limpieza posterior](LIMPIEZA_DISCO_2026-11-23.md) restituyó la reserva.
 Al cierre dejó 34,64 GiB libres en el volumen de PostgreSQL y 32,66 GiB en
