@@ -1,5 +1,16 @@
 # Operación y publicación de Odoo
 
+T233 autoriza `harvest-app` en Desarrollo, QA-Cerro y Cerro. Harvest 0.0.5 y
+`step_harvest_launcher` 18.0.1.2.1 usan la relación nativa de Cuartel al
+crear una OT en el modo Cuartel. El formulario solicita un cuartel del centro
+elegido, limpia la elección si cambia el centro y conserva el ID en la OT local
+hasta la sincronización. Validar en el servidor la pertenencia al centro, los
+permisos y la coherencia con la OT existente. Los registros y pendientes
+anteriores sin cuartel conservan su flujo. Certificar en copias frescas la
+selección móvil, la creación nativa y el reintento; publicar el mismo paquete
+con respaldo y bloqueo, empezando por Desarrollo. Conservar el aislamiento de
+QA-Cerro y verificar la versión, el menú y el formulario en cada destino.
+
 El selector de empresa solicitado el 23-11-2026 amplía Harvest a 0.0.4 en
 Desarrollo, QA-Cerro y Cerro. Usa las empresas autorizadas de la sesión nativa
 y su cookie `cids`, sin cambiar permisos, empresas predeterminadas ni maestros.

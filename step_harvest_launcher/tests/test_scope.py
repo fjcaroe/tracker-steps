@@ -35,7 +35,8 @@ class HarvestNativeScopeCase(HttpCase):
                     'company_id': company.id, 'implementation': 'no_gap', 'prefix': 'PRIVATE'})
             user = new_test_user(cls.env, login='private_harvest_scope_%s' % index,
                 password='private-fixture', company_id=company.id,
-                company_ids=[Command.set(cls.companies.ids if index == 0 else company.ids)], groups='base.group_user,hr.group_hr_user')
+                company_ids=[Command.set(cls.companies.ids if index == 0 else company.ids)],
+                groups='base.group_user,hr.group_hr_user,analytic.group_analytic_accounting')
             cls.users |= user
             cls.workers |= cls.env['hr.employee'].with_company(company).create({
                 'name': 'Private Harvest worker %s' % index, 'company_id': company.id, 'pin': str(9823100 + index)})
@@ -164,3 +165,59 @@ class HarvestNativeScopeCase(HttpCase):
             self.assertFalse(result['ok'])
             self.assertFalse(self.env['step.cosecha.tarja.registry.line'].search([
                 ('mobile_uid', '=', changed['client_uuid'])]))
+
+    def test_plot_catalog_tracks_center_and_upload_saves_native_relation(self):
+        company, foreign_company = self.companies
+        env = self.env(context=dict(self.env.context, allowed_company_ids=self.companies.ids))
+        plan = env['account.analytic.plan'].create({'name': 'Centro Costos'})
+        first, other, foreign = env['account.analytic.account'].create([
+            {'name': 'Private T233 A', 'company_id': company.id, 'plan_id': plan.id},
+            {'name': 'Private T233 B', 'company_id': company.id, 'plan_id': plan.id},
+            {'name': 'Private T233 foreign', 'company_id': foreign_company.id, 'plan_id': plan.id},
+        ])
+        plots = env['step.cuartel.line'].create([
+            {'name': 'Private plot', 'centro_id': center.id} for center in (first, other, foreign)
+        ])
+        farm = env['step.fundo'].create({'name': 'Private T233 farm', 'company_id': company.id})
+        species = env['step.especie'].create({
+            'name': 'Private T233 species', 'type_especie': 'frutal', 'company_id': company.id})
+        group = env['step.grupo.variedad'].create({
+            'name': 'Private T233 group', 'especie_id': species.id, 'company_id': company.id})
+        variety = env['step.variedad'].create({
+            'name': 'Private T233 variety', 'cod_variedad': 'T233-PRIVATE',
+            'especie_id': species.id, 'grupo_variedad_id': group.id, 'company_id': company.id})
+        crew = env['hr.salary.custom'].create({
+            'name': 'Private T233 crew', 'group_type': 'propio', 'company_id': company.id})
+
+        self.authenticate(self.users[0].login, 'private-fixture')
+        data = self.get_payload('/api/harvest/bootstrap')
+        choices = {center['id']: center['cuarteles'] for center in data['cost_centers']}
+        self.assertEqual([plot['id'] for plot in choices[first.id]], plots[0].ids)
+        self.assertEqual([plot['id'] for plot in choices[other.id]], plots[1].ids)
+        self.assertNotIn(foreign.id, choices)
+        order = {'id': 'PRIVATE-T233', 'farm_id': farm.id, 'variety_id': variety.id,
+                 'cost_id': first.id, 'crew_id': crew.id}
+
+        def upload(suffix, **order_changes):
+            record = {'client_uuid': 'private_t233_' + suffix, 'worker_id': self.workers[0].id,
+                      'tarja': 'PRIVATE-T233', 'boxes': 1, 'kilos': 4,
+                      'work_order': dict(order, **order_changes)}
+            response = self.url_open('/api/harvest/sync', data=json.dumps({
+                'scope': data['scope'], 'records': [record]}), headers={'Content-Type': 'application/json'})
+            return response.json()['results'][0]
+
+        for plot in plots[1:]:
+            self.assertFalse(upload(str(plot.id), cuartel_id=plot.id)['ok'])
+        result = upload('valid', cuartel_id=plots[0].id)
+        self.assertTrue(result['ok'], result)
+        saved = env['step.cosecha.registry'].browse(result['work_order_id'])
+        self.assertEqual(saved.cuartel_id, plots[0])
+        self.assertEqual(upload('valid', cuartel_id=plots[0].id)['id'], result['id'])
+        self.assertFalse(upload('conflict', cuartel_id=plots[1].id)['ok'])
+        published = next(item for item in self.get_payload('/api/harvest/bootstrap')['orders']
+                         if item['odoo_id'] == saved.id)
+        self.assertEqual(published['cuartel_id'], plots[0].id)
+        self.assertEqual(published['cuartel'], plots[0].display_name)
+        legacy = upload('old_draft', id='PRIVATE-T233-LEGACY')
+        self.assertTrue(legacy['ok'], legacy)
+        self.assertFalse(env['step.cosecha.registry'].browse(legacy['work_order_id']).cuartel_id)

@@ -89,13 +89,30 @@ class ScopedHarvestApi(StepHarvestApi):
         records = model.search(domain, order='name,id', limit=max(1, min(int(limit or 500), 5000)))
         if resource == 'varieties':
             return [self._item(record, species=record.especie_id.display_name if record.especie_id else '') for record in records]
+        plots_by_center = {record.id: [] for record in records}
+        plots = request.env['step.cuartel.line']
+        if records and plots.has_access('read'):
+            for plot in plots.search([('centro_id', 'in', records.ids)], order='name,id'):
+                plots_by_center[plot.centro_id.id].append(self._item(plot))
         return [self._item(record, farm_id=record.fundo_id.id if record.fundo_id else False,
-                           variety_id=record.variedad_id.id if record.variedad_id else False) for record in records]
+                           variety_id=record.variedad_id.id if record.variedad_id else False,
+                           cuarteles=plots_by_center[record.id]) for record in records]
+
+    def _order(self, record):
+        return dict(super()._order(record), cuartel_id=record.cuartel_id.id or False,
+                    cuartel=record.cuartel_id.display_name or '')
+
+    def _check_existing_plot(self, order, values):
+        supplied = values.get('cuartel_id')
+        if supplied and str(order.cuartel_id.id) != str(supplied):
+            raise ValidationError(_('El cuartel no coincide con el de la OT existente.'))
+        return order
 
     def _get_or_create_order(self, data):
         values = data.get('work_order') if isinstance(data.get('work_order'), dict) else {}
         if values.get('odoo_id'):
-            return self._native_record('step.cosecha.registry', values['odoo_id'])
+            return self._check_existing_plot(
+                self._native_record('step.cosecha.registry', values['odoo_id']), values)
         reference = str(values.get('id') or '').strip()
         if not reference:
             raise ValidationError(_('La entrega requiere una jornada identificada.'))
@@ -105,10 +122,15 @@ class ScopedHarvestApi(StepHarvestApi):
         if len(existing) > 1:
             raise ValidationError(_('Hay varias jornadas con esa referencia. Seleccione la jornada de Odoo.'))
         if existing:
-            return existing
+            return self._check_existing_plot(existing, values)
         farm = self._native_record('step.fundo', values.get('farm_id'))
         variety = self._native_record('step.variedad', values.get('variety_id'), shared=True)
         center = self._native_record('account.analytic.account', values.get('cost_id'), shared=True)
+        plot = request.env['step.cuartel.line']
+        if values.get('cuartel_id'):
+            plot = self._native_record('step.cuartel.line', values['cuartel_id'])
+            if plot.centro_id != center:
+                raise ValidationError(_('Seleccione un cuartel del centro de costo de la OT.'))
         crew = self._native_record('hr.salary.custom', values.get('crew_id'))
         kind = crew.group_type
         if kind not in ('propio', 'contratista'):
@@ -122,6 +144,7 @@ class ScopedHarvestApi(StepHarvestApi):
             'date': self._event_datetime(data.get('event_datetime')),
             'company_id': request.env.company.id, 'responsable_id': request.env.uid,
             'fundo_id': farm.id, 'variedad_id': variety.id, 'cost_id': center.id,
+            'cuartel_id': plot.id or False,
             'partner_id': crew.partner_id.id if kind == 'contratista' else False,
             'salary_id' if kind == 'propio' else 'salary_id_contrac': crew.id,
         })

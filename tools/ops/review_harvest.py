@@ -47,7 +47,7 @@ def main():
     web = args.web_root.resolve()
     assert web.is_relative_to('/opt/steps-validation') and web == args.web_root
     frontend = json.loads((web/'release.json').read_text())
-    assert frontend['repository'] == 'stepconsulting/step_harvest' and frontend['version'] in ('0.0.3', '0.0.4')
+    assert frontend['repository'] == 'stepconsulting/step_harvest' and frontend['version'] in ('0.0.3', '0.0.4', '0.0.5')
     for name, expected in frontend['files'].items():
         path = web/name
         assert path.resolve().is_relative_to(web) and not path.is_symlink()
@@ -58,7 +58,7 @@ def main():
     stage = args.stage
     if stage:
         assert stage.resolve() == stage and stage.parent == Path('/opt/steps-validation')
-        match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231232|harvestcompany)_([a-f0-9]{8})', stage.name)
+        match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231232|harvestcompany|t233)_([a-f0-9]{8})', stage.name)
         assert match and match[1] == args.environment
         proof = json.loads((stage/'qa_passed.json').read_text())
         database = proof['database']
