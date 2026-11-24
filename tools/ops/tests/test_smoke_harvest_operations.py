@@ -22,12 +22,13 @@ class CopyClient:
         self.bypass_manifest = False
         self.accept_after_close = False
         self.repeat_id = 123
-        self.order = {'odoo_id': 22, 'status': self.status, 'erp_state': 'in', 'can_transition': True}
+        self.order = {'odoo_id': 22, 'crew_id': 33, 'status': self.status, 'erp_state': 'in', 'can_transition': True}
 
     def bootstrap(self):
         return {'ok': True, 'scope': self.scope, 'user': {'id': 2, 'name': 'PRIVATE USER'},
                 'company': {'id': 7, 'name': 'PRIVATE COMPANY'},
-                'workers': [{'id': 11, 'name': 'PRIVATE WORKER'}],
+                'workers': [{'id': 44, 'name': 'PRIVATE NONMEMBER'}, {'id': 11, 'name': 'PRIVATE WORKER'}],
+                'crews': [{'id': 33, 'worker_ids': [11]}],
                 'orders': [dict(self.order, status=self.status)]}
 
     def request(self, method, path, payload=None):
@@ -41,6 +42,7 @@ class CopyClient:
             return 409, {'ok': False}
         if path.endswith('/sync'):
             record = payload['records'][0]
+            assert record['worker_id'] == 11
             if record['client_uuid'].endswith('-AFTER-CLOSE') and not self.accept_after_close:
                 return 200, {'ok': False, 'results': [{'ok': False}]}
             result = {'ok': True, 'duplicate': self.has_delivery,
@@ -67,7 +69,7 @@ class OperationsSmokeCase(unittest.TestCase):
         self.assertNotIn('PRIVATE', json.dumps(result))
 
     def test_missing_or_already_approved_order_prevents_any_post(self):
-        for change in ({'erp_state': 'apro'}, {'status': 'Cerrada'}, {'can_transition': False}):
+        for change in ({'erp_state': 'apro'}, {'status': 'Cerrada'}, {'can_transition': False}, {'crew_id': 999}):
             client = CopyClient()
             if 'status' in change:
                 client.status = change['status']
