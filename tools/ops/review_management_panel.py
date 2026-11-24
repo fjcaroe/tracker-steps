@@ -30,6 +30,30 @@ READ_POSTS = {"/web/action/load", "/web/session/get_session_info", "/mail/data",
               "/hr_attendance/attendance_user_data"}
 
 
+def is_action_breadcrumb_read(body, allowed_actions, allowed_models=()):
+    """Restore only previously verified client/window actions, never servers."""
+    try:
+        actions = json.loads(body)['params']['actions']
+        if not isinstance(actions, list) or not 0 < len(actions) <= 16:
+            return False
+        for action in actions:
+            if not isinstance(action, dict):
+                return False
+            if action.get('action'):
+                ident = action['action']
+                if isinstance(ident, bool) or str(ident) not in {str(i) for i in allowed_actions}:
+                    return False
+            elif action.get('model') not in allowed_models:
+                return False
+            record = action.get('resId')
+            if record is not None and record != 'new' and (
+                    isinstance(record, bool) or not str(record).isdigit() or int(record) <= 0):
+                return False
+        return True
+    except (ValueError, TypeError, KeyError):
+        return False
+
+
 def is_read_request(path, body):
     path = urlsplit(path).path
     if path in READ_POSTS:
