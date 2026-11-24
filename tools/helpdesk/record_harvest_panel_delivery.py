@@ -16,9 +16,12 @@ def main():
     root = args.evidence
     delivery = json.loads((root/'delivery.json').read_text(encoding='utf-8'))
     assert not args.defer_plot_masters or delivery.get('pending_plot_master')
+    costing = '235' in delivery['reviewed_messages']
     flags = ('plot_selector', 'plots_filtered_by_center', 'plot_selection_reset',
         'plot_all_location_modes', 'mobile_layout', 'harvest_dashboard_filters',
         'harvest_dashboard_table', 'harvest_dashboard_settings')
+    if costing:
+        flags += ('harvest_dashboard_workforce', 'harvest_costing_form', 'harvest_costing_native_flow')
     for target in ('development', 'qa-cerro', 'cerro'):
         def read(suffix):
             return json.loads((root/(target+'-'+suffix+'.json')).read_text(encoding='utf-8'))
@@ -31,17 +34,26 @@ def main():
         assert all(copy[key] for key in flags)
         assert live['reviewed'] and live['readonly_live'] and live['plot_visible_without_configuration']
         assert all(live[key] for key in ('harvest_dashboard_filters', 'harvest_dashboard_table', 'harvest_dashboard_settings'))
+        if costing:
+            assert all(live[key] for key in ('harvest_dashboard_workforce', 'harvest_costing_form', 'harvest_costing_native_flow'))
+            assert target != 'qa-cerro' or (copy['harvest_costing_reported_case'] and live['harvest_costing_reported_case'])
         log = (root/(target+'-qa.log')).read_text(encoding='utf-8')
         count = re.findall(r'0 failed, 0 error\(s\) of (\d+) tests when loading database', log)
-        assert count and int(count[-1]) >= 28
+        assert count and int(count[-1]) >= (43 if costing else 28)
         assert 'test_harvest_without_a_tariff_uses_its_native_variety_species' in log
         assert 'test_workers_hours_and_native_costs_do_not_rewrite_original_lines' in log
         assert 'test_plot_catalog_tracks_center_and_upload_saves_native_relation' in log
+        if costing:
+            assert 'test_native_accounting_uses_the_saved_rate_when_it_changes_state' in log
+            assert 'test_mobile_orders_count_native_crew_and_delivery_workers_without_inventing_hours' in log
+            assert 'test_labor_without_a_variant_never_matches_an_unrelated_template_rate' in log
     assert all(marker in (root/'isolation.log').read_text(encoding='utf-8') for marker in
         ('CUSTOMER_QA_VERIFY_OK', 'CUSTOMER_QA_EGRESS_BLOCKED', 'CUSTOMER_QA_SOURCE_DB_DENIED'))
     pair = json.loads((root/'pair.json').read_text(encoding='utf-8'))
     for module in ('step_cosecha_operations', 'step_harvest_launcher'):
         assert all(pair['cerro'][module][key] == pair['qa-cerro'][module][key] for key in ('version', 'sha256'))
+    if costing:
+        assert pair['cerro']['step_cosecha_operations']['version'] == '18.0.1.2.0'
     config = json.loads((Path.home()/'.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'))
     url = 'https://soporte.stepsapp.cl'
     uid = xmlrpc.client.ServerProxy(url+'/xmlrpc/2/common').authenticate(
@@ -75,6 +87,16 @@ def main():
              'La tabla permite recorrer todos los registros filtrados. Consultar costos conserva '
              'las líneas, remuneraciones y tarifas originales.',
     }
+    if costing:
+        descriptions[234] += (' Dotación incluye los trabajadores de las entregas y usa la cuadrilla '
+            'asignada cuando aún no existen líneas de asistencia; no duplica personas ni inventa horas.')
+        descriptions[235] = ('La hoja de costeo usa la labor y la unidad de la cabecera cuando faltan en las líneas. '
+            'Muestra el mínimo y la tarifa vigente en la unidad registrada. Total trato = Tarifa × Cantidad; '
+            'Variable trato = máximo(Total trato − Sueldo base, 0). La lectura usa copias virtuales y conserva '
+            'los insumos originales. Costear y contabilizar guardan explícitamente los insumos nativos; las OT '
+            'contabilizadas conservan su tarifa. Volver a Aprobado está disponible desde Costeo sin documentos '
+            'asociados, con los permisos originales. Se verificó el caso adjunto en QA-Cerro y la contabilización '
+            'nativa en las copias, sin contabilizar documentos reales durante la entrega.')
     before = {}
     for ticket in descriptions:
         state = call('helpdesk.ticket', 'read', [[ticket]], {'fields': ['stage_id', 'sla_ids', 'sla_status_ids']})[0]
@@ -89,6 +111,9 @@ def main():
             ' Recargar la aplicación una vez para cargar la entrega. Mismos paquetes, copias frescas, '
             'pruebas funcionales, respaldo, bloqueo y paridad comprobados. 28 pruebas nativas por destino '
             'y 23 de Harvest. Backend '+delivery['backend_commit']+'; Harvest '+delivery['web_commit']+'.')
+        if costing:
+            body = body.replace('28 pruebas nativas por destino',
+                str(min(delivery['tests_by_target'].values()))+' pruebas nativas por destino')
         if ticket == 234:
             body += ' Estados con costo: '+', '.join(delivery['cost_state_labels'])+'.'
         if ticket == 233 and args.defer_plot_masters:
