@@ -1,5 +1,48 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U8 — permisos originales en el inventario actual, 24-11-2026
+
+El observador recuperado de `2802bcde` se actualizó al inventario completo de
+Cerro. `validate_payroll_api.py --original-source-inventory` comprueba cada
+nombre, versión, licencia y estado instalado de la copia fresca antes del
+upgrade. La captura se ejecuta bajo el bloqueo compartido, con el motor
+nativo, cursor Odoo de solo lectura y las rutas originales de addons. Se exige
+la cápsula sellada y el inventario completo de 414 módulos, 140 Enterprise.
+La captura de los tres productos coincidió módulo por módulo con U7. La
+canónica incluye cambios de Cosecha con las mismas dependencias declaradas.
+
+El gerente original UID7 obtuvo 118 accesos y dos denegaciones sobre los
+120 maestros. Pudo consultar las 71 reglas y las cuatro estructuras. Se
+conservaron modelo 600, reporte 462, proyección de maestros, política de
+seguridad y contadores durante la observación. Huella del recibo privado
+`1efa33b6799109ddf580fd737b379c33e622882e144267a9fe47b9fb64fa967d`.
+La evidencia está en `~/.codex/local-artifacts/community-resume-20261124/U8`
+y `/opt/steps-validation/community-multifront-parallel-20261124U8`.
+
+El paquete exacto `7b9fbaeb` pasó 13 pruebas en Community oficial
+(68 instalados, cero Enterprise) y cinco en la referencia fresca de Cerro
+(417 instalados después del upgrade de ensayo, 140 Enterprise). Las dos
+ejecuciones usaron bases nuevas en serie bajo el bloqueo compartido. Se
+verificaron 164 archivos de addons idénticos, los cuatro contratos de
+almacenamiento, la FK Calendar y 1.168 contratos de negocio y contadores en
+la referencia. La comparación de almacenamiento tiene huella
+`9bf221cf224de6769a02547e7281fdbfaa5adf0d4f759ecec5a5f3031f2033ea`.
+El archivo de entrada tiene huella
+`47fad5990bd5c92eac0648295cc43ca4f47648aa11e41fa769fc9ae5927a5607`.
+El primer lanzamiento se detuvo antes de crear bases porque el enlace del
+checkout OCA requería lectura con el usuario autorizado. El reintento usó
+ese checkout fijado y completó las dos pruebas. Pasaron 24 pruebas locales.
+
+La siguiente puerta es consumir la observación actualizada en el perfil
+anclado, usando una referencia del mismo respaldo que su copia OCA. Comparar
+la partición 118/2, los formularios y menús de F/G, y proyectar las 71 reglas de
+forma idempotente. Ejecutar la revisión física y restaurar las obligaciones
+por proveedor, con casos de creación y edición que no introduzcan defaults.
+Las 32 diferencias de obligatoriedad siguen abiertas. T2 conserva la
+aceptación multifrente. Siguen abiertas la certificación financiera y de HR,
+DTE/CAF/SII, Tesorería, Calidad, Studio/Documentos/Firma, los demás productos
+y la restauración integral cero Enterprise.
+
 ## U7 — admisión física de relaciones nuevas, 24-11-2026
 
 `tools/community/check_original_anchor_relations.py` incorpora una puerta

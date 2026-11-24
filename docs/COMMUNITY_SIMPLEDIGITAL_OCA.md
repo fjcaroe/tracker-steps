@@ -13,6 +13,12 @@ ampliar permisos. Metadatos, flujos legados, históricos y fórmulas siguen
 pendientes. La referencia SyS readonly y R3/S se conservan.
 U6 verificó el 24-11 los cuatro contratos de almacenamiento original con
 13 pruebas en Community oficial y cinco en una copia fresca nativa de Cerro.
+U8 comprobó el inventario nativo completo de 414 módulos y la visibilidad
+original de Nómina en una copia fresca: 118 de 120 maestros accesibles al
+gerente original, incluidas las 71 reglas y cuatro estructuras. Modelo 600 y
+reporte 462 conservados. Incorporar ese testigo de permisos a una nueva pareja
+anclada del mismo respaldo antes de restaurar obligatoriedad por proveedor.
+
 U7 añadió una puerta física para la adopción anclada. La pareja retenida U2
 demostró que las 32 FK adicionales corresponden a columnas nuevas sin
 referencias pobladas y que las 32 columnas que perdieron obligatoriedad
