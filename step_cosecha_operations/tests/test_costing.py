@@ -171,9 +171,11 @@ class HarvestCostingCase(TransactionCase):
         rules = self.env['step.haber.costeo']
         rules.search([('active', '=', True)]).write({'active': False})
         for kind in ('provi_sueldo', 'provi_seguro', 'provi_feriado', 'provi_ias'):
-            rules.create({'name': 'Private T235 '+kind, 'type': kind, 'active': True,
-                'company_id': self.company.id, 'debe_account_id': expense.id,
-                'haber_account_id': liability.id})
+            values = {'name': 'Private T235 '+kind, 'type': kind, 'active': True,
+                'debe_account_id': expense.id, 'haber_account_id': liability.id}
+            if 'company_id' in rules._fields:
+                values['company_id'] = self.company.id
+            rules.create(values)
         operator = new_test_user(self.env, login='private_t235_accounting',
             groups='base.group_user,hr.group_hr_user,account.group_account_manager',
             company_id=self.company.id, company_ids=[Command.set(self.company.ids)])

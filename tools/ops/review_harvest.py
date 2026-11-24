@@ -58,7 +58,7 @@ def main():
     stage = args.stage
     if stage:
         assert stage.resolve() == stage and stage.parent == Path('/opt/steps-validation')
-        match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231232|harvestcompany|t233|t234)_([a-f0-9]{8})', stage.name)
+        match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231232|harvestcompany|t233|t234|t235)_([a-f0-9]{8})', stage.name)
         assert match and match[1] == args.environment
         proof = json.loads((stage/'qa_passed.json').read_text())
         database = proof['database']

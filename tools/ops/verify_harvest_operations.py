@@ -82,12 +82,28 @@ try:
         arch = etree.fromstring(env['res.config.settings'].get_view(view_id=settings.id, view_type='form')['arch'])
         assert arch.xpath(".//field[@name='harvest_hours_per_day']")
         assert env.ref('step_cosecha_operations.menu_harvest_dashboard_settings').action
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102, 231, *([232] if 'step_harvest_launcher' in EXPECTED else []), *([234] if dashboard else [])], 'versions': EXPECTED,
+    costing = 'harvest_unit_price' in env['step.cosecha.registry.line']._fields
+    if costing:
+        arch = etree.fromstring(env['step.cosecha.registry'].get_view(
+            view_id=env.ref('step_cosecha.view_step_cosecha_registry_form').id, view_type='form')['arch'])
+        assert arch.xpath("//header/button[@name='action_return_approved']")
+        for name in ('harvest_min_quantity', 'harvest_unit_price', 'harvest_salary_base'):
+            assert arch.xpath("//page[@name='movi_line']//field[@name='%s']" % name)
+        for kind in ('pro', 'contratista'):
+            action = env.ref('step_cosecha.action_step_cosecha_costo_pro' if kind == 'pro'
+                else 'step_cosecha.action_step_cosecha_registry_costo')
+            assert action.res_model == 'step.cosecha.registry'
+        existing = env['step.cosecha.registry'].search([('company_id', '=', env.company.id)], limit=8)
+        existing.web_read({'name': {}, 'state': {}, 'registry_line': {'fields': {
+            'harvest_min_quantity': {}, 'harvest_unit_price': {}, 'harvest_salary_base': {},
+            'total_trato': {}, 'variable_trato': {}, 'cost_empresa': {}}}})
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102, 231, *([232] if 'step_harvest_launcher' in EXPECTED else []), *([234] if dashboard else []), *([235] if costing else [])], 'versions': EXPECTED,
           'native_masters': True, 'contractor_header': True, 'nested_fields_valid': True,
           'existing_records_web_read': True, 'harvest_tariff_menu_form': True,
           'harvest_tariff_native_labor_unit': True, 'harvest_tariff_center_scope': True,
           'harvest_own_form_without_studio': True,
           'harvest_api_context_scope': 'step_harvest_launcher' in EXPECTED,
-          'harvest_dashboard_native_filters_table_settings': dashboard}))
+          'harvest_dashboard_native_filters_table_settings': dashboard,
+          'harvest_costing_native_rate_and_return': costing}))
 finally:
     env.cr.rollback()
