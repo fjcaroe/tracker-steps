@@ -97,10 +97,10 @@ class OperationsSmokeCase(unittest.TestCase):
         frontend = {'version': '0.0.8', 'commit': 'c'*40, 'files': {}}
         proof = {'commit': 'b'*40, 'release_sha256': 'd'*64, 'feature': 'harvest-app',
                  'database': 'MANAGEMENT_QA_CERRO_t236237_' + 'b'*8,
-                 'business_preserved': True, 'harvest_web': frontend}
+                 'business_preserved': True}
         policy = {'environment': 'cerro', 'database': proof['database'], 'web_commit': frontend['commit'],
                   'read_only': False, 'copy_sync_allowed': True, 'sync_origin': 'http://127.0.0.1:8777',
-                  'user_id': 2, 'company_id': 7}
+                  'user_id': 2, 'company_id': 7, 'harvest_web': frontend}
         stage = 'management_cerro_t236237_' + 'b'*8
         # The shared policy is validated by its own suite. Check this helper
         # invokes it and adds strict package/stage/profile requirements.
@@ -109,7 +109,8 @@ class OperationsSmokeCase(unittest.TestCase):
             guard.assert_called_once_with(frontend, 'cerro', stage, proof)
             for key, value in [('database', 'CERRO_EL_PLOMO'), ('read_only', True),
                                ('sync_origin', 'http://127.0.0.1:8778'), ('user_id', 1),
-                               ('copy_sync_allowed', False), ('environment', 'development')]:
+                               ('copy_sync_allowed', False), ('environment', 'development'),
+                               ('web_commit', 'e'*40), ('harvest_web', dict(frontend, version='0.0.7'))]:
                 with self.subTest(key=key), self.assertRaises(AssertionError):
                     validate_operations_policy(policy['sync_origin'], stage, proof, dict(policy, **{key: value}))
             for key, value in [('business_preserved', False), ('commit', 'e'*40),
