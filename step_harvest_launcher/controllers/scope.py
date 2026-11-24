@@ -71,6 +71,13 @@ class ScopedHarvestApi(StepHarvestApi):
         return record
 
     def _reference_data(self, resource, query=None, limit=None):
+        if resource == 'crews':
+            crews = super()._reference_data(resource, query, limit)
+            native_crews = request.env['hr.salary.custom'].browse([row['id'] for row in crews])
+            for row, crew in zip(crews, native_crews):
+                partner = crew.partner_id if crew.group_type == 'contratista' else None
+                row['contractor'] = self._item(partner) if partner else False
+            return crews
         if resource not in ('varieties', 'cost_centers'):
             return super()._reference_data(resource, query, limit)
         company = request.env.company
@@ -99,8 +106,10 @@ class ScopedHarvestApi(StepHarvestApi):
                            cuarteles=plots_by_center[record.id]) for record in records]
 
     def _order(self, record):
+        crew = record.salary_id_contrac if record.type_tarea == 'contratista' else record.salary_id
         return dict(super()._order(record), cuartel_id=record.cuartel_id.id or False,
-                    cuartel=record.cuartel_id.display_name or '')
+                    cuartel=record.cuartel_id.display_name or '',
+                    crew_id=crew.id or False, crew_type=record.type_tarea)
 
     def _check_existing_plot(self, order, values):
         supplied = values.get('cuartel_id')

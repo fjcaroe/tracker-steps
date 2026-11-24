@@ -195,10 +195,19 @@ class HarvestNativeScopeCase(HttpCase):
             'especie_id': species.id, 'grupo_variedad_id': group.id, 'company_id': company.id})
         crew = env['hr.salary.custom'].create({
             'name': 'Private T233 crew', 'group_type': 'propio', 'company_id': company.id})
+        contractor = env['res.partner'].create({'name': 'Private Harvest contractor', 'is_company': True})
+        contractor_crew = env['hr.salary.custom'].create({
+            'name': 'Private Harvest contractor crew', 'group_type': 'contratista',
+            'company_id': company.id, 'partner_id': contractor.id})
 
         self.authenticate(self.users[0].login, 'private-fixture')
         data = self.get_payload('/api/harvest/bootstrap')
         self.assertEqual(data['company']['id'], company.id)
+        crews = {row['id']: row for row in data['crews']}
+        self.assertEqual(crews[crew.id]['type'], 'propio')
+        self.assertFalse(crews[crew.id]['contractor'])
+        self.assertEqual(crews[contractor_crew.id]['type'], 'contratista')
+        self.assertEqual(crews[contractor_crew.id]['contractor']['id'], contractor.id)
         choices = {center['id']: center['cuarteles'] for center in data['cost_centers']}
         self.assertIn(first.id, choices)
         self.assertIn(other.id, choices)
@@ -228,6 +237,14 @@ class HarvestNativeScopeCase(HttpCase):
                          if item['odoo_id'] == saved.id)
         self.assertEqual(published['cuartel_id'], plots[0].id)
         self.assertEqual(published['cuartel'], plots[0].display_name)
+        self.assertEqual(published['crew_id'], crew.id)
+        self.assertEqual(published['crew_type'], 'propio')
+        contractor_result = upload('contractor', id='PRIVATE-T237-CONTRACTOR', crew_id=contractor_crew.id)
+        self.assertTrue(contractor_result['ok'], contractor_result)
+        contractor_order = env['step.cosecha.registry'].browse(contractor_result['work_order_id'])
+        self.assertEqual(contractor_order.type_tarea, 'contratista')
+        self.assertEqual(contractor_order.partner_id, contractor)
+        self.assertEqual(contractor_order.salary_id_contrac, contractor_crew)
         legacy = upload('old_draft', id='PRIVATE-T233-LEGACY')
         self.assertTrue(legacy['ok'], legacy)
         self.assertFalse(env['step.cosecha.registry'].browse(legacy['work_order_id']).cuartel_id)
