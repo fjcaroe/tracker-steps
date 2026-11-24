@@ -1,7 +1,14 @@
 .o_cosecha_dashboard {
     .o_harvest_filters { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
     .o_harvest_filters label { display: flex; flex: 1 1 155px; flex-direction: column; gap: 4px; color: white; font-size: 12px; font-weight: 600; }
-    .o_harvest_filters select { min-width: 0; font-size: 14px; }
+    .o_harvest_filters select {
+        min-width: 0;
+        font-size: 14px;
+        color: #174e3f;
+        background-color: #fff;
+        border-color: #d8e7de;
+    }
+    .o_harvest_filters select:disabled { color: #174e3f; background-color: #edf4ef; opacity: 1; }
     .o_harvest_table { margin: 15px 0; min-width: 0; }
     .o_harvest_table header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .o_harvest_table header small { color: #617a72; }

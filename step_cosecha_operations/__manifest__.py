@@ -1,6 +1,6 @@
 {
     'name': 'Steps - Operación de cosecha contratista',
-    'version': '18.0.1.1.0',
+    'version': '18.0.1.1.1',
     'license': 'LGPL-3',
     'depends': ['step_cosecha_planning', 'step_packing'],
     'data': ['views/operations.xml', 'views/harvest_tariffs.xml', 'views/dashboard_settings.xml'],

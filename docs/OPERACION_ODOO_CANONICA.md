@@ -1,7 +1,7 @@
 # Operación y publicación de Odoo
 
 T233 revisión móvil y T234 se entregan juntos con `harvest-app` en Desarrollo,
-QA-Cerro y Cerro: Harvest 0.0.6 y `step_cosecha_operations` 18.0.1.1.0.
+QA-Cerro y Cerro: Harvest 0.0.6 y `step_cosecha_operations` 18.0.1.1.1.
 Cuartel permanece visible en Nueva OT en todos los modos de ubicación; se exige
 en modo Cuartel y conserva la selección nativa opcional en los otros modos.
 El panel Cosecha inicia en Hoy, agrega Ayer, Especie y Fundo, muestra las once
