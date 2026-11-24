@@ -21,7 +21,7 @@ class OperationsClient(ReviewClient):
 
 def validate_operations_policy(origin, stage_name, proof, policy):
     origin = review_origin(origin)
-    frontend = proof['harvest_web']
+    frontend = policy['harvest_web']
     environment = policy['environment']
     assert environment in ('development', 'cerro', 'qa-cerro')
     assert frontend['version'] == '0.0.8'
@@ -139,7 +139,7 @@ def main():
     assert not any((parent/'.git').exists() for parent in output.parents), 'Keep evidence outside checkouts'
     evidence = exercise_operations(OperationsClient(origin), policy)
     evidence.update({'feature': proof['feature'], 'stage': stage.name, 'database': proof['database'],
-        'web_commit': proof['harvest_web']['commit'], 'backend_commit': proof['commit'],
+        'web_commit': policy['harvest_web']['commit'], 'backend_commit': proof['commit'],
         'backend_sha256': proof['release_sha256'], 'created_at': datetime.now(timezone.utc).isoformat()})
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(evidence, indent=2), encoding='utf-8')
