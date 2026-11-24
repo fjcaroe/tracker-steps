@@ -180,6 +180,9 @@ class HarvestCostingCase(TransactionCase):
             accounts |= accounts.create({'name': 'Private T235 '+label,
                 'plan_id': plan.id, 'company_id': self.company.id})
         season, center, activity = accounts
+        if 'cost_id' in center._fields:
+            center.cost_id = center
+            activity.cost_id = activity
         self.env['step.temporada'].create({'name': 'Private T235 season',
             'start_date': '2098-01-01', 'end_date': '2098-12-31',
             'company_id': self.company.id, 'cost_id': season.id})
@@ -195,7 +198,7 @@ class HarvestCostingCase(TransactionCase):
             if 'company_id' in rules._fields:
                 values['company_id'] = self.company.id
             rules.create(values)
-        operator = new_test_user(self.env, login='private_t235_accounting',
+        operator = new_test_user(self.env.with_context(no_reset_password=True), login='private_t235_accounting',
             groups='base.group_user,hr.group_hr_user,account.group_account_manager',
             company_id=self.company.id, company_ids=[Command.set(self.company.ids)])
         record = self.harvest(state='apro', date='2098-06-01', cost_id=center.id).with_user(operator)
@@ -214,7 +217,7 @@ class HarvestCostingCase(TransactionCase):
 
     def test_return_access_and_native_form_and_menu(self):
         record = self.harvest()
-        portal = new_test_user(self.env, login='private_t235_portal', groups='base.group_portal')
+        portal = new_test_user(self.env.with_context(no_reset_password=True), login='private_t235_portal', groups='base.group_portal')
         with self.assertRaises(AccessError):
             record.with_user(portal).action_return_approved()
         record.cos_recibida = True
