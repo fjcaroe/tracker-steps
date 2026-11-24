@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harvest_web_policy import (ANDROID_REVIEW_CHECKS, is_copy_sync_request,
     require_copy_sync_certificate, static_copy_identity, validate_android_review,
     validate_static_copy, validate_operations_copy, validate_operations_review,
-    OPERATIONS_REVIEW_CHECKS)
+    OPERATIONS_REVIEW_CHECKS, validate_operations_smokes)
 from native_business_profile import scoped_existing_user_environment
 
 
@@ -141,6 +141,26 @@ class OperationsPolicyCase(unittest.TestCase):
             self.assertFalse(is_copy_sync_request(True, 'POST', path, 'https://qa-cerroelplomo.stepsapp.cl', 8177, '0.0.8'))
             self.assertFalse(is_copy_sync_request(True, 'POST', path+'?x=1', origin, 8177, '0.0.8'))
         self.assertFalse(is_copy_sync_request(True, 'POST', '/web/dataset/call_kw', origin, 8177, '0.0.8'))
+
+    def test_native_smokes_cannot_mix_another_database_or_package(self):
+        common = {'feature': 'harvest-app', 'database': self.proof['database'],
+            'backend_commit': self.proof['commit'], 'backend_sha256': self.proof['release_sha256'],
+            'web_commit': self.frontend['commit'], 'native_context': True,
+            'credentials_or_session_ids_supplied': False}
+        operations = dict(common, **dict.fromkeys(('native_copy_sync', 'sync_idempotency',
+            'ot_close', 'ot_review', 'ot_send_confirmation', 'erp_state_preserved',
+            'unconfirmed_delivery_blocks_close'), True))
+        crew = dict(common, **dict.fromkeys(('worker_enrollment', 'crew_attendance',
+            'attendance_home_total', 'native_members_preserved', 'enrollment_idempotency',
+            'attendance_idempotency', 'changed_hours_rejected', 'wrong_date_rejected'), True))
+        validate_operations_smokes(self.frontend, self.proof, operations, crew)
+        for key in ('database', 'backend_commit', 'backend_sha256', 'web_commit'):
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                validate_operations_smokes(self.frontend, self.proof,
+                    dict(operations, **{key: 'different'}), crew)
+        with self.assertRaises(AssertionError):
+            validate_operations_smokes(self.frontend, self.proof, operations,
+                dict(crew, attendance_idempotency=False))
 
 
 class Company:

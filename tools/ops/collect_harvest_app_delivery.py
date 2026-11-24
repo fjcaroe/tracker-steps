@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-from harvest_web_policy import validate_operations_review
+from harvest_web_policy import validate_operations_review, validate_operations_smokes
 
 
 def main():
@@ -66,6 +66,11 @@ def main():
         if operations:
             validate_operations_review(manifest, target, stage.name, qa,
                 json.loads((stage/'harvest-browser-proof.json').read_text()))
+            validate_operations_smokes(manifest, qa,
+                json.loads((stage/'harvest-operations-smoke.json').read_text()),
+                json.loads((stage/'harvest-crew-smoke.json').read_text()))
+            for kind in ('operations', 'crew'):
+                shutil.copyfile(stage/('harvest-'+kind+'-smoke.json'), output/(target+'-'+kind+'-smoke.json'))
             assert checked['ot_lifecycle_available'] is True and checked['crew_attendance_available'] is True
     assert len(commits) == 1
     tools = Path(__file__).resolve().parent
@@ -85,7 +90,11 @@ def main():
             '--output', str(output/'pair.json')], text=True, capture_output=True, check=True)
         assert 'CERRO_RELEASE_PAIR_OK' in result.stdout
         (output/'pair.log').write_text(result.stdout)
-    frontend_tests = json.loads((base/'frontend-tests.json').read_text())['passed'] if operations else 23 if panel else 14
+    if operations:
+        frontend_proof = json.loads((base/'frontend-tests.json').read_text())
+        assert frontend_proof['web_commit'] == manifest['commit']
+        assert frontend_proof['log_sha256'] == hashlib.sha256((base/'frontend-tests.log').read_bytes()).hexdigest()
+    frontend_tests = frontend_proof['passed'] if operations else 23 if panel else 14
     assert type(frontend_tests) is int and frontend_tests > 0
     (output/'delivery.json').write_text(json.dumps({'backend_commit': commits.pop(),
         'backend_sha256': sha, 'web_commit': manifest['commit'], 'web_files': manifest['files'],

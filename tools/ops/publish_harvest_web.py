@@ -15,7 +15,7 @@ import urllib.error
 import urllib.request
 from harvest_web_policy import (SUPPORTED_VERSIONS, require_authorized_environment,
                                 validate_android_review, validate_static_copy,
-                                validate_operations_review)
+                                validate_operations_review, validate_operations_smokes)
 
 HOSTS = {'development': 'desarrollo.stepsapp.cl', 'cerro': 'cerroelplomo.stepsapp.cl',
          'qa-cerro': 'qa-cerroelplomo.stepsapp.cl'}
@@ -200,6 +200,11 @@ def main():
             validate_android_review(manifest, args.environment, stage.name, passed, review)
         if manifest['version'] == '0.0.8':
             validate_operations_review(manifest, args.environment, stage.name, passed, review)
+            operations = stage/'harvest-operations-smoke.json'
+            crew = stage/'harvest-crew-smoke.json'
+            validate_operations_smokes(manifest, passed, json.loads(operations.read_text()), json.loads(crew.read_text()))
+            assert review['operations_smoke_sha256'] == sha(operations)
+            assert review['crew_smoke_sha256'] == sha(crew)
         if manifest['version'] == '0.0.5':
             assert re.fullmatch(r'management_'+args.environment+r'_t233_[a-f0-9]{8}', stage.name)
             assert all(review[key] for key in ('plot_selector', 'plots_filtered_by_center',

@@ -86,6 +86,24 @@ def validate_operations_review(frontend, environment, stage_name, proof, review)
     assert all(review[key] is True for key in OPERATIONS_REVIEW_CHECKS), 'Incomplete crew/lifecycle review'
 
 
+def validate_operations_smokes(frontend, proof, operations, crew):
+    for result in (operations, crew):
+        assert result['feature'] == proof['feature'] == 'harvest-app'
+        assert result['database'] == proof['database']
+        assert result['backend_commit'] == proof['commit']
+        assert result['backend_sha256'] == proof['release_sha256']
+        assert result['web_commit'] == frontend['commit']
+        assert result['native_context'] is True
+        assert result['credentials_or_session_ids_supplied'] is False
+    assert all(operations[key] is True for key in (
+        'native_copy_sync', 'sync_idempotency', 'ot_close', 'ot_review',
+        'ot_send_confirmation', 'erp_state_preserved', 'unconfirmed_delivery_blocks_close'))
+    assert all(crew[key] is True for key in (
+        'worker_enrollment', 'crew_attendance', 'attendance_home_total',
+        'native_members_preserved', 'enrollment_idempotency', 'attendance_idempotency',
+        'changed_hours_rejected', 'wrong_date_rejected'))
+
+
 def require_copy_sync_certificate(frontend, environment, stage_name, proof):
     if frontend['version'] == '0.0.8':
         validate_operations_copy(frontend, environment, stage_name, proof)
