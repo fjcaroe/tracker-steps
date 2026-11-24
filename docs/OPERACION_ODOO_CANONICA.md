@@ -19,7 +19,12 @@ solo habilita `POST /api/harvest/sync` en la copia `harvestandroid` certificada,
 con origen loopback exacto y destino privado; conserva bloqueadas las demás
 escrituras y los ambientes publicados. Registrar su política sin sesión en
 `harvest-review-policy.json`, comprobar la sincronización nativa y su reintento
-sin duplicados y retirar las sesiones al terminar. La certificación preserva
+sin duplicados con `smoke_harvest_android_sync.py` y retirar las sesiones al
+terminar. El smoke exige certificado y política del mismo stage, origen exacto
+de loopback y una OT y trabajador nativos existentes. Comprueba primero el
+rechazo de un scope alterado, luego una entrega QA y el reenvío del mismo UUID
+sin otra línea. Su evidencia omite nombres, credenciales y sesiones y se guarda
+fuera del checkout. La certificación preserva
 el backend y los registros iniciales; ese ensayo posterior puede crear sus
 registros de prueba únicamente en la copia. Registrar por separado compilación,
 pruebas web y prueba real en dispositivo. La distribución del piloto debe
