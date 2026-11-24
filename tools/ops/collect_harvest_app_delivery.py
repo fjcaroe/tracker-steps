@@ -13,14 +13,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('base', type=Path)
     parser.add_argument('run_id')
+    parser.add_argument('--reviewed-message', action='append', default=[], metavar='TICKET:MESSAGE')
     args = parser.parse_args()
     base = args.base
     assert base.resolve() == base and base.parent == Path('/opt/steps-validation')
-    assert re.fullmatch('t231232_[a-f0-9]{8}', args.run_id)
+    assert re.fullmatch('(t231232|t234)_[a-f0-9]{8}', args.run_id)
+    panel = args.run_id.startswith('t234_')
+    reviewed = dict(tuple(map(int, item.split(':'))) for item in args.reviewed_message)
+    assert not panel or set(reviewed) == {233, 234}, 'Identify the human replies reviewed for this delivery'
     output = base/'delivery'
     output.mkdir(mode=0o700, exist_ok=True)
     manifest = json.loads((base/'web/release.json').read_text())
-    sha = hashlib.sha256((base/'harvest.tar.gz').read_bytes()).hexdigest()
+    sha = hashlib.sha256((base/('harvest-odoo.tar.gz' if panel else 'harvest.tar.gz')).read_bytes()).hexdigest()
     commits = set()
     for target in ('development', 'qa-cerro', 'cerro'):
         stage = Path('/opt/steps-validation')/('management_'+target+'_'+args.run_id)
@@ -29,7 +33,8 @@ def main():
         assert qa['release_sha256'] == sha
         commits.add(qa['commit'])
         test = Path(qa['log'])
-        assert re.search(r'0 failed, 0 error\(s\) of 18 tests', test.read_text())
+        counts = re.findall(r'0 failed, 0 error\(s\) of (\d+) tests when loading database', test.read_text())
+        assert counts and int(counts[-1]) >= (28 if panel else 18)
         flow = stage/('verify-'+qa['database']+'.log')
         assert 'MANAGEMENT_REGISTRY_OK' in flow.read_text()
         live = base/('deploy-'+target+'.log')
@@ -51,6 +56,8 @@ def main():
         for suffix, source in (('qa.json', qa_file), ('qa.log', test), ('flow.log', flow),
                 ('live.log', live), ('deployment.json', deployment), ('web.json', web), ('live-review.json', review)):
             shutil.copyfile(source, output/(target+'-'+suffix))
+        if panel:
+            shutil.copyfile(stage/'harvest-browser-proof.json', output/(target+'-copy-review.json'))
     assert len(commits) == 1
     tools = Path(__file__).resolve().parent
     with open('/run/lock/steps-environments.lock', 'a') as lock:
@@ -71,8 +78,11 @@ def main():
         (output/'pair.log').write_text(result.stdout)
     (output/'delivery.json').write_text(json.dumps({'backend_commit': commits.pop(),
         'backend_sha256': sha, 'web_commit': manifest['commit'], 'web_files': manifest['files'],
-        'tests': 54, 'frontend_tests': 14, 'reviewed_messages': {'231': 10595, '232': 10598}}, indent=2))
-    print('HARVEST_DELIVERY_COLLECTED targets=3 server_tests=54 frontend_tests=14')
+        'tests': 84 if panel else 54, 'frontend_tests': 23 if panel else 14,
+        'cost_state_labels': ['Costeo', 'Contabilizado'] if panel else [],
+        'reviewed_messages': reviewed if panel else {'231': 10595, '232': 10598}}, indent=2))
+    print('HARVEST_DELIVERY_COLLECTED targets=3 server_tests=%s frontend_tests=%s' %
+        (84 if panel else 54, 23 if panel else 14))
 
 
 if __name__ == '__main__':
