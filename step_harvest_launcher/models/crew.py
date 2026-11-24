@@ -79,15 +79,16 @@ class HarvestCrew(models.Model):
     def harvest_enroll_worker(self, data):
         self._harvest_check_crew()
         self.check_access('write')
-        uid = str(data.get('client_uuid') or '').strip()
+        event_uid = str(data.get('client_uuid') or '').strip()
         name = str(data.get('name') or '').strip()
         pin = str(data.get('nip') or '').strip()
         gender = {'M': 'male', 'F': 'female', 'O': 'other'}.get(data.get('sex'))
-        if not uid or len(uid) > 100 or not name or len(name) > 256 or not re.fullmatch(r'\d{1,8}', pin) or not gender:
+        if not event_uid or len(event_uid) > 100 or not name or len(name) > 256 or not re.fullmatch(r'\d{1,8}', pin) or not gender:
             raise ValidationError(_('Complete nombre, NIP numérico (hasta 8 dígitos), sexo y cargo.'))
         digest = fingerprint({key: data.get(key) for key in ('client_uuid', 'crew_id', 'name', 'nip', 'sex', 'job_id')})
         employees = self.env['hr.employee'].with_context(active_test=False)
-        existing = employees.search([('company_id', '=', self.company_id.id), ('harvest_enrollment_uid', '=', uid)], limit=1)
+        employees.check_access('create')
+        existing = employees.search([('company_id', '=', self.company_id.id), ('harvest_enrollment_uid', '=', event_uid)], limit=1)
         if existing:
             if existing.harvest_enrollment_fingerprint != digest:
                 raise ValidationError(_('Un enrolamiento recibido no puede reenviarse con otros datos.'))
@@ -110,7 +111,7 @@ class HarvestCrew(models.Model):
             'name': name, 'pin': pin, 'gender': gender, 'job_id': job.id,
             'company_id': self.company_id.id, 'is_contratista': self.group_type == 'contratista',
             'contratista_id': self.partner_id.id if self.group_type == 'contratista' else False,
-            'harvest_enrollment_uid': uid, 'harvest_enrollment_fingerprint': digest,
+            'harvest_enrollment_uid': event_uid, 'harvest_enrollment_fingerprint': digest,
         })
         relation = 'contract_line' if self.group_type == 'contratista' else 'salary_line'
         self.write({relation: [Command.create({'employee_id': worker.id})]})
@@ -119,9 +120,10 @@ class HarvestCrew(models.Model):
 
     def harvest_record_attendance(self, data):
         self._harvest_check_crew()
-        uid = str(data.get('client_uuid') or '').strip()
+        self.env['hr.attendance'].check_access('create')
+        event_uid = str(data.get('client_uuid') or '').strip()
         entries = data.get('entries')
-        if not uid or len(uid) > 100 or not isinstance(entries, list) or not 0 < len(entries) <= 500:
+        if not event_uid or len(event_uid) > 100 or not isinstance(entries, list) or not 0 < len(entries) <= 500:
             raise ValidationError(_('La asistencia requiere su identificador y entre 1 y 500 trabajadores.'))
         try:
             day = fields.Date.to_date(data.get('date'))
@@ -152,7 +154,7 @@ class HarvestCrew(models.Model):
             if fields.Datetime.context_timestamp(self, start).date() != day:
                 raise ValidationError(_('La entrada no corresponde a la fecha de asistencia.'))
             digest = fingerprint([self.id, worker.id, str(day), start.isoformat(), end.isoformat()])
-            previous = result.search([('employee_id', '=', worker.id), ('harvest_uid', '=', uid)], limit=1)
+            previous = result.search([('employee_id', '=', worker.id), ('harvest_uid', '=', event_uid)], limit=1)
             if previous:
                 if previous.harvest_fingerprint != digest:
                     raise ValidationError(_('Una asistencia recibida no puede reenviarse con otras horas. Corríjala en Odoo.'))
@@ -160,7 +162,7 @@ class HarvestCrew(models.Model):
             else:
                 result |= self.env['hr.attendance'].create({
                     'employee_id': worker.id, 'check_in': start, 'check_out': end,
-                    'harvest_crew_id': self.id, 'harvest_uid': uid, 'harvest_fingerprint': digest,
+                    'harvest_crew_id': self.id, 'harvest_uid': event_uid, 'harvest_fingerprint': digest,
                 })
         return result
 
