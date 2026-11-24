@@ -1,7 +1,9 @@
 from copy import deepcopy
 
-from odoo.exceptions import ValidationError
+from odoo import Command
+from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import TransactionCase, tagged
+from odoo.tests.common import new_test_user
 
 
 @tagged('post_install', '-at_install')
@@ -88,4 +90,13 @@ class HarvestCrewCase(TransactionCase):
             invalid = deepcopy(values); invalid['entries'][0].update(changes)
             with self.assertRaises(ValidationError), self.cr.savepoint():
                 self.own.harvest_record_attendance(invalid)
+
+    def test_enrollment_and_attendance_respect_native_user_permissions(self):
+        worker = self.own.harvest_enroll_worker(self.enrollment())
+        user = new_test_user(self.env, login='private_harvest_no_hr',
+                             company_id=self.company.id, company_ids=[Command.set(self.company.ids)], groups='base.group_user')
+        with self.assertRaises(AccessError), self.cr.savepoint():
+            self.own.with_user(user).harvest_enroll_worker(dict(self.enrollment(), client_uuid='no-access', nip='9237003'))
+        with self.assertRaises(AccessError), self.cr.savepoint():
+            self.own.with_user(user).harvest_record_attendance(self.attendance(worker))
         self.assertEqual(attendance.check_out.hour, 16)

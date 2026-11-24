@@ -9,18 +9,6 @@ from .scope import ScopedHarvestApi, environment_scope
 
 
 class CrewHarvestApi(ScopedHarvestApi):
-    def _sync_record(self, data):
-        uid = str(data.get('client_uuid') or data.get('id') or '')
-        previous = request.env['step.cosecha.tarja.registry.line'].search([('mobile_uid', '=', uid)], limit=1) if uid else False
-        if not previous:
-            worker = self._native_record('hr.employee', data.get('worker_id'))
-            order = self._get_or_create_order(data)
-            crew = order.salary_id if order.type_tarea == 'propio' else order.salary_id_contrac
-            if not crew:
-                raise ValidationError(_('La OT requiere su cuadrilla nativa antes de recibir nuevas entregas.'))
-            crew._harvest_check_worker(worker)
-        return super()._sync_record(data)
-
     def _json(self, payload, status=200):
         if request.session.uid and 'crews' in payload:
             payload = dict(payload, crew_permissions={
