@@ -11,6 +11,9 @@
     .o_harvest_table td { padding: 13px 12px; vertical-align: middle; font-variant-numeric: tabular-nums; }
     .o_harvest_table td:first-child button { text-align: left; font-weight: 600; }
     .o_harvest_state { white-space: nowrap; border-radius: 12px; padding: 4px 9px; background: #e8f3ed; color: #205b49; font-size: 11px; }
+    .o_harvest_state.is-in { background: #edf0ef; color: #4c635b; }
+    .o_harvest_state.is-apro { background: #e7effa; color: #285b8f; }
+    .o_harvest_state.is-costo { background: #fff1d4; color: #825916; }
     .o_harvest_pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 12px 16px; border-top: 1px solid #e1e9e4; }
     .o_harvest_pager span { margin-right: auto; }
     .o_harvest_attention { margin-top: 15px; }

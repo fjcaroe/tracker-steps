@@ -38,6 +38,7 @@ class HarvestDashboardCase(TransactionCase):
         today = self.harvest(date='2026-11-24 03:00:00')
         self.harvest(date='2026-11-25 03:00:00')
         self.assertEqual([r['id'] for r in self.dashboard()['recent']], today.ids)
+        self.assertEqual(self.dashboard()['recent'][0]['date_label'], '24-11-2026')
         self.assertEqual([r['id'] for r in self.dashboard(period='yesterday')['recent']], yesterday.ids)
         self.assertEqual(self.dashboard(period='all')['kpis']['records'], 3)
         with self.assertRaises(ValidationError):
@@ -75,6 +76,18 @@ class HarvestDashboardCase(TransactionCase):
         self.env.flush_all()
         self.env.cr.execute('SELECT id, hrs, tarifa, sueldo_base FROM step_cosecha_registry_line WHERE registry_id=%s ORDER BY id', [order.id])
         self.assertEqual(self.env.cr.fetchall(), before)
+
+    def test_harvest_without_a_tariff_uses_its_native_variety_species(self):
+        group = self.env['step.grupo.variedad'].create({'name': 'Private T234 group',
+            'especie_id': self.species.id, 'company_id': self.company.id})
+        variety = self.env['step.variedad'].create({'name': 'Private T234 variety',
+            'cod_variedad': 'T234-P', 'especie_id': self.species.id,
+            'grupo_variedad_id': group.id, 'company_id': self.company.id})
+        order = self.harvest(pricelist_id=False, variedad_id=variety.id)
+        self.assertFalse(order.especie_id)
+        row = self.dashboard(species_id=self.species.id)['recent'][0]
+        self.assertEqual(row['id'], order.id)
+        self.assertEqual(row['species'], self.species.display_name)
 
     def test_contractor_uses_native_tarjas_hours_and_costs(self):
         workers = self.env['hr.employee'].create([{'name': 'Private T234 contractor '+str(i),

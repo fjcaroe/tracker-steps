@@ -1,5 +1,8 @@
 <templates xml:space="preserve">
     <t t-name="step_cosecha_operations.Dashboard" t-inherit="step_cosecha.Dashboard" t-inherit-mode="primary">
+        <xpath expr="//div[hasclass('o_cosecha_hero_actions')]" position="inside">
+            <button class="btn btn-outline-light" t-on-click="() => this.loadDashboard()" t-att-disabled="state.loading"><i class="fa fa-refresh me-1"/> Actualizar</button>
+        </xpath>
         <xpath expr="//div[@aria-label='Período']" position="replace">
             <div class="o_harvest_filters">
                 <label>Fecha<select class="form-select" aria-label="Fecha de cosecha" t-on-change="onPeriod" t-att-disabled="state.loading">
@@ -22,16 +25,16 @@
         </xpath>
         <xpath expr="//div[hasclass('o_cosecha_grid')]" position="replace">
             <section class="o_cosecha_panel o_harvest_table">
-                <header><div><span t-esc="state.data.period_label.toUpperCase()"/><h2>Registros de cosecha</h2><small>Horas por jornada: <t t-esc="formatNumber(state.data.hours_per_day, 2)"/> h · Importes en <t t-esc="state.data.currency_symbol"/></small></div>
+                <header><div><span t-esc="state.data.period_label.toUpperCase()"/><h2>Registros de cosecha</h2><small>Horas por jornada: <t t-esc="formatNumber(state.data.hours_per_day, 2)"/> h · Importes en <t t-esc="state.data.currency_name"/></small></div>
                     <button t-if="state.data.can_configure" class="btn btn-link" t-on-click="() => this.openAction('step_cosecha_operations.action_harvest_dashboard_settings')">Configurar jornada</button>
                 </header>
                 <div class="o_harvest_table_scroll" role="region" aria-label="Registros de cosecha" tabindex="0">
                     <table class="table table-hover mb-0"><thead><tr>
-                        <th>OP</th><th>P/C</th><th>Fecha</th><th>Especie</th><th class="text-end">Dotación</th><th class="text-end">Horas totales</th><th class="text-end">Kilos</th><th class="text-end">Kg promedio</th><th>Estado</th><th class="text-end">Costo total</th><th class="text-end">Costo kilo</th>
+                        <th>OP</th><th>P/C</th><th>Fecha</th><th>Especie</th><th class="text-end">Dotación</th><th class="text-end">Horas totales</th><th class="text-end">Kilos</th><th class="text-end" title="Kilos / Horas totales × Horas por jornada">Kg promedio</th><th>Estado</th><th class="text-end">Costo total</th><th class="text-end">Costo kilo</th>
                     </tr></thead><tbody>
                         <tr t-foreach="state.data.recent" t-as="row" t-key="row.id">
                             <td><button class="btn btn-link p-0" t-on-click="() => this.openRegistry(row.id)" t-esc="row.name"/></td>
-                            <td t-esc="row.type === 'propio' ? 'P' : 'C'"/><td t-esc="formatDate(row.date)"/><td t-esc="row.species"/>
+                            <td t-esc="row.type === 'propio' ? 'P' : 'C'"/><td t-esc="row.date_label"/><td t-esc="row.species"/>
                             <td class="text-end" t-esc="formatNumber(row.workers)"/><td class="text-end" t-esc="formatNumber(row.hours, 2)"/>
                             <td class="text-end" t-esc="formatNumber(row.kilos, 2)"/><td class="text-end" t-esc="optionalNumber(row.average_kg)"/>
                             <td><span t-att-class="'o_harvest_state is-' + row.state" t-esc="row.state_label"/></td>

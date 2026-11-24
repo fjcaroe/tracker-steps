@@ -88,10 +88,14 @@ class HarvestDashboard(models.Model):
         farms, farm_id = self._dashboard_master('step.fundo', farm_id)
         domain = [('company_id', '=', self.env.company.id)] + dates
         reception_domain = [('company_id', '=', self.env.company.id)] + reception_dates
-        for field, ident in (('especie_id', species_id), ('fundo_id', farm_id)):
-            if ident:
-                domain.append((field, '=', ident))
-                reception_domain.append(('registry_id.' + field, '=', ident))
+        if farm_id:
+            domain.append(('fundo_id', '=', farm_id))
+            reception_domain.append(('registry_id.fundo_id', '=', farm_id))
+        if species_id:
+            for target, prefix in ((domain, ''), (reception_domain, 'registry_id.')):
+                target.extend(['|', (prefix + 'especie_id', '=', species_id), '&',
+                    (prefix + 'especie_id', '=', False),
+                    (prefix + 'variedad_id.especie_id', '=', species_id)])
         count = self.search_count(domain)
         try:
             offset = max(0, int(offset))
@@ -116,9 +120,11 @@ class HarvestDashboard(models.Model):
         for record in records:
             rows.append({'id': record.id, 'name': record.display_name,
                 'date': fields.Datetime.to_string(record.date) if record.date else False,
+                'date_label': fields.Datetime.context_timestamp(record, record.date).strftime('%d-%m-%Y') if record.date else 'Sin fecha',
                 'type': record.type_tarea, 'type_label': type_labels.get(record.type_tarea, ''),
                 'state': record.state, 'state_label': state_labels.get(record.state, ''),
-                'fundo': record.fundo_id.display_name or '', 'species': record.especie_id.display_name or '',
+                'fundo': record.fundo_id.display_name or '',
+                'species': (record.especie_id or record.variedad_id.especie_id).display_name or '',
                 'kilos': record.total_kilos or 0.0, **record._dashboard_metrics()})
         return {'company_name': self.env.company.display_name,
             'period': period, 'period_label': label, 'days': 0 if period == 'all' else int(period) if period.isdigit() else 1,
@@ -128,6 +134,7 @@ class HarvestDashboard(models.Model):
             'hours_per_day': self.env.company.harvest_hours_per_day,
             'can_configure': self.env.user.has_group('base.group_system'),
             'currency_symbol': self.env.company.currency_id.symbol,
+            'currency_name': self.env.company.currency_id.name,
             'currency_digits': self.env.company.currency_id.decimal_places,
             'kpis': {'records': count, 'kilos': totals.get('total_kilos', 0.0) or 0.0,
                 'boxes': totals.get('total_boxes', 0.0) or 0.0,

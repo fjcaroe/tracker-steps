@@ -50,7 +50,10 @@ class HarvestNativeScopeCase(HttpCase):
                 'responsable_id': cls.users[index].id})
 
     def get_payload(self, path):
-        response = self.url_open(path)
+        # A fresh destination copy can initialize a large native registry on
+        # its first HTTP request. Keep identity and permission assertions intact
+        # while allowing that bounded cold start to finish.
+        response = self.url_open(path, timeout=90)
         self.assertEqual(response.status_code, 200)
         return response.json()
 
