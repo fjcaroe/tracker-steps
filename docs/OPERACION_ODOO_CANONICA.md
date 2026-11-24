@@ -1,5 +1,30 @@
 # Operación y publicación de Odoo
 
+T236/T237 completan Harvest 0.0.8 y `step_harvest_launcher` 18.0.1.4.0 con
+`harvest-app` en Desarrollo, Cerro y QA-Cerro. El ciclo móvil Cerrar OT →
+Marcar revisada → Enviar OT confirma las entregas del dispositivo en Odoo,
+conserva el estado contable nativo y registra fecha y actor. Usa los permisos
+de escritura existentes; no asigna perfiles. Una OT cerrada rechaza nuevas
+entregas y permite recuperar la respuesta del mismo UUID sin duplicarlas.
+Mostrar el vínculo a la OT nativa y preservar los pendientes al actualizar.
+
+Cuadrillas toma tipo de tareo y contratista del maestro. El enrolamiento conserva
+empleados, cargos y miembros nativos; Cosechero se propone y solo se crea durante
+un enrolamiento autorizado cuando falta. La asistencia usa `hr.attendance`, con
+la cuadrilla relacionada y los permisos existentes, desde los dos menús de Cosecha.
+La cola por ambiente, usuario y empresa envía empleados y asistencia antes de las
+entregas. No crear empleados, cargos ni asistencias reales al publicar.
+
+Certificar el backend y el web juntos en copias frescas de los tres destinos,
+con stage `t236237_<commit-backend>`, preservación y pruebas de contexto,
+enrolamiento, entrada/salida, reintentos y transiciones. La opción de escritura
+del proxy se limita a esas copias, al origen loopback exacto y a las tres rutas
+Harvest explícitas; la revisión de ambientes publicados conserva solo lectura.
+Verificar también el formulario nativo, menú, pantallas móviles y versión servida.
+Publicar el mismo paquete primero en Desarrollo, con respaldo, bloqueo común,
+rechazo de cambios concurrentes y de downgrade, y paridad Cerro/QA-Cerro.
+El APK piloto Android conserva su alcance independiente de Desarrollo.
+
 T239 actualiza `step_packing_ticket_revision` a 18.0.1.2.8 con `reception-excel`
 en Desarrollo, Cerro y QA-Cerro. Una guía del productor puede abarcar varias
 referencias externas de recepción del mismo fundo; no identifica por sí sola

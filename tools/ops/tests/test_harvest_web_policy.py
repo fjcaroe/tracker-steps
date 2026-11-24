@@ -134,7 +134,7 @@ class OperationsPolicyCase(unittest.TestCase):
 
     def test_new_copy_writes_keep_android_and_published_origins_restricted(self):
         origin = 'http://127.0.0.1:8177'
-        for path in ('/api/harvest/crew/sync', '/api/harvest/work-orders/lifecycle'):
+        for path in ('/api/harvest/crew/sync', '/api/harvest/orders/transition'):
             self.assertTrue(is_copy_sync_request(True, 'POST', path, origin, 8177, '0.0.8'))
             self.assertFalse(is_copy_sync_request(True, 'POST', path, origin, 8177))
             self.assertFalse(is_copy_sync_request(False, 'POST', path, origin, 8177, '0.0.8'))

@@ -20,7 +20,7 @@ OPERATIONS_REVIEW_CHECKS = (
     'native_copy_sync', 'sync_idempotency', 'pending_preserved', 'mobile_layout',
 )
 OPERATIONS_WRITE_PATHS = (
-    '/api/harvest/sync', '/api/harvest/crew/sync', '/api/harvest/work-orders/lifecycle',
+    '/api/harvest/sync', '/api/harvest/crew/sync', '/api/harvest/orders/transition',
 )
 
 
