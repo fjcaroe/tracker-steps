@@ -126,7 +126,9 @@ class HarvestCostingCase(TransactionCase):
 
     def test_missing_or_expired_rate_prevents_costing_without_using_another_unit(self):
         record = self.harvest(state='apro')
+        self.assertEqual(record.registry_line.harvest_unit_price, 1575)
         self.rule.date_end = '2026-11-23 23:59:00'
+        self.assertEqual(record.registry_line.harvest_unit_price, 0)
         with self.assertRaises(UserError):
             record.action_costeo()
         self.assertEqual(record.state, 'apro')
@@ -137,6 +139,7 @@ class HarvestCostingCase(TransactionCase):
         self.assertEqual(record.state, 'apro')
 
     def test_contractor_costing_uses_the_same_native_header_unit(self):
+        self.tariff.group_type = 'contratista'
         record = self.harvest(type_tarea='contratista', registry_line=[],
             registry_tarja_line=[Command.create({'quantity': 16, 'hrs': 8})])
         line = record.registry_tarja_line

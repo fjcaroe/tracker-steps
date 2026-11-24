@@ -95,6 +95,8 @@ class HarvestCosting(models.Model):
                         raise UserError(_('Falta una tarifa vigente para la labor y unidad de medida de esta cosecha.'))
                 values = {'labor_id': labor.id, 'uom_id': unit.id,
                     'tarifa': line.harvest_unit_price, 'cant_minima': line.harvest_min_quantity}
+                if registry.pricelist_id.cosecha:
+                    values.update(tarifa=price, cant_minima=minimum)
                 if registry.type_tarea == 'propio':
                     values['sueldo_base'] = line.harvest_salary_base
                 line.write(values)
@@ -132,7 +134,10 @@ class HarvestOwnCosting(models.Model):
         'registry_id.especie_id', 'registry_id.grupo_variedad_id', 'registry_id.labor_id',
         'registry_id.product_uom_id', 'registry_id.pricelist_id',
         'registry_id.pricelist_id.item_ids.fixed_price', 'registry_id.pricelist_id.item_ids.min_quantity',
-        'registry_id.pricelist_id.item_ids.uom_id')
+        'registry_id.pricelist_id.item_ids.uom_id', 'registry_id.pricelist_id.item_ids.date_start',
+        'registry_id.pricelist_id.item_ids.date_end', 'registry_id.pricelist_id.item_ids.product_tmpl_id',
+        'registry_id.pricelist_id.item_ids.product_id', 'registry_id.pricelist_id.item_ids.labor_id',
+        'registry_id.pricelist_id.item_ids.compute_price')
     def _compute_total_hrs(self):
         # Enter the native compute through the field engine, which protects its
         # sibling outputs while the native method assigns rate/salary inputs.
@@ -169,7 +174,10 @@ class HarvestContractorCosting(models.Model):
         'registry_id.state', 'registry_id.fundo_id', 'registry_id.especie_id',
         'registry_id.grupo_variedad_id_domain', 'registry_id.partner_id', 'registry_id.labor_id', 'registry_id.product_uom_id',
         'registry_id.pricelist_id', 'registry_id.pricelist_id.item_ids.fixed_price',
-        'registry_id.pricelist_id.item_ids.min_quantity', 'registry_id.pricelist_id.item_ids.uom_id')
+        'registry_id.pricelist_id.item_ids.min_quantity', 'registry_id.pricelist_id.item_ids.uom_id',
+        'registry_id.pricelist_id.item_ids.date_start', 'registry_id.pricelist_id.item_ids.date_end',
+        'registry_id.pricelist_id.item_ids.product_tmpl_id', 'registry_id.pricelist_id.item_ids.product_id',
+        'registry_id.pricelist_id.item_ids.labor_id', 'registry_id.pricelist_id.item_ids.compute_price')
     def compute_total_trato(self):
         if self.env.context.get('step_harvest_native_cost_preview') and all(
                 not isinstance(line.id, int) for line in self):
