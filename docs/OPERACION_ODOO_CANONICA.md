@@ -1,5 +1,15 @@
 # Operación y publicación de Odoo
 
+T239 actualiza `step_packing_ticket_revision` a 18.0.1.2.8 con `reception-excel`
+en Desarrollo, Cerro y QA-Cerro. Una guía del productor puede abarcar varias
+referencias externas de recepción del mismo fundo; no identifica por sí sola
+una carga duplicada. Conservar la unicidad de referencia por empresa, packing,
+temporada y fundo, y la de los números de tarja. Probar las cuatro referencias
+del adjunto con sus ocho tarjas, kilos y envases en copia fresca, sin mover stock
+ni guardar la carga del cliente en los destinos reales. Certificar el mismo
+paquete, revisar menú y formulario y publicar con respaldo, bloqueo compartido,
+ausencia de downgrade y paridad, conservando la capacitación de QA-Cerro.
+
 La revisión solicitada el 24-11-2026 autoriza preparar Harvest 0.0.7 y un APK
 Android de prueba exclusivamente para Desarrollo. El contenedor usa el HTTPS
 canónico y la sesión nativa Odoo; conservar usuarios, credenciales, perfiles y

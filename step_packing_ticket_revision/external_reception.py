@@ -523,14 +523,9 @@ class ExternalReceptionImport(models.TransientModel):
                 limit=1):
             raise UserError(_('La referencia %(folio)s ya existe para el fundo %(farm)s.',
                               folio=folio, farm=first['fundo'].display_name))
-        if model.sudo().search_count([
-                *active,
-                '|', ('fruit_fundo_id', '=', first['fundo'].id),
-                '&', ('fruit_fundo_id', '=', False), ('partner_id', '=', first['fundo'].partner_id.id),
-                ('fruit_guide_number', '=', first['guide']),
-                ('step_receiving_packing_id', 'in', [False, self.packing_id.id])], limit=1):
-            raise UserError(_('La guía %(guide)s ya tiene una recepción vigente para el fundo %(farm)s.',
-                              guide=first['guide'], farm=first['fundo'].display_name))
+        # A producer guide may cover several external reception references.
+        # The reference/farm check above and the globally unique tag numbers
+        # identify a repeated import; the guide alone cannot identify one.
 
         quantities = defaultdict(float)
         details = []

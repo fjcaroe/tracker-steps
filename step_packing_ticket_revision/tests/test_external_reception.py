@@ -233,6 +233,44 @@ class ExternalReceiptCase(TransactionCase):
         with self.assertRaises(UserError), self.cr.savepoint():
             mixed.action_import()
 
+        # T239: two producer guides each cover two references of the same farm.
+        # Creating one group must not make the next group a false duplicate.
+        sheet.cell(2, 11, 'KG Netos')
+        sheet.delete_rows(3, sheet.max_row)
+        for index in range(8):
+            sheet.append([
+                'QA239-%s' % (index // 2), 'QA239-G%s' % (index // 4),
+                'QA239-TAG-%s' % index, '20-11-2026 21:32', species.name,
+                varieties[0].name, 'Cliente', fundo.name, packaging.name,
+                10, 35, 'GRANEL PROCESO', 'CONVENCIONAL', 'N', 'N', 'N', '',
+            ])
+        shared = model.create(dict(defaults, file=attachment(), save_template=False))
+        shared.action_review()
+        self.assertIn('4 borradores', shared.review_note)
+        stock_before = self.env['stock.quant'].search([]).read(['quantity', 'reserved_quantity'])
+        imported = self.env['stock.picking'].search(shared.action_import()['domain'])
+        self.assertEqual(len(imported), 4)
+        self.assertEqual(set(imported.mapped('step_external_reception_folio')),
+                         {'QA239-0', 'QA239-1', 'QA239-2', 'QA239-3'})
+        self.assertEqual(set(imported.mapped('fruit_guide_number')), {'QA239-G0', 'QA239-G1'})
+        self.assertEqual(imported.fruit_fundo_id, fundo)
+        self.assertEqual(len(imported.fruit_tag_line_ids), 8)
+        self.assertEqual(sum(imported.fruit_tag_line_ids.mapped('quantity')), 80)
+        self.assertEqual(sum(imported.fruit_tag_line_ids.mapped('kilos')), 280)
+        self.assertEqual(set(imported.mapped('state')), {'draft'})
+        self.assertFalse(imported.fruit_tag_line_ids.package_id)
+        self.assertEqual(self.env['stock.quant'].search([]).read(['quantity', 'reserved_quantity']), stock_before)
+        with self.assertRaises(UserError), self.cr.savepoint():
+            shared.action_import()
+        # Changing the tags does not bypass the reference/farm duplicate check.
+        for index in range(8):
+            sheet.cell(index + 3, 3, 'QA239-NEW-TAG-%s' % index)
+        repeated = model.create(dict(defaults, file=attachment(), save_template=False))
+        with self.assertRaisesRegex(UserError, 'referencia'), self.cr.savepoint():
+            repeated.action_import()
+        self.assertEqual(self.env['stock.picking'].search_count([
+            ('step_external_reception_folio', 'in', imported.mapped('step_external_reception_folio'))]), 4)
+
         process_type = self.env['step.packing.process.type'].create({'name': 'QA T193 Embalaje'})
         process_line = self.env['step.packing.line'].create({'name': 'QA T193 Línea'})
         group = self.env['step.management.caliber.group'].create({'name': 'QA T193 Calibres', 'code': 'T193'})
