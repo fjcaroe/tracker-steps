@@ -32,7 +32,7 @@ def concrete_test_count(source, module, only_class=None):
 
 
 def capture_original_native_visibility(source, stage, args, conf, paths, data, owner):
-    """Observe original payroll permissions on the fresh restore before upgrades."""
+    """Observe original payroll permissions and menus before any upgrade."""
     from probe_original_master_visibility import CAPSULE_SHA256, sha, source_inventory_graph
 
     vault = Path('/opt/steps-validation')
@@ -50,12 +50,33 @@ def capture_original_native_visibility(source, stage, args, conf, paths, data, o
 
     tools = source / 'tools/community'
     proof = stage / 'original-source-visibility.json'
-    expression = (
-        f'import sys; sys.path.insert(0, {str(tools)!r}); '
-        'from probe_original_master_visibility import run; '
-        f'run(env, {str(stage / "original-capsule.json")!r}, {CAPSULE_SHA256!r}, '
-        f'output={str(proof)!r}, source_inventory_path={str(stage / "source-inventory.json")!r})'
-    )
+    identity = stage / 'identity-before.json'
+    identity.chmod(0o600)
+    identity_sha = sha(identity.read_bytes())
+    capsule = stage / 'original-capsule.json'
+    menu_proof = stage / 'original-source-menus.json'
+    expression = '\n'.join((
+        'import json, sys',
+        f'sys.path.insert(0, {str(tools)!r})',
+        'from pathlib import Path',
+        'from odoo import sql_db',
+        'from original_handover_menu_contract import validate_source',
+        'from probe_original_master_visibility import run, sha',
+        'from probe_original_menu_visibility import run as observe_menus',
+        f'source = run(env, {str(capsule)!r}, {CAPSULE_SHA256!r}, '
+        f'output={str(proof)!r}, source_inventory_path={str(stage / "source-inventory.json")!r})',
+        f'source_sha = sha(Path({str(proof)!r}).read_bytes())',
+        f'menus = observe_menus(env, capsule_path={str(capsule)!r}, capsule_sha256={CAPSULE_SHA256!r}, '
+        f'identity_path={str(identity)!r}, identity_sha256={identity_sha!r}, '
+        f'source_visibility_path={str(proof)!r}, source_visibility_sha256=source_sha, output={str(menu_proof)!r})',
+        f'validate_source(menus, source, json.loads(Path({str(identity)!r}).read_bytes()), '
+        f'source_sha256=source_sha, identity_sha256={identity_sha!r})',
+        'cursors = sql_db._steps_readonly_cursor_proof',
+        'assert cursors and all(row["transaction_read_only"] == "on" and row["odoo_cursor_readonly"] is True '
+        'for row in cursors)',
+        'print("ORIGINAL_SOURCE_MENUS_VERIFIED")',
+        '',
+    ))
     log_path = stage / 'original-source-visibility.log'
     command = ['sudo', '-u', owner.pw_name, '/usr/bin/python3.10',
         str(tools / 'original_external_references_readonly_bootstrap.py'),
@@ -66,9 +87,13 @@ def capture_original_native_visibility(source, stage, args, conf, paths, data, o
         '--without-demo=all', '--stop-after-init', '--logfile=' + str(log_path)]
     with (stage / 'original-source-visibility-bootstrap.log').open('x') as log:
         status = subprocess.run(offline_odoo(command), input=expression, text=True, stdout=log, stderr=subprocess.STDOUT)
-    assert status.returncode == 0 and proof.is_file(), 'Original source observation failed; inspect private logs'
+    assert status.returncode == 0 and proof.is_file() and menu_proof.is_file(), (
+        'Original master or menu observation failed; inspect private logs')
+    assert 'ORIGINAL_SOURCE_MENUS_VERIFIED' in (stage / 'original-source-visibility-bootstrap.log').read_text()
     assert not re.search(r' (ERROR|CRITICAL) ', log_path.read_text(errors='replace'))
     result = json.loads(proof.read_bytes())
+    menus = json.loads(menu_proof.read_bytes())['menus']
+    print('ORIGINAL_SOURCE_MENUS_OK', {key: row['visible_debug_false'] for key, row in menus.items()}, flush=True)
     print('ORIGINAL_SOURCE_VISIBILITY_OK', result['engine']['installed'],
           result['allowed_master_ids'], result['denied_master_ids'], flush=True)
 
