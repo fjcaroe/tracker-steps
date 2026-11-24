@@ -6,6 +6,7 @@ import fcntl
 import hashlib
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.cookies import SimpleCookie
 import json
 import mimetypes
 import os
@@ -27,6 +28,7 @@ def main():
     parser.add_argument('--web-root', required=True, type=Path, help='Extracted immutable web release')
     parser.add_argument('--stage', type=Path, help='Certified private destination copy; omit for published review')
     parser.add_argument('--company-id', type=int)
+    parser.add_argument('--multi-company', action='store_true', help='Prefer an existing business editor already authorized in several companies')
     parser.add_argument('--port', type=int, required=True)
     parser.add_argument('--minutes', type=int, default=25)
     args = parser.parse_args()
@@ -45,7 +47,7 @@ def main():
     web = args.web_root.resolve()
     assert web.is_relative_to('/opt/steps-validation') and web == args.web_root
     frontend = json.loads((web/'release.json').read_text())
-    assert frontend['repository'] == 'stepconsulting/step_harvest' and frontend['version'] == '0.0.3'
+    assert frontend['repository'] == 'stepconsulting/step_harvest' and frontend['version'] in ('0.0.3', '0.0.4', '0.0.5')
     for name, expected in frontend['files'].items():
         path = web/name
         assert path.resolve().is_relative_to(web) and not path.is_symlink()
@@ -56,12 +58,16 @@ def main():
     stage = args.stage
     if stage:
         assert stage.resolve() == stage and stage.parent == Path('/opt/steps-validation')
-        match = re.fullmatch(r'management_(development|cerro|qa-cerro)_t231232_([a-f0-9]{8})', stage.name)
+        match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231232|harvestcompany|t233)_([a-f0-9]{8})', stage.name)
         assert match and match[1] == args.environment
         proof = json.loads((stage/'qa_passed.json').read_text())
         database = proof['database']
-        assert database == 'MANAGEMENT_QA_'+args.environment.upper()+'_t231232_'+match[2]
-        assert proof['commit'].startswith(match[2])
+        assert database == 'MANAGEMENT_QA_'+args.environment.upper()+'_'+match[2]+'_'+match[3]
+        if match[2] == 'harvestcompany':
+            assert proof['feature'] == 'harvest-company-selector' and proof['readonly_copy'] and proof['business_preserved']
+            assert proof['harvest_web'] == frontend and frontend['commit'].startswith(match[3])
+        else:
+            assert proof['commit'].startswith(match[3])
         source_options = ['--addons-path='+str(stage/'addons')+','+options['addons_path'], '--data-dir='+str(stage/'data')]
         with socket.socket() as listener:
             listener.bind(('127.0.0.1', 0))
@@ -86,6 +92,12 @@ else:
     assert not proof.exists()
     company=env['res.company'].browse(COMPANY_ID).exists() if COMPANY_ID else None
     business=scoped_business_environment(env,company=company)
+    if MULTI_COMPANY:
+        editors=env['res.users'].search([('active','=',True),('share','=',False),('id','!=',1),
+            ('company_ids','in',business.company.ids)],order='id').filtered(lambda user:
+                len(user.company_ids)>1 and user.has_group('base.group_system') and user.has_group('account.group_account_manager'))
+        assert editors, 'Existing multi-company business editor required; do not grant permissions'
+        business=env(user=editors[:1],su=False,context=dict(env.context,allowed_company_ids=business.company.ids))
     user=business.user
     session=http.root.session_store.new()
     session.update({'db':env.cr.dbname,'uid':user.id,'login':user.login,
@@ -102,7 +114,7 @@ print('HARVEST_REVIEW_SESSION_OK')
         # The tool bundle remains private to root. Pass this versioned helper
         # as shell input rather than widening access to the bundle directory.
         header = (tools/'native_business_profile.py').read_text()+'\n'
-        header += 'SESSION_FILE='+repr(str(session_file))+'\nCLEANUP='+repr(cleanup)+'\nCOMPANY_ID='+repr(args.company_id)+'\n'
+        header += 'SESSION_FILE='+repr(str(session_file))+'\nCLEANUP='+repr(cleanup)+'\nCOMPANY_ID='+repr(args.company_id)+'\nMULTI_COMPANY='+repr(args.multi_company or frontend['version'] == '0.0.4')+'\n'
         result = subprocess.run(odoo+['shell', *common, '--no-http', '--log-level=error'],
             input=header+session_script, text=True, capture_output=True)
         assert result.returncode == 0 and 'HARVEST_REVIEW_SESSION_OK' in result.stdout, result.stderr[-1200:]
@@ -182,7 +194,7 @@ print('HARVEST_REVIEW_SESSION_OK')
                     self.wfile.write(data)
                     return
                 if self.command == 'POST':
-                    allowed = is_read_request(self.path, body)
+                    allowed = is_read_request(self.path, body) or path == '/web/session/get_session_info'
                     try:
                         params = json.loads(body).get('params', {})
                         allowed |= params.get('model') == 'step.cosecha.registry' and params.get('method') == 'get_dashboard_data'
@@ -201,7 +213,12 @@ print('HARVEST_REVIEW_SESSION_OK')
                     self.send_error(403)
                     return
                 headers = {name: value for name, value in self.headers.items() if name.lower() not in ('cookie', 'host', 'connection', 'accept-encoding')}
-                headers.update({'Host': host, 'Cookie': 'session_id='+auth['session_id'], 'X-Forwarded-Proto': 'https', 'Connection': 'close'})
+                cookies = SimpleCookie(self.headers.get('Cookie', ''))
+                selected = cookies['cids'].value if 'cids' in cookies else str(auth['company_id'])
+                if not re.fullmatch(r'[0-9]+(?:[-,][0-9]+)*', selected):
+                    self.send_error(400, 'Invalid company cookie')
+                    return
+                headers.update({'Host': host, 'Cookie': 'session_id='+auth['session_id']+'; cids='+selected, 'X-Forwarded-Proto': 'https', 'Connection': 'close'})
                 connection = http.client.HTTPConnection('127.0.0.1', private_port, timeout=90) if stage else http.client.HTTPSConnection(host, timeout=90)
                 try:
                     connection.request(self.command, self.path, body=body or None, headers=headers)

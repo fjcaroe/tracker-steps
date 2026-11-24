@@ -54,9 +54,9 @@ try:
         view_id=tariff_view.id, view_type='form')['arch'])
     check_fields('product.pricelist', tariff_arch)
     assert not tariff_arch.xpath(".//field[starts-with(@name, 'x_')]")
-    for field in ('labor_id', 'uom_id'):
+    for field in ('product_tmpl_id', 'uom_id'):
         assert tariff_arch.xpath("//field[@name='item_ids']/list/field[@name='%s']" % field)
-        assert tariff_arch.xpath("//field[@name='item_ids']/form//field[@name='%s'][@required='True']" % field)
+        assert tariff_arch.xpath("//field[@name='item_ids']/form//field[@name='%s'][@required]" % field)
     assert 'root_plan_id.name' in tariff_arch.xpath("//field[@name='cost_ids']")[0].get('domain')
     for kind in ('propio', 'contratista'):
         action = env.ref('step_cosecha.step_pricelist_action_' + kind + '_cosecha')

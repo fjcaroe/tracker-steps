@@ -64,9 +64,11 @@ Pasaron 63 pruebas locales de herramientas y contratos de evidencia. El
 paquete de ejecución queda en `origin/codex/community-resume-20261123` a la
 espera de la pareja funcional nueva.
 
-La siguiente ejecución debe verificar la reserva en el `data_directory` real,
-crear raíz y bases privadas nuevas, y repetir el paquete de almacenamiento
-exacto en Community y la referencia fresca de Cerro. Después corresponde
+La [limpieza posterior](LIMPIEZA_DISCO_2026-11-23.md) restituyó la reserva.
+Al cierre dejó 34,64 GiB libres en el volumen de PostgreSQL y 32,66 GiB en
+raíz. La siguiente ejecución debe verificarla bajo bloqueo, crear raíz y
+bases privadas nuevas, y repetir el paquete de almacenamiento exacto en
+Community y la referencia fresca de Cerro. Después corresponde
 revisar las 32 columnas y 32 FK pendientes en una adopción anclada nueva.
 Conservar F/G y el testigo de 71 reglas. Mantener abiertos días, redondeos,
 YTD, asientos, Previred/libro, consumidores, DTE/CAF/SII, Tesorería, Calidad,

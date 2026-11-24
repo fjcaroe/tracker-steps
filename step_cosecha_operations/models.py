@@ -72,3 +72,10 @@ class HarvestPricelistItem(models.Model):
             self.applied_on = '1_product'
             if not self.uom_id or self.uom_id.category_id != self.labor_id.uom_id.category_id:
                 self.uom_id = self.labor_id.uom_id
+
+    @api.onchange('product_tmpl_id')
+    def _onchange_harvest_native_product(self):
+        if self.product_tmpl_id and (self.pricelist_id.cosecha or
+                self.env.context.get('step_propio_cosecha') or self.env.context.get('step_contra_cosecha')):
+            self.labor_id = self.product_tmpl_id
+            self._onchange_harvest_labor()

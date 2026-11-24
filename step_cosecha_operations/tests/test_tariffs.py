@@ -38,7 +38,7 @@ class HarvestTariffCase(TransactionCase):
                 form.date_init = fields.Date.to_date('2026-11-01')
                 form.date_end = fields.Date.to_date('2026-12-31')
                 with form.item_ids.new() as line:
-                    line.labor_id = self.labor
+                    line.product_tmpl_id = self.labor
                     self.assertEqual(line.uom_id, self.kg)
                     line.fixed_price = 500
                     line.min_quantity = 40
@@ -59,6 +59,24 @@ class HarvestTariffCase(TransactionCase):
                 with edited.item_ids.edit(0) as line:
                     line.fixed_price = 550
             self.assertEqual(tariff.item_ids.fixed_price, 550)
+
+    def test_legacy_native_product_remains_visible_without_rewriting_history(self):
+        tariff = self.tariff()
+        rule = self.env['product.pricelist.item'].create({'pricelist_id': tariff.id,
+            'product_tmpl_id': self.labor.id, 'fixed_price': 500, 'applied_on': '1_product'})
+        # Reproduce the native historical shape observed in the destination:
+        # an original product and unit, before the later labor alias existed.
+        self.env.cr.execute('UPDATE product_pricelist_item SET labor_id=NULL WHERE id=%s', [rule.id])
+        rule.invalidate_recordset(['labor_id'])
+        self.assertFalse(rule.labor_id)
+        with Form(tariff, view=self.view) as form:
+            with form.item_ids.edit(0) as line:
+                self.assertEqual(line.product_tmpl_id, self.labor)
+                self.assertEqual(line.uom_id, self.kg)
+                line.fixed_price = 550
+        self.assertEqual(rule.labor_id, self.labor)
+        self.assertEqual(rule.product_tmpl_id, self.labor)
+        self.assertEqual(rule.fixed_price, 550)
 
     def test_native_product_api_and_explicit_unit(self):
         tariff = self.tariff()

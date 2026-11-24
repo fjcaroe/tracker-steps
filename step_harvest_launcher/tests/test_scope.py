@@ -35,7 +35,8 @@ class HarvestNativeScopeCase(HttpCase):
                     'company_id': company.id, 'implementation': 'no_gap', 'prefix': 'PRIVATE'})
             user = new_test_user(cls.env, login='private_harvest_scope_%s' % index,
                 password='private-fixture', company_id=company.id,
-                company_ids=[Command.set(company.ids)], groups='base.group_user,hr.group_hr_user')
+                company_ids=[Command.set(cls.companies.ids if index == 0 else company.ids)],
+                groups='base.group_user,hr.group_hr_user,analytic.group_analytic_accounting')
             cls.users |= user
             cls.workers |= cls.env['hr.employee'].with_company(company).create({
                 'name': 'Private Harvest worker %s' % index, 'company_id': company.id, 'pin': str(9823100 + index)})
@@ -58,6 +59,46 @@ class HarvestNativeScopeCase(HttpCase):
         self.assertFalse(data['connected'])
         self.assertFalse(data['scope'])
         self.assertFalse(data['company'])
+
+    def clear_company_cookie(self):
+        for cookie in list(self.opener.cookies):
+            if cookie.name == 'cids':
+                self.opener.cookies.clear(cookie.domain, cookie.path, cookie.name)
+
+    def test_company_selection_uses_the_native_cookie_before_reads_and_uploads(self):
+        self.authenticate(self.users[0].login, 'private-fixture')
+        original = self.get_payload('/api/harvest/bootstrap')['scope']
+        try:
+            for separator in ('-', ','):
+                self.clear_company_cookie()
+                self.opener.cookies.set('cids', separator.join(map(str, reversed(self.companies.ids))))
+                session = self.get_payload('/api/harvest/session')
+                self.assertEqual(self.get_payload('/api/harvest/health')['scope'], session['scope'])
+                data = self.get_payload('/api/harvest/bootstrap')
+                self.assertEqual(data['company']['id'], self.companies[1].id)
+                self.assertEqual(data['scope'], session['scope'])
+                self.assertNotEqual(data['scope'], original)
+                self.assertEqual([row['odoo_id'] for row in data['orders']], self.orders[1].ids)
+                self.assertNotIn(self.workers[0].id, [row['id'] for row in data['workers']])
+                response = self.url_open('/api/harvest/sync', data=json.dumps({'scope': original,
+                    'records': [{'client_uuid': 'private_old_company_cookie'}]}),
+                    headers={'Content-Type': 'application/json'})
+                self.assertEqual(response.status_code, 409)
+        finally:
+            self.clear_company_cookie()
+
+    def test_foreign_or_malformed_company_cookie_is_rejected(self):
+        self.authenticate(self.users[1].login, 'private-fixture')
+        try:
+            for value in (str(self.companies[0].id), str(self.companies[1].id)+'-invalid'):
+                self.clear_company_cookie()
+                self.opener.cookies.set('cids', value)
+                for route in ('session', 'bootstrap'):
+                    response = self.url_open('/api/harvest/'+route)
+                    self.assertEqual(response.status_code, 403)
+                    self.assertFalse(response.json()['ok'])
+        finally:
+            self.clear_company_cookie()
 
     def test_private_launcher_never_redirects_the_review_to_production(self):
         response = self.url_open('/harvest/open', allow_redirects=False)
@@ -124,3 +165,66 @@ class HarvestNativeScopeCase(HttpCase):
             self.assertFalse(result['ok'])
             self.assertFalse(self.env['step.cosecha.tarja.registry.line'].search([
                 ('mobile_uid', '=', changed['client_uuid'])]))
+
+    def test_plot_catalog_tracks_center_and_upload_saves_native_relation(self):
+        company, foreign_company = self.companies
+        env = self.env(context=dict(self.env.context, allowed_company_ids=self.companies.ids))
+        plan = (company.management_actual_center_plan_id
+                if 'management_actual_center_plan_id' in company._fields else False)
+        if not plan:
+            plan = env['account.analytic.plan'].create({'name': 'Centro Costos'})
+        first, other, foreign = env['account.analytic.account'].create([
+            {'name': 'Private T233 A', 'company_id': company.id, 'plan_id': plan.id},
+            {'name': 'Private T233 B', 'company_id': company.id, 'plan_id': plan.id},
+            {'name': 'Private T233 foreign', 'company_id': foreign_company.id, 'plan_id': plan.id},
+        ])
+        plots = env['step.cuartel.line'].create([
+            {'name': 'Private plot', 'centro_id': center.id} for center in (first, other, foreign)
+        ])
+        farm = env['step.fundo'].create({'name': 'Private T233 farm', 'company_id': company.id})
+        species = env['step.especie'].create({
+            'name': 'Private T233 species', 'type_especie': 'frutal',
+            'group_especie': 'baya', 'company_id': company.id})
+        group = env['step.grupo.variedad'].create({
+            'name': 'Private T233 group', 'especie_id': species.id, 'company_id': company.id})
+        variety = env['step.variedad'].create({
+            'name': 'Private T233 variety', 'cod_variedad': 'T233-PRIVATE',
+            'especie_id': species.id, 'grupo_variedad_id': group.id, 'company_id': company.id})
+        crew = env['hr.salary.custom'].create({
+            'name': 'Private T233 crew', 'group_type': 'propio', 'company_id': company.id})
+
+        self.authenticate(self.users[0].login, 'private-fixture')
+        data = self.get_payload('/api/harvest/bootstrap')
+        self.assertEqual(data['company']['id'], company.id)
+        choices = {center['id']: center['cuarteles'] for center in data['cost_centers']}
+        self.assertIn(first.id, choices)
+        self.assertIn(other.id, choices)
+        self.assertEqual([plot['id'] for plot in choices[first.id]], plots[0].ids)
+        self.assertEqual([plot['id'] for plot in choices[other.id]], plots[1].ids)
+        self.assertNotIn(foreign.id, choices)
+        order = {'id': 'PRIVATE-T233', 'farm_id': farm.id, 'variety_id': variety.id,
+                 'cost_id': first.id, 'crew_id': crew.id}
+
+        def upload(suffix, **order_changes):
+            record = {'client_uuid': 'private_t233_' + suffix, 'worker_id': self.workers[0].id,
+                      'tarja': 'PRIVATE-T233', 'boxes': 1, 'kilos': 4,
+                      'work_order': dict(order, **order_changes)}
+            response = self.url_open('/api/harvest/sync', data=json.dumps({
+                'scope': data['scope'], 'records': [record]}), headers={'Content-Type': 'application/json'})
+            return response.json()['results'][0]
+
+        for plot in plots[1:]:
+            self.assertFalse(upload(str(plot.id), cuartel_id=plot.id)['ok'])
+        result = upload('valid', cuartel_id=plots[0].id)
+        self.assertTrue(result['ok'], result)
+        saved = env['step.cosecha.registry'].browse(result['work_order_id'])
+        self.assertEqual(saved.cuartel_id, plots[0])
+        self.assertEqual(upload('valid', cuartel_id=plots[0].id)['id'], result['id'])
+        self.assertFalse(upload('conflict', cuartel_id=plots[1].id)['ok'])
+        published = next(item for item in self.get_payload('/api/harvest/bootstrap')['orders']
+                         if item['odoo_id'] == saved.id)
+        self.assertEqual(published['cuartel_id'], plots[0].id)
+        self.assertEqual(published['cuartel'], plots[0].display_name)
+        legacy = upload('old_draft', id='PRIVATE-T233-LEGACY')
+        self.assertTrue(legacy['ok'], legacy)
+        self.assertFalse(env['step.cosecha.registry'].browse(legacy['work_order_id']).cuartel_id)

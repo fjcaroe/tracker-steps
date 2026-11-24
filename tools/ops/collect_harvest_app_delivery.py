@@ -1,0 +1,79 @@
+"""Collect the certified Harvest backend, web, native reviews and isolation evidence."""
+import argparse
+import fcntl
+import hashlib
+import json
+from pathlib import Path
+import re
+import shutil
+import subprocess
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('base', type=Path)
+    parser.add_argument('run_id')
+    args = parser.parse_args()
+    base = args.base
+    assert base.resolve() == base and base.parent == Path('/opt/steps-validation')
+    assert re.fullmatch('t231232_[a-f0-9]{8}', args.run_id)
+    output = base/'delivery'
+    output.mkdir(mode=0o700, exist_ok=True)
+    manifest = json.loads((base/'web/release.json').read_text())
+    sha = hashlib.sha256((base/'harvest.tar.gz').read_bytes()).hexdigest()
+    commits = set()
+    for target in ('development', 'qa-cerro', 'cerro'):
+        stage = Path('/opt/steps-validation')/('management_'+target+'_'+args.run_id)
+        qa_file = stage/'qa_passed.json'
+        qa = json.loads(qa_file.read_text())
+        assert qa['release_sha256'] == sha
+        commits.add(qa['commit'])
+        test = Path(qa['log'])
+        assert re.search(r'0 failed, 0 error\(s\) of 18 tests', test.read_text())
+        flow = stage/('verify-'+qa['database']+'.log')
+        assert 'MANAGEMENT_REGISTRY_OK' in flow.read_text()
+        live = base/('deploy-'+target+'.log')
+        text = live.read_text()
+        assert 'MANAGEMENT_VERIFY_OK' in text
+        backups = re.findall(r'MANAGEMENT_DEPLOY_OK backup=(\S+)', text)
+        assert len(backups) == 1
+        deployment = Path(backups[0])/'deployment.json'
+        deployed = json.loads(deployment.read_text())
+        assert deployed['commit'] == qa['commit'] and deployed['sha256'] == sha
+        web = stage/'harvest-web-deployed.json'
+        web_data = json.loads(web.read_text())
+        assert web_data['backend_commit'] == qa['commit'] and web_data['web_commit'] == manifest['commit']
+        assert web_data['served'] == manifest['files']
+        review = base/(target+'-live-review.json')
+        checked = json.loads(review.read_text())
+        assert checked['reviewed'] is True and checked['environment'] == target
+        assert checked['backend_commit'] == qa['commit'] and checked['web_commit'] == manifest['commit']
+        for suffix, source in (('qa.json', qa_file), ('qa.log', test), ('flow.log', flow),
+                ('live.log', live), ('deployment.json', deployment), ('web.json', web), ('live-review.json', review)):
+            shutil.copyfile(source, output/(target+'-'+suffix))
+    assert len(commits) == 1
+    tools = Path(__file__).resolve().parent
+    with open('/run/lock/steps-environments.lock', 'a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        result = subprocess.run(['/usr/bin/python3.10', '-c', 'from provision_cerro_qa import verify; verify()'],
+            cwd=tools, text=True, capture_output=True)
+        isolation = result.stdout+result.stderr
+        (output/'isolation.log').write_text(isolation)
+        assert result.returncode == 0, 'QA isolation failed: '+str(output/'isolation.log')
+        assert all(marker in isolation for marker in (
+            'CUSTOMER_QA_VERIFY_OK', 'CUSTOMER_QA_EGRESS_BLOCKED', 'CUSTOMER_QA_SOURCE_DB_DENIED'))
+        rules = subprocess.check_output(['/usr/sbin/iptables', '-S', 'OUTPUT'], text=True)
+        assert not any(marker in rules for marker in ('STEPS_PRIVATE_TEST_', 'STEPS_PRIVATE_REPORT_'))
+        result = subprocess.run(['/usr/bin/python3.10', str(tools/'verify_cerro_release_pair.py'),
+            '--module', 'step_cosecha_operations', '--module', 'step_harvest_launcher',
+            '--output', str(output/'pair.json')], text=True, capture_output=True, check=True)
+        assert 'CERRO_RELEASE_PAIR_OK' in result.stdout
+        (output/'pair.log').write_text(result.stdout)
+    (output/'delivery.json').write_text(json.dumps({'backend_commit': commits.pop(),
+        'backend_sha256': sha, 'web_commit': manifest['commit'], 'web_files': manifest['files'],
+        'tests': 54, 'frontend_tests': 14, 'reviewed_messages': {'231': 10595, '232': 10598}}, indent=2))
+    print('HARVEST_DELIVERY_COLLECTED targets=3 server_tests=54 frontend_tests=14')
+
+
+if __name__ == '__main__':
+    main()

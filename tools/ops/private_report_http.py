@@ -2,11 +2,35 @@
 from contextlib import contextmanager
 import os
 import pwd
+import re
 import signal
 import socket
 import subprocess
 import time
 import urllib.request
+
+
+@contextmanager
+def customer_qa_test_loopback(database, port, opts):
+    """Allow only the isolated HttpCase server, retaining QA's external deny."""
+    assert os.geteuid() == 0 and opts['db_user'] == 'cerroqa_odoo18'
+    assert re.fullmatch(r'MANAGEMENT_QA_QA-CERRO_[a-z0-9_]{1,24}', database)
+    assert isinstance(port, int) and 1024 < port < 65536
+    uid = str(pwd.getpwnam('cerroqa_odoo18').pw_uid)
+    rule = ['OUTPUT', '-m', 'owner', '--uid-owner', uid, '-d', '127.0.0.1/32',
+        '-p', 'tcp', '--dport', str(port), '-m', 'comment', '--comment',
+        'STEPS_PRIVATE_TEST_'+database, '-j', 'ACCEPT']
+    def present():
+        return subprocess.run(['/usr/sbin/iptables', '-w', '-C', *rule],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+    assert not present()
+    subprocess.run(['/usr/sbin/iptables', '-w', '-I', 'OUTPUT', '1', *rule[1:]], check=True)
+    try:
+        yield
+    finally:
+        subprocess.run(['/usr/sbin/iptables', '-w', '-D', *rule], check=True)
+        assert not present()
+        print('CUSTOMER_QA_TEST_LOOPBACK_REMOVED '+database, flush=True)
 
 
 @contextmanager

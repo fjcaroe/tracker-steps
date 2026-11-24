@@ -10,6 +10,8 @@ import re
 import shutil
 import subprocess
 import tarfile
+import time
+import urllib.error
 import urllib.request
 
 HOSTS = {'development': 'desarrollo.stepsapp.cl', 'cerro': 'cerroelplomo.stepsapp.cl',
@@ -102,7 +104,7 @@ def patch_config(source, host, root):
 def validate(web):
     manifest = json.loads((web/'release.json').read_text())
     assert manifest['repository'] == 'stepconsulting/step_harvest'
-    assert re.fullmatch('[a-f0-9]{40}', manifest['commit']) and manifest['version'] == '0.0.3'
+    assert re.fullmatch('[a-f0-9]{40}', manifest['commit']) and manifest['version'] in ('0.0.3', '0.0.4', '0.0.5')
     assert len(manifest['files']) == 5
     for name, expected in manifest['files'].items():
         path = web/name
@@ -123,16 +125,35 @@ def extract(package, web):
     return validate(web)
 
 
-def public_hashes(host, manifest):
-    hashes = {}
-    for name, expected in manifest['files'].items():
-        url = 'https://'+host+'/cosecha/'+name.removeprefix('app/')
-        response = urllib.request.urlopen(urllib.request.Request(url, headers={'Cache-Control': 'no-cache'}), timeout=40)
-        hashes[name] = hashlib.sha256(response.read()).hexdigest()
-        assert hashes[name] == expected, url
-        if name.endswith(('index.html', 'sw.js', 'manifest.webmanifest')):
-            assert 'no-cache' in response.headers.get('Cache-Control', '')
-    return hashes
+def public_hashes(host, manifest, attempts=1):
+    # nginx reload returns before its new workers have taken over. Require the
+    # entire immutable package, allowing only a bounded handover after reload.
+    assert 1 <= attempts <= 20
+    for attempt in range(attempts):
+        hashes = {}
+        try:
+            for name, expected in manifest['files'].items():
+                url = 'https://'+host+'/cosecha/'+name.removeprefix('app/')
+                response = urllib.request.urlopen(urllib.request.Request(url, headers={'Cache-Control': 'no-cache'}), timeout=40)
+                hashes[name] = hashlib.sha256(response.read()).hexdigest()
+                assert hashes[name] == expected, url
+                if name.endswith(('index.html', 'sw.js', 'manifest.webmanifest')):
+                    assert 'no-cache' in response.headers.get('Cache-Control', ''), url
+            return hashes
+        except (OSError, urllib.error.URLError, AssertionError):
+            if attempt + 1 == attempts:
+                raise
+            time.sleep(0.5)
+
+
+def current_javascript_hash(host):
+    base = 'https://'+host
+    request = urllib.request.Request(base+'/cosecha/', headers={'Cache-Control': 'no-cache'})
+    html = urllib.request.urlopen(request, timeout=40).read().decode('utf-8')
+    scripts = re.findall(r'<script\b[^>]*\bsrc="([^"]+\.js)"', html)
+    assert len(scripts) == 1 and scripts[0].startswith('/cosecha/assets/')
+    assert '..' not in scripts[0] and '://' not in scripts[0]
+    return hashlib.sha256(urllib.request.urlopen(base+scripts[0], timeout=40).read()).hexdigest()
 
 
 def main():
@@ -143,6 +164,7 @@ def main():
     parser.add_argument('--web', required=True, type=Path)
     parser.add_argument('--package', type=Path)
     parser.add_argument('--stage', type=Path)
+    parser.add_argument('--expected-js-sha256', help='Observed pre-deployment build; reject concurrent static changes')
     args = parser.parse_args()
     assert os.geteuid() == 0
     web = args.web
@@ -165,8 +187,25 @@ def main():
         assert review['reviewed'] is True and review['web_commit'] == manifest['commit']
         assert review['backend_commit'] == passed['commit'] and review['database'] == passed['database']
         assert all(review[key] for key in ('tariff_form', 'native_centers', 'harvest_menu', 'native_context', 'no_sample_data'))
+        if manifest['version'] == '0.0.4':
+            assert passed['feature'] == 'harvest-company-selector' and passed['readonly_copy'] and passed['business_preserved']
+            assert passed['harvest_web'] == manifest
+            assert all(review[key] for key in ('company_selector', 'authorized_companies_only', 'company_round_trip', 'pending_preserved', 'mobile_layout'))
+        if manifest['version'] == '0.0.5':
+            assert re.fullmatch(r'management_'+args.environment+r'_t233_[a-f0-9]{8}', stage.name)
+            assert all(review[key] for key in ('plot_selector', 'plots_filtered_by_center',
+                                              'plot_selection_reset', 'mobile_layout'))
+            assert review['backend_sha256'] == passed['release_sha256']
+        if manifest['version'] in ('0.0.4', '0.0.5') and args.environment != 'development':
+            assert validate(Path('/var/www/steps-harvest-releases/development')/manifest['commit']) == manifest
+            public_hashes(HOSTS['development'], manifest)
+        assert re.fullmatch('[a-f0-9]{64}', args.expected_js_sha256 or ''), 'Require the observed static baseline'
+        previous_js = current_javascript_hash(HOSTS[args.environment])
+        assert previous_js == args.expected_js_sha256, 'Concurrent Harvest build changed; integrate it before publication'
         config = configparser.ConfigParser(interpolation=None)
         config.read(target['config'])
+        if passed.get('readonly_copy'):
+            assert sha(Path(target['config'])) == json.loads((stage/'baseline.json').read_text())['config_sha256'], 'Backend configuration changed after copy certification'
         backend = Path('/opt/steps-managed/releases')/args.environment/passed['commit']
         assert config['options']['addons_path'].split(',')[0] == str(backend)
         release = json.loads((backend/'release.json').read_text())
@@ -184,10 +223,17 @@ def main():
         original = config_path.read_text()
         replacement = patch_config(original, HOSTS[args.environment], root/'app')
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
-        backup = Path('/opt/steps-backups')/('harvest-web-'+args.environment+'-'+stamp)
+        backup = Path('/opt/steps_backups')/('harvest-web-'+args.environment+'-'+stamp)
         backup.mkdir(mode=0o700)
         shutil.copy2(config_path, backup/'nginx.conf')
         old_roots = set(re.findall(r'alias\s+(/var/www/[^;]*cosecha)/', original))
+        old_roots.update(re.findall(r'alias\s+(/var/www/steps-harvest-releases/'+re.escape(args.environment)+r'/[a-f0-9]{40}/app)/', original))
+        for old in old_roots:
+            old_release = Path(old).parent/'release.json'
+            if old_release.is_file():
+                previous = json.loads(old_release.read_text())
+                assert previous['repository'] == manifest['repository']
+                assert tuple(map(int, manifest['version'].split('.'))) >= tuple(map(int, previous['version'].split('.'))), 'Harvest downgrade refused'
         with tarfile.open(backup/'previous-static.tar.gz', 'w:gz') as archive:
             for old in sorted(old_roots):
                 assert Path(old).is_dir() and not Path(old).is_symlink()
@@ -197,13 +243,14 @@ def main():
         try:
             subprocess.run(['nginx', '-t'], check=True)
             subprocess.run(['systemctl', 'reload', 'nginx'], check=True)
-            served = public_hashes(HOSTS[args.environment], manifest)
+            served = public_hashes(HOSTS[args.environment], manifest, attempts=20)
         except BaseException:
             config_path.write_text(original)
             subprocess.run(['nginx', '-t'], check=True)
             subprocess.run(['systemctl', 'reload', 'nginx'], check=True)
             raise
         receipt = {'environment': args.environment, 'web_commit': manifest['commit'],
+            'previous_js_sha256': previous_js,
             'backend_commit': passed['commit'], 'root': str(root), 'served': served,
             'nginx_before_sha256': sha(backup/'nginx.conf'), 'nginx_after_sha256': sha(config_path),
             'backup': str(backup)}

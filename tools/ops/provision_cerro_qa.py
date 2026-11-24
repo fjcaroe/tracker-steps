@@ -88,6 +88,38 @@ def verify_neutralization(database):
     assert query(database,'SELECT count(*) FROM fetchmail_server WHERE active')=='0'
 
 
+def restore_cron_neutralization(database, backup):
+    """Restore QA's cron flags after dependency XML reloads, under caller's lease."""
+    assert os.geteuid() == 0 and database == DB
+    assert backup and backup.resolve() == backup and backup.parent == Path('/opt/steps_backups')
+    assert backup.name.startswith('management_qa-cerro_') and not backup.is_symlink()
+    snapshot = backup/'database.dump'
+    with snapshot.open('rb') as stream:
+        assert stream.read(5) == b'PGDMP'
+    assert (backup/'odoo.conf').is_file()
+    settings = configparser.ConfigParser(interpolation=None)
+    settings.read(CONF)
+    assert settings['options']['db_name'] == DB and settings['options'].getint('max_cron_threads') == 0
+    assert query(database,"SELECT value FROM ir_config_parameter WHERE key='database.is_neutralized'") == 'true'
+    active = [int(value) for value in query(database,'SELECT id FROM ir_cron WHERE active ORDER BY id').splitlines()]
+    audit = backup/'qa_cron_neutralization.json'
+    if audit.exists():
+        previous = json.loads(audit.read_text())
+        assert previous['database'] == DB and previous['completed'] is True and not active
+    else:
+        previous = {'database': DB, 'active_ids_before': active, 'completed': False}
+        audit.write_text(json.dumps(previous, indent=2))
+        if active:
+            changed = query(database,'WITH changed AS (UPDATE ir_cron SET active=false WHERE active AND id IN ('+
+                ','.join(map(str, active))+') RETURNING id) SELECT id FROM changed ORDER BY id')
+            assert sorted(map(int, changed.splitlines())) == active
+        verify_neutralization(database)
+        previous['completed'] = True
+        audit.write_text(json.dumps(previous, indent=2))
+    verify_neutralization(database)
+    print('CUSTOMER_QA_CRON_NEUTRALIZED ids='+','.join(map(str, previous['active_ids_before'])), flush=True)
+
+
 def verify_packing(database, config):
     # Read forms and menus with the copied existing business user, no saves.
     probe="""from odoo.tools import config
@@ -375,7 +407,7 @@ STATIC
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=('create','resume','verify','publish','isolate','firewall'))
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=('create','resume','verify','publish','isolate','firewall','restore-cron-neutralization'))
     parser.add_argument('--backup',type=Path)
     args=parser.parse_args();assert os.geteuid()==0
     if args.action=='firewall':firewall();return
@@ -385,6 +417,7 @@ def main():
         elif args.action=='resume':resume(args.backup)
         elif args.action=='isolate':isolate_database_role()
         elif args.action=='publish':publish()
+        elif args.action=='restore-cron-neutralization':restore_cron_neutralization(DB,args.backup)
         else:verify()
 
 
