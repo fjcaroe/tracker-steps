@@ -104,7 +104,7 @@ def patch_config(source, host, root):
 def validate(web):
     manifest = json.loads((web/'release.json').read_text())
     assert manifest['repository'] == 'stepconsulting/step_harvest'
-    assert re.fullmatch('[a-f0-9]{40}', manifest['commit']) and manifest['version'] in ('0.0.3', '0.0.4', '0.0.5')
+    assert re.fullmatch('[a-f0-9]{40}', manifest['commit']) and manifest['version'] in ('0.0.3', '0.0.4', '0.0.5', '0.0.6')
     assert len(manifest['files']) == 5
     for name, expected in manifest['files'].items():
         path = web/name
@@ -196,7 +196,13 @@ def main():
             assert all(review[key] for key in ('plot_selector', 'plots_filtered_by_center',
                                               'plot_selection_reset', 'mobile_layout'))
             assert review['backend_sha256'] == passed['release_sha256']
-        if manifest['version'] in ('0.0.4', '0.0.5') and args.environment != 'development':
+        if manifest['version'] == '0.0.6':
+            assert re.fullmatch(r'management_'+args.environment+r'_t234_[a-f0-9]{8}', stage.name)
+            assert review['backend_sha256'] == passed['release_sha256']
+            assert all(review[key] for key in ('plot_selector', 'plots_filtered_by_center',
+                'plot_selection_reset', 'plot_all_location_modes', 'mobile_layout',
+                'harvest_dashboard_filters', 'harvest_dashboard_table', 'harvest_dashboard_settings'))
+        if manifest['version'] in ('0.0.4', '0.0.5', '0.0.6') and args.environment != 'development':
             assert validate(Path('/var/www/steps-harvest-releases/development')/manifest['commit']) == manifest
             public_hashes(HOSTS['development'], manifest)
         assert re.fullmatch('[a-f0-9]{64}', args.expected_js_sha256 or ''), 'Require the observed static baseline'

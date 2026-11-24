@@ -30,7 +30,7 @@ def main():
         fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
         for stage in args.stages:
             assert stage.resolve() == stage and stage.parent == Path('/opt/steps-validation')
-            match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231|t232|t231232|harvestcompany|t233)_([0-9a-f]{8})', stage.name)
+            match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231|t232|t231232|harvestcompany|t233|t234)_([0-9a-f]{8})', stage.name)
             assert match and not stage.is_symlink()
             environment, ticket, commit_prefix = match.groups()
             database = 'MANAGEMENT_QA_' + environment.upper() + '_' + ticket + '_' + commit_prefix

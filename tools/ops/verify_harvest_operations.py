@@ -71,11 +71,23 @@ try:
         assert len(environment_scope(env)) == 64
         assert env.ref('step_harvest_launcher.menu_harvest_root').action == env.ref('step_harvest_launcher.action_open_harvest')
         assert env.ref('step_harvest_launcher.action_open_harvest').url == '/harvest/open'
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102, 231, *([232] if 'step_harvest_launcher' in EXPECTED else [])], 'versions': EXPECTED,
+    dashboard = 'harvest_hours_per_day' in env['res.company']._fields
+    if dashboard:
+        data = env['step.cosecha.registry'].get_dashboard_data()
+        assert data['period'] == 'today' and 0 < data['hours_per_day'] <= 24
+        assert all(key in data for key in ('species', 'farms', 'offset', 'limit', 'recent'))
+        for row in data['recent']:
+            assert all(key in row for key in ('workers', 'hours', 'average_kg', 'total_cost', 'cost_per_kg', 'species'))
+        settings = env.ref('step_cosecha_operations.harvest_dashboard_settings')
+        arch = etree.fromstring(env['res.config.settings'].get_view(view_id=settings.id, view_type='form')['arch'])
+        assert arch.xpath(".//field[@name='harvest_hours_per_day']")
+        assert env.ref('step_cosecha_operations.menu_harvest_dashboard_settings').action
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102, 231, *([232] if 'step_harvest_launcher' in EXPECTED else []), *([234] if dashboard else [])], 'versions': EXPECTED,
           'native_masters': True, 'contractor_header': True, 'nested_fields_valid': True,
           'existing_records_web_read': True, 'harvest_tariff_menu_form': True,
           'harvest_tariff_native_labor_unit': True, 'harvest_tariff_center_scope': True,
           'harvest_own_form_without_studio': True,
-          'harvest_api_context_scope': 'step_harvest_launcher' in EXPECTED}))
+          'harvest_api_context_scope': 'step_harvest_launcher' in EXPECTED,
+          'harvest_dashboard_native_filters_table_settings': dashboard}))
 finally:
     env.cr.rollback()

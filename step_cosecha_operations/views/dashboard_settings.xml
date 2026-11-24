@@ -1,0 +1,26 @@
+<odoo>
+    <record id="harvest_dashboard_settings" model="ir.ui.view">
+        <field name="name">res.config.settings.harvest.dashboard</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="Cosecha" name="step_cosecha_operations" groups="base.group_system">
+                    <block title="Panel de cosecha">
+                        <setting string="Horas por jornada" company_dependent="1" help="Horas de referencia para calcular Kilos / Horas totales × Horas por jornada.">
+                            <field name="harvest_hours_per_day"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+    <record id="action_harvest_dashboard_settings" model="ir.actions.act_window">
+        <field name="name">Parámetros del panel de cosecha</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'step_cosecha_operations', 'bin_size': False}</field>
+    </record>
+    <menuitem id="menu_harvest_dashboard_settings" name="Parámetros del panel" parent="step_cosecha.menu_step_cosecha_config" action="action_harvest_dashboard_settings" sequence="5" groups="base.group_system"/>
+</odoo>

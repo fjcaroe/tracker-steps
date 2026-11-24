@@ -1,0 +1,27 @@
+.o_cosecha_dashboard {
+    .o_harvest_filters { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
+    .o_harvest_filters label { display: flex; flex: 1 1 155px; flex-direction: column; gap: 4px; color: white; font-size: 12px; font-weight: 600; }
+    .o_harvest_filters select { min-width: 0; font-size: 14px; }
+    .o_harvest_table { margin: 15px 0; min-width: 0; }
+    .o_harvest_table header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .o_harvest_table header small { color: #617a72; }
+    .o_harvest_table_scroll { max-width: 100%; overflow-x: auto; }
+    .o_harvest_table table { width: 100%; min-width: 1080px; }
+    .o_harvest_table th { padding: 13px 12px; color: #1c5143; font-size: 12px; background: #f2f7f4; white-space: nowrap; }
+    .o_harvest_table td { padding: 13px 12px; vertical-align: middle; font-variant-numeric: tabular-nums; }
+    .o_harvest_table td:first-child button { text-align: left; font-weight: 600; }
+    .o_harvest_state { white-space: nowrap; border-radius: 12px; padding: 4px 9px; background: #e8f3ed; color: #205b49; font-size: 11px; }
+    .o_harvest_pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 12px 16px; border-top: 1px solid #e1e9e4; }
+    .o_harvest_pager span { margin-right: auto; }
+    .o_harvest_attention { margin-top: 15px; }
+    .o_harvest_attention_items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .o_harvest_attention_items > button { display: flex; gap: 12px; align-items: flex-start; width: 100%; border: 0; border-right: 1px solid #e1e9e4; padding: 18px; text-align: left; background: white; }
+    .o_harvest_attention_items span { display: flex; flex-direction: column; gap: 4px; }
+    .o_harvest_attention_items small { color: #617a72; }
+    .o_harvest_attention_items i { padding: 11px; border-radius: 10px; background: #d3ff4a; color: #174e3f; }
+}
+@media (max-width: 760px) {
+    .o_cosecha_dashboard .o_harvest_attention_items { grid-template-columns: 1fr; }
+    .o_cosecha_dashboard .o_harvest_table header { align-items: flex-start; flex-direction: column; }
+    .o_cosecha_dashboard .o_harvest_filters label { flex-basis: 100%; }
+}

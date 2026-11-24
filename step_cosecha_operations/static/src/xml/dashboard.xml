@@ -1,0 +1,60 @@
+<templates xml:space="preserve">
+    <t t-name="step_cosecha_operations.Dashboard" t-inherit="step_cosecha.Dashboard" t-inherit-mode="primary">
+        <xpath expr="//div[@aria-label='Período']" position="replace">
+            <div class="o_harvest_filters">
+                <label>Fecha<select class="form-select" aria-label="Fecha de cosecha" t-on-change="onPeriod" t-att-disabled="state.loading">
+                    <option value="today" t-att-selected="state.period === 'today'">Hoy</option>
+                    <option value="yesterday" t-att-selected="state.period === 'yesterday'">Ayer</option>
+                    <option value="7" t-att-selected="state.period === '7'">7 días</option>
+                    <option value="30" t-att-selected="state.period === '30'">30 días</option>
+                    <option value="90" t-att-selected="state.period === '90'">90 días</option>
+                    <option value="all" t-att-selected="state.period === 'all'">Todo</option>
+                </select></label>
+                <label>Especie<select class="form-select" aria-label="Especie de cosecha" t-on-change="onSpecies" t-att-disabled="state.loading">
+                    <option value="0">Todas las especies</option>
+                    <t t-if="state.data"><option t-foreach="state.data.species" t-as="species" t-key="species.id" t-att-value="species.id" t-att-selected="state.speciesId === species.id" t-esc="species.name"/></t>
+                </select></label>
+                <label>Fundo<select class="form-select" aria-label="Fundo de cosecha" t-on-change="onFarm" t-att-disabled="state.loading">
+                    <option value="0">Todos los fundos</option>
+                    <t t-if="state.data"><option t-foreach="state.data.farms" t-as="farm" t-key="farm.id" t-att-value="farm.id" t-att-selected="state.farmId === farm.id" t-esc="farm.name"/></t>
+                </select></label>
+            </div>
+        </xpath>
+        <xpath expr="//div[hasclass('o_cosecha_grid')]" position="replace">
+            <section class="o_cosecha_panel o_harvest_table">
+                <header><div><span t-esc="state.data.period_label.toUpperCase()"/><h2>Registros de cosecha</h2><small>Horas por jornada: <t t-esc="formatNumber(state.data.hours_per_day, 2)"/> h · Importes en <t t-esc="state.data.currency_symbol"/></small></div>
+                    <button t-if="state.data.can_configure" class="btn btn-link" t-on-click="() => this.openAction('step_cosecha_operations.action_harvest_dashboard_settings')">Configurar jornada</button>
+                </header>
+                <div class="o_harvest_table_scroll" role="region" aria-label="Registros de cosecha" tabindex="0">
+                    <table class="table table-hover mb-0"><thead><tr>
+                        <th>OP</th><th>P/C</th><th>Fecha</th><th>Especie</th><th class="text-end">Dotación</th><th class="text-end">Horas totales</th><th class="text-end">Kilos</th><th class="text-end">Kg promedio</th><th>Estado</th><th class="text-end">Costo total</th><th class="text-end">Costo kilo</th>
+                    </tr></thead><tbody>
+                        <tr t-foreach="state.data.recent" t-as="row" t-key="row.id">
+                            <td><button class="btn btn-link p-0" t-on-click="() => this.openRegistry(row.id)" t-esc="row.name"/></td>
+                            <td t-esc="row.type === 'propio' ? 'P' : 'C'"/><td t-esc="formatDate(row.date)"/><td t-esc="row.species"/>
+                            <td class="text-end" t-esc="formatNumber(row.workers)"/><td class="text-end" t-esc="formatNumber(row.hours, 2)"/>
+                            <td class="text-end" t-esc="formatNumber(row.kilos, 2)"/><td class="text-end" t-esc="optionalNumber(row.average_kg)"/>
+                            <td><span t-att-class="'o_harvest_state is-' + row.state" t-esc="row.state_label"/></td>
+                            <td class="text-end" t-esc="optionalNumber(row.total_cost, state.data.currency_digits)"/><td class="text-end" t-esc="optionalNumber(row.cost_per_kg)"/>
+                        </tr>
+                        <tr t-if="!state.data.recent.length"><td colspan="11" class="o_cosecha_empty">No hay cosechas para los filtros seleccionados.</td></tr>
+                    </tbody></table>
+                </div>
+                <footer class="o_harvest_pager"><span><t t-esc="state.data.kpis.records ? state.data.offset + 1 : 0"/>–<t t-esc="state.data.offset + state.data.recent.length"/> de <t t-esc="formatNumber(state.data.kpis.records)"/></span>
+                    <button class="btn btn-outline-secondary" t-on-click="previousPage" t-att-disabled="state.data.offset === 0">Anterior</button>
+                    <button class="btn btn-outline-secondary" t-on-click="nextPage" t-att-disabled="state.data.offset + state.data.recent.length &gt;= state.data.kpis.records">Siguiente</button>
+                </footer>
+            </section>
+        </xpath>
+        <xpath expr="//section[hasclass('o_cosecha_shortcuts')]" position="after">
+            <section class="o_cosecha_panel o_cosecha_attention o_harvest_attention">
+                <header><div><span>CONTROL OPERATIVO</span><h2>Qué requiere atención</h2></div></header>
+                <div class="o_harvest_attention_items">
+                    <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry_contra')"><i class="fa fa-truck"/><span><b><t t-esc="state.data.kpis.pending_receipt"/> recepciones pendientes</b><small>Cosecha contratista contabilizada y aún no recibida.</small></span></button>
+                    <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry')"><i class="fa fa-clock-o"/><span><b><t t-esc="state.data.states.in"/> registros ingresados</b><small>Esperan revisión antes de pasar a aprobación.</small></span></button>
+                    <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_recepcion')"><i class="fa fa-exclamation-triangle"/><span><b><t t-esc="state.data.reception_quality_alerts"/> alertas de calidad</b><small>Recepciones observadas o rechazadas que requieren revisión.</small></span></button>
+                </div>
+            </section>
+        </xpath>
+    </t>
+</templates>

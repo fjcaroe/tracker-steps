@@ -1,5 +1,21 @@
 # Operación y publicación de Odoo
 
+T233 revisión móvil y T234 se entregan juntos con `harvest-app` en Desarrollo,
+QA-Cerro y Cerro: Harvest 0.0.6 y `step_cosecha_operations` 18.0.1.1.0.
+Cuartel permanece visible en Nueva OT en todos los modos de ubicación; se exige
+en modo Cuartel y conserva la selección nativa opcional en los otros modos.
+El panel Cosecha inicia en Hoy, agrega Ayer, Especie y Fundo, muestra las once
+columnas del adjunto y desplaza Control operativo al final en horizontal.
+Horas por jornada se configura en la empresa, con 8 horas iniciales; el promedio
+es Kilos / Horas totales × Horas por jornada, sin dividir por cero. Consultar
+costos nativos sin recalcular ni guardar las líneas originales. Respetar las ACL,
+la empresa activa y las relaciones originales. No actualizar el núcleo Cosecha
+ni sus históricos para esta ampliación: el módulo de operación extiende su acción.
+Certificar el mismo backend y web en copias frescas, comprobar los formularios
+móviles y de escritorio, filtros, cálculos, configuración y conservación.
+Publicar primero Desarrollo, con respaldo y bloqueo compartido; mantener la
+paridad e independencia de Cerro y QA-Cerro. Los prototipos SAG conservan su alcance.
+
 T233 autoriza `harvest-app` en Desarrollo, QA-Cerro y Cerro. Harvest 0.0.5 y
 `step_harvest_launcher` 18.0.1.2.1 usan la relación nativa de Cuartel al
 crear una OT en el modo Cuartel. El formulario solicita un cuartel del centro
