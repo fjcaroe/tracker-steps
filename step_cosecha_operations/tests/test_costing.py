@@ -145,6 +145,52 @@ class HarvestCostingCase(TransactionCase):
         self.assertEqual(line.trato_total, 25200)
         self.assertIsNotNone(line.employee_id_domain)
 
+    def test_native_accounting_uses_the_saved_rate_when_it_changes_state(self):
+        expense, liability = self.env['account.account'].create([
+            {'name': 'Private T235 expense', 'code': '982351', 'account_type': 'expense',
+             'company_ids': [Command.set(self.company.ids)]},
+            {'name': 'Private T235 liability', 'code': '982352', 'account_type': 'liability_current',
+             'company_ids': [Command.set(self.company.ids)]}])
+        journal = self.env['account.journal'].create({'name': 'Private T235 costing',
+            'code': 'H235', 'type': 'general', 'company_id': self.company.id,
+            'default_account_id': expense.id, 'account_control_ids': [Command.set(liability.ids)]})
+        self.company.step_cosecha_journal_id = journal
+        accounts = self.env['account.analytic.account']
+        for label in ('Season', 'Center', 'Activity'):
+            plan = self.env['account.analytic.plan'].create({'name': 'Private T235 '+label})
+            accounts |= accounts.create({'name': 'Private T235 '+label,
+                'plan_id': plan.id, 'company_id': self.company.id})
+        season, center, activity = accounts
+        self.env['step.temporada'].create({'name': 'Private T235 season',
+            'start_date': '2098-01-01', 'end_date': '2098-12-31',
+            'company_id': self.company.id, 'cost_id': season.id})
+        self.labor.actividad_id = activity
+        self.rule.write({'date_start': '2098-01-01', 'date_end': '2098-12-31'})
+        # Native legacy lookup is global. Isolate its rules inside this rolled-
+        # back test transaction without changing any live configuration.
+        rules = self.env['step.haber.costeo']
+        rules.search([('active', '=', True)]).write({'active': False})
+        for kind in ('provi_sueldo', 'provi_seguro', 'provi_feriado', 'provi_ias'):
+            rules.create({'name': 'Private T235 '+kind, 'type': kind, 'active': True,
+                'company_id': self.company.id, 'debe_account_id': expense.id,
+                'haber_account_id': liability.id})
+        operator = new_test_user(self.env, login='private_t235_accounting',
+            groups='base.group_user,hr.group_hr_user,account.group_account_manager',
+            company_id=self.company.id, company_ids=[Command.set(self.company.ids)])
+        record = self.harvest(state='apro', date='2098-06-01', cost_id=center.id).with_user(operator)
+        record.action_costeo()
+        record.action_conta()
+        self.assertFalse(record.env.su)
+        self.assertEqual(record.state, 'cont')
+        self.assertEqual(record.invoice_id.state, 'draft')
+        self.assertEqual(sum(record.invoice_id.line_ids.mapped('debit')), 23625)
+        self.assertEqual(sum(record.invoice_id.line_ids.mapped('credit')), 23625)
+        self.assertEqual(record.registry_line.tarifa, 1575)
+        with self.assertRaises(UserError):
+            record.action_return_approved()
+        with self.assertRaises(UserError):
+            record.action_conta()
+
     def test_return_access_and_native_form_and_menu(self):
         record = self.harvest()
         portal = new_test_user(self.env, login='private_t235_portal', groups='base.group_portal')
