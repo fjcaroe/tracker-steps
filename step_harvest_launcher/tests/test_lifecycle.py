@@ -1,9 +1,11 @@
 import json
+from lxml import etree
 
 from odoo import Command, fields
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import HttpCase, tagged
 from odoo.tests.common import new_test_user
+from odoo.tools.safe_eval import safe_eval
 
 
 @tagged('post_install', '-at_install')
@@ -78,6 +80,22 @@ class HarvestLifecycleCase(HttpCase):
         self.assertEqual(response.status_code, 409)
         self.order.invalidate_recordset()
         self.assertEqual(self.order.mobile_status, 'progress')
+
+    def test_legacy_order_without_mobile_alias_shows_confirmed_lifecycle(self):
+        order = self.order.with_user(self.user)
+        order.mobile_work_order = False
+        name, folio = order.name, order.folio
+        view = order.get_view(view_id=self.env.ref('step_cosecha.view_step_cosecha_registry_form').id, view_type='form')
+        arch = etree.fromstring(view['arch'])
+        state_field, = arch.xpath(".//field[@name='mobile_status']")
+        expression = state_field.get('invisible')
+        self.assertTrue(safe_eval(expression, {'mobile_work_order': False, 'mobile_state_date': False}))
+        order._harvest_transition('close', [self.line.mobile_uid])
+        self.assertFalse(safe_eval(expression, {'mobile_work_order': order.mobile_work_order,
+                                               'mobile_state_date': order.mobile_state_date}))
+        self.assertEqual(order.mobile_status, 'closed')
+        self.assertFalse(order.mobile_work_order)
+        self.assertEqual((order.name, order.folio), (name, folio))
 
     def test_closed_order_rejects_new_delivery_but_retries_keep_native_identity(self):
         self.order._harvest_transition('close', [self.line.mobile_uid])
