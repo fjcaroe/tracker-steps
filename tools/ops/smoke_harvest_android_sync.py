@@ -49,18 +49,20 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class ReviewClient:
+    allowed_requests = (
+        ('GET', '/api/harvest/session'), ('GET', '/api/harvest/bootstrap'),
+        ('GET', '/api/harvest/health'), ('POST', '/api/harvest/sync'))
+
     def __init__(self, origin):
         self.origin = review_origin(origin)
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
 
     def request(self, method, path, payload=None):
-        assert (method, path) in (
-            ('GET', '/api/harvest/session'), ('GET', '/api/harvest/bootstrap'),
-            ('GET', '/api/harvest/health'), ('POST', '/api/harvest/sync'))
+        assert (method, path) in self.allowed_requests
         headers = {'Cache-Control': 'no-cache'}
         data = None
         if payload is not None:
-            assert method == 'POST' and path == '/api/harvest/sync'
+            assert method == 'POST' and (method, path) in self.allowed_requests
             headers.update({'Origin': self.origin, 'Content-Type': 'application/json'})
             data = json.dumps(payload, separators=(',', ':')).encode()
         request = urllib.request.Request(self.origin + path, data=data,
