@@ -66,7 +66,15 @@ class HarvestDashboard(models.Model):
         self.ensure_one()
         own = self.type_tarea == 'propio'
         lines = self.registry_line if own else self.registry_tarja_line
-        workers = len(lines.mapped('employee_id'))
+        employees = lines.mapped('employee_id')
+        if not employees:
+            crew = self.salary_id if own else self.salary_id_contrac
+            employees = crew.contract_line.mapped('employee_id')
+        # Mobile orders may already have deliveries before attendance/costing
+        # lines exist. Count native assignments and participants once; hours
+        # remain the hours actually recorded on the worksheet.
+        employees |= self.tarja_registry_line.mapped('employee_id')
+        workers = len(employees)
         hours = sum((line.hrs or 0.0) + ((line.hrs_extra or 0.0) if own else 0.0) for line in lines)
         cost = None
         if self.state in ('costo', 'cont'):

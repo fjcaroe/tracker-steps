@@ -1,7 +1,7 @@
 # Operación y publicación de Odoo
 
 T235 amplía `step_cosecha_operations` a 18.0.1.2.0 con `harvest-app` en
-Desarrollo, QA-Cerro y Cerro, después de la entrega conjunta T233/T234.
+Desarrollo, QA-Cerro y Cerro, completando la entrega conjunta T233/T234/T235.
 La hoja de costeo toma la labor y unidad de la cabecera cuando faltan en las
 líneas. Busca la tarifa vigente en la unidad registrada; muestra su mínimo y
 calcula Total trato = Tarifa × Cantidad, Variable trato = máximo(Total trato −
@@ -13,12 +13,15 @@ Probar el caso adjunto de QA-Cerro y las transiciones en copias frescas de los
 tres destinos. Publicar el mismo paquete con respaldo, bloqueo y paridad, sin
 actualizar el núcleo Cosecha ni cambiar maestros o documentos reales.
 
-T233 revisión móvil y T234 se entregan juntos con `harvest-app` en Desarrollo,
-QA-Cerro y Cerro: Harvest 0.0.6 y `step_cosecha_operations` 18.0.1.1.1.
+T233 revisión móvil, T234 y T235 se entregan juntos con `harvest-app` en Desarrollo,
+QA-Cerro y Cerro: Harvest 0.0.6 y `step_cosecha_operations` 18.0.1.2.0.
 Cuartel permanece visible en Nueva OT en todos los modos de ubicación; se exige
 en modo Cuartel y conserva la selección nativa opcional en los otros modos.
 El panel Cosecha inicia en Hoy, agrega Ayer, Especie y Fundo, muestra las once
 columnas del adjunto y desplaza Control operativo al final en horizontal.
+Dotación cuenta una vez los trabajadores de los registros y entregas nativos;
+si no hay líneas de asistencia, usa la cuadrilla asignada. Conserva las horas
+registradas en la OT, sin sustituirlas por las horas planificadas de la cuadrilla.
 Horas por jornada se configura en la empresa, con 8 horas iniciales; el promedio
 es Kilos / Horas totales × Horas por jornada, sin dividir por cero. Consultar
 costos nativos sin recalcular ni guardar las líneas originales. Respetar las ACL,

@@ -112,6 +112,25 @@ class HarvestDashboardCase(TransactionCase):
         self.assertEqual(order._dashboard_metrics()['total_cost'], 0)
         self.assertIsNone(order._dashboard_metrics()['cost_per_kg'])
 
+    def test_mobile_orders_count_native_crew_and_delivery_workers_without_inventing_hours(self):
+        workers = self.env['hr.employee'].create([{'name': 'Private T234 crew '+str(i),
+            'company_id': self.company.id} for i in range(3)])
+        crew = self.env['hr.salary.custom'].create({'name': 'Private T234 native crew',
+            'group_type': 'propio', 'company_id': self.company.id,
+            'contract_line': [Command.create({'employee_id': worker.id, 'hours': 8}) for worker in workers]})
+        order = self.harvest(salary_id=crew.id, tarja_registry_line=[
+            Command.create({'employee_id': workers[0].id, 'qty_kg': 3}),
+            Command.create({'employee_id': workers[0].id, 'qty_kg': 4})])
+        self.assertEqual(order._dashboard_metrics()['workers'], 3)
+        self.assertEqual(order._dashboard_metrics()['hours'], 0)
+        self.assertIsNone(order._dashboard_metrics()['average_kg'])
+        order.salary_id = False
+        self.assertEqual(order._dashboard_metrics()['workers'], 1)
+        order.salary_id = crew
+        order.registry_line = [Command.create({'employee_id': workers[1].id, 'hrs': 4})]
+        self.assertEqual(order._dashboard_metrics()['workers'], 2)
+        self.assertEqual(order._dashboard_metrics()['hours'], 4)
+
     def test_daily_hours_are_configurable_per_company_and_validated(self):
         self.assertEqual(self.company.harvest_hours_per_day, 8)
         settings = self.env['res.config.settings'].create({'company_id': self.company.id})
