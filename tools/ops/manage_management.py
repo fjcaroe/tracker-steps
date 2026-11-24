@@ -1109,6 +1109,7 @@ def main():
                     normalize_approved_account(base, clone_options, qa_db, args, False)
                     assert snapshot(qa_db) == before, 'Normalization dry run changed the clone'
             (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log), 'monthly_fruit_plan': MONTHLY_FRUIT_PLAN,
+                'feature': args.kind, 'environment': args.environment, 'business_preserved': True,
                 'proforma_policy_plan': PROFORMA_POLICY_PLAN, 'shared_producer_reception': SHARED_PRODUCER_RECEPTION,
                 'proforma_policy_helper': digest(HERE / 'proforma_policy_case.py') if args.kind == 'packing-proforma-policy' else None,
                 'reception_lot_plan': digest(args.reception_lot_plan) if args.reception_lot_plan else None,

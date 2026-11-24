@@ -8,7 +8,8 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harvest_web_policy import (ANDROID_REVIEW_CHECKS, is_copy_sync_request,
     require_copy_sync_certificate, static_copy_identity, validate_android_review,
-    validate_static_copy)
+    validate_static_copy, validate_operations_copy, validate_operations_review,
+    OPERATIONS_REVIEW_CHECKS)
 from native_business_profile import scoped_existing_user_environment
 
 
@@ -98,6 +99,48 @@ class AndroidPolicyCase(unittest.TestCase):
         for enabled, method, path, supplied in rejected:
             with self.subTest(path=path, origin=supplied):
                 self.assertFalse(is_copy_sync_request(enabled, method, path, supplied, 8177))
+
+
+class OperationsPolicyCase(unittest.TestCase):
+    def setUp(self):
+        self.frontend = {'repository': 'stepconsulting/step_harvest',
+            'version': '0.0.8', 'commit': 'a'*40, 'files': {'app/index.html': '1'*64}}
+        self.proof = {'commit': 'b'*40, 'release_sha256': 'c'*64,
+            'database': 'MANAGEMENT_QA_QA-CERRO_t236237_' + 'b'*8,
+            'feature': 'harvest-app', 'environment': 'qa-cerro', 'business_preserved': True}
+        self.stage = 'management_qa-cerro_t236237_' + 'b'*8
+        self.review = {'reviewed': True, 'web_commit': 'a'*40,
+            'backend_commit': 'b'*40, 'backend_sha256': 'c'*64,
+            'database': self.proof['database'], **dict.fromkeys(OPERATIONS_REVIEW_CHECKS, True)}
+
+    def test_operations_requires_its_native_copy_and_preservation(self):
+        validate_operations_copy(self.frontend, 'qa-cerro', self.stage, self.proof)
+        require_copy_sync_certificate(self.frontend, 'qa-cerro', self.stage, self.proof)
+        for key, value in (('database', 'QA-CERROELPLOMO'), ('commit', 'a'*40),
+                ('feature', 'harvest-android-pilot'), ('environment', 'cerro'),
+                ('business_preserved', False), ('readonly_copy', True)):
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                validate_operations_copy(self.frontend, 'qa-cerro', self.stage,
+                    dict(self.proof, **{key: value}))
+        with self.assertRaises(AssertionError):
+            validate_operations_copy(self.frontend, 'cerro', self.stage, self.proof)
+
+    def test_publish_requires_confirmed_transitions_attendance_and_exact_backend(self):
+        validate_operations_review(self.frontend, 'qa-cerro', self.stage, self.proof, self.review)
+        for key in (*OPERATIONS_REVIEW_CHECKS, 'web_commit', 'backend_commit', 'backend_sha256', 'database'):
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                validate_operations_review(self.frontend, 'qa-cerro', self.stage,
+                    self.proof, dict(self.review, **{key: False}))
+
+    def test_new_copy_writes_keep_android_and_published_origins_restricted(self):
+        origin = 'http://127.0.0.1:8177'
+        for path in ('/api/harvest/crew/sync', '/api/harvest/work-orders/lifecycle'):
+            self.assertTrue(is_copy_sync_request(True, 'POST', path, origin, 8177, '0.0.8'))
+            self.assertFalse(is_copy_sync_request(True, 'POST', path, origin, 8177))
+            self.assertFalse(is_copy_sync_request(False, 'POST', path, origin, 8177, '0.0.8'))
+            self.assertFalse(is_copy_sync_request(True, 'POST', path, 'https://qa-cerroelplomo.stepsapp.cl', 8177, '0.0.8'))
+            self.assertFalse(is_copy_sync_request(True, 'POST', path+'?x=1', origin, 8177, '0.0.8'))
+        self.assertFalse(is_copy_sync_request(True, 'POST', '/web/dataset/call_kw', origin, 8177, '0.0.8'))
 
 
 class Company:

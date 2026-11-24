@@ -22,7 +22,8 @@ from manage_management import query
 from review_management_panel import is_read_request, is_action_breadcrumb_read
 from harvest_web_policy import (SUPPORTED_VERSIONS, require_authorized_environment,
                                 validate_static_copy, require_copy_sync_certificate,
-                                is_copy_sync_request)
+                                is_copy_sync_request, OPERATIONS_WRITE_PATHS,
+                                validate_operations_copy)
 
 
 def main():
@@ -33,7 +34,7 @@ def main():
     parser.add_argument('--company-id', type=int)
     parser.add_argument('--user-id', type=int, help='Review one existing internal user without changing credentials or permissions')
     parser.add_argument('--multi-company', action='store_true', help='Prefer an existing business editor already authorized in several companies')
-    parser.add_argument('--allow-copy-sync', action='store_true', help='Allow only same-origin Harvest sync writes in the certified private Android copy')
+    parser.add_argument('--allow-copy-sync', action='store_true', help='Allow exact same-origin Harvest API writes only in a certified private copy')
     parser.add_argument('--port', type=int, required=True)
     parser.add_argument('--minutes', type=int, default=25)
     args = parser.parse_args()
@@ -67,7 +68,7 @@ def main():
     stage = args.stage
     if stage:
         assert stage.resolve() == stage and stage.parent == Path('/opt/steps-validation')
-        match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231232|harvestcompany|harvestandroid|t233|t234|t235)_([a-f0-9]{8})', stage.name)
+        match = re.fullmatch(r'management_(development|cerro|qa-cerro)_(t231232|harvestcompany|harvestandroid|t233|t234|t235|t236237)_([a-f0-9]{8})', stage.name)
         assert match and match[1] == args.environment
         proof = json.loads((stage/'qa_passed.json').read_text())
         database = proof['database']
@@ -76,6 +77,8 @@ def main():
             validate_static_copy(frontend, args.environment, stage.name, proof)
         else:
             assert proof['commit'].startswith(match[3])
+        if frontend['version'] == '0.0.8':
+            validate_operations_copy(frontend, args.environment, stage.name, proof)
         if args.allow_copy_sync:
             require_copy_sync_certificate(frontend, args.environment, stage.name, proof)
         source_options = ['--addons-path='+str(stage/'addons')+','+options['addons_path'], '--data-dir='+str(stage/'data')]
@@ -228,7 +231,7 @@ print('HARVEST_REVIEW_SESSION_OK')
                     return
                 if self.command == 'POST':
                     copy_sync = is_copy_sync_request(args.allow_copy_sync, self.command,
-                        self.path, self.headers.get('Origin'), args.port)
+                        self.path, self.headers.get('Origin'), args.port, frontend['version'])
                     allowed = is_read_request(self.path, body) or path == '/web/session/get_session_info'
                     if path == '/web/action/load_breadcrumbs':
                         allowed = is_action_breadcrumb_read(body, auth['breadcrumb_actions'], ('step.cosecha.registry',))
@@ -240,13 +243,14 @@ print('HARVEST_REVIEW_SESSION_OK')
                         allowed |= params.get('model') in ('product.pricelist', 'product.pricelist.item', 'res.config.settings') and params.get('method') in ('onchange', 'default_get')
                     except (ValueError, AttributeError):
                         pass
-                    if path == '/api/harvest/sync':
+                    if path in OPERATIONS_WRITE_PATHS:
                         allowed = copy_sync
                     if not allowed:
                         self.send_error(403, 'Harvest review request not allowed')
                         return
                 if self.command == 'GET' and not (path in ('/web', '/odoo', '/harvest/open', '/web/manifest.webmanifest', '/web/service-worker.js',
-                    '/api/harvest/session', '/api/harvest/bootstrap', '/api/harvest/health') or
+                    '/api/harvest/session', '/api/harvest/bootstrap', '/api/harvest/health',
+                    '/api/harvest/reference/jobs') or
                     path.startswith(('/odoo/', '/cosecha/', '/web/assets/', '/web/image', '/web/content/', '/web/webclient/', '/bus/websocket_worker_bundle')) or '/static/' in path):
                     self.send_error(403, 'Read-only Harvest review')
                     return
@@ -260,7 +264,7 @@ print('HARVEST_REVIEW_SESSION_OK')
                     self.send_error(400, 'Invalid company cookie')
                     return
                 headers.update({'Host': host, 'Cookie': 'session_id='+auth['session_id']+'; cids='+selected, 'X-Forwarded-Proto': 'https', 'Connection': 'close'})
-                if self.command == 'POST' and path == '/api/harvest/sync':
+                if self.command == 'POST' and path in OPERATIONS_WRITE_PATHS:
                     headers['Origin'] = 'https://'+host
                 connection = http.client.HTTPConnection('127.0.0.1', private_port, timeout=90) if stage else http.client.HTTPSConnection(host, timeout=90)
                 try:

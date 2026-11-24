@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+from harvest_web_policy import validate_operations_review
 
 
 def main():
@@ -17,11 +18,12 @@ def main():
     args = parser.parse_args()
     base = args.base
     assert base.resolve() == base and base.parent == Path('/opt/steps-validation')
-    assert re.fullmatch('(t231232|t234|t235)_[a-f0-9]{8}', args.run_id)
+    assert re.fullmatch('(t231232|t234|t235|t236237)_[a-f0-9]{8}', args.run_id)
+    operations = args.run_id.startswith('t236237_')
     costing = args.run_id.startswith('t235_')
-    panel = args.run_id.startswith(('t234_', 't235_'))
+    panel = args.run_id.startswith(('t234_', 't235_', 't236237_'))
     reviewed = dict(tuple(map(int, item.split(':'))) for item in args.reviewed_message)
-    assert not panel or set(reviewed) == ({233, 234, 235} if costing else {233, 234}), 'Identify the human replies reviewed for this delivery'
+    assert not panel or set(reviewed) == ({236, 237} if operations else {233, 234, 235} if costing else {233, 234}), 'Identify the human replies reviewed for this delivery'
     output = base/'delivery'
     output.mkdir(mode=0o700, exist_ok=True)
     manifest = json.loads((base/'web/release.json').read_text())
@@ -36,7 +38,7 @@ def main():
         commits.add(qa['commit'])
         test = Path(qa['log'])
         counts = re.findall(r'0 failed, 0 error\(s\) of (\d+) tests when loading database', test.read_text())
-        assert counts and int(counts[-1]) >= (43 if costing else 28 if panel else 18)
+        assert counts and int(counts[-1]) >= (43 if costing or operations else 28 if panel else 18)
         counts_by_target[target] = int(counts[-1])
         flow = stage/('verify-'+qa['database']+'.log')
         assert 'MANAGEMENT_REGISTRY_OK' in flow.read_text()
@@ -61,6 +63,10 @@ def main():
             shutil.copyfile(source, output/(target+'-'+suffix))
         if panel:
             shutil.copyfile(stage/'harvest-browser-proof.json', output/(target+'-copy-review.json'))
+        if operations:
+            validate_operations_review(manifest, target, stage.name, qa,
+                json.loads((stage/'harvest-browser-proof.json').read_text()))
+            assert checked['ot_lifecycle_available'] is True and checked['crew_attendance_available'] is True
     assert len(commits) == 1
     tools = Path(__file__).resolve().parent
     with open('/run/lock/steps-environments.lock', 'a') as lock:
@@ -79,14 +85,16 @@ def main():
             '--output', str(output/'pair.json')], text=True, capture_output=True, check=True)
         assert 'CERRO_RELEASE_PAIR_OK' in result.stdout
         (output/'pair.log').write_text(result.stdout)
+    frontend_tests = json.loads((base/'frontend-tests.json').read_text())['passed'] if operations else 23 if panel else 14
+    assert type(frontend_tests) is int and frontend_tests > 0
     (output/'delivery.json').write_text(json.dumps({'backend_commit': commits.pop(),
         'backend_sha256': sha, 'web_commit': manifest['commit'], 'web_files': manifest['files'],
         'tests': sum(counts_by_target.values()), 'tests_by_target': counts_by_target,
-        'frontend_tests': 23 if panel else 14,
+        'frontend_tests': frontend_tests,
         'cost_state_labels': ['Costeo', 'Contabilizado'] if panel else [],
         'reviewed_messages': reviewed if panel else {'231': 10595, '232': 10598}}, indent=2))
     print('HARVEST_DELIVERY_COLLECTED targets=3 server_tests=%s frontend_tests=%s' %
-        (sum(counts_by_target.values()), 23 if panel else 14))
+        (sum(counts_by_target.values()), frontend_tests))
 
 
 if __name__ == '__main__':
