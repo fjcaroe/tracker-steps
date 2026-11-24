@@ -81,7 +81,7 @@ class CrewSmokeSafetyCase(unittest.TestCase):
         result = exercise_crew(client, policy, 'UTC', 'QA-HARVEST-CREW-' + 'e' * 32)
         self.assertTrue(result['worker_enrollment'])
         self.assertTrue(result['attendance_idempotency'])
-        self.assertTrue(result['changed_attendance_rejected'])
+        self.assertTrue(result['changed_hours_rejected'])
         self.assertNotIn('nip', result)
         self.assertNotIn('name', result)
         self.assertNotEqual(client.posts[0]['scope'], client.scope)
