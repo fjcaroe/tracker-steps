@@ -95,6 +95,13 @@ class HarvestCostingCase(TransactionCase):
         self.assertEqual(line.total_trato, 26775)
         self.assertAlmostEqual(line.variable_trato, 8323.23)
 
+    def test_dashboard_virtual_costs_match_the_worksheet_preview(self):
+        record = self.harvest()
+        before = self.original_inputs(record)
+        self.assertEqual(record.registry_line.cost_empresa, 23625)
+        self.assertEqual(record._dashboard_metrics()['total_cost'], 23625)
+        self.assertEqual(self.original_inputs(record), before)
+
     def test_costing_and_return_to_approved_keep_lines_and_snapshot_native_inputs(self):
         record = self.harvest(state='apro')
         line = record.registry_line

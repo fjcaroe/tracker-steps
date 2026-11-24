@@ -15,8 +15,9 @@ def preview(line):
     names = ('registry_id', 'employee_id', 'contract_id', 'cost_id', 'labor_id',
         'uom_id', 'quantity', 'hrs', 'hrs_extra', 'cant_minima', 'tarifa', 'sueldo_base')
     values = {name: line[name] for name in names if name in line._fields}
-    virtual = line.with_context(step_harvest_native_cost_preview=True).new(
-        values, origin=line._origin or None)
+    # Give the preview its own NewId. Reusing an origin would alias the
+    # dashboard's existing virtual record while that field is being computed.
+    virtual = line.with_context(step_harvest_native_cost_preview=True).new(values)
     registry = line.registry_id
     if registry.state != 'cont':
         virtual.labor_id = line.labor_id or registry.labor_id
