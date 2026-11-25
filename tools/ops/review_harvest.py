@@ -125,7 +125,11 @@ else:
     for xmlid in ('step_cosecha.action_step_cosecha_dashboard',
             'step_cosecha_operations.action_harvest_dashboard_settings',
             'step_cosecha.action_step_cosecha_costo_pro',
-            'step_cosecha.action_step_cosecha_registry_costo'):
+            'step_cosecha.action_step_cosecha_registry_costo',
+            'step_cosecha.action_step_cosecha_registry',
+            'step_cosecha.action_step_cosecha_registry_contra',
+            'step_harvest_launcher.harvest_attendance_own',
+            'step_harvest_launcher.harvest_attendance_contractor'):
         action=env.ref(xmlid,raise_if_not_found=False)
         if action:
             assert action._name in ('ir.actions.client','ir.actions.act_window')
@@ -235,7 +239,7 @@ print('HARVEST_REVIEW_SESSION_OK')
                         self.path, self.headers.get('Origin'), args.port, frontend['version'])
                     allowed = is_read_request(self.path, body) or path == '/web/session/get_session_info'
                     if path == '/web/action/load_breadcrumbs':
-                        allowed = is_action_breadcrumb_read(body, auth['breadcrumb_actions'], ('step.cosecha.registry',))
+                        allowed = is_action_breadcrumb_read(body, auth['breadcrumb_actions'], ('step.cosecha.registry', 'hr.attendance'))
                     try:
                         params = json.loads(body).get('params', {})
                         allowed |= params.get('model') == 'step.cosecha.registry' and params.get('method') == 'get_dashboard_data'

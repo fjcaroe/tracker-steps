@@ -110,6 +110,8 @@ try:
             assert menu.active and menu.parent_id == env.ref('step_cosecha.' + parent)
             assert menu.action == env.ref('step_harvest_launcher.harvest_attendance_' + kind)
             assert menu.action.res_model == 'hr.attendance'
+            assert menu.action._get_action_dict()['views'][0] == (
+                env.ref('step_harvest_launcher.harvest_attendance_list').id, 'list')
         for kind in ('list', 'form'):
             view = env.ref('step_harvest_launcher.harvest_attendance_' + kind)
             arch = etree.fromstring(env['hr.attendance'].get_view(view_id=view.id, view_type=kind)['arch'])

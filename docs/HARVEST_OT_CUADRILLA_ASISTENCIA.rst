@@ -15,7 +15,7 @@ Cerrar, revisar y enviar una OT
 4. Revise sus entregas y pulse Marcar revisada.
 5. Pulse Enviar OT. El estado cambia cuando Odoo confirma las entregas.
 
-Abrir OT en Odoo permite consultar el registro exacto, incluso si otras OT
+Ver OT en Cosecha (Odoo) permite consultar el registro exacto, incluso si otras OT
 comparten la misma referencia visible. Una OT cerrada conserva sus entregas y
 rechaza entregas nuevas. Un reintento recupera la confirmación de lo ya recibido.
 Estos estados móviles conservan el circuito de aprobación, costeo y contabilidad
