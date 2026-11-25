@@ -131,6 +131,10 @@ class HarvestCrewCase(TransactionCase):
         self.assertEqual(harvest.overtime_hours, 0)
         self.assertEqual(overtime.read(['id', 'date', 'duration', 'duration_real']), before)
         self.assertEqual(self.env['hr.attendance.overtime'].search([('employee_id', '=', worker.id)]), overtime)
+        native.write({'check_out': '2026-11-24 19:00:00'})
+        self.assertEqual(native.overtime_hours, 3)
+        self.assertEqual(harvest.overtime_hours, 0)
+        self.assertEqual(overtime.duration, 3)
 
     def test_cosecha_does_not_feed_immediate_or_regenerated_work_entries(self):
         worker = self.own.harvest_enroll_worker(self.enrollment())
@@ -169,6 +173,9 @@ class HarvestCrewCase(TransactionCase):
         harvest = self.own.harvest_record_attendance(self.attendance(worker))
         native._compute_overtime_hours()
         self.assertEqual(native.overtime_hours, -2)
+        self.assertEqual(harvest.overtime_hours, 0)
+        native.write({'check_out': '2026-11-24 13:00:00'})
+        self.assertEqual(native.overtime_hours, -3)
         self.assertEqual(harvest.overtime_hours, 0)
 
     def test_attendance_can_resolve_pending_enrollment_uuid(self):
