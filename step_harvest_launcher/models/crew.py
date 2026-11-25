@@ -77,6 +77,9 @@ class HarvestAttendance(models.Model):
         ordinary.overtime_hours = 0
         if not ordinary:
             return
+        if not self.with_context(harvest_attendance_scope='cosecha').search_count([
+                ('employee_id', 'in', ordinary.employee_id.ids)], limit=1):
+            return super(HarvestAttendance, ordinary)._compute_overtime_hours()
         rows = self.with_context(harvest_attendance_scope=False).search([
             ('employee_id', 'in', ordinary.employee_id.ids), ('check_in', '!=', False),
         ], order='check_in desc,id desc')
