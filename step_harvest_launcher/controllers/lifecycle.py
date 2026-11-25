@@ -33,11 +33,13 @@ class LifecycleHarvestApi(ScopedHarvestApi):
             return self._json({'ok': False, 'error': str(exc)}, status=422)
 
     def _order(self, record):
+        action = request.env.ref('step_cosecha.action_step_cosecha_registry_contra'
+                                 if record.type_tarea == 'contratista' else 'step_cosecha.action_step_cosecha_registry')
         return dict(super()._order(record),
                     can_transition=record.has_access('write'),
                     erp_state=record.state,
                     state_changed_at=str(record.mobile_state_date or ''),
-                    erp_url='/web#model=step.cosecha.registry&id=%s&view_type=form' % record.id)
+                    erp_url='/odoo/action-%s/%s' % (action.id, record.id))
 
     def _sync_record(self, data):
         identifier = str(data.get('client_uuid') or data.get('id') or '').strip()

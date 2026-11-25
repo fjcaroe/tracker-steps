@@ -74,6 +74,25 @@ class HarvestLifecycleCase(HttpCase):
         self.assertEqual(payload['order']['status'], 'Cerrada')
         self.assertEqual(payload['confirmed_delivery_uuids'], [self.line.mobile_uid])
         self.assertTrue(payload['order']['can_transition'])
+        action = self.env.ref('step_cosecha.action_step_cosecha_registry')
+        self.assertEqual(payload['order']['erp_url'], '/odoo/action-%s/%s' % (action.id, self.order.id))
+
+    def test_bootstrap_links_both_tareo_types_to_their_native_actions(self):
+        contractor = self.env['step.cosecha.registry'].with_company(self.company).create({
+            'name': 'Private lifecycle contractor order', 'type_tarea': 'contratista',
+            'product_uom_id': self.env.ref('uom.product_uom_kgm').id,
+            'company_id': self.company.id, 'date': fields.Datetime.now()})
+        self.authenticate(self.user.login, 'private-fixture')
+        response = self.url_open('/api/harvest/bootstrap', timeout=90)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['ok'], data)
+        orders = {row['odoo_id']: row for row in data['orders']}
+        for order, xmlid in ((self.order, 'step_cosecha.action_step_cosecha_registry'),
+                             (contractor, 'step_cosecha.action_step_cosecha_registry_contra')):
+            action = self.env.ref(xmlid)
+            self.assertEqual(action.res_model, 'step.cosecha.registry')
+            self.assertEqual(orders[order.id]['erp_url'], '/odoo/action-%s/%s' % (action.id, order.id))
 
     def test_changed_context_rejects_transition_without_changing_order(self):
         response = self.transition('close', scope='changed-context')
