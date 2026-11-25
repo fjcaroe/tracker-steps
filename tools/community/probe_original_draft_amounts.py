@@ -1,6 +1,8 @@
 """Compare new drafts on the real Cerro and OCA engines using original masters."""
 from datetime import date, datetime, time
 from decimal import Decimal
+import json
+from pathlib import Path
 import traceback
 from uuid import uuid4
 
@@ -24,7 +26,12 @@ def decimal(value):
     return str(Decimal(str(value)).normalize())
 
 
-def run_case(env, spec, community, progress, marker):
+def worked_days(slip):
+    return sorted([row.work_entry_type_id.id, decimal(row.number_of_hours),
+        decimal(row.number_of_days), bool(row.is_paid)] for row in slip.worked_days_line_ids)
+
+
+def run_case(env, spec, community, progress, marker, native_days=None):
     model = env['hr.payslip'].with_user(7).with_context(tracking_disable=True, lang='en_US')
     company = model.env.company
     employee = model.env['hr.employee'].search([
@@ -61,8 +68,10 @@ def run_case(env, spec, community, progress, marker):
     for kind, day in ((attendance, 2), (absence, 3)):
         span = [zone.localize(datetime.combine(start.replace(day=day), time(hour)))
                 .astimezone(pytz.UTC).replace(tzinfo=None) for hour in (9, 13)]
-        entries.create({'name': marker, 'employee_id': employee.id, 'company_id': company.id,
+        entry = entries.create({'name': marker, 'employee_id': employee.id, 'company_id': company.id,
             'contract_id': contract.id, 'work_entry_type_id': kind.id, 'date_start': span[0], 'date_stop': span[1]})
+        assert entry.duration == 4
+    progress['original_work_entries'] = [[attendance.id, '4'], [absence.id, '4']]
 
     progress['phase'] = 'draft'
     values = {'name': marker, 'number': marker, 'employee_id': employee.id, 'company_id': company.id,
@@ -78,16 +87,19 @@ def run_case(env, spec, community, progress, marker):
 
     progress['phase'] = 'worked_days'
     computed = slip._get_worked_day_lines()
-    expected_hours = {attendance.id: Decimal(4), absence.id: Decimal(4)}
-    hours = {row['work_entry_type_id']: Decimal(str(row['number_of_hours'])) for row in computed}
-    assert len(computed) == len(expected_hours) and hours == expected_hours, 'Original work-entry hours drifted'
-    if not community:
+    progress['generated_days'] = sorted([row['work_entry_type_id'], decimal(row['number_of_hours']),
+        decimal(row['number_of_days'])] for row in computed)
+    assert {row[0] for row in progress['generated_days']} == {attendance.id, absence.id}, 'Original generated types drifted'
+    if native_days is not None:
+        assert community and {row[0] for row in native_days} == {attendance.id, absence.id}
+        computed = [{'work_entry_type_id': ident, 'number_of_hours': float(hours),
+            'number_of_days': float(days), 'contract_id': contract.id} for ident, hours, days, _ in native_days]
+    elif not community:
         computed = [{key: value for key, value in row.items() if key in slip.worked_days_line_ids._fields
                      and key not in ('code', 'contract_id')} for row in computed]
     slip.worked_days_line_ids = [Command.clear()] + [Command.create(row) for row in computed]
     progress['inputs'] = [[ident, amount] for ident, amount in INPUTS]
-    progress['worked_days'] = sorted([row.work_entry_type_id.id, decimal(row.number_of_hours),
-        decimal(row.number_of_days), bool(row.is_paid)] for row in slip.worked_days_line_ids)
+    progress['worked_days'] = worked_days(slip)
     assert all(row[3] == (row[0] == attendance.id) for row in progress['worked_days'])
     progress['original_rule_ids'] = expected_rules
 
@@ -95,6 +107,7 @@ def run_case(env, spec, community, progress, marker):
     assert slip.state == 'draft'
     slip.compute_sheet()
     assert slip.state in ('draft', 'verify') and slip.number == marker
+    progress['worked_days_final'] = worked_days(slip)
     assert tuple(sorted((row.input_type_id.id, int(row.amount)) for row in slip.input_line_ids)) == INPUTS
     slip.line_ids.flush_recordset(['salary_rule_id', 'amount', 'quantity', 'rate', 'total'])
     env.cr.execute("""SELECT salary_rule_id, amount, quantity, rate, total
@@ -105,25 +118,41 @@ def run_case(env, spec, community, progress, marker):
     progress['phase'] = 'complete'
 
 
-def run(env, database):
+def trial(env, spec, community, native_days=None):
+    marker = 'STEP_DRAFT_' + uuid4().hex
+    progress = {'structure': spec['structure'], 'phase': 'original_masters'}
+    try:
+        run_case(env, spec, community, progress, marker, native_days)
+    except Exception as exc:
+        # The shell transcript is a private diagnostic. It may contain an
+        # original rule expression and must never be copied to public logs.
+        traceback.print_exc()
+        progress['error_type'] = type(exc).__name__
+    finally:
+        env.cr.rollback()
+    for model in ('hr.payslip', 'hr.contract', 'hr.work.entry'):
+        assert not env[model].search_count([('name', '=', marker)])
+    progress['fixture_rolled_back'] = True
+    return progress
+
+
+def run(env, database, reference_path=None):
     require_private_pair(env, database)
     community = '_HANDOVER_' in database
+    assert community == (reference_path is not None)
+    native = {}
+    if community:
+        reference = json.loads(Path(reference_path).read_bytes())
+        assert reference['database'] == database.replace('_HANDOVER_', '_REFERENCE_')
+        assert reference['drafts_only'] and not reference['community']
+        native = {row['structure']: row for row in reference['cases']}
     results = []
     for spec in CASES:
-        marker = 'STEP_DRAFT_' + uuid4().hex
-        progress = {'structure': spec['structure'], 'phase': 'original_masters'}
-        try:
-            run_case(env, spec, community, progress, marker)
-        except Exception as exc:
-            # The shell transcript is a private diagnostic. It may contain an
-            # original rule expression and must never be copied to public logs.
-            traceback.print_exc()
-            progress['error_type'] = type(exc).__name__
-        finally:
-            env.cr.rollback()
-        for model in ('hr.payslip', 'hr.contract', 'hr.work.entry'):
-            assert not env[model].search_count([('name', '=', marker)])
-        progress['fixture_rolled_back'] = True
+        progress = trial(env, spec, community)
+        original = native.get(spec['structure'], {})
+        if (original.get('phase') == 'complete' and original['worked_days_final'] != progress.get('worked_days_final')
+                and original['original_work_entries'] == progress.get('original_work_entries')):
+            progress['native_days_replay'] = trial(env, spec, community, original['worked_days_final'])
         results.append(progress)
     return {'database': database, 'operator_uid': 7, 'community': community,
             'drafts_only': True, 'cases': results}

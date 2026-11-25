@@ -17,6 +17,31 @@ def lines_by_rule(rows):
     return {rule: sorted(lines) for rule, lines in result.items()}
 
 
+def compare_case(before, after):
+    assert before['fixture_rolled_back'] and after['fixture_rolled_back']
+    phases = [before['phase'], after['phase']]
+    result = {'phases': phases, 'errors': [before.get('error_type'), after.get('error_type')],
+              'exact': False}
+    measurements = ('inputs', 'original_work_entries', 'worked_days_final', 'original_rule_ids')
+    result['original_inputs_days_and_rules_equal'] = all(
+        key in before and key in after and before[key] == after[key] for key in measurements)
+    result['generated_days_equal'] = ('generated_days' in before and
+                                       before['generated_days'] == after.get('generated_days'))
+    if phases == ['complete', 'complete']:
+        original, target = lines_by_rule(before['lines']), lines_by_rule(after['lines'])
+        result['compared_original_rule_count'] = len(original.keys() | target.keys())
+        result['differences'] = []
+        for rule in sorted(original.keys() | target.keys()):
+            native_rows, target_rows = original.get(rule, []), target.get(rule, [])
+            if native_rows != target_rows:
+                result['differences'].append({'rule': rule, 'native_rows': len(native_rows),
+                    'community_rows': len(target_rows),
+                    'native_total': str(sum(row[-1] for row in native_rows)),
+                    'community_total': str(sum(row[-1] for row in target_rows))})
+        result['exact'] = result['original_inputs_days_and_rules_equal'] and not result['differences']
+    return result
+
+
 def compare(native, community, plan):
     assert native['database'] == plan['reference_database'] and community['database'] == plan['database']
     assert native['community'] is False and community['community'] is True
@@ -25,32 +50,18 @@ def compare(native, community, plan):
     results = []
     native_cases = {case['structure']: case for case in native['cases']}
     target_cases = {case['structure']: case for case in community['cases']}
+    assert len(native['cases']) == len(community['cases']) == 2
     assert set(native_cases) == set(target_cases) == {2, 4}
     for ident in sorted(native_cases):
         before, after = native_cases[ident], target_cases[ident]
-        assert before['fixture_rolled_back'] and after['fixture_rolled_back']
-        phases = [before['phase'], after['phase']]
-        result = {'structure': ident, 'phases': phases,
-                  'errors': [before.get('error_type'), after.get('error_type')], 'exact': False}
-        measurements = ('inputs', 'worked_days', 'original_rule_ids')
-        result['original_inputs_days_and_rules_equal'] = all(
-            key in before and key in after and before[key] == after[key] for key in measurements)
-        if phases == ['complete', 'complete']:
-            original, target = lines_by_rule(before['lines']), lines_by_rule(after['lines'])
-            result['compared_original_rule_count'] = len(original.keys() | target.keys())
-            result['differences'] = []
-            for rule in sorted(original.keys() | target.keys()):
-                native_rows, target_rows = original.get(rule, []), target.get(rule, [])
-                if native_rows != target_rows:
-                    result['differences'].append({'rule': rule, 'native_rows': len(native_rows),
-                        'community_rows': len(target_rows),
-                        'native_total': str(sum(row[-1] for row in native_rows)),
-                        'community_total': str(sum(row[-1] for row in target_rows))})
-            result['exact'] = result['original_inputs_days_and_rules_equal'] and not result['differences']
+        result = {'structure': ident, **compare_case(before, after)}
+        if 'native_days_replay' in after:
+            result['native_days_replay'] = compare_case(before, after['native_days_replay'])
         results.append(result)
     return {'schema': 1, 'pair': [native['database'], community['database']],
             'source_dump_sha256': plan['source_dump_sha256'],
-            'cases': results, 'all_compared_drafts_exact': all(row['exact'] for row in results),
+            'cases': results, 'all_compared_drafts_exact': all(
+                row['exact'] and row['generated_days_equal'] for row in results),
             'all_rules_certified': False, 'financial_certified': False}
 
 

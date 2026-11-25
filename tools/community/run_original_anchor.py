@@ -74,8 +74,11 @@ def write(path, value):
 def exercise_required_field(source, stage, executable, options, database, field_group):
     receipt = stage / f'original-{field_group}-required.json'
     module = 'probe_original_draft_amounts' if field_group == 'draft_amounts' else f'probe_original_{field_group}_required'
+    reference_arg = ''
+    if field_group == 'draft_amounts' and '_HANDOVER_' in database:
+        reference_arg = ', ' + repr(str(stage / 'native-witness' / receipt.name))
     expression = ('import json, sys; sys.path.insert(0, ' + repr(str(source / 'tools/community')) + '); '
-                  f'from {module} import run; result = run(env, ' + repr(database) + '); '
+                  f'from {module} import run; result = run(env, ' + repr(database) + reference_arg + '); '
                   'open(' + repr(str(receipt)) + ', "x").write(json.dumps(result, indent=2))')
     with (stage / f'original-{field_group}-required.log').open('x') as log:
         status = subprocess.run(offline_odoo(executable + options), input=expression, text=True,
