@@ -1,6 +1,59 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
 
+## U11C — adopción funcional de la configuración original, 25-11-2026
+
+En dos bases privadas nuevas restauradas del mismo respaldo fresco, el paquete
+`168bb264` cargó OCA sobre Community oficial (144 módulos, cero Enterprise)
+y observó en solo lectura la referencia nativa (414 módulos, 140 Enterprise).
+Con el gerente original UID7 reprodujo los 118 accesos y dos denegaciones,
+abrió cinco formularios y comprobó la paridad de cuatro menús, con Categorías
+oculto. Conservó 120 maestros, el modelo 600 y la ruta del reporte 462.
+La API OCA materializó 71 relaciones de reglas y creó cero en el reintento.
+Una lectura PostgreSQL posterior confirmó los 71 pares exactos ya guardados.
+La referencia conservó su motor y el destino ensayó la adopción parcial de la
+configuración con otros productos en cuarentena.
+
+La revisión física conservó 999 de 1.000 proyecciones literales, 197 contadores
+y 60.686 XML IDs, sin pérdida de IDs de modelo o campo. Se conservaron las
+membresías originales y se añadieron siete vínculos en menús nuevos.
+La comparación literal de historia y vencimiento difiere por un adjunto nuevo
+clasificado como candidato a icono de menú. Todos los adjuntos e históricos
+originales y los parámetros de vencimiento quedaron iguales. Coincidieron los
+cuatro contratos de almacenamiento, la FK Calendar SET NULL y los cinco XML IDs
+originales de esos campos. Hubo siete aliases nuevos previstos.
+
+La puerta de relaciones constató 32 FK nuevas vacías y 37 columnas que perdieron
+NOT NULL sin presentar nulos. Ocho perdieron también la marca ORM persistida.
+Respecto de U2 aparecen siete pérdidas nuevas, en Gastos, Cosecha y permisos de
+maestros de usuarios. Las dos columnas de tarifa de U2 ya no figuran en esta
+lista. La obligatoriedad de las 37 sigue pendiente de validación y restauración
+por proveedor, empezando por las ocho de Nómina con altas y ediciones reales.
+
+El inventario vigente conserva Cerro 414/140 Enterprise/133 propias, Steps
+310/123/19 y SyS 336/142/21. Hay 170 propias en repo, 40 fuera de Cerro y
+75/9/14 con caminos Enterprise. Cambiaron los módulos activos de Cosecha
+`step_cosecha_operations` y `step_harvest_launcher`. Siguen las fuentes privadas,
+el proveedor AGPL y `steps_transport` recuperable fuera de la ruta activa.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U11` y
+`/opt/steps-validation/community-original-handover-20261125U11C`. El primer U11
+se detuvo después de restaurar porque el sello de inventario seguía en U9.
+U11C verificó ambos sellos, 176 pruebas locales y 98 en canónica. El respaldo
+se creó con modo 0600 y se verificó que un usuario ajeno no podía leerlo.
+
+- Paquete `b672c88bc7e7940a79b712e60bcceda3f5bc23be04a86b2c51e0655da1b1c69c`.
+- Respaldo `5bdd534050b7133f525fad7b6967c038b6718ecf16ebfdae00dc3d4b93d90898`.
+- Admisión funcional `7bc91ca9d3611f7109155c36a415c1915210e2c40f182442c838fd175b8e62b7`.
+- Revisión física `daaaf879b5594171f46f3a4e3341b40ad529d362cbb838a305c6afca5aaa4457`.
+- Relaciones y obligatoriedad `828ef5495eacfb00a81493626b50c4dfb10e589603db3030e3b14dfd061c2b5c`.
+
+La rama del hilo conserva el coordinador completo del ensayo. T2 mantiene la
+aceptación multifrente. Siguen días, redondeos, YTD, contabilización, Previred,
+libro y consumidores HR, DTE/CAF/SII, Tesorería, Calidad, Studio/Documentos/Firma
+y la restauración y aceptación integral de los productos con cero Enterprise.
+Continúa la ejecución horaria y el corte de producción permanece fuera.
+
 ## U10 — procedencia de las columnas obligatorias, 25-11-2026
 
 La puerta física ahora une las columnas revisadas con sus campos almacenados y
