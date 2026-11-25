@@ -84,6 +84,10 @@ def run_case(env, spec, community, progress, marker, native_days=None):
         slip.input_line_ids = [Command.clear()] + [Command.create({'input_type_id': ident, 'amount': amount})
                                                    for ident, amount in INPUTS]
     assert tuple(sorted((row.input_type_id.id, int(row.amount)) for row in slip.input_line_ids)) == INPUTS
+    if community:
+        inputs = slip._get_baselocaldict(slip.contract_id)['inputs']
+        assert all(kind.code in inputs for kind in types) and marker not in inputs
+        progress['input_membership_verified'] = True
 
     progress['phase'] = 'worked_days'
     computed = slip._get_worked_day_lines()

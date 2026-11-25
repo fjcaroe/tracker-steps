@@ -486,6 +486,15 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     def test_rules_receive_real_record_and_mapping_get(self):
         PayrollContractMixin.test_rules_receive_real_record_and_mapping_get(self)
 
+    def test_original_python_condition_can_check_input_membership(self):
+        self.rule.write({
+            'condition_select': 'python',
+            'condition_python': "result = 'PRIVATE_BONUS' in inputs and 'UNKNOWN' not in inputs",
+        })
+        slip = self.slip()
+        slip.compute_sheet()
+        self.assertIn(self.rule, slip.line_ids.salary_rule_id)
+
     def test_actual_accounting_entry_balances(self):
         PayrollContractMixin.test_actual_accounting_entry_balances(self)
 

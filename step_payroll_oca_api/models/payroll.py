@@ -311,6 +311,9 @@ class CategoryMapping(ValueMapping):
 
 
 class InputLineMapping(InputLine):
+    def __contains__(self, code):
+        return code in self.dict
+
     def __getitem__(self, code):
         return self.dict[code]
 
