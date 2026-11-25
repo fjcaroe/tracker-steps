@@ -103,11 +103,15 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
                 updated,_ = ui_profile(original,cold.snapshot(target))
                 spec = ast.literal_eval(updated.decode('utf-8-sig'))
                 models = target / 'models'
-                declaration = Path(__file__).with_name('original_anchor_category_model.py').read_bytes()
-                with (models / 'original_anchor_category.py').open('xb') as module:
-                    module.write(declaration)
-                with (models / '__init__.py').open('ab') as imports:
-                    imports.write(b'\nfrom . import original_anchor_category\n')
+                declarations = {}
+                for field_group in ('category', 'structure'):
+                    name_in_overlay = f'original_anchor_{field_group}'
+                    declaration = Path(__file__).with_name(f'{name_in_overlay}_model.py').read_bytes()
+                    with (models / f'{name_in_overlay}.py').open('xb') as module:
+                        module.write(declaration)
+                    with (models / '__init__.py').open('ab') as imports:
+                        imports.write(f'\nfrom . import {name_in_overlay}\n'.encode())
+                    declarations[field_group] = sha(declaration)
             path.write_text(repr(spec) + '\n')
             changes[name] = {'omitted_additive_policy_files': omitted,
                 'original_manifest_sha256': sha(original), 'profile_manifest_sha256': sha(path.read_bytes())}
@@ -121,7 +125,8 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
         'original_security_policy_required': True, 'new_groups_or_memberships_created': False,
         'default_upstream_security_installed': False, 'all_products_operational': False,
         'deadline_resolved': False,
-        'original_category_declaration_sha256': sha(declaration)}
+        'original_category_declaration_sha256': declarations['category'],
+        'original_structure_declaration_sha256': declarations['structure']}
     if original_storage:
         proof['original_storage_derivation'] = storage_derivation
         proof['original_history_deletion_derivation'] = history_deletion_derivation
