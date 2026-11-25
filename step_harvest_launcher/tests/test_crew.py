@@ -26,6 +26,16 @@ class HarvestCrewCase(TransactionCase):
         return {'client_uuid': uid, 'crew_id': self.own.id, 'date': '2026-11-24', 'entries': [
             {'worker_id': worker.id, 'check_in': '2026-11-24T08:00:00Z', 'check_out': '2026-11-24T16:00:00Z'}]}
 
+    def test_attendance_menus_open_the_native_list_before_the_record_form(self):
+        list_view = self.env.ref('step_harvest_launcher.harvest_attendance_list')
+        form_view = self.env.ref('step_harvest_launcher.harvest_attendance_form')
+        for kind in ('own', 'contractor'):
+            menu = self.env.ref('step_harvest_launcher.menu_harvest_attendance_' + kind)
+            action = self.env.ref('step_harvest_launcher.harvest_attendance_' + kind)
+            self.assertEqual(menu.action, action)
+            self.assertEqual(action.res_model, 'hr.attendance')
+            self.assertEqual(action._get_action_dict()['views'], [(list_view.id, 'list'), (form_view.id, 'form')])
+
     def test_enrollment_creates_native_employee_job_and_membership_once(self):
         values = self.enrollment()
         worker = self.own.harvest_enroll_worker(values)
