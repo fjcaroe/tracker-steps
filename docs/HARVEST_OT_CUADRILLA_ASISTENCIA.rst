@@ -26,8 +26,10 @@ Enrolar trabajadores
 
 En Cuadrilla, seleccione una cuadrilla existente. Su tipo propio o contratista
 y el contratista asociado proceden del maestro. Complete Nombre, NIP, Sexo y
-Cargo. El NIP admite hasta ocho dígitos; para un NIP ya registrado, seleccione
-al trabajador existente.
+Cargo. El NIP admite hasta ocho dígitos. El enrolamiento crea trabajadores
+nuevos y los agrega a la lista existente de la cuadrilla. Las incorporaciones
+de empleados que ya están en el maestro se administran en la cuadrilla de Odoo.
+Seleccionar trabajador en la app habilita su captura local de entregas.
 
 Guardar enrolamiento en este equipo conserva el alta pendiente. Sincronizar
 cuadrilla y asistencia crea el empleado nativo y lo incorpora a esa cuadrilla.
