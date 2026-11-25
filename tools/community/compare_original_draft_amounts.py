@@ -75,8 +75,17 @@ def compare(native, community, plan):
     target_basis = community.get('basis_cases', {})
     assert native_basis.keys() == target_basis.keys()
     basis_cases = {name: compare_case(native_basis[name], target_basis[name]) for name in native_basis}
+    ytd = {}
+    if 'active_ytd' in native or 'active_ytd' in community:
+        original, target = native['active_ytd'], community['active_ytd']
+        assert all(row['fixture_rolled_back'] and row['activation_in_memory']
+                   and row['excluded_open_period'] for row in (original, target))
+        ytd = {'same_contract_exact': all(original[key] == target[key]
+                                         for key in ('baseline', 'same_contract')),
+               'native_new_contract': original['new_contract'],
+               'community_new_contract_rejected': target.get('new_contract_rejected', False)}
     return {'schema': 1, 'pair': [native['database'], community['database']],
-            'source_dump_sha256': plan['source_dump_sha256'],
+            'source_dump_sha256': plan['source_dump_sha256'], 'active_ytd': ytd,
             'cases': results, 'basis_cases': basis_cases, 'all_compared_drafts_exact': all(
                 row['exact'] and row['generated_days_equal'] for row in [*results, *basis_cases.values()]),
             'all_rules_certified': False, 'financial_certified': False}

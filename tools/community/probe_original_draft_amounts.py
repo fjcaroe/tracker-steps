@@ -62,9 +62,8 @@ def capture_basis(slip):
     }
 
 
-def capture_ytd(slip):
-    """Check the stored snapshot and its consumer with the original flag."""
-    assert slip.ytd_computation == slip.struct_id.ytd_computation is False
+def capture_ytd(slip, previous=None):
+    """Check stored SQL and the line API against the expected prior totals."""
     lines = slip.line_ids
     lines.check_access('read')
     lines.flush_recordset(['code', 'salary_rule_id', 'total', 'ytd'])
@@ -80,7 +79,9 @@ def capture_ytd(slip):
     assert len(codes) == len(set(codes)), 'This probe covers unique original concepts'
     values = slip._get_line_values(codes, ['total', 'ytd'])
     for _, _, code, total, stored in rows:
-        assert stored is not None and stored == total
+        assert stored is not None
+        if previous is not None:
+            assert stored == total + previous.get(code, 0), (code, total, stored, previous)
         assert values[code][slip.id] == {'total': total, 'ytd': stored}
     return [[rule, code, decimal(stored)] for _, rule, code, _, stored in rows]
 
@@ -101,7 +102,8 @@ def exercise_sibling_changes(slip, absence):
 
 def run_case(env, spec, community, progress, marker, native_days=None,
              period=NOVEMBER, entry_hours=(4, 4), draft_days=None, wage=720000,
-             split_paid=False, zero_hours=False, edit_sibling=False):
+             split_paid=False, zero_hours=False, edit_sibling=False, contract=None,
+             active_ytd=False):
     model = env['hr.payslip'].with_user(7).with_context(tracking_disable=True, lang='en_US')
     company = model.env.company
     employee = model.env['hr.employee'].search([
@@ -136,7 +138,11 @@ def run_case(env, spec, community, progress, marker, native_days=None,
         'wage': wage}
     if 'struct_id' in contracts._fields:
         contract_vals['struct_id'] = structure.id
-    contract = contracts.create(contract_vals)
+    if contract is None:
+        contract = contracts.create(contract_vals)
+    else:
+        assert (contract.employee_id, contract.company_id, contract.resource_calendar_id, contract.wage) == (
+            employee, company, calendar, wage)
     company.check_access('read')
     progress['phase'] = 'work_entries'
     zone = pytz.timezone(calendar.tz)
@@ -214,6 +220,11 @@ def run_case(env, spec, community, progress, marker, native_days=None,
 
     progress['phase'] = 'compute_sheet'
     assert slip.state == 'draft'
+    if active_ytd:
+        # Exercise the opt-in path without changing the sealed original flag.
+        structure.env.cache.set(structure, structure._fields['ytd_computation'], True)
+        slip.env.cache.set(slip, slip._fields['ytd_computation'], True)
+        assert slip.ytd_computation and (company.ytd_reset_day, company.ytd_reset_month) == (1, '1')
     slip.compute_sheet()
     assert slip.state in ('draft', 'verify') and slip.number == marker
     progress['worked_days_final'] = worked_days(slip)
@@ -227,13 +238,15 @@ def run_case(env, spec, community, progress, marker, native_days=None,
     rows = env.cr.fetchall()
     assert set(spec['essentials']) <= {ident for ident, *_ in rows} <= set(expected_rules)
     progress['lines'] = [[ident, *(decimal(value) for value in values)] for ident, *values in rows]
-    if spec['structure'] == 2:
+    if spec['structure'] == 2 and not active_ytd:
         progress['phase'] = 'stored_ytd'
-        progress['stored_ytd'] = capture_ytd(slip)
+        assert slip.ytd_computation == slip.struct_id.ytd_computation is False
+        progress['stored_ytd'] = capture_ytd(slip, {})
     if edit_sibling:
         progress['phase'] = 'edit_sibling'
         progress['mutations'] = exercise_sibling_changes(slip, absence)
     progress['phase'] = 'complete'
+    return slip
 
 
 def trial(env, spec, community, native_days=None, **fixture):
@@ -252,6 +265,44 @@ def trial(env, spec, community, native_days=None, **fixture):
         assert not env[model].search_count([('name', '=', marker)])
     progress['fixture_rolled_back'] = True
     return progress
+
+
+def active_ytd_trial(env, spec, community):
+    marker = 'STEP_YTD_' + uuid4().hex
+    result = {}
+
+    def make(month, last_day, contract=None):
+        return run_case(env, spec, community, {}, marker, contract=contract, active_ytd=True,
+                        period=(date(2026, month, 1), date(2026, month, last_day)))
+
+    try:
+        january = make(1, 31)
+        baseline = capture_ytd(january, {})
+        january.state = 'done'
+        february = make(2, 28, january.contract_id)
+        result['same_contract'] = capture_ytd(february, {
+            code: float(stored) for _, code, stored in baseline
+        })
+        result['excluded_open_period'] = february.state in ('draft', 'verify')
+        try:
+            with env.cr.savepoint():
+                march = make(3, 31)
+                assert march.contract_id != january.contract_id
+                result['new_contract'] = capture_ytd(march)
+        except UserError as exc:
+            if not community or 'Cross-contract YTD' not in str(exc):
+                raise
+            result['new_contract_rejected'] = True
+        assert capture_ytd(january, {}) == baseline
+        env.cr.execute('SELECT ytd_computation FROM hr_payroll_structure WHERE id = %s',
+                       (spec['structure'],))
+        assert env.cr.fetchone() == (False,)
+        result['baseline'] = baseline
+    finally:
+        env.cr.rollback()
+    for model in ('hr.payslip', 'hr.contract', 'hr.work.entry'):
+        assert not env[model].search_count([('name', '=', marker)])
+    return {**result, 'fixture_rolled_back': True, 'activation_in_memory': True}
 
 
 def run(env, database, reference_path=None):
@@ -276,4 +327,5 @@ def run(env, database, reference_path=None):
     basis_cases = {name: trial(env, generic_structure, community, **fixture)
                    for name, fixture in BASIS_FIXTURES}
     return {'database': database, 'operator_uid': 7, 'community': community,
-            'drafts_only': True, 'cases': results, 'basis_cases': basis_cases}
+            'drafts_only': True, 'cases': results, 'basis_cases': basis_cases,
+            'active_ytd': active_ytd_trial(env, generic_structure, community)}
