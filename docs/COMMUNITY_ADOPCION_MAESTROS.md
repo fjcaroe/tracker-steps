@@ -1,5 +1,52 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+
+## U10 — procedencia de las columnas obligatorias, 25-11-2026
+
+La puerta física ahora une las columnas revisadas con sus campos almacenados y
+XML IDs en las dos bases privadas. En U2 ejecutó 196 consultas de solo lectura.
+Los 32 campos conservan sus IDs y namespaces originales. Las 32 columnas siguen
+sin `NOT NULL` y sin nulos. De ellas, 24 mantienen `required=True` en los
+metadatos persistidos del destino. Las otras ocho pertenecen a `hr_payroll`:
+tipo de estructura, nombre de liquidación, tipo de entrada, tipo de día, categoría,
+código y estructura de regla, y código de categoría. La revisión también
+reconfirmó las 32 FK nuevas y vacías. El catálogo persistido no sustituye
+comprobar el registro ORM activo y las altas y ediciones reales.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U10`.
+Recibo de catálogo `a2d74a552d79a56146e7f83459dd78347356f3b1398858f74e1bd907b8c91cd6`.
+Pasaron 176 pruebas locales. El consumidor actualizado admitió los dos recibos
+reales de U9 y rechazó tanto una pareja distinta como un sello incorrecto.
+
+El inventario completo conserva Cerro 414/140 Enterprise/133 propias, Steps
+310/123/19 y SyS 336/142/21. El repositorio conserva 170 módulos propios y 40
+fuera de Cerro. La matriz candidata sube de 74 a 75 caminos en Cerro por
+`step_harvest_launcher`; Steps y SyS conservan nueve y 14. La fuente activa de
+`step_packing_ticket_revision` cambió en Cerro. Siguen las tres fuentes propias
+privadas de Cerro, el proveedor AGPL y la recuperación de `steps_transport`
+fuera de la ruta activa. Huella del inventario
+`8f3c7a809d9a18a5d5a4473f982e8a5fe26dcb0521e61ae19397afaf4aca6a8a`.
+
+El candidato anclado `34854458` queda en `codex/community-resume-20261123`.
+Prepara una observación nativa y un destino Community oficial/OCA a partir del
+mismo dump. U10B se empaquetó en
+`/opt/steps-validation/community-original-handover-20261125U10B`, SHA256
+`9bb2af25b6e522a0933054eb1e21b26286ffd482129645e53e24318e1446429f`.
+La revisión concurrente de Cosecha mantuvo el bloqueo compartido. La espera
+se canceló antes de crear bases o tomar el respaldo. U10 no añade una
+aceptación de conversión. T2, U7 y U9 conservan sus alcances.
+
+Retomar desde la canónica actualizada integrando el candidato pendiente en el
+worktree del hilo. Ejecutar la pareja nueva bajo el bloqueo y comprobar
+118 accesos, dos denegaciones, 71 vínculos y su idempotencia, cinco formularios
+y cuatro menús. Ejecutar la revisión física y priorizar las ocho pérdidas ORM
+de Nómina: conservar los contratos válidos del OCA genérico y probar el
+proveedor original con altas y ediciones. Revisar por separado los 24 campos
+con metadatos obligatorios y pérdida de restricción física. Siguen Nómina
+financiera, HR, DTE/CAF/SII, Tesorería, Calidad, Studio/Documentos/Firma y la
+restauración y aceptación integral de los productos con cero Enterprise.
+
+
 ## U9 — cuatro menús originales de Nómina, 24-11-2026
 
 El candidato `b0c8ffd9` recupera el observador de menús nativos y
