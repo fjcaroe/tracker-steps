@@ -27,6 +27,9 @@ class FakeCopy:
         self.posts = []
         self.worker = None
         self.attendance = None
+        self.native_reads = []
+        self.leaks_into_hr = False
+        self.scope_hidden = False
 
     def request(self, method, path, payload=None):
         if method == 'GET':
@@ -38,9 +41,16 @@ class FakeCopy:
                 return 200, {'ok': True, 'items': []}
             members = [21] + ([401] if self.worker else [])
             return 200, dict(identity, crew_permissions={'enroll': self.permissions, 'attendance': self.permissions},
+                             crew_attendance_scope='cosecha',
                              crews=[{'id': 51, 'type': 'propio', 'worker_ids': members}],
                              workers=[dict(self.worker, id=401, job='Cosechero', job_id=8)] if self.worker else [],
                              crew_attendance=[{'crew_id': 51, 'date': self.attendance['date'], 'worker_ids': [401]}] if self.attendance else [])
+        if path.endswith('/hr.attendance/search_count'):
+            self.native_reads.append(copy.deepcopy(payload))
+            params = payload['params']
+            assert params['args'] == [[['id', '=', 501]]]
+            scoped = params['kwargs']['context'].get('harvest_attendance_scope') == 'cosecha'
+            return 200, {'result': int(self.leaks_into_hr or scoped and not self.scope_hidden)}
         self.posts.append(copy.deepcopy(payload))
         if payload['scope'] != self.scope:
             return 409, {'ok': False}
@@ -58,6 +68,21 @@ class FakeCopy:
 
 
 class CrewSmokeSafetyCase(unittest.TestCase):
+    def test_v9_native_attendance_is_readable_only_in_cosecha_scope(self):
+        _, _, policy = policy_fixture()
+        policy['harvest_web']['version'] = '0.0.9'
+        client = FakeCopy()
+        result = exercise_crew(client, policy, 'UTC', 'QA-HARVEST-CREW-' + 'e' * 32)
+        self.assertTrue(result['harvest_attendance_cosecha_only'])
+        self.assertEqual(len(client.native_reads), 2)
+        self.assertNotIn('harvest_attendance_scope', client.native_reads[0]['params']['kwargs']['context'])
+        self.assertEqual(client.native_reads[1]['params']['kwargs']['context']['harvest_attendance_scope'], 'cosecha')
+        for defect in ('leaks_into_hr', 'scope_hidden'):
+            client = FakeCopy()
+            setattr(client, defect, True)
+            with self.subTest(defect=defect), self.assertRaises(AssertionError):
+                exercise_crew(client, policy, 'UTC', 'QA-HARVEST-CREW-' + 'f' * 32)
+
     def test_only_exact_certified_operations_copy_is_accepted(self):
         for environment in ('development', 'cerro', 'qa-cerro'):
             stage, proof, policy = policy_fixture(environment)

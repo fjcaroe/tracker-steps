@@ -2,7 +2,9 @@
 import re
 
 
-SUPPORTED_VERSIONS = ('0.0.3', '0.0.4', '0.0.5', '0.0.6', '0.0.7', '0.0.8')
+SUPPORTED_VERSIONS = ('0.0.3', '0.0.4', '0.0.5', '0.0.6', '0.0.7', '0.0.8', '0.0.9')
+OPERATIONS_VERSIONS = ('0.0.8', '0.0.9')
+V9_REVIEWED_MESSAGES = {236: 10650, 237: 10648}
 STATIC_FEATURES = {
     '0.0.4': ('harvestcompany', 'harvest-company-selector'),
     '0.0.7': ('harvestandroid', 'harvest-android-pilot'),
@@ -18,6 +20,11 @@ OPERATIONS_REVIEW_CHECKS = (
     'crew_native_type_contractor', 'worker_enrollment', 'crew_attendance',
     'attendance_home_total', 'ot_close', 'ot_review', 'ot_send_confirmation',
     'native_copy_sync', 'sync_idempotency', 'pending_preserved', 'mobile_layout',
+)
+OPERATIONS_V9_REVIEW_CHECKS = (*OPERATIONS_REVIEW_CHECKS,
+    'ot_reopen_before_send', 'sent_ot_cannot_reopen', 'order_approver_selection',
+    'native_approval', 'send_flushes_pending_deliveries', 'send_received_manifest',
+    'harvest_attendance_cosecha_only',
 )
 OPERATIONS_WRITE_PATHS = (
     '/api/harvest/sync', '/api/harvest/crew/sync', '/api/harvest/orders/transition',
@@ -64,7 +71,7 @@ def validate_android_review(frontend, environment, stage_name, proof, review):
 
 def validate_operations_copy(frontend, environment, stage_name, proof):
     require_authorized_environment(frontend, environment)
-    assert frontend['version'] == '0.0.8'
+    assert frontend['version'] in OPERATIONS_VERSIONS
     assert re.fullmatch('[a-f0-9]{40}', frontend['commit'])
     assert re.fullmatch('[a-f0-9]{40}', proof['commit'])
     assert re.fullmatch('[a-f0-9]{64}', proof['release_sha256'])
@@ -74,6 +81,17 @@ def validate_operations_copy(frontend, environment, stage_name, proof):
     assert proof['feature'] == 'harvest-app' and proof['environment'] == environment
     assert proof['business_preserved'] is True
     assert not proof.get('readonly_copy'), 'Operations require a freshly upgraded native copy'
+    if frontend['version'] == '0.0.9':
+        assert proof['backend_versions']['step_harvest_launcher'] == '18.0.1.4.1', 'Harvest .9 requires its revised native lifecycle backend'
+
+
+def validate_reviewed_messages(frontend, reviewed):
+    if frontend['version'] == '0.0.9':
+        assert {int(key): value for key, value in reviewed.items()} == V9_REVIEWED_MESSAGES, 'Review the latest human responses before this delivery'
+
+
+def require_operations_publication(frontend):
+    assert frontend['version'] == '0.0.9', 'T236 message 10650 requires Harvest .9 before publication'
 
 
 def validate_operations_review(frontend, environment, stage_name, proof, review):
@@ -83,7 +101,10 @@ def validate_operations_review(frontend, environment, stage_name, proof, review)
     assert review['backend_commit'] == proof['commit']
     assert review['backend_sha256'] == proof['release_sha256']
     assert review['database'] == proof['database']
-    assert all(review[key] is True for key in OPERATIONS_REVIEW_CHECKS), 'Incomplete crew/lifecycle review'
+    checks = OPERATIONS_V9_REVIEW_CHECKS if frontend['version'] == '0.0.9' else OPERATIONS_REVIEW_CHECKS
+    assert all(review[key] is True for key in checks), 'Incomplete crew/lifecycle review'
+    if frontend['version'] == '0.0.9':
+        validate_reviewed_messages(frontend, review['reviewed_messages'])
 
 
 def validate_operations_smokes(frontend, proof, operations, crew):
@@ -97,15 +118,24 @@ def validate_operations_smokes(frontend, proof, operations, crew):
         assert result['credentials_or_session_ids_supplied'] is False
     assert all(operations[key] is True for key in (
         'native_copy_sync', 'sync_idempotency', 'ot_close', 'ot_review',
-        'ot_send_confirmation', 'erp_state_preserved', 'unconfirmed_delivery_blocks_close'))
+        'ot_send_confirmation', 'unconfirmed_delivery_blocks_close'))
+    if frontend['version'] == '0.0.9':
+        assert all(operations[key] is True for key in (
+            'order_approver_selection', 'native_approval', 'erp_state_approved',
+            'ot_reopen_before_send', 'sent_ot_cannot_reopen', 'send_flushes_pending_deliveries',
+            'send_retry_idempotency', 'pending_send_atomic', 'send_received_manifest'))
+    else:
+        assert operations['erp_state_preserved'] is True
     assert all(crew[key] is True for key in (
         'worker_enrollment', 'crew_attendance', 'attendance_home_total',
         'native_members_preserved', 'enrollment_idempotency', 'attendance_idempotency',
         'changed_hours_rejected', 'wrong_date_rejected'))
+    if frontend['version'] == '0.0.9':
+        assert crew['harvest_attendance_cosecha_only'] is True
 
 
 def require_copy_sync_certificate(frontend, environment, stage_name, proof):
-    if frontend['version'] == '0.0.8':
+    if frontend['version'] in OPERATIONS_VERSIONS:
         validate_operations_copy(frontend, environment, stage_name, proof)
     else:
         assert frontend['version'] == '0.0.7', 'Copy writes require a certified Harvest copy'
@@ -113,6 +143,6 @@ def require_copy_sync_certificate(frontend, environment, stage_name, proof):
 
 
 def is_copy_sync_request(enabled, method, path, origin, port, version='0.0.7'):
-    paths = OPERATIONS_WRITE_PATHS if version == '0.0.8' else ('/api/harvest/sync',)
+    paths = OPERATIONS_WRITE_PATHS if version in OPERATIONS_VERSIONS else ('/api/harvest/sync',)
     return (enabled is True and method == 'POST' and path in paths
             and origin == 'http://127.0.0.1:' + str(port))

@@ -7,12 +7,13 @@ import re
 import shutil
 import subprocess
 import configure_harvest_default_job as default_job
-from harvest_web_policy import validate_operations_review, validate_operations_smokes
+from harvest_web_policy import (validate_operations_review, validate_operations_smokes,
+                                validate_reviewed_messages, require_operations_publication)
 
 
 def validate_default_job_delivery(copy, live, qa, environment, package_sha, helper_sha, live_database, expected_backup):
     """Require the certified configuration and its separate published result."""
-    default_job.validate_configuration_proof(copy, environment, package_sha, helper_sha)
+    default_job.validate_configuration_proof(copy, environment, package_sha, helper_sha, qa['commit'])
     assert copy['database'] == qa['database']
     assert copy['commit'] == qa['commit'] and copy['release_sha256'] == qa['release_sha256']
     assert live['mode'] == 'live' and live['database'] == live_database
@@ -45,6 +46,8 @@ def main():
     manifest = json.loads((base/'web/release.json').read_text())
     sha = hashlib.sha256((base/('harvest-odoo.tar.gz' if panel else 'harvest.tar.gz')).read_bytes()).hexdigest()
     if operations:
+        require_operations_publication(manifest)
+        validate_reviewed_messages(manifest, reviewed)
         helper_sha = default_job.digest(Path(default_job.__file__).resolve())
         environments = json.loads(Path(__file__).with_name('environments.json').read_text())['environments']
     commits = set()
@@ -90,7 +93,7 @@ def main():
             validate_operations_review(manifest, target, stage.name, qa,
                 json.loads((stage/'harvest-browser-proof.json').read_text()))
             crew_smoke = json.loads((stage/'harvest-crew-smoke.json').read_text())
-            default_job.validate_crew_smoke(crew_smoke, copy_configuration, target, sha, helper_sha)
+            default_job.validate_crew_smoke(crew_smoke, copy_configuration, target, sha, helper_sha, qa['commit'])
             validate_operations_smokes(manifest, qa,
                 json.loads((stage/'harvest-operations-smoke.json').read_text()),
                 crew_smoke)

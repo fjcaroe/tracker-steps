@@ -23,7 +23,7 @@ from review_management_panel import is_read_request, is_action_breadcrumb_read
 from harvest_web_policy import (SUPPORTED_VERSIONS, require_authorized_environment,
                                 validate_static_copy, require_copy_sync_certificate,
                                 is_copy_sync_request, OPERATIONS_WRITE_PATHS,
-                                validate_operations_copy)
+                                validate_operations_copy, OPERATIONS_VERSIONS)
 
 
 def main():
@@ -77,7 +77,7 @@ def main():
             validate_static_copy(frontend, args.environment, stage.name, proof)
         else:
             assert proof['commit'].startswith(match[3])
-        if frontend['version'] == '0.0.8':
+        if frontend['version'] in OPERATIONS_VERSIONS:
             validate_operations_copy(frontend, args.environment, stage.name, proof)
         if args.allow_copy_sync:
             require_copy_sync_certificate(frontend, args.environment, stage.name, proof)

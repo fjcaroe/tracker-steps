@@ -1,8 +1,8 @@
 """Prove Harvest delivery and OT lifecycle only through a certified private copy.
 
-An existing native OT in ERP in receives one QA delivery. Otherwise, an approved
-or costed OT replays its existing native UUID without adding a line. Both modes
-advance mobile closed/reviewed/sent while preserving the original ERP state.
+Harvest .9 creates a QA OT from existing masters, reopens before sending,
+approves natively and sends its complete declared queue with atomic retries.
+The .8 historical mode remains available for its original archived evidence.
 The original customer databases are never reachable through this client.
 """
 import argparse
@@ -45,7 +45,7 @@ def validate_operations_policy(origin, stage_name, proof, policy):
     frontend = policy['harvest_web']
     environment = policy['environment']
     assert environment in ('development', 'cerro', 'qa-cerro')
-    assert frontend['version'] == '0.0.8'
+    assert frontend['version'] in ('0.0.8', '0.0.9')
     assert re.fullmatch('[a-f0-9]{40}', proof['commit'])
     assert re.fullmatch('[a-f0-9]{64}', proof['release_sha256'])
     assert stage_name == 'management_' + environment + '_t236237_' + proof['commit'][:8]
@@ -165,6 +165,130 @@ def exercise_operations(client, policy, run_uuid=None):
         'existing_relations_only': True, 'credentials_or_session_ids_supplied': False}
 
 
+def exercise_revised_operations(client, policy, run_uuid=None):
+    """Create a QA OT, reopen it, approve natively and send its full queue."""
+    status, session = client.request('GET', '/api/harvest/session')
+    require_success(status, session, 'Native session')
+    assert session.get('connected') is True
+    status, bootstrap = client.request('GET', '/api/harvest/bootstrap')
+    require_success(status, bootstrap, 'Native bootstrap')
+    for identity in (session, bootstrap):
+        assert identity['user']['id'] == policy['user_id'] and identity['company']['id'] == policy['company_id']
+    scope = bootstrap['scope']
+    assert isinstance(scope, str) and re.fullmatch('[a-f0-9]{64}', scope) and session['scope'] == scope
+    assert policy['user_id'] in {row['id'] for row in bootstrap['approvers']}, 'The existing profile must be a native approver'
+    workers = {row['id'] for row in bootstrap['workers'] if positive_id(row.get('id'))}
+    crew_candidates = [(row, member) for row in bootstrap['crews']
+                       for member in row.get('worker_ids', []) if member in workers]
+    farms = {row['id'] for row in bootstrap['farms'] if positive_id(row.get('id'))}
+    varieties = {row['id'] for row in bootstrap['varieties'] if positive_id(row.get('id'))}
+    centers = [row for row in bootstrap['cost_centers']
+               if row.get('farm_id') in farms and row.get('variety_id') in varieties]
+    assert crew_candidates and centers, 'The copy needs a native crew member and a coherent farm/variety/cost center before writes'
+    crew, worker_id = crew_candidates[0]
+    center = centers[0]
+    run_uuid = run_uuid or 'QA-HARVEST-OPS-' + uuid.uuid4().hex
+    assert re.fullmatch(r'QA-HARVEST-OPS-[a-f0-9]{32}', run_uuid)
+    work_order = {'id': run_uuid + '-OT', 'client_uuid': run_uuid + '-OT', 'crew_id': crew['id'],
+                  'farm_id': center['farm_id'], 'variety_id': center['variety_id'], 'cost_id': center['id'],
+                  'approver_id': policy['user_id']}
+    if center.get('cuarteles'):
+        work_order['cuartel_id'] = center['cuarteles'][0]['id']
+    first = {'client_uuid': run_uuid, 'worker_id': worker_id, 'work_order': work_order,
+             'tarja': 'QA-OPS-' + run_uuid[-12:], 'row': 'QA-OPERATIONS', 'boxes': 1, 'kilos': 1,
+             'event_datetime': datetime.now(timezone.utc).isoformat()}
+    pending = dict(first, client_uuid=run_uuid + '-PENDING', tarja=first['tarja'] + '-PENDING')
+    altered = ('f' if scope[0] != 'f' else 'e') + scope[1:]
+    status, rejected = client.request('POST', '/api/harvest/sync', {'scope': altered, 'records': [first]})
+    assert status == 409 and rejected.get('ok') is False
+    status, received = client.request('POST', '/api/harvest/sync', {'scope': scope, 'records': [first]})
+    require_success(status, received, 'New QA OT and delivery')
+    result, = received['results']
+    assert result['client_uuid'] == first['client_uuid'] and result['ok'] is True and result['duplicate'] is False
+    order_id, first_id = result['work_order_id'], result['id']
+    assert positive_id(order_id) and positive_id(first_id)
+    status, repeated_sync = client.request('POST', '/api/harvest/sync', {'scope': scope, 'records': [first]})
+    require_success(status, repeated_sync, 'Original delivery retry')
+    duplicate, = repeated_sync['results']
+    assert duplicate['ok'] is True and duplicate['duplicate'] is True
+    assert duplicate['client_uuid'] == first['client_uuid'] and duplicate['id'] == first_id and duplicate['work_order_id'] == order_id
+    pending['work_order'] = {'odoo_id': order_id}
+    payload = {'scope': scope, 'work_order': {'odoo_id': order_id}, 'delivery_uuids': [first['client_uuid']]}
+
+    def current():
+        status, data = client.request('GET', '/api/harvest/bootstrap')
+        require_success(status, data, 'Native revised OT refresh')
+        return next(row for row in data['orders'] if row.get('odoo_id') == order_id)
+
+    def transition(action, expected, erp_state, **extra):
+        status, value = client.request('POST', '/api/harvest/orders/transition', dict(payload, action=action, **extra))
+        require_success(status, value, 'Copy ' + action)
+        assert value.get('scope') == scope
+        assert value['confirmed_delivery_uuids'] == extra.get('delivery_uuids', payload['delivery_uuids'])
+        order = value['order']
+        assert order['odoo_id'] == order_id and order['status'] == expected and order['erp_state'] == erp_state
+        assert order['approver_id'] == policy['user_id']
+        return value
+
+    assert current()['approver_id'] == policy['user_id'] and current()['erp_state'] == 'in'
+    status, rejected = client.request('POST', '/api/harvest/orders/transition', {
+        'scope': altered, 'work_order': {'odoo_id': order_id}, 'action': 'close',
+        'delivery_uuids': [first['client_uuid']]})
+    assert status == 409 and rejected.get('ok') is False
+    status, rejected = client.request('POST', '/api/harvest/orders/transition', {
+        'scope': scope, 'work_order': {'odoo_id': order_id}, 'action': 'close',
+        'delivery_uuids': [first['client_uuid'], run_uuid + '-MISSING']})
+    assert status == 422 and rejected.get('ok') is False
+    assert current()['status'] == 'En proceso'
+    closed = transition('close', 'Cerrada', 'in')['order']
+    assert transition('close', 'Cerrada', 'in')['order']['state_changed_at'] == closed['state_changed_at']
+    assert closed['can_reopen'] is True
+    status, rejected = client.request('POST', '/api/harvest/sync', {'scope': scope, 'records': [
+        dict(pending, client_uuid=run_uuid + '-AFTER-CLOSE')]})
+    assert status == 200 and rejected.get('ok') is False
+    assert {row['mobile_uid'] for row in read_native_manifest(client, order_id)} == {first['client_uuid']}
+    transition('reopen', 'En proceso', 'in')
+    transition('close', 'Cerrada', 'in')
+    approved = transition('approve', 'Revisada', 'apro')['order']
+    assert approved['approved_by_id'] == policy['user_id'] and approved['approved_at']
+    assert transition('approve', 'Revisada', 'apro')['order']['approved_at'] == approved['approved_at']
+    full_manifest = [first['client_uuid'], pending['client_uuid']]
+    status, rejected = client.request('POST', '/api/harvest/orders/transition', dict(payload, action='send',
+        records=[pending], delivery_uuids=[*full_manifest, run_uuid + '-MISSING']))
+    assert status == 422 and rejected.get('ok') is False
+    assert {row['mobile_uid'] for row in read_native_manifest(client, order_id)} == {first['client_uuid']}, 'Incomplete total send must roll back its appended delivery'
+    assert current()['erp_state'] == 'apro' and current()['status'] == 'Revisada'
+    sent = transition('send', 'Enviada', 'apro', records=[pending], delivery_uuids=full_manifest)
+    ack, = sent['results']
+    assert ack['ok'] is True and ack['duplicate'] is False and ack['client_uuid'] == pending['client_uuid']
+    assert ack['work_order_id'] == order_id and positive_id(ack['id']) and ack['id'] != first_id
+    repeated = transition('send', 'Enviada', 'apro', records=[pending], delivery_uuids=full_manifest)
+    retry, = repeated['results']
+    assert retry['ok'] is True and retry['duplicate'] is True and retry['id'] == ack['id']
+    assert repeated['order']['state_changed_at'] == sent['order']['state_changed_at']
+    status, rejected = client.request('POST', '/api/harvest/orders/transition',
+        dict(payload, action='reopen', delivery_uuids=full_manifest))
+    assert status == 422 and rejected.get('ok') is False
+    status, rejected = client.request('POST', '/api/harvest/sync', {'scope': scope, 'records': [
+        dict(pending, client_uuid=run_uuid + '-AFTER-SENT')]})
+    assert status == 200 and rejected.get('ok') is False
+    manifest = read_native_manifest(client, order_id)
+    assert {row['mobile_uid'] for row in manifest} == set(full_manifest) and len(manifest) == 2
+    confirmed = current()
+    assert confirmed['status'] == 'Enviada' and confirmed['erp_state'] == 'apro' and confirmed['can_reopen'] is False
+    return {'run_uuid': run_uuid, 'native_order_id': order_id, 'native_line_id': first_id,
+            'native_line_ids': [first_id, ack['id']], 'native_worker_id': worker_id, 'native_crew_id': crew['id'],
+            'native_approver_id': policy['user_id'], 'new_lines': 2, 'native_context': True,
+            'scope_rejected_before_write': True, 'native_copy_sync': True, 'sync_idempotency': True,
+            'unconfirmed_delivery_blocks_close': True, 'ot_close': True, 'ot_review': True,
+            'ot_send_confirmation': True, 'order_approver_selection': True, 'native_approval': True,
+            'erp_state_approved': True, 'ot_reopen_before_send': True, 'sent_ot_cannot_reopen': True,
+            'send_flushes_pending_deliveries': True, 'pending_send_atomic': True, 'send_retry_idempotency': True,
+            'send_received_manifest': True,
+            'close_retry_idempotency': True, 'new_delivery_rejected_after_close': True,
+            'existing_relations_only': True, 'credentials_or_session_ids_supplied': False}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--url', required=True)
@@ -180,7 +304,8 @@ def main():
     output = args.output
     assert output.is_absolute() and output.resolve() == output and not output.exists()
     assert not any((parent/'.git').exists() for parent in output.parents), 'Keep evidence outside checkouts'
-    evidence = exercise_operations(OperationsClient(origin), policy)
+    exercise = exercise_revised_operations if policy['harvest_web']['version'] == '0.0.9' else exercise_operations
+    evidence = exercise(OperationsClient(origin), policy)
     evidence.update({'feature': proof['feature'], 'stage': stage.name, 'database': proof['database'],
         'web_commit': policy['harvest_web']['commit'], 'backend_commit': proof['commit'],
         'backend_sha256': proof['release_sha256'], 'created_at': datetime.now(timezone.utc).isoformat()})

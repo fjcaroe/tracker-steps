@@ -15,7 +15,8 @@ import urllib.error
 import urllib.request
 from harvest_web_policy import (SUPPORTED_VERSIONS, require_authorized_environment,
                                 validate_android_review, validate_static_copy,
-                                validate_operations_review, validate_operations_smokes)
+                                validate_operations_review, validate_operations_smokes,
+                                OPERATIONS_VERSIONS, require_operations_publication)
 
 HOSTS = {'development': 'desarrollo.stepsapp.cl', 'cerro': 'cerroelplomo.stepsapp.cl',
          'qa-cerro': 'qa-cerroelplomo.stepsapp.cl'}
@@ -198,7 +199,8 @@ def main():
             assert all(review[key] for key in ('company_selector', 'authorized_companies_only', 'company_round_trip', 'pending_preserved', 'mobile_layout'))
         if manifest['version'] == '0.0.7':
             validate_android_review(manifest, args.environment, stage.name, passed, review)
-        if manifest['version'] == '0.0.8':
+        if manifest['version'] in OPERATIONS_VERSIONS:
+            require_operations_publication(manifest)
             validate_operations_review(manifest, args.environment, stage.name, passed, review)
             operations = stage/'harvest-operations-smoke.json'
             crew = stage/'harvest-crew-smoke.json'
@@ -220,7 +222,7 @@ def main():
                 assert all(review[key] for key in ('harvest_dashboard_workforce',
                     'harvest_costing_form', 'harvest_costing_native_flow'))
                 assert args.environment != 'qa-cerro' or review['harvest_costing_reported_case']
-        if manifest['version'] in ('0.0.4', '0.0.5', '0.0.6', '0.0.8') and args.environment != 'development':
+        if manifest['version'] in ('0.0.4', '0.0.5', '0.0.6', *OPERATIONS_VERSIONS) and args.environment != 'development':
             assert validate(Path('/var/www/steps-harvest-releases/development')/manifest['commit']) == manifest
             public_hashes(HOSTS['development'], manifest)
         assert re.fullmatch('[a-f0-9]{64}', args.expected_js_sha256 or ''), 'Require the observed static baseline'

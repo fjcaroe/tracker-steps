@@ -1,5 +1,6 @@
 """T101/T102 effective action, nested field and existing-record checks."""
 import importlib
+import ast
 import json
 from pathlib import Path
 from lxml import etree
@@ -104,12 +105,18 @@ try:
             view_id=env.ref('step_cosecha.view_step_cosecha_registry_form').id, view_type='form')['arch'])
         for field in ('mobile_status', 'mobile_state_date', 'mobile_state_user_id'):
             assert arch.xpath(".//field[@name='%s']" % field), field
+        if tuple(map(int, EXPECTED.get('step_harvest_launcher', '0').split('.'))) >= (18, 0, 1, 4, 1):
+            for field in ('mobile_approver_id', 'mobile_approved_by_id', 'mobile_approved_at'):
+                assert arch.xpath(".//field[@name='%s']" % field), field
     if crew_attendance:
+        cosecha_scope = tuple(map(int, EXPECTED.get('step_harvest_launcher', '0').split('.'))) >= (18, 0, 1, 4, 1)
         for kind, parent in (('own', 'menu_step_cosecha_main'), ('contractor', 'menu_step_cosecha_main_contra')):
             menu = env.ref('step_harvest_launcher.menu_harvest_attendance_' + kind)
             assert menu.active and menu.parent_id == env.ref('step_cosecha.' + parent)
             assert menu.action == env.ref('step_harvest_launcher.harvest_attendance_' + kind)
             assert menu.action.res_model == 'hr.attendance'
+            if cosecha_scope:
+                assert ast.literal_eval(menu.action.context)['harvest_attendance_scope'] == 'cosecha'
             assert menu.action._get_action_dict()['views'][0] == (
                 env.ref('step_harvest_launcher.harvest_attendance_list').id, 'list')
         for kind in ('list', 'form'):
@@ -118,7 +125,8 @@ try:
             check_fields('hr.attendance', arch)
             for field in ('employee_id', 'harvest_crew_id', 'check_in', 'check_out', 'worked_hours'):
                 assert arch.xpath(".//field[@name='%s']" % field), field
-        env['hr.attendance'].search([('harvest_crew_id.company_id', '=', env.company.id)], limit=8).web_read({
+        attendance = env['hr.attendance'].with_context(harvest_attendance_scope='cosecha') if cosecha_scope else env['hr.attendance']
+        attendance.search([('harvest_crew_id.company_id', '=', env.company.id)], limit=8).web_read({
             'employee_id': {'fields': {'display_name': {}}}, 'harvest_crew_id': {'fields': {'display_name': {}}},
             'check_in': {}, 'check_out': {}, 'worked_hours': {}})
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [101, 102, 231, *([232] if 'step_harvest_launcher' in EXPECTED else []), *([234] if dashboard else []), *([235] if costing else []), *([236] if lifecycle else []), *([237] if crew_attendance else [])], 'versions': EXPECTED,
