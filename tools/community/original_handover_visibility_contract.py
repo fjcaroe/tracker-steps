@@ -16,6 +16,9 @@ LEGACY_SOURCE_OBSERVER_HASHES = {
     '97f70446aa35138a3e4742de64e0f1669fc5531890b409e18d2d34b4125b3889',  # same CRLF
 }
 GRAPH_SOURCE_OBSERVER_HASHES = {
+    '62aacd77626a5477768feeeb281854a578306f50247855a409a518eb8fef3a95',  # current exact installed graph
+    'f816321ef5fd01a2d904cf7c94b862fec4d331b9a8ed6304bef9e54c54b130d6',  # current exact installed graph
+
     '62aacd77626a5477768feeeb281854a578306f50247855a409a518eb8fef3a95',  # explicit source-graph observer LF
     'f816321ef5fd01a2d904cf7c94b862fec4d331b9a8ed6304bef9e54c54b130d6',  # same CRLF
 }
