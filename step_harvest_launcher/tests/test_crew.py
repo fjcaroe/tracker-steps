@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from odoo import Command
+from odoo import Command, fields
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.tests.common import new_test_user
@@ -14,6 +14,14 @@ class HarvestCrewCase(TransactionCase):
         cls.company = cls.env['res.company'].create({'name': 'Private Harvest crew company'})
         cls.foreign = cls.env['res.company'].create({'name': 'Private Harvest foreign company'})
         cls.env = cls.env(context=dict(cls.env.context, allowed_company_ids=[cls.company.id], tz='UTC'))
+        cls.calendar = cls.env['resource.calendar'].create({
+            'name': 'Private Harvest continuous UTC hours', 'company_id': cls.company.id, 'tz': 'UTC',
+            'attendance_ids': [Command.clear(), *[Command.create({
+                'name': 'Private Harvest eight-hour day', 'dayofweek': str(day),
+                'hour_from': 8, 'hour_to': 16,
+            }) for day in range(5)]],
+        })
+        cls.company.resource_calendar_id = cls.calendar
         cls.partner = cls.env['res.partner'].create({'name': 'Private Harvest contractor', 'is_company': True})
         cls.job = cls.env['hr.job'].create({'name': 'Private Harvest supervisor', 'company_id': cls.company.id})
         cls.own = cls.env['hr.salary.custom'].create({'name': 'Private Harvest own', 'group_type': 'propio', 'company_id': cls.company.id})
@@ -78,6 +86,7 @@ class HarvestCrewCase(TransactionCase):
 
     def test_attendance_uses_native_table_and_is_idempotent(self):
         worker = self.own.harvest_enroll_worker(self.enrollment())
+        self.assertEqual(worker.resource_calendar_id, self.calendar)
         values = self.attendance(worker)
         attendance = self.own.harvest_record_attendance(values)
         self.assertEqual(attendance._name, 'hr.attendance')
@@ -91,6 +100,23 @@ class HarvestCrewCase(TransactionCase):
         worker = self.own.harvest_enroll_worker(self.enrollment())
         values = self.attendance(worker); values['entries'][0].pop('worker_id'); values['entries'][0]['worker_uuid'] = 'private-enrollment'
         self.assertEqual(self.own.harvest_record_attendance(values).employee_id, worker)
+
+    def test_attendance_keeps_the_native_calendar_lunch_deduction(self):
+        calendar = self.calendar.copy({
+            'name': 'Private Harvest UTC hours with lunch',
+            'attendance_ids': [Command.clear(), *[Command.create({
+                'name': 'Private Harvest ' + period, 'dayofweek': str(day),
+                'day_period': period, 'hour_from': start, 'hour_to': end,
+            }) for day in range(5) for period, start, end in (
+                ('morning', 8, 12), ('lunch', 12, 13), ('afternoon', 13, 16))]],
+        })
+        worker = self.own.harvest_enroll_worker(self.enrollment())
+        worker.resource_calendar_id = calendar
+        attendance = self.own.harvest_record_attendance(self.attendance(worker))
+        self.assertEqual(fields.Datetime.to_string(attendance.check_in), '2026-11-24 08:00:00')
+        self.assertEqual(fields.Datetime.to_string(attendance.check_out), '2026-11-24 16:00:00')
+        self.assertEqual(attendance.worked_hours, 7)
+        self.assertEqual(self.company.resource_calendar_id, self.calendar)
 
     def test_attendance_rejects_invalid_or_changed_hours(self):
         worker = self.own.harvest_enroll_worker(self.enrollment())
