@@ -73,6 +73,40 @@ def required_column(sql, source, target, change):
     }
 
 
+def field_metadata(sql, database, columns):
+    """Resolve physical losses to stored ORM fields and their recorded owners."""
+    if not columns:
+        return {}
+    values = ','.join(f"({literal(row['table'])},{literal(row['column'])})" for row in columns)
+    rows = json.loads(sql(database, (
+        "SELECT json_agg(t ORDER BY t.table_name,t.column_name,t.id) FROM ("
+        "SELECT r.table_name,r.column_name,f.id,f.model,f.ttype,f.required,f.relation,"
+        "coalesce((SELECT json_agg(DISTINCT d.module ORDER BY d.module) FROM ir_model_data d "
+        "WHERE d.model='ir.model.fields' AND d.res_id=f.id),'[]'::json) AS xmlid_namespaces "
+        "FROM (VALUES " + values + ") r(table_name,column_name) "
+        "LEFT JOIN ir_model_fields f ON replace(f.model,'.','_')=r.table_name "
+        "AND f.name=r.column_name AND f.store) t"
+    )))
+    fields = {(row['table_name'], row['column_name']): row for row in rows}
+    require(len(rows) == len(fields) == len(columns), 'ambiguous-original-required-field-mapping')
+    return fields
+
+
+def required_field_ownership(sql, source, target, columns):
+    before = field_metadata(sql, source, columns)
+    after = field_metadata(sql, target, columns)
+    result = []
+    for key, original in before.items():
+        current = after[key]
+        require(original['id'] is not None and original['id'] == current['id']
+            and original['model'] == current['model'], 'original-required-field-identity-drifted')
+        require(original['required'] is True and original['xmlid_namespaces']
+            and set(original['xmlid_namespaces']) <= set(current['xmlid_namespaces']),
+            'original-required-field-owner-or-contract-missing')
+        result.append({'source': original, 'target': current})
+    return result
+
+
 def inspect(sql, source, target, review):
     require(review['database'] == target and review['read_only'] is True
         and review['acceptance_authorized_by_this_review'] is False, 'exact-anchor-review-required')
@@ -92,6 +126,7 @@ def inspect(sql, source, target, review):
     required_columns = [required_column(sql, source, target, change) for change in differences['columns']]
     return {
         'schema': 1, 'foreign_keys': relations, 'original_required_columns': required_columns,
+        'original_required_field_ownership': required_field_ownership(sql, source, target, required_columns),
         'all_reviewed_foreign_keys_empty_additions': all(row['populated'] == 0 for row in relations),
         'original_required_schema_restored': not required_columns,
         'financial_certified': False, 'integral_conversion': False,
