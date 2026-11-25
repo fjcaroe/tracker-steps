@@ -177,7 +177,14 @@ def run_case(env, spec, community, progress, marker, native_days=None,
         progress['input_membership_verified'] = True
 
     progress['phase'] = 'worked_days'
-    computed = slip._get_worked_day_lines()
+    if active_ytd:
+        # Use the normal editable draft rows for the observed real entries.
+        # The YTD comparison holds this basis constant across periods.
+        computed = [{'work_entry_type_id': kind, 'number_of_hours': float(hours),
+                     'number_of_days': float(hours) / calendar.hours_per_day,
+                     'contract_id': contract.id} for kind, hours in progress['original_work_entries']]
+    else:
+        computed = slip._get_worked_day_lines()
     progress['generated_days'] = sorted([row['work_entry_type_id'], decimal(row['number_of_hours']),
         decimal(row['number_of_days'])] for row in computed)
     entry_type_ids = {row[0] for row in progress['original_work_entries']}
