@@ -8,6 +8,81 @@ from .scope import ScopedHarvestApi, environment_scope
 
 
 class LifecycleHarvestApi(ScopedHarvestApi):
+    def _approvers(self):
+        candidates = request.env['res.users'].search([
+            ('active', '=', True), ('share', '=', False),
+            ('company_ids', 'in', request.env.company.ids)], order='name,id')
+        allowed = []
+        for user in candidates:
+            try:
+                request.env['step.cosecha.registry'].with_user(user).with_context(
+                    allowed_company_ids=request.env.company.ids).check_access('write')
+            except AccessError:
+                continue
+            allowed.append(user)
+        return allowed
+
+    def _reference_data(self, resource, query=None, limit=None):
+        if resource == 'approvers':
+            return [self._item(user) for user in self._approvers()
+                    if not query or query.casefold() in user.display_name.casefold()]
+        return super()._reference_data(resource, query, limit)
+
+    def _json(self, payload, status=200):
+        if request.session.uid and 'orders' in payload and 'crews' in payload:
+            payload = dict(payload, approvers=self._reference_data('approvers'), max_order_records=10000)
+        return super()._json(payload, status=status)
+
+    def _harvest_order_extra_values(self, values):
+        approver_id = values.get('approver_id', request.env.uid)
+        if type(approver_id) is not int or approver_id not in [user.id for user in self._approvers()]:
+            raise ValidationError(_('Seleccione un aprobador interno con acceso a esta empresa y a Cosecha.'))
+        return dict(super()._harvest_order_extra_values(values), mobile_approver_id=approver_id)
+
+    def _send_records(self, order, payload):
+        records = payload.get('records', [])
+        manifest = payload.get('delivery_uuids')
+        if (not isinstance(records, list) or len(records) > 10000 or not isinstance(manifest, list)
+                or len(manifest) > 10000 or any(not isinstance(value, str) or not value.strip() for value in manifest)
+                or len(set(manifest)) != len(manifest)):
+            raise ValidationError(_('El envío total requiere una lista de hasta 10000 entregas y su manifiesto.'))
+        identifiers = []
+        values = []
+        for row in records:
+            if not isinstance(row, dict):
+                raise ValidationError(_('El envío contiene una entrega inválida.'))
+            identifier = row.get('client_uuid') or row.get('id')
+            if not isinstance(identifier, str) or not identifier or identifier not in manifest or identifier in identifiers:
+                raise ValidationError(_('Cada entrega pendiente debe conservar su UUID único en el manifiesto de esta OT.'))
+            supplied = row.get('work_order') or {}
+            if not isinstance(supplied, dict) or supplied.get('odoo_id') and str(supplied['odoo_id']) != str(order.id):
+                raise ValidationError(_('El envío total no puede contener entregas de otra OT.'))
+            identifiers.append(identifier)
+            values.append(dict(row, work_order=dict(supplied, odoo_id=order.id)))
+        received = request.env['step.cosecha.tarja.registry.line'].search([('mobile_uid', 'in', identifiers)])
+        has_new = bool(set(identifiers) - set(received.mapped('mobile_uid')))
+        if has_new:
+            if (order.mobile_status != 'reviewed' or order.state != 'apro' or not order.mobile_native_approval
+                    or order.mobile_approver_id != request.env.user or order.mobile_approved_by_id != request.env.user):
+                raise ValidationError(_(
+                    'Las entregas pendientes requieren el envío del aprobador sobre una OT aprobada desde Harvest y sin Costeo. '
+                    'Solicite al aprobador reabrir y revisar la OT; los pendientes se conservan.'))
+            # The same authorized approver confirms the complete original UUID
+            # manifest. Native approval is renewed within this one transaction;
+            # any rejected delivery or incomplete manifest rolls everything back.
+            order.action_in()
+            order.with_context(mail_notrack=True)._harvest_write({'mobile_status': 'progress'})
+        results = []
+        for row in values:
+            result = self._sync_record(row)
+            if result.get('ok') is not True:
+                raise ValidationError(_('Una entrega no pudo confirmarse. El envío completo se conserva pendiente.'))
+            results.append(result)
+        if has_new:
+            order.action_apro()
+            order._harvest_write(dict(order._harvest_approval_values(), mobile_status='reviewed'))
+        return results
+
     @http.route('/api/harvest/orders/transition', type='http', auth='user', methods=['POST'], csrf=False, sitemap=False)
     def transition(self, **kwargs):
         error = self._active_company()
@@ -26,17 +101,28 @@ class LifecycleHarvestApi(ScopedHarvestApi):
                 if isinstance(values, dict) and values.get('local_uuid'):
                     payload['work_order'] = dict(values, client_uuid=values['local_uuid'])
                 order = self._get_or_create_order(payload)
+                order._lock_harvest_order()
+                results = self._send_records(order, payload) if payload.get('action') == 'send' else []
                 order._harvest_transition(payload.get('action'), payload.get('delivery_uuids'))
                 return self._json({'ok': True, 'order': self._order(order),
-                                   'confirmed_delivery_uuids': payload['delivery_uuids']})
-        except (AccessError, UserError, ValidationError, ValueError) as exc:
+                                   'confirmed_delivery_uuids': payload['delivery_uuids'], 'results': results})
+        except (AccessError, UserError, ValidationError, ValueError, TypeError) as exc:
             return self._json({'ok': False, 'error': str(exc)}, status=422)
 
     def _order(self, record):
         action = request.env.ref('step_cosecha.action_step_cosecha_registry_contra'
                                  if record.type_tarea == 'contratista' else 'step_cosecha.action_step_cosecha_registry')
+        writable = record.has_access('write')
+        approver = record.mobile_approver_id
         return dict(super()._order(record),
                     can_transition=record.has_access('write'),
+                    approver_id=approver.id or False, approver=approver.display_name or '',
+                    approved_by_id=record.mobile_approved_by_id.id or False,
+                    approved_at=str(record.mobile_approved_at or ''),
+                    can_approve=writable and (not approver or approver == request.env.user)
+                        and record.mobile_status in ('closed', 'reviewed'),
+                    can_reopen=writable and record.mobile_status in ('closed', 'reviewed'),
+                    can_capture=writable and (record.mobile_status or 'progress') == 'progress' and record.state == 'in',
                     erp_state=record.state,
                     state_changed_at=str(record.mobile_state_date or ''),
                     erp_url='/odoo/action-%s/%s' % (action.id, record.id))

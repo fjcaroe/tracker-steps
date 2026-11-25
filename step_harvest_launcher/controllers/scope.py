@@ -117,6 +117,9 @@ class ScopedHarvestApi(StepHarvestApi):
             raise ValidationError(_('El cuartel no coincide con el de la OT existente.'))
         return order
 
+    def _harvest_order_extra_values(self, values):
+        return {}
+
     def _get_or_create_order(self, data):
         values = data.get('work_order') if isinstance(data.get('work_order'), dict) else {}
         if values.get('odoo_id'):
@@ -156,6 +159,7 @@ class ScopedHarvestApi(StepHarvestApi):
             'cuartel_id': plot.id or False,
             'partner_id': crew.partner_id.id if kind == 'contratista' else False,
             'salary_id' if kind == 'propio' else 'salary_id_contrac': crew.id,
+            **self._harvest_order_extra_values(values),
         })
 
     def _sync_record(self, data):

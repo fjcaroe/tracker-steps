@@ -221,7 +221,7 @@ class HarvestNativeScopeCase(HttpCase):
         self.assertEqual([plot['id'] for plot in choices[other.id]], plots[1].ids)
         self.assertNotIn(foreign.id, choices)
         order = {'id': 'PRIVATE-T233', 'farm_id': farm.id, 'variety_id': variety.id,
-                 'cost_id': first.id, 'crew_id': crew.id}
+                 'cost_id': first.id, 'crew_id': crew.id, 'approver_id': self.users[0].id}
 
         def upload(suffix, **order_changes):
             record = {'client_uuid': 'private_t233_' + suffix, 'worker_id': self.workers[0].id,
@@ -233,10 +233,16 @@ class HarvestNativeScopeCase(HttpCase):
 
         for plot in plots[1:]:
             self.assertFalse(upload(str(plot.id), cuartel_id=plot.id)['ok'])
+        self.assertIn(self.users[0].id, [user['id'] for user in data['approvers']])
+        self.assertNotIn(self.users[1].id, [user['id'] for user in data['approvers']])
+        self.assertFalse(upload('foreign_approver', id='PRIVATE-FOREIGN-APPROVER',
+                                approver_id=self.users[1].id)['ok'])
+        self.assertFalse(env['step.cosecha.registry'].search([('mobile_work_order', '=', 'PRIVATE-FOREIGN-APPROVER')]))
         result = upload('valid', cuartel_id=plots[0].id)
         self.assertTrue(result['ok'], result)
         saved = env['step.cosecha.registry'].browse(result['work_order_id'])
         self.assertEqual(saved.cuartel_id, plots[0])
+        self.assertEqual(saved.mobile_approver_id, self.users[0])
         self.assertEqual(upload('valid', cuartel_id=plots[0].id)['id'], result['id'])
         self.assertFalse(upload('conflict', cuartel_id=plots[1].id)['ok'])
         published = next(item for item in self.get_payload('/api/harvest/bootstrap')['orders']
@@ -251,6 +257,9 @@ class HarvestNativeScopeCase(HttpCase):
         self.assertEqual(contractor_order.type_tarea, 'contratista')
         self.assertEqual(contractor_order.partner_id, contractor)
         self.assertEqual(contractor_order.salary_id_contrac, contractor_crew)
+        order.pop('approver_id')
         legacy = upload('old_draft', id='PRIVATE-T233-LEGACY')
         self.assertTrue(legacy['ok'], legacy)
-        self.assertFalse(env['step.cosecha.registry'].browse(legacy['work_order_id']).cuartel_id)
+        legacy_order = env['step.cosecha.registry'].browse(legacy['work_order_id'])
+        self.assertFalse(legacy_order.cuartel_id)
+        self.assertEqual(legacy_order.mobile_approver_id, self.users[0])
