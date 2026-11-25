@@ -945,6 +945,8 @@ def main():
         verify(base,options,qa_db,staged,opts,proof,stage,{*installed,*install})
         (stage/'qa_passed.json').write_text(json.dumps({
             'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(logs[0]),
+            **({'backend_versions': proof['versions'], 'environment': args.environment,
+                'feature': args.kind, 'business_preserved': True} if args.kind == 'harvest-app' else {}),
             **({'packing_caliber_baseline': comparison} if comparison else {}),
         }))
         print('MANAGEMENT_CERTIFY_OK '+args.environment,flush=True)
@@ -1110,6 +1112,7 @@ def main():
                     assert snapshot(qa_db) == before, 'Normalization dry run changed the clone'
             (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log), 'monthly_fruit_plan': MONTHLY_FRUIT_PLAN,
                 'feature': args.kind, 'environment': args.environment, 'business_preserved': True,
+                **({'backend_versions': proof['versions']} if args.kind == 'harvest-app' else {}),
                 'proforma_policy_plan': PROFORMA_POLICY_PLAN, 'shared_producer_reception': SHARED_PRODUCER_RECEPTION,
                 'proforma_policy_helper': digest(HERE / 'proforma_policy_case.py') if args.kind == 'packing-proforma-policy' else None,
                 'reception_lot_plan': digest(args.reception_lot_plan) if args.reception_lot_plan else None,

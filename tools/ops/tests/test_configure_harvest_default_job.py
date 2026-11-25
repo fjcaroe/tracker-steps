@@ -42,6 +42,25 @@ def fixtures(environment='development'):
 
 
 class DefaultJobGuardsCase(unittest.TestCase):
+    def test_revised_package_uses_its_exact_commit_stage_and_native_version(self):
+        commit = 'd'*40
+        for environment in ('development', 'cerro', 'qa-cerro'):
+            stage, proof, release, configuration, _ = fixtures(environment)
+            revised_stage, revised_database = stage_identity(environment, commit)
+            proof.update(commit=commit, database=revised_database,
+                         backend_versions={'step_harvest_launcher': '18.0.1.4.1'})
+            release.update(commit=commit, versions={'step_harvest_launcher': '18.0.1.4.1'})
+            configuration.update(commit=commit, stage=revised_stage, database=revised_database)
+            validate_certificate(environment, revised_stage, proof, PACKAGE_SHA, release)
+            validate_configuration_proof(configuration, environment, PACKAGE_SHA, HELPER_SHA, commit)
+            with self.assertRaises(AssertionError):
+                validate_certificate(environment, stage, proof, PACKAGE_SHA, release)
+            with self.assertRaises(AssertionError):
+                validate_configuration_proof(configuration, environment, PACKAGE_SHA, HELPER_SHA)
+            with self.assertRaises(AssertionError):
+                validate_certificate(environment, revised_stage, proof, PACKAGE_SHA,
+                                     dict(release, versions={'step_harvest_launcher': '18.0.1.4.0'}))
+
     def test_only_exact_frozen_package_and_certified_destination_are_accepted(self):
         for environment in ('development', 'cerro', 'qa-cerro'):
             stage, proof, release, _, _ = fixtures(environment)

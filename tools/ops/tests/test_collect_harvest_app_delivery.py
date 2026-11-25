@@ -29,6 +29,19 @@ def validate(values, environment='development'):
 
 
 class HarvestConfigurationCollectionCase(unittest.TestCase):
+    def test_revised_delivery_binds_the_new_commit_and_copy_not_the_previous_release(self):
+        values = fixtures()
+        commit = 'c' * 40
+        stage, database = stage_identity('development', commit)
+        for proof in values[:2]:
+            proof.update(commit=commit, stage=stage)
+        values[0]['database'] = database
+        values[2].update(commit=commit, database=database)
+        validate(values)
+        values[1]['commit'] = BACKEND_COMMIT
+        with self.assertRaises(AssertionError):
+            validate(values)
+
     def test_other_deployment_backup_is_rejected(self):
         values = fixtures()
         values[1]['backup'] = BACKUPS['cerro']

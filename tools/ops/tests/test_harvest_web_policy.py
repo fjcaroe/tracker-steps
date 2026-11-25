@@ -9,7 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harvest_web_policy import (ANDROID_REVIEW_CHECKS, is_copy_sync_request,
     require_copy_sync_certificate, static_copy_identity, validate_android_review,
     validate_static_copy, validate_operations_copy, validate_operations_review,
-    OPERATIONS_REVIEW_CHECKS, validate_operations_smokes)
+    OPERATIONS_REVIEW_CHECKS, OPERATIONS_V9_REVIEW_CHECKS, validate_operations_smokes,
+    require_operations_publication, validate_reviewed_messages)
 from native_business_profile import scoped_existing_user_environment
 
 
@@ -102,6 +103,31 @@ class AndroidPolicyCase(unittest.TestCase):
 
 
 class OperationsPolicyCase(unittest.TestCase):
+    def test_v9_requires_revised_backend_human_answers_and_every_new_ui_check(self):
+        frontend = {'version': '0.0.9', 'commit': 'a'*40}
+        stage = 'management_development_t236237_' + 'b'*8
+        proof = {'commit': 'b'*40, 'release_sha256': 'c'*64, 'environment': 'development',
+                 'feature': 'harvest-app', 'database': 'MANAGEMENT_QA_DEVELOPMENT_t236237_' + 'b'*8,
+                 'business_preserved': True, 'backend_versions': {'step_harvest_launcher': '18.0.1.4.1'}}
+        review = dict.fromkeys(OPERATIONS_V9_REVIEW_CHECKS, True)
+        review.update(reviewed=True, web_commit=frontend['commit'], backend_commit=proof['commit'],
+                      backend_sha256=proof['release_sha256'], database=proof['database'],
+                      reviewed_messages={'236': 10650, '237': 10648})
+        validate_operations_review(frontend, 'development', stage, proof, review)
+        require_operations_publication(frontend)
+        for check in OPERATIONS_V9_REVIEW_CHECKS:
+            for value in (False, 1):
+                with self.subTest(check=check, value=value), self.assertRaises(AssertionError):
+                    validate_operations_review(frontend, 'development', stage, proof, dict(review, **{check: value}))
+        for versions in ({}, {'step_harvest_launcher': '18.0.1.4.0'}):
+            with self.subTest(versions=versions), self.assertRaises((AssertionError, KeyError)):
+                validate_operations_copy(frontend, 'development', stage, dict(proof, backend_versions=versions))
+        for reviewed in ({236: 10636, 237: 10648}, {236: 10650}, {236: 10650, 237: 10637}):
+            with self.subTest(reviewed=reviewed), self.assertRaises(AssertionError):
+                validate_reviewed_messages(frontend, reviewed)
+        with self.assertRaises(AssertionError):
+            require_operations_publication(dict(frontend, version='0.0.8'))
+
     def setUp(self):
         self.frontend = {'repository': 'stepconsulting/step_harvest',
             'version': '0.0.8', 'commit': 'a'*40, 'files': {'app/index.html': '1'*64}}
@@ -161,6 +187,19 @@ class OperationsPolicyCase(unittest.TestCase):
         with self.assertRaises(AssertionError):
             validate_operations_smokes(self.frontend, self.proof, operations,
                 dict(crew, attendance_idempotency=False))
+        revised = dict(self.frontend, version='0.0.9')
+        revised_flags = ('order_approver_selection', 'native_approval', 'erp_state_approved',
+            'ot_reopen_before_send', 'sent_ot_cannot_reopen', 'send_flushes_pending_deliveries',
+            'send_retry_idempotency', 'pending_send_atomic', 'send_received_manifest')
+        operations.update(dict.fromkeys(revised_flags, True))
+        crew['harvest_attendance_cosecha_only'] = True
+        validate_operations_smokes(revised, self.proof, operations, crew)
+        for flag in revised_flags:
+            with self.subTest(flag=flag), self.assertRaises(AssertionError):
+                validate_operations_smokes(revised, self.proof, dict(operations, **{flag: False}), crew)
+        with self.assertRaises(AssertionError):
+            validate_operations_smokes(revised, self.proof, operations,
+                dict(crew, harvest_attendance_cosecha_only=False))
 
 
 class Company:

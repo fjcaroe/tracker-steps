@@ -32,20 +32,26 @@ def digest(path):
     return result.hexdigest()
 
 
-def stage_identity(environment):
+def stage_identity(environment, backend_commit=BACKEND_COMMIT):
     assert environment in ENVIRONMENTS
-    suffix = 't236237_' + BACKEND_COMMIT[:8]
+    assert re.fullmatch('[a-f0-9]{40}', backend_commit)
+    suffix = 't236237_' + backend_commit[:8]
     return 'management_' + environment + '_' + suffix, 'MANAGEMENT_QA_' + environment.upper() + '_' + suffix
 
 
 def validate_certificate(environment, stage_name, proof, package_sha, release):
-    expected_stage, database = stage_identity(environment)
+    backend_commit = proof['commit']
+    expected_stage, database = stage_identity(environment, backend_commit)
     assert stage_name == expected_stage and proof['database'] == database, 'Exact certified destination copy required'
     assert proof['environment'] == environment and proof['feature'] == 'harvest-app'
-    assert proof['commit'] == release['commit'] == BACKEND_COMMIT
+    assert backend_commit == release['commit']
     assert proof['release_sha256'] == package_sha and re.fullmatch('[a-f0-9]{64}', package_sha)
     assert proof['business_preserved'] is True and not proof.get('readonly_copy')
-    assert release['versions']['step_harvest_launcher'] == '18.0.1.4.0'
+    version = release['versions']['step_harvest_launcher']
+    assert version in ('18.0.1.4.0', '18.0.1.4.1')
+    assert version != '18.0.1.4.0' or backend_commit == BACKEND_COMMIT, 'The earlier .8 package remains frozen'
+    if version == '18.0.1.4.1':
+        assert proof['backend_versions']['step_harvest_launcher'] == version
 
 
 def read_release(package):
@@ -71,21 +77,21 @@ def verify_files(root, release):
         assert digest(path) == expected, 'The loaded backend differs from the certified package'
 
 
-def validate_configuration_proof(value, environment, package_sha, helper_sha):
-    stage_name, database = stage_identity(environment)
+def validate_configuration_proof(value, environment, package_sha, helper_sha, backend_commit=BACKEND_COMMIT):
+    stage_name, database = stage_identity(environment, backend_commit)
     assert value['mode'] == 'copy' and value['applied'] is True
     assert value['environment'] == environment and value['stage'] == stage_name and value['database'] == database
-    assert value['commit'] == BACKEND_COMMIT and value['release_sha256'] == package_sha
+    assert value['commit'] == backend_commit and value['release_sha256'] == package_sha
     assert value['helper_sha256'] == helper_sha
     assert value['company_id'] == COMPANY_ID and value['user_id'] == USER_ID
     assert type(value['job_id']) is int and value['job_id'] > 0
     assert all(value.get(key) is True for key in ('previous_jobs_preserved', 'employees_preserved', 'roles_preserved', 'permissions_preserved'))
 
 
-def validate_crew_smoke(value, configuration, environment, package_sha, helper_sha):
-    stage_name, database = stage_identity(environment)
+def validate_crew_smoke(value, configuration, environment, package_sha, helper_sha, backend_commit=BACKEND_COMMIT):
+    stage_name, database = stage_identity(environment, backend_commit)
     assert value['stage'] == stage_name and value['database'] == database and value['feature'] == 'harvest-app'
-    assert value['backend_commit'] == BACKEND_COMMIT and value['backend_sha256'] == package_sha
+    assert value['backend_commit'] == backend_commit and value['backend_sha256'] == package_sha
     assert value['default_job_helper_sha256'] == helper_sha and value['native_job_id'] == configuration['job_id']
     assert value['company_id'] == COMPANY_ID and value['user_id'] == USER_ID
     assert all(type(value.get(key)) is int and value[key] > 0 for key in ('native_worker_id', 'native_attendance_id', 'native_crew_id'))
@@ -94,38 +100,40 @@ def validate_crew_smoke(value, configuration, environment, package_sha, helper_s
         'native_job_default', 'scope_rejected_before_write', 'enrollment_idempotency', 'attendance_idempotency',
         'changed_hours_rejected', 'wrong_date_rejected', 'native_context', 'native_members_preserved'))
     assert value['credentials_or_session_ids_supplied'] is False
+    assert backend_commit == BACKEND_COMMIT or value.get('harvest_attendance_cosecha_only') is True
     assert datetime.fromisoformat(value['created_at']) >= datetime.fromisoformat(configuration['created_at'])
 
 
 def bind_configuration_smoke(evidence, configuration, environment, package_sha, helper_sha):
-    validate_configuration_proof(configuration, environment, package_sha, helper_sha)
+    validate_configuration_proof(configuration, environment, package_sha, helper_sha, evidence['backend_commit'])
     assert evidence['native_job_id'] == configuration['job_id']
     assert evidence['company_id'] == COMPANY_ID and evidence['user_id'] == USER_ID
     return dict(evidence, default_job_helper_sha256=helper_sha)
 
 
-def validate_backup(environment, backup, deployment, package_sha, first_addons):
-    expected_root = Path('/opt/steps-managed/releases') / environment / BACKEND_COMMIT
+def validate_backup(environment, backup, deployment, package_sha, first_addons, backend_commit=BACKEND_COMMIT):
+    expected_root = Path('/opt/steps-managed/releases') / environment / backend_commit
     assert backup.parent == Path('/opt/steps_backups') and re.fullmatch(
         'management_' + re.escape(environment) + r'_\d{8}T\d{6}Z', backup.name)
     assert backup.resolve() == backup and not backup.is_symlink()
     dump = backup / 'database.dump'
     assert dump.is_file() and not dump.is_symlink() and dump.stat().st_size > 0
-    assert deployment['commit'] == BACKEND_COMMIT and deployment['sha256'] == package_sha
+    assert deployment['commit'] == backend_commit and deployment['sha256'] == package_sha
     assert deployment['overlay'] == str(expected_root) and first_addons == expected_root
     assert isinstance(deployment['log'], str) and PurePosixPath(deployment['log']).is_absolute()
 
 
 def validate_all_copies(stages_root, package_sha, helper_sha, release):
+    backend_commit = release['commit']
     for environment in ENVIRONMENTS:
-        stage = stages_root / stage_identity(environment)[0]
+        stage = stages_root / stage_identity(environment, backend_commit)[0]
         assert stage.resolve() == stage and not stage.is_symlink()
         proof = json.loads((stage/'qa_passed.json').read_text())
         validate_certificate(environment, stage.name, proof, package_sha, release)
         configuration = json.loads((stage/COPY_PROOF).read_text())
-        validate_configuration_proof(configuration, environment, package_sha, helper_sha)
+        validate_configuration_proof(configuration, environment, package_sha, helper_sha, backend_commit)
         smoke = json.loads((stage/'harvest-crew-smoke.json').read_text())
-        validate_crew_smoke(smoke, configuration, environment, package_sha, helper_sha)
+        validate_crew_smoke(smoke, configuration, environment, package_sha, helper_sha, backend_commit)
 
 
 SCRIPT = r'''
@@ -223,7 +231,7 @@ def main():
     if args.live:
         deployment = json.loads((args.backup/'deployment.json').read_text())
         first_addons = Path(options['addons_path'].split(',')[0].strip())
-        validate_backup(args.environment, args.backup, deployment, package_sha, first_addons)
+        validate_backup(args.environment, args.backup, deployment, package_sha, first_addons, proof['commit'])
         verify_files(first_addons, release)
         validate_all_copies(stage.parent, package_sha, helper_sha, release)
     service_user = subprocess.check_output(['systemctl','show','--value','--property=User',target['service']], text=True).strip()
@@ -234,7 +242,7 @@ def main():
     if not args.live:
         command += ['--addons-path='+str(stage/'addons')+','+options['addons_path'], '--data-dir='+str(stage/'data')]
     plan = {'environment':args.environment, 'mode':mode, 'stage':stage.name, 'database':database,
-            'company_id':COMPANY_ID, 'user_id':USER_ID, 'commit':BACKEND_COMMIT,
+            'company_id':COMPANY_ID, 'user_id':USER_ID, 'commit':proof['commit'],
             'release_sha256':package_sha, 'helper_sha256':helper_sha, 'apply':args.apply,
             'backup':str(args.backup) if args.live else None}
     # Linux-only helpers stay below main so the pure guards can be tested on Windows.
@@ -249,7 +257,7 @@ def main():
         verify_files(first_addons if args.live else stage/'addons', release)
         if args.live:
             assert json.loads((args.backup/'deployment.json').read_text()) == deployment
-            validate_backup(args.environment, args.backup, deployment, package_sha, first_addons)
+            validate_backup(args.environment, args.backup, deployment, package_sha, first_addons, proof['commit'])
             validate_all_copies(stage.parent, package_sha, helper_sha, release)
         access = clone_database_access(query, database, stage, existing=True) if args.environment == 'qa-cerro' and not args.live else nullcontext()
         with access:

@@ -17,7 +17,8 @@ from smoke_harvest_android_sync import ReviewClient, positive_id, require_succes
 
 class CrewClient(ReviewClient):
     allowed_requests = (('GET', '/api/harvest/session'), ('GET', '/api/harvest/bootstrap'),
-                        ('GET', '/api/harvest/ref/jobs'), ('POST', '/api/harvest/crew/sync'))
+                        ('GET', '/api/harvest/ref/jobs'), ('POST', '/api/harvest/crew/sync'),
+                        ('POST', '/web/dataset/call_kw/hr.attendance/search_count'))
 
 
 def validate_crew_policy(origin, stage_name, proof, policy):
@@ -26,7 +27,10 @@ def validate_crew_policy(origin, stage_name, proof, policy):
     assert environment in ('development', 'cerro', 'qa-cerro')
     assert proof['environment'] == environment
     frontend = policy['harvest_web']
-    assert frontend['repository'] == 'stepconsulting/step_harvest' and frontend['version'] == '0.0.8'
+    assert frontend['repository'] == 'stepconsulting/step_harvest' and frontend['version'] in ('0.0.8', '0.0.9')
+    if frontend['version'] == '0.0.9':
+        from harvest_web_policy import validate_operations_copy
+        validate_operations_copy(frontend, environment, stage_name, proof)
     assert re.fullmatch('[a-f0-9]{40}', frontend['commit'])
     assert re.fullmatch('[a-f0-9]{40}', proof['commit'])
     assert re.fullmatch('[a-f0-9]{64}', proof['release_sha256'])
@@ -122,12 +126,23 @@ def exercise_crew(client, policy, timezone_name, run_uuid=None):
     assert previous_members.issubset(set(native_crew['worker_ids'])) and worker_id in native_crew['worker_ids']
     summary = next(row for row in refreshed['crew_attendance'] if row['crew_id'] == crew['id'] and row['date'] == date.isoformat())
     assert worker_id in summary['worker_ids']
+    cosecha_only = policy.get('harvest_web', {}).get('version') == '0.0.9'
+    if cosecha_only:
+        assert refreshed['crew_attendance_scope'] == 'cosecha'
+        for extra_context, expected in (({}, 0), ({'harvest_attendance_scope': 'cosecha'}, 1)):
+            status, counted = client.request('POST', '/web/dataset/call_kw/hr.attendance/search_count', {
+                'jsonrpc': '2.0', 'method': 'call', 'params': {
+                    'model': 'hr.attendance', 'method': 'search_count', 'args': [[['id', '=', attendance_id]]],
+                    'kwargs': {'context': {'allowed_company_ids': [policy['company_id']], **extra_context}}}})
+            assert status == 200 and not counted.get('error')
+            assert type(counted.get('result')) is int and counted['result'] == expected, 'Harvest attendance escaped its native Cosecha scope'
     return {'run_uuid': run_uuid, 'native_worker_id': worker_id, 'native_crew_id': crew['id'], 'native_job_id': employee['job_id'],
             'native_attendance_id': attendance_id, 'worker_enrollment': True, 'crew_attendance': True,
             'attendance_home_total': True, 'native_members_preserved': True, 'native_job_default': True,
             'scope_rejected_before_write': True, 'enrollment_idempotency': True, 'attendance_idempotency': True,
             'changed_hours_rejected': True, 'wrong_date_rejected': True, 'native_context': True,
-            'credentials_or_session_ids_supplied': False, 'new_workers': 1, 'new_attendances': 1}
+            'credentials_or_session_ids_supplied': False, 'new_workers': 1, 'new_attendances': 1,
+            **({'harvest_attendance_cosecha_only': True} if cosecha_only else {})}
 
 
 def main():
@@ -146,12 +161,17 @@ def main():
     output = args.output
     assert output.is_absolute() and output.resolve() == output and not output.exists()
     assert not any((parent/'.git').exists() for parent in output.parents)
+    configuration_path = stage/'harvest-default-job-copy.json'
+    if policy['harvest_web']['version'] == '0.0.9':
+        from configure_harvest_default_job import validate_configuration_proof, digest
+        validate_configuration_proof(json.loads(configuration_path.read_text()), policy['environment'],
+                                     proof['release_sha256'], digest(Path(__file__).with_name('configure_harvest_default_job.py')),
+                                     proof['commit'])
     evidence = exercise_crew(CrewClient(origin), policy, args.timezone)
     evidence.update({'feature': proof['feature'], 'stage': stage.name, 'database': proof['database'],
                      'web_commit': policy['harvest_web']['commit'], 'backend_commit': proof['commit'],
                      'company_id': policy['company_id'], 'user_id': policy['user_id'],
                      'backend_sha256': proof['release_sha256'], 'created_at': datetime.now(timezone.utc).isoformat()})
-    configuration_path = stage/'harvest-default-job-copy.json'
     if configuration_path.is_file():
         from configure_harvest_default_job import bind_configuration_smoke, digest
         evidence = bind_configuration_smoke(evidence, json.loads(configuration_path.read_text()),
