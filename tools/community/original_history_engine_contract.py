@@ -58,8 +58,8 @@ def guard_contract(files):
     need(isinstance(files, dict) and all(name in files and isinstance(files[name], bytes) for name in GUARD_PATHS),
         'actual-api-guard-source-files-required')
     manifest = ast.literal_eval(files['step_payroll_oca_api/__manifest__.py'].decode('utf-8-sig'))
-    # The draft formula API update keeps the same independently sealed deletion guard.
-    need(manifest.get('version') in ('18.0.1.17.0', '18.0.1.18.0')
+    # The draft formula and YTD updates retain the independently sealed deletion guard.
+    need(manifest.get('version') in ('18.0.1.17.0', '18.0.1.18.0', '18.0.1.19.0')
         and manifest.get('license') == 'LGPL-3', 'reviewed-free-api-version-required')
     need(_imported(files['step_payroll_oca_api/__init__.py'], 'models')
         and _imported(files['step_payroll_oca_api/models/__init__.py'], 'original_history_deletion'),

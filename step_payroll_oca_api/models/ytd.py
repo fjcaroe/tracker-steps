@@ -21,6 +21,14 @@ class Payslip(models.Model):
     _inherit='hr.payslip'
     ytd_computation=fields.Boolean(related='struct_id.ytd_computation')
 
+    def get_lines_dict(self):
+        lines = super().get_lines_dict()
+        for values in lines.values():
+            # A missing Monetary value reads as zero. Insert an explicit zero
+            # so the later assignment can be a no-op without leaving SQL NULL.
+            values.setdefault('ytd', 0.0)
+        return lines
+
     def _step_ytd_previous_lines(self):
         self.ensure_one()
         # This explicitly supports calendar years only. Fiscal reset settings and
