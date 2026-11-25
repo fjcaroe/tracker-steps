@@ -229,7 +229,7 @@ def main():
                                  original_source_inventory=args.original_source_inventory)
         capture_original_native_visibility(source, native_stage, native,
             Path('/etc/odoo18-cerroelplomo.conf'), prod['options']['addons_path'], native_data, native_owner)
-        for field_group in ('category', 'structure'):
+        for field_group in ('category', 'structure', 'rule_structure'):
             exercise_required_field(source, native_stage,
                 ['sudo', '-u', native_owner.pw_name, '/usr/bin/python3.10', str(NATIVE_RUNTIME/'odoo-bin'), 'shell'],
                 ['-c', '/etc/odoo18-cerroelplomo.conf', '-d', reference, '--db-filter=^'+reference+'$',
@@ -317,7 +317,7 @@ def main():
                 input=expression,text=True,stdout=log,stderr=subprocess.STDOUT)
         assert status.returncode==0 and (stage/'cohort-admission.json').is_file(), 'Original cohort probe failed; inspect private evidence'
         (stage/'cohort-admission.json').chmod(0o600)
-        for field_group in ('category', 'structure'):
+        for field_group in ('category', 'structure', 'rule_structure'):
             exercise_required_field(source, stage, normal,
                 normal_opts + ['--logfile='+str(stage/f'{field_group}-odoo.log')], database, field_group)
         write(stage/'business-after-cohort.json',column_snapshot(database,columns))

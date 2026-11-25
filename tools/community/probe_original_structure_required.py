@@ -6,21 +6,25 @@ from odoo.exceptions import ValidationError
 from psycopg2.errors import NotNullViolation
 
 
-def rejected(cr, operation):
+def rejected(cr, operation, table='hr_payroll_structure', column='type_id', message=None):
     try:
         with cr.savepoint():
             operation()
     except NotNullViolation as exc:
-        assert exc.diag.table_name == 'hr_payroll_structure' and exc.diag.column_name == 'type_id'
+        assert message is None and exc.diag.table_name == table and exc.diag.column_name == column
     except ValidationError as exc:
-        assert 'type_id' in str(exc)
+        assert (message or column) in str(exc)
     else:
-        raise AssertionError('Structure write without a type succeeded')
+        raise AssertionError(f'Expected write rejection for {table}.{column}')
+
+
+def require_private_pair(env, database):
+    assert re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_(HANDOVER|REFERENCE)_[A-Za-z0-9_]+', database)
+    assert env.cr.dbname == database
 
 
 def run(env, database):
-    assert re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_(HANDOVER|REFERENCE)_[A-Za-z0-9_]+', database)
-    assert env.cr.dbname == database
+    require_private_pair(env, database)
     structure = env['hr.payroll.structure'].with_context(active_test=False)
     field = structure._fields['type_id']
     assert field.required and field.comodel_name == 'hr.payroll.structure.type' and field.ondelete == 'restrict'

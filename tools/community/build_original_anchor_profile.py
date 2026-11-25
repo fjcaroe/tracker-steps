@@ -104,7 +104,7 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
                 spec = ast.literal_eval(updated.decode('utf-8-sig'))
                 models = target / 'models'
                 declarations = {}
-                for field_group in ('category', 'structure'):
+                for field_group in ('category', 'structure', 'rule_structure'):
                     name_in_overlay = f'original_anchor_{field_group}'
                     declaration = Path(__file__).with_name(f'{name_in_overlay}_model.py').read_bytes()
                     with (models / f'{name_in_overlay}.py').open('xb') as module:
@@ -126,7 +126,8 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
         'default_upstream_security_installed': False, 'all_products_operational': False,
         'deadline_resolved': False,
         'original_category_declaration_sha256': declarations['category'],
-        'original_structure_declaration_sha256': declarations['structure']}
+        'original_structure_declaration_sha256': declarations['structure'],
+        'original_rule_structure_declaration_sha256': declarations['rule_structure']}
     if original_storage:
         proof['original_storage_derivation'] = storage_derivation
         proof['original_history_deletion_derivation'] = history_deletion_derivation
