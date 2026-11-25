@@ -42,6 +42,18 @@ def write(path, value):
         json.dump(value, stream, indent=2)
 
 
+def exercise_category(source, stage, executable, options, database):
+    receipt = stage / 'original-category-required.json'
+    expression = ('import json, sys; sys.path.insert(0, ' + repr(str(source / 'tools/community')) + '); '
+                  'from probe_original_category_required import run; result = run(env, ' + repr(database) + '); '
+                  'open(' + repr(str(receipt)) + ', "x").write(json.dumps(result, indent=2))')
+    with (stage / 'original-category-required.log').open('x') as log:
+        status = subprocess.run(offline_odoo(executable + options), input=expression, text=True,
+                                stdout=log, stderr=subprocess.STDOUT)
+    assert status.returncode == 0 and receipt.is_file(), 'Original category write probe failed; inspect private log'
+    receipt.chmod(0o600)
+
+
 def manifest(folder):
     return ast.literal_eval((folder / '__manifest__.py').read_text(encoding='utf-8-sig'))
 
@@ -217,6 +229,13 @@ def main():
                                  original_source_inventory=args.original_source_inventory)
         capture_original_native_visibility(source, native_stage, native,
             Path('/etc/odoo18-cerroelplomo.conf'), prod['options']['addons_path'], native_data, native_owner)
+        exercise_category(source, native_stage,
+            ['sudo', '-u', native_owner.pw_name, '/usr/bin/python3.10', str(NATIVE_RUNTIME/'odoo-bin'), 'shell'],
+            ['-c', '/etc/odoo18-cerroelplomo.conf', '-d', reference, '--db-filter=^'+reference+'$',
+             '--db_host=/var/run/postgresql', '--addons-path='+prod['options']['addons_path'],
+             '--data-dir='+str(native_data), '--load=base,web', '--workers=0', '--max-cron-threads=0',
+             '--without-demo=all', '--no-http', '--stop-after-init',
+             '--logfile='+str(native_stage/'category-odoo.log')], reference)
         specs=guard_specs(capsule,identity,identity,preflight);guard_sql=render_sql(database,specs)
         (stage/'guards.sql').write_text(guard_sql);(stage/'guards.sql').chmod(0o600);sql(database,guard_sql)
         tests=[]
@@ -297,6 +316,7 @@ def main():
                 input=expression,text=True,stdout=log,stderr=subprocess.STDOUT)
         assert status.returncode==0 and (stage/'cohort-admission.json').is_file(), 'Original cohort probe failed; inspect private evidence'
         (stage/'cohort-admission.json').chmod(0o600)
+        exercise_category(source, stage, normal, normal_opts + ['--logfile='+str(stage/'category-odoo.log')], database)
         write(stage/'business-after-cohort.json',column_snapshot(database,columns))
         write(stage/'identity-after.json',preservation.identity_contract(database))
         print('ORIGINAL_ANCHOR_COHORT_PROBED_REQUIRES_COMPLETE_PRESERVATION_REVIEW',flush=True)

@@ -102,6 +102,12 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
                 assert omitted == ['security/ir.model.access.csv','security/configuration_scope.xml']
                 updated,_ = ui_profile(original,cold.snapshot(target))
                 spec = ast.literal_eval(updated.decode('utf-8-sig'))
+                models = target / 'models'
+                declaration = Path(__file__).with_name('original_anchor_category_model.py').read_bytes()
+                with (models / 'original_anchor_category.py').open('xb') as module:
+                    module.write(declaration)
+                with (models / '__init__.py').open('ab') as imports:
+                    imports.write(b'\nfrom . import original_anchor_category\n')
             path.write_text(repr(spec) + '\n')
             changes[name] = {'omitted_additive_policy_files': omitted,
                 'original_manifest_sha256': sha(original), 'profile_manifest_sha256': sha(path.read_bytes())}
@@ -114,7 +120,8 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
         'own_modules': OWN, 'database_accessed': False,
         'original_security_policy_required': True, 'new_groups_or_memberships_created': False,
         'default_upstream_security_installed': False, 'all_products_operational': False,
-        'deadline_resolved': False}
+        'deadline_resolved': False,
+        'original_category_declaration_sha256': sha(declaration)}
     if original_storage:
         proof['original_storage_derivation'] = storage_derivation
         proof['original_history_deletion_derivation'] = history_deletion_derivation
