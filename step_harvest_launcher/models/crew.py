@@ -47,13 +47,28 @@ class HarvestAttendance(models.Model):
          'Esta asistencia Harvest ya fue recibida.'),
     ]
 
-    @api.model
-    def _search(self, domain, offset=0, limit=None, order=None):
+    def _harvest_attendance_domain(self, domain):
         # Stage one is operational Cosecha attendance. Keep the native table,
-        # but do not expose its rows to HR dashboards or payroll consumers.
+        # but do not select its rows for HR dashboards or payroll consumers.
+        # Do not filter _search: native fetch/recompute uses it for already
+        # selected IDs and must retain the ordinary ACL and record-rule checks.
         cosecha = self.env.context.get('harvest_attendance_scope') == 'cosecha'
         scope = [('harvest_crew_id', '!=' if cosecha else '=', False)]
-        return super()._search(expression.AND([domain, scope]), offset=offset, limit=limit, order=order)
+        return expression.AND([domain, scope])
+
+    @api.model
+    def search_fetch(self, domain, field_names, offset=0, limit=None, order=None):
+        return super().search_fetch(self._harvest_attendance_domain(domain), field_names,
+                                    offset=offset, limit=limit, order=order)
+
+    @api.model
+    def search_count(self, domain, limit=None):
+        return super().search_count(self._harvest_attendance_domain(domain), limit=limit)
+
+    @api.model
+    def _read_group(self, domain, groupby=(), aggregates=(), having=(), offset=0, limit=None, order=None):
+        return super()._read_group(self._harvest_attendance_domain(domain), groupby=groupby,
+                                   aggregates=aggregates, having=having, offset=offset, limit=limit, order=order)
 
     def _get_attendances_dates(self):
         ordinary = self.filtered(lambda row: not row.harvest_crew_id)
