@@ -1,5 +1,56 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U18C · Importe guardado de días y base pagada, 25-11-2026
+
+La pareja privada restauró un solo respaldo fresco de Cerro. El paquete
+`7c2b02bf` probó Community oficial/OCA (144 módulos, cero Enterprise) y la
+referencia nativa (414 módulos, 140 Enterprise). El operador original UID7
+calculó cinco borradores de la estructura genérica 2 con sueldo de prueba
+de 720.000 CLP. Los motores generaron los mismos días y horas, usaron los
+mismos tipos e importes de entrada y aplicaron las mismas reglas originales.
+
+| Período | Horas pagadas / no pagadas | Base pagada nativa (CLP) | Base pagada OCA (CLP) |
+| --- | ---: | ---: | ---: |
+| Noviembre | 4 / 4 | 360.000 | 12.000 |
+| Noviembre | 8 / 0 | 720.000 | 24.000 |
+| Noviembre | 8 / 4 | 480.000 | 24.000 |
+| Noviembre | 4 / 8 | 240.000 | 12.000 |
+| Febrero | 4 / 4 | 360.000 | 12.000 |
+
+El importe leído de la fila PostgreSQL pagada ya explica la diferencia en
+`paid_amount`, tanto antes como después de `compute_sheet`. En ambos motores
+la ausencia no pagada persistió con importe cero. BASIC y GROSS heredaron
+la diferencia de base, y NET conservó la misma deducción y el mismo
+reembolso. Para estos cinco casos, el nativo coincide con el sueldo
+multiplicado por la fracción pagada del tiempo presente en las líneas. En
+OCA se confirma sueldo/30 por día pagado. Las jornadas de los casos tuvieron
+la misma proporción de horas y días. Falta distinguir las dos unidades con
+casos asimétricos, comprobar períodos parciales, ausencias sin asistencia y
+redondeo antes de implementar el prorrateo para la estructura original. Los
+bloqueos de Nómina Chile siguen siendo los de U17D. El paquete amplía la
+prueba funcional y mantiene abiertas la paridad y la certificación monetaria.
+
+Las pruebas revirtieron los borradores. SQL comprobó cero contratos y
+liquidaciones en ambas copias al cierre. La revisión preservó 999/1.000
+proyecciones literales, 197 contadores, 60.686 XML IDs, históricos,
+vencimientos, Calendar y los cuatro contratos de almacenamiento. Se
+conservaron 118 accesos, dos denegaciones, cinco formularios, cuatro menús y
+71 vínculos persistidos, con cero nuevos al repetir. Siguen 32 FK adicionales
+vacías y 27 diferencias físicas de proveedores inactivos en el anclaje.
+Pasaron 304 pruebas locales compatibles con Windows. Los tres productos
+coinciden íntegramente con el inventario de U17 y el testigo sellado U14.
+U18 y U18B se detuvieron antes de instalar por haber recibido el inventario
+general donde el verificador exige el testigo sellado.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U18`
+y `/opt/steps-validation/community-original-handover-20261125U18C`.
+
+- Paquete `bbddab9a38274be05bef652d9032e5d9b10bb5dc74fafacc69f693eed0e7868c`.
+- Respaldo `5ac789b9d6405b548ef242dcb0fb8e0ba955a28ad16ee26262c5efcf284e9343`.
+- Comparación `ff39a23db25b27dfca8dcd187b541fa2d9fb4456d45c413127bed2b9f2bd6975`.
+- Admisión `b7025aecc7ed7d7883a0f822c76f90612dafb29f44740701ba554dc07a100d26`.
+- Relaciones `8b426cb9cb1f0c6afb42fe28967ead0c1467edbfb84b1d4ded61f986403976e3`.
+
 ## U17D · Comparación de importes de borrador, 25-11-2026
 
 Se ejecutó el paquete `4381d98f` en Community oficial con OCA y en una
@@ -906,7 +957,9 @@ Lee AGENTS.md, el registro de ambientes, la operación canónica, el workflow, e
 plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
 aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
-Usa U17D como referencia de diagnóstico de importes, U16 para las cinco
+Usa U18C como referencia de la base pagada y U17D para las entradas. Distingue
+horas y días con jornadas asimétricas y prueba el redondeo antes de cambiar
+el prorrateo. Mantén U16 para las cinco
 restricciones y T2 para la pareja multifrente. Compara el importe guardado de
 los días y la base `paid_amount` de la estructura 2 por período y calendario.
 Nómina Chile requiere parámetros originales de Simple Digital completos y

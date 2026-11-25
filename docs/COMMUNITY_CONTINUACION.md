@@ -2,6 +2,13 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
+U18C localizó en cinco borradores de la estructura genérica la divergencia
+en el importe guardado de días y `paid_amount` antes de ejecutar las reglas.
+Coincidieron reglas, entradas y días generados. La referencia tomó la
+fracción pagada del tiempo de las líneas en los casos observados. OCA aplicó
+sueldo/30 por día pagado. Queda distinguir horas de días y cerrar el
+prorrateo, el redondeo y la certificación de Nómina Chile.
+
 U17D ensayó dos borradores con estructuras originales en las copias privadas.
 En la estructura 2 coincidieron los días, las entradas, el descuento y el reembolso. BASIC,
 GROSS y NET difirieron. La API OCA permite comprobar pertenencia de entradas
