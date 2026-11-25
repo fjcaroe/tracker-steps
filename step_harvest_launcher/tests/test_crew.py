@@ -1,4 +1,7 @@
 from copy import deepcopy
+from datetime import datetime
+
+import pytz
 
 from odoo import Command, fields
 from odoo.exceptions import AccessError, ValidationError
@@ -94,7 +97,68 @@ class HarvestCrewCase(TransactionCase):
         self.assertEqual(attendance.harvest_crew_id, self.own)
         self.assertEqual(attendance.worked_hours, 8)
         self.assertEqual(self.own.harvest_record_attendance(values), attendance)
-        self.assertEqual(self.env['hr.attendance'].search_count([('harvest_uid', '=', values['client_uuid'])]), 1)
+        self.assertEqual(self.env['hr.attendance'].with_context(harvest_attendance_scope='cosecha').search_count([
+            ('harvest_uid', '=', values['client_uuid'])]), 1)
+        self.assertEqual(self.env['hr.attendance'].search_count([('id', '=', attendance.id)]), 0)
+
+    def test_cosecha_attendance_is_separate_from_hr_searches_and_groups(self):
+        worker = self.own.harvest_enroll_worker(self.enrollment())
+        native = self.env['hr.attendance'].create({
+            'employee_id': worker.id, 'check_in': '2026-11-24 08:00:00', 'check_out': '2026-11-24 16:00:00',
+        })
+        harvest = self.own.harvest_record_attendance(self.attendance(worker))
+        domain = [('employee_id', '=', worker.id)]
+        self.assertEqual(self.env['hr.attendance'].search(domain), native)
+        self.assertEqual(self.env['hr.attendance'].with_context(harvest_attendance_scope='cosecha').search(domain), harvest)
+        groups = self.env['hr.attendance']._read_group(domain, aggregates=['id:recordset'])
+        self.assertEqual(groups[0][0], native)
+        self.assertEqual(harvest.worked_hours, 8)
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            harvest.write({'harvest_crew_id': False})
+
+    def test_cosecha_does_not_change_existing_hr_overtime_on_the_same_day(self):
+        worker = self.own.harvest_enroll_worker(self.enrollment())
+        native = self.env['hr.attendance'].create({
+            'employee_id': worker.id, 'check_in': '2026-11-24 08:00:00', 'check_out': '2026-11-24 18:00:00',
+        })
+        self.assertEqual(native.overtime_hours, 2)
+        overtime = self.env['hr.attendance.overtime'].search([('employee_id', '=', worker.id)])
+        before = overtime.read(['id', 'date', 'duration', 'duration_real'])
+        harvest = self.own.harvest_record_attendance(self.attendance(worker))
+        harvest.write({'check_out': '2026-11-24 20:00:00'})
+        native._compute_overtime_hours()
+        self.assertEqual(native.overtime_hours, 2)
+        self.assertEqual(harvest.overtime_hours, 0)
+        self.assertEqual(overtime.read(['id', 'date', 'duration', 'duration_real']), before)
+        self.assertEqual(self.env['hr.attendance.overtime'].search([('employee_id', '=', worker.id)]), overtime)
+
+    def test_cosecha_does_not_feed_immediate_or_regenerated_work_entries(self):
+        worker = self.own.harvest_enroll_worker(self.enrollment())
+        kind = self.env['hr.payroll.structure.type'].create({'name': 'Private Cosecha isolation type'})
+        if 'default_work_entry_type_id' in kind._fields:
+            kind.default_work_entry_type_id = self.env.ref('hr_work_entry.work_entry_type_attendance')
+        contract = self.env['hr.contract'].create({
+            'name': 'Private Cosecha isolation contract', 'employee_id': worker.id,
+            'company_id': self.company.id, 'resource_calendar_id': self.calendar.id,
+            'date_start': '2026-11-01', 'date_end': '2026-11-30', 'state': 'open', 'wage': 1000000,
+            'structure_type_id': kind.id, 'work_entry_source': 'attendance',
+            'date_generated_from': '2026-11-01 00:00:00', 'date_generated_to': '2026-11-30 23:59:59',
+        })
+        entries = self.env['hr.work.entry'].search([('employee_id', '=', worker.id)])
+        before = entries.read(['id', 'active', 'date_start', 'date_stop', 'attendance_id'])
+        harvest = self.own.harvest_record_attendance(self.attendance(worker))
+        self.assertEqual(entries.read(['id', 'active', 'date_start', 'date_stop', 'attendance_id']), before)
+        self.assertEqual(self.env['hr.work.entry'].search([('employee_id', '=', worker.id)]), entries)
+        start, end = datetime(2026, 11, 24, tzinfo=pytz.UTC), datetime(2026, 11, 25, tzinfo=pytz.UTC)
+        values = contract._get_work_entries_values(start, end)
+        self.assertFalse(any(row.get('attendance_id') == harvest.id for row in values))
+        native = self.env['hr.attendance'].create({
+            'employee_id': worker.id, 'check_in': '2026-11-24 08:00:00', 'check_out': '2026-11-24 16:00:00',
+        })
+        values = contract._get_work_entries_values(start, end)
+        self.assertTrue(any(row.get('attendance_id') == native.id for row in values))
+        self.assertFalse(any(row.get('attendance_id') == harvest.id for row in values))
+        self.assertTrue(self.env['hr.work.entry'].search([('attendance_id', '=', native.id)]))
 
     def test_attendance_can_resolve_pending_enrollment_uuid(self):
         worker = self.own.harvest_enroll_worker(self.enrollment())

@@ -13,10 +13,12 @@
     </record>
     <record id="harvest_attendance_own" model="ir.actions.act_window">
         <field name="name">Asistencia propia Cosecha</field><field name="res_model">hr.attendance</field><field name="view_mode">list,form</field>
+        <field name="context">{'harvest_attendance_scope': 'cosecha'}</field>
         <field name="view_id" ref="harvest_attendance_list"/><field name="domain">[('harvest_crew_id.group_type','=','propio'),('harvest_crew_id.company_id','=',allowed_company_ids[0])]</field>
     </record>
     <record id="harvest_attendance_contractor" model="ir.actions.act_window">
         <field name="name">Asistencia contratistas Cosecha</field><field name="res_model">hr.attendance</field><field name="view_mode">list,form</field>
+        <field name="context">{'harvest_attendance_scope': 'cosecha'}</field>
         <field name="view_id" ref="harvest_attendance_list"/><field name="domain">[('harvest_crew_id.group_type','=','contratista'),('harvest_crew_id.company_id','=',allowed_company_ids[0])]</field>
     </record>
     <record id="harvest_attendance_own_list" model="ir.actions.act_window.view"><field name="act_window_id" ref="harvest_attendance_own"/><field name="view_mode">list</field><field name="view_id" ref="harvest_attendance_list"/><field name="sequence">1</field></record>

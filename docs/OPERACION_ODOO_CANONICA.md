@@ -1,11 +1,16 @@
 # Operación y publicación de Odoo
 
-T236/T237 completan Harvest 0.0.8 y `step_harvest_launcher` 18.0.1.4.0 con
+Las respuestas humanas T236/10650 y T237/10648 amplían la entrega a Harvest
+0.0.9 y `step_harvest_launcher` 18.0.1.4.1. La 0.0.8 se publicó inicialmente
+solo en Desarrollo; no acredita esas respuestas ni el cierre de los tickets.
+La entrega completa debe volver a certificarse como un mismo paquete con
 `harvest-app` en Desarrollo, Cerro y QA-Cerro. El ciclo móvil Cerrar OT →
-Marcar revisada → Enviar OT confirma las entregas del dispositivo en Odoo,
-conserva el estado contable nativo y registra fecha y actor. Usa los permisos
-de escritura existentes; no asigna perfiles. Una OT cerrada rechaza nuevas
-entregas y permite recuperar la respuesta del mismo UUID sin duplicarlas.
+Revisar y aprobar → Enviar OT confirma las entregas del dispositivo en Odoo.
+Permite reabrir antes de Enviada, elige un aprobador en la creación (incluido
+el ingresador) y ejecuta la aprobación nativa con sus permisos existentes.
+No costear ni contabilizar por una transición móvil, ni degradar OT históricas.
+El envío debe completar y confirmar las tarjas pendientes; una OT Enviada
+rechaza reapertura y nuevas entregas, conservando los reintentos por UUID.
 Mostrar el vínculo a la OT nativa y preservar los pendientes al actualizar.
 
 Cuadrillas toma tipo de tareo y contratista del maestro. El enrolamiento conserva
@@ -13,7 +18,12 @@ empleados, cargos y miembros nativos; Cosechero se propone y solo se crea durant
 un enrolamiento autorizado cuando falta. La asistencia usa `hr.attendance`, con
 la cuadrilla relacionada y los permisos existentes, desde los dos menús de Cosecha.
 La cola por ambiente, usuario y empresa envía empleados y asistencia antes de las
-entregas. No crear empleados, cargos ni asistencias reales al publicar.
+entregas. La primera etapa usa la misma tabla nativa de asistencia con ámbito
+explícito de Cosecha: los menús de Cosecha la consultan y las búsquedas ordinarias
+de RR. HH. y nómina la excluyen. No generar entradas de trabajo ni horas extra
+para esa asistencia ni alterar la asistencia ordinaria existente. La integración
+con RR. HH. corresponde a una etapa posterior. No crear empleados ni asistencias
+reales al publicar; el cargo Cosechero se prepara como configuración versionada.
 
 Certificar el backend y el web juntos en copias frescas de los tres destinos,
 con stage `t236237_<commit-backend>`, preservación y pruebas de contexto,

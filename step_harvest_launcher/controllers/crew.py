@@ -17,9 +17,10 @@ class CrewHarvestApi(LifecycleHarvestApi):
                 'attendance': request.env['hr.attendance'].has_access('create'),
             })
             payload['crew_attendance'] = []
+            payload['crew_attendance_scope'] = 'cosecha'
             if request.env['hr.attendance'].has_access('read'):
                 groups = {}
-                for attendance in request.env['hr.attendance'].search([
+                for attendance in request.env['hr.attendance'].with_context(harvest_attendance_scope='cosecha').search([
                         ('harvest_crew_id.company_id', '=', request.env.company.id),
                         ('check_in', '>=', fields.Datetime.subtract(fields.Datetime.now(), days=14))]):
                     day = fields.Datetime.context_timestamp(attendance, attendance.check_in).date().isoformat()

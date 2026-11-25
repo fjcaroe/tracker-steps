@@ -4,8 +4,11 @@ import json
 import re
 from datetime import datetime, timezone
 
+import pytz
+
 from odoo import Command, api, fields, models, _
 from odoo.exceptions import ValidationError
+from odoo.osv import expression
 
 
 def fingerprint(value):
@@ -43,6 +46,62 @@ class HarvestAttendance(models.Model):
         ('harvest_uid_employee_unique', 'unique(employee_id, harvest_uid)',
          'Esta asistencia Harvest ya fue recibida.'),
     ]
+
+    @api.model
+    def _search(self, domain, offset=0, limit=None, order=None):
+        # Stage one is operational Cosecha attendance. Keep the native table,
+        # but do not expose its rows to HR dashboards or payroll consumers.
+        cosecha = self.env.context.get('harvest_attendance_scope') == 'cosecha'
+        scope = [('harvest_crew_id', '!=' if cosecha else '=', False)]
+        return super()._search(expression.AND([domain, scope]), offset=offset, limit=limit, order=order)
+
+    def _get_attendances_dates(self):
+        ordinary = self.filtered(lambda row: not row.harvest_crew_id)
+        return super(HarvestAttendance, ordinary)._get_attendances_dates()
+
+    def _update_overtime(self, employee_attendance_dates=None):
+        ordinary = self.filtered(lambda row: not row.harvest_crew_id).with_context(harvest_attendance_scope=False)
+        return super(HarvestAttendance, ordinary)._update_overtime(employee_attendance_dates)
+
+    def _create_work_entries(self):
+        ordinary = self.filtered(lambda row: not row.harvest_crew_id).with_context(harvest_attendance_scope=False)
+        if ordinary:
+            return super(HarvestAttendance, ordinary)._create_work_entries()
+
+    def _compute_overtime_hours(self):
+        # Upstream uses raw SQL, so its allocation must also exclude operational
+        # rows when computing an ordinary HR record for the same employee/day.
+        cosecha = self.filtered('harvest_crew_id')
+        cosecha.overtime_hours = 0
+        ordinary = self - cosecha
+        ordinary.overtime_hours = 0
+        if not ordinary:
+            return
+        rows = self.with_context(harvest_attendance_scope=False).search([
+            ('employee_id', 'in', ordinary.employee_id.ids), ('check_in', '!=', False),
+        ], order='check_in desc,id desc')
+        by_day = {}
+        for row in rows:
+            zone = pytz.timezone(row.employee_id.resource_calendar_id.tz or row.employee_id.resource_id.tz or 'UTC')
+            day = row.check_in.replace(tzinfo=timezone.utc).astimezone(zone).date()
+            by_day.setdefault((row.employee_id.id, day), []).append(row)
+        for overtime in self.env['hr.attendance.overtime'].search([
+                ('employee_id', 'in', ordinary.employee_id.ids), ('adjustment', '=', False)]):
+            remaining = overtime.duration
+            for position, row in enumerate(by_day.get((overtime.employee_id.id, overtime.date), [])):
+                hours = row.worked_hours
+                value = min(hours, max(0, remaining)) if hours else 0
+                if remaining < 0 and position == 0 and hours:
+                    value = remaining
+                if row in ordinary:
+                    row.overtime_hours = value
+                remaining -= max(0, value)
+
+    def write(self, values):
+        if 'harvest_crew_id' in values and any(
+                row.harvest_crew_id and values['harvest_crew_id'] != row.harvest_crew_id.id for row in self):
+            raise ValidationError(_('La asistencia de Cosecha conserva su cuadrilla; su integración con RR. HH. corresponde a una etapa posterior.'))
+        return super().write(values)
 
     @api.constrains('harvest_crew_id', 'employee_id')
     def _check_harvest_crew(self):
@@ -131,7 +190,7 @@ class HarvestCrew(models.Model):
             day = False
         if not day:
             raise ValidationError(_('Seleccione la fecha de asistencia.'))
-        result = self.env['hr.attendance']
+        result = self.env['hr.attendance'].with_context(harvest_attendance_scope='cosecha')
         seen = set()
         for entry in entries:
             if not isinstance(entry, dict):
@@ -160,7 +219,7 @@ class HarvestCrew(models.Model):
                     raise ValidationError(_('Una asistencia recibida no puede reenviarse con otras horas. Corríjala en Odoo.'))
                 result |= previous
             else:
-                result |= self.env['hr.attendance'].create({
+                result |= result.create({
                     'employee_id': worker.id, 'check_in': start, 'check_out': end,
                     'harvest_crew_id': self.id, 'harvest_uid': event_uid, 'harvest_fingerprint': digest,
                 })
