@@ -32,7 +32,7 @@ CAPSULE = Path('/opt/steps-validation/community-original-config-20261029/configu
 NATIVE_RUNTIME = Path('/opt/odoo18')
 CAPSULE_SHA = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
 RUNTIME = Path('/opt/steps-validation/community-foundation-final-20261027/community-runtime')
-REQUIRED_FIELD_PROBES = ('category', 'structure', 'rule_structure', 'payslip')
+REQUIRED_FIELD_PROBES = ('category', 'structure', 'rule_structure', 'payslip', 'draft_amounts')
 
 
 def restore_provider_contract_columns(database, reference):
@@ -73,8 +73,9 @@ def write(path, value):
 
 def exercise_required_field(source, stage, executable, options, database, field_group):
     receipt = stage / f'original-{field_group}-required.json'
+    module = 'probe_original_draft_amounts' if field_group == 'draft_amounts' else f'probe_original_{field_group}_required'
     expression = ('import json, sys; sys.path.insert(0, ' + repr(str(source / 'tools/community')) + '); '
-                  f'from probe_original_{field_group}_required import run; result = run(env, ' + repr(database) + '); '
+                  f'from {module} import run; result = run(env, ' + repr(database) + '); '
                   'open(' + repr(str(receipt)) + ', "x").write(json.dumps(result, indent=2))')
     with (stage / f'original-{field_group}-required.log').open('x') as log:
         status = subprocess.run(offline_odoo(executable + options), input=expression, text=True,
