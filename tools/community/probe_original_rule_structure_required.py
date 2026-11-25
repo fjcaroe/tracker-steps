@@ -13,6 +13,8 @@ def run(env, database):
     rule = env['hr.salary.rule'].with_context(active_test=False)
     field = rule._fields['struct_id']
     assert field.required and field.comodel_name == 'hr.payroll.structure' and field.ondelete == 'restrict'
+    original = env.ref('hr_payroll.field_hr_salary_rule__struct_id')
+    assert original.id == 8303 and original.model == 'hr.salary.rule' and original.name == 'struct_id' and original.required
     env.cr.execute("""
         SELECT a.attnotnull, c.confdeltype, c.convalidated
           FROM pg_attribute a
@@ -67,6 +69,10 @@ def run(env, database):
             env.cr.execute('SELECT struct_id FROM hr_structure_salary_rule_rel WHERE rule_id=%s', (record.id,))
             assert env.cr.fetchall() == [(owner.id,)]
 
+    def clear_owner(record):
+        record.write({'struct_id': False})
+        record.flush_recordset(['struct_id'])
+
     try:
         rejected(env.cr, lambda: rule.create(dict(values, struct_id=False)).flush_recordset(['struct_id']),
                  'hr_salary_rule', 'struct_id')
@@ -75,8 +81,7 @@ def run(env, database):
         record.write({'struct_id': second.id})
         check_owner(record, second)
         assert record not in first.rule_ids
-        rejected(env.cr, lambda: record.write({'struct_id': False}).flush_recordset(['struct_id']),
-                 'hr_salary_rule', 'struct_id')
+        rejected(env.cr, lambda: clear_owner(record), 'hr_salary_rule', 'struct_id')
         check_owner(record, second)
         if community:
             rejected(env.cr, lambda: second.write({'rule_ids': [Command.unlink(record.id)]}),
@@ -85,7 +90,8 @@ def run(env, database):
     finally:
         env.cr.rollback()
     assert not rule.search_count([('code', '=', key)])
-    return {'database': database, 'operator_uid': rule.env.uid, 'required': True, 'not_null': True,
+    return {'database': database, 'operator_uid': rule.env.uid, 'original_field_id': original.id,
+            'required': True, 'not_null': True,
             'validated_restrict_fk': True, 'original_structure_ids': [first.id, second.id],
             'valid_create_and_primary_move': True, 'missing_create_and_edit_rejected': True,
             'community_editable_structure_selector': community,
