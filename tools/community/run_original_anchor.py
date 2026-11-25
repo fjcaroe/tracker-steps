@@ -24,6 +24,7 @@ from validate_community_reports import sql
 from offline_process import offline_odoo
 from build_original_anchor_profile import OWN
 from build_original_anchor_guards import guard_specs, render_sql
+from check_original_anchor_relations import column_contract, field_metadata
 from validate_payroll_api import capture_original_native_visibility
 
 
@@ -31,6 +32,34 @@ CAPSULE = Path('/opt/steps-validation/community-original-config-20261029/configu
 NATIVE_RUNTIME = Path('/opt/odoo18')
 CAPSULE_SHA = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
 RUNTIME = Path('/opt/steps-validation/community-foundation-final-20261027/community-runtime')
+REQUIRED_FIELD_PROBES = ('category', 'structure', 'rule_structure', 'payslip')
+
+
+def restore_provider_contract_columns(database, reference):
+    columns = [{'table': 'hr_contract', 'column': name}
+        for name in ('income_tax_type', 'work_schedule_id')]
+    original_fields = field_metadata(sql, reference, columns)
+    target_fields = field_metadata(sql, database, columns)
+    changes = []
+    for name, ident in (('income_tax_type', 9727), ('work_schedule_id', 9728)):
+        key = ('hr_contract', name)
+        for field in (original_fields[key], target_fields[key]):
+            assert field['id'] == ident and field['model'] == 'hr.contract' and field['required']
+            assert field['ttype'] == 'selection' and field['relation'] is None
+            assert 'l10n_cl_simpledigital_payroll' in field['xmlid_namespaces']
+        original = column_contract(sql, reference, *key)
+        current = column_contract(sql, database, *key)
+        assert original and original['not_null'] and current
+        assert {**current, 'not_null': True} == original
+        if not current['not_null']:
+            changes.append('ALTER COLUMN ' + gate.identifier(name) + ' SET NOT NULL')
+    if changes:
+        # PostgreSQL checks every existing row atomically. No value is repaired or backfilled.
+        sql(database, 'ALTER TABLE hr_contract ' + ', '.join(changes))
+    for column in columns:
+        name = column['column']
+        assert column_contract(sql, database, 'hr_contract', name) == column_contract(sql, reference, 'hr_contract', name)
+    return {'columns': columns, 'new_constraints': len(changes), 'values_written': False}
 
 
 def sha(path):
@@ -229,7 +258,7 @@ def main():
                                  original_source_inventory=args.original_source_inventory)
         capture_original_native_visibility(source, native_stage, native,
             Path('/etc/odoo18-cerroelplomo.conf'), prod['options']['addons_path'], native_data, native_owner)
-        for field_group in ('category', 'structure', 'rule_structure'):
+        for field_group in REQUIRED_FIELD_PROBES:
             exercise_required_field(source, native_stage,
                 ['sudo', '-u', native_owner.pw_name, '/usr/bin/python3.10', str(NATIVE_RUNTIME/'odoo-bin'), 'shell'],
                 ['-c', '/etc/odoo18-cerroelplomo.conf', '-d', reference, '--db-filter=^'+reference+'$',
@@ -298,6 +327,7 @@ def main():
             status=subprocess.run(offline_odoo(command),stdout=log,stderr=subprocess.STDOUT)
         write(stage/'install-status.json',{'exit_code':status.returncode,'all_products_operational':False,'production_changed':False})
         assert status.returncode==0, 'Inspect private guarded install log; no acceptance claimed'
+        write(stage/'provider-contract-required-storage.json', restore_provider_contract_columns(database, reference))
         write(stage/'business-after-install.json',column_snapshot(database,columns))
         source_visibility = native_stage/'original-source-visibility.json'
         source_menu = native_stage/'original-source-menus.json'
@@ -317,7 +347,7 @@ def main():
                 input=expression,text=True,stdout=log,stderr=subprocess.STDOUT)
         assert status.returncode==0 and (stage/'cohort-admission.json').is_file(), 'Original cohort probe failed; inspect private evidence'
         (stage/'cohort-admission.json').chmod(0o600)
-        for field_group in ('category', 'structure', 'rule_structure'):
+        for field_group in REQUIRED_FIELD_PROBES:
             exercise_required_field(source, stage, normal,
                 normal_opts + ['--logfile='+str(stage/f'{field_group}-odoo.log')], database, field_group)
         write(stage/'business-after-cohort.json',column_snapshot(database,columns))
