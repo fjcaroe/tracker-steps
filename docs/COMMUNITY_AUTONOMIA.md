@@ -75,12 +75,12 @@ incluida la nueva app de T139/T140. Quedan Nómina certificada, DTE completo,
 Calidad y copia integral restaurable cero EE. El 31 sigue en riesgo alto;
 mantener límites y programación activa. El corte de producción queda fuera.
 
-U15C repitió la admisión anclada en Community oficial/OCA y en la referencia
-fresca de Cerro. Recuperó la categoría y el código obligatorios de la regla
-salarial y exigió ambos campos en su formulario. Se mantienen los 118 accesos,
-dos denegaciones, cinco formularios, cuatro menús y 71 vínculos idempotentes.
-Quedan tres obligaciones ORM y 29 diferencias exclusivamente físicas. Continuar
-con el nombre de la liquidación y las relaciones de entradas y días.
+U16 repitió la admisión anclada en Community oficial/OCA y en la referencia
+fresca de Cerro. Cerró tres obligaciones de Nómina y dos restricciones físicas
+de contratos Simple Digital en un paquete. Se mantienen los 118 accesos, dos
+denegaciones, cinco formularios, cuatro menús y 71 vínculos idempotentes.
+Quedan 27 diferencias físicas de proveedores fuera del perfil anclado.
+Continúan la certificación de importes y la validación agrupada de proveedores.
 
 U8 comprobó el inventario nativo completo de 414 módulos y la visibilidad
 original de Nómina en una copia fresca: 118 de 120 maestros accesibles al

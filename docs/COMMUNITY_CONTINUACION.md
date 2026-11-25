@@ -2,10 +2,11 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
-U15C recuperó la categoría y el código obligatorios de la regla salarial en el
-perfil de Cerro. El gerente original comprobó altas, ediciones y rechazo de
-vacíos. Community verificó el formulario y el almacenamiento de las líneas.
-Sigue el nombre obligatorio de la liquidación y las relaciones de entradas y días.
+U16 cerró la obligatoriedad del nombre de la liquidación, el tipo de entrada y
+el tipo de día trabajado, y restauró las restricciones físicas del tipo de renta
+y de jornada del contrato Simple Digital. Quedan 27 diferencias físicas de
+proveedores fuera del perfil anclado. Sigue certificar el cálculo y los
+consumidores de Nómina y validar los proveedores pendientes por grupos.
 
 T2 valida Foundation 1.16.0 y la FK de seguridad original por API oficial:
 33 addons propios/513 archivos, 671 casos Community y 462 nativos sin fallos

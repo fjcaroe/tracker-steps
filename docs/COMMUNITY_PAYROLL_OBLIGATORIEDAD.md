@@ -9,6 +9,13 @@ obligatorias del maestro conservan sus FK `ON DELETE RESTRICT`. La tabla
 inferior describe el contrato genérico. Las parejas y el alcance se registran en
 [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
+U16 restaura `hr.payslip.name`, `hr.payslip.input.input_type_id` y
+`hr.payslip.worked_days.work_entry_type_id` en el mismo overlay. El asistente
+OCA prepara el nombre y las líneas tipadas antes del alta. Se verificó el
+rechazo de cambios de nombre en una liquidación cerrada de prueba. También
+se restauraron los dos `NOT NULL` de tipo de renta y jornada ya exigidos por
+el ORM de Simple Digital, sin rellenar valores ni cambiar su selección.
+
 Bloque aceptado desde `c12c1f6e` en la pareja y upgrade C.
 Resultados y límites: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
 No es adopción de los 120 maestros ni conversión integral con cero Enterprise.

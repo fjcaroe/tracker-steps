@@ -1,5 +1,50 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U16 · Cinco requisitos de Nómina y contratos en un paquete, 25-11-2026
+
+El overlay de Cerro recupera el nombre de la liquidación (8371), el tipo
+de entrada (8476) y el tipo de día trabajado (8458) como obligatorios en el
+ORM y en PostgreSQL. Las dos relaciones conservan sus maestros y sus
+FK validadas `ON DELETE RESTRICT`. También se restauraron los `NOT NULL`
+de tipo de renta (9727) y tipo de jornada (9728) del contrato, ya exigidos
+por el ORM de Simple Digital. La migración valida los valores existentes
+y aplica ambas restricciones en una sola operación, sin rellenar datos.
+
+El paquete `c211003c` pasó en dos copias nuevas del mismo respaldo bajo el
+bloqueo compartido. Community oficial con OCA registró 144 módulos y cero
+Enterprise. La referencia fresca nativa registró 414 módulos y 140 Enterprise.
+Las pruebas comprobaron altas, ediciones y rechazo de vacíos de los cinco
+campos, con maestros originales para las dos relaciones. En Community, el
+gerente original guardó un borrador con el nombre y la asistencia tipada que
+prepara el asistente OCA, verificó los selectores del formulario y comprobó
+que una liquidación cerrada de prueba rechazara el cambio de nombre. Los
+registros de prueba se revirtieron. El cálculo de las 71 reglas y la
+certificación financiera siguen pendientes.
+
+La admisión mantuvo los 118 accesos, dos denegaciones, cinco formularios,
+cuatro menús y 71 vínculos persistidos, con cero altas al repetir. Los
+197 contadores, 60.686 XML IDs y las 999 de 1.000 proyecciones literales
+siguen conservados. Permanecen un posible icono adicional y siete vínculos
+solo en menús nuevos. Los cuatro contratos de almacenamiento, la FK Calendar,
+los históricos y los vencimientos coinciden. Las 32 FK nuevas siguen vacías.
+Pasaron 304 pruebas locales compatibles con Windows.
+
+De las 32 diferencias físicas de U15C se cerraron cinco. Las 27 restantes
+corresponden a proveedores que el perfil anclado mantiene inactivos. Sus
+restricciones requieren probar los proveedores y flujos, incluidos ausencias,
+Previred, Cosecha, permisos de maestros, gastos, contabilidad e inventario.
+El inventario de solo lectura coincide con U15C en módulos, dependencias,
+fuentes y huellas para Cerro, Steps y SyS.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U16`
+y `/opt/steps-validation/community-original-handover-20261125U16`.
+
+- Paquete `26341f94ac3ea1b3f04bf0480dd0d69d3ef7e7caafbb3e2d37494387d9ad7e2f`.
+- Respaldo `958a794f738a2028f7dc2c150afa8d81f1021bb51ce9538ece8a7895a99cb18d`.
+- Admisión `07943c2b0db70899d406b0d205c0b5b052277a4c166bd3abb77843abc2ad9baf`.
+- Relaciones `c3f36a394f74db800c7483c0ca18155a2dd41e8faaf40b656f0aedf50e00f0d0`.
+- Inventario `4dd6d0b215a949b32a952a382055b08ebda1f94a1caf1bce76264fb255d26089`.
+
 ## U15C · Categoría y código obligatorios de la regla salarial, 25-11-2026
 
 El perfil privado de Cerro recupera `hr.salary.rule.category_id` y
@@ -801,12 +846,11 @@ Lee AGENTS.md, el registro de ambientes, la operación canónica, el workflow, e
 plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
 aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
-Usa U15C como referencia de adopción parcial y T2 para la pareja multifrente.
-Recupera `hr.payslip.name` (8371) en el perfil de Cerro. Comprueba altas,
-ediciones, rechazo de vacío y el flujo que asigna el nombre en OCA. Conserva
-el nombre histórico de liquidaciones pagadas o validadas y evita defaults
-inventados. Siguen las relaciones tipadas de entradas y días. Quedan tres
-obligaciones ORM y 29 diferencias exclusivamente físicas.
+Usa U16 como referencia de adopción parcial y T2 para la pareja multifrente.
+Certifica un borrador comparable con las reglas y maestros originales, entradas,
+asistencia y ausencias. Conserva los nombres e importes de pagadas y validadas.
+Agrupa las 27 diferencias físicas restantes por proveedor y exige pruebas de
+sus flujos antes de restaurar los contratos.
 Comprueba que las 71 relaciones sigan exactas e idempotentes y que el perfil
 genérico conserve su contrato. Mantén la cadena de sellos del inventario,
 el observador nativo y el verificador de menús al actualizar los recibos.
