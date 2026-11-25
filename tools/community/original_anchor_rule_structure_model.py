@@ -1,4 +1,4 @@
-"""Required primary rule ownership in the private Cerro adoption profile."""
+"""Required salary rule fields in the private Cerro adoption profile."""
 from odoo import fields, models
 
 
@@ -6,6 +6,8 @@ class SalaryRule(models.Model):
     _inherit = 'hr.salary.rule'
 
     struct_id = fields.Many2one(required=True)
+    category_id = fields.Many2one(required=True)
+    code = fields.Char(required=True)
 
 
 class PayslipLine(models.Model):
