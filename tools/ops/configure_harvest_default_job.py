@@ -132,13 +132,14 @@ SCRIPT = r'''
 import hashlib
 import json
 assert env.cr.dbname == PLAN['database']
+assert env.su and env.uid == 1, 'Native configuration requires the deployment administrator'
 env.cr.execute("SET LOCAL lock_timeout = '5s'")
 env.cr.execute('LOCK TABLE hr_job IN SHARE ROW EXCLUSIVE MODE')
 company = env['res.company'].browse(1).exists()
 user = env['res.users'].browse(6).exists()
 assert company and user and user.active and not user.share and company in user.company_ids
 assert PLAN['company_id'] == company.id == 1 and PLAN['user_id'] == user.id == 6
-business = env(user=user, su=False, context=dict(env.context, allowed_company_ids=[1]))
+business = env(user=user.id, su=False, context=dict(env.context, allowed_company_ids=[1]))
 assert business['hr.employee'].has_access('create'), 'The existing review profile cannot enroll employees'
 def roles():
     env.invalidate_all()
@@ -234,7 +235,8 @@ def main():
         command += ['--addons-path='+str(stage/'addons')+','+options['addons_path'], '--data-dir='+str(stage/'data')]
     plan = {'environment':args.environment, 'mode':mode, 'stage':stage.name, 'database':database,
             'company_id':COMPANY_ID, 'user_id':USER_ID, 'commit':BACKEND_COMMIT,
-            'release_sha256':package_sha, 'helper_sha256':helper_sha, 'apply':args.apply}
+            'release_sha256':package_sha, 'helper_sha256':helper_sha, 'apply':args.apply,
+            'backup':str(args.backup) if args.live else None}
     # Linux-only helpers stay below main so the pure guards can be tested on Windows.
     import fcntl
     from customer_qa_clone_access import clone_database_access
