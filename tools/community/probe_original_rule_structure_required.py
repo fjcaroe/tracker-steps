@@ -81,6 +81,9 @@ def run(env, database):
         arch = etree.fromstring(rule.get_view(view_id=view.id, view_type='form')['arch'].encode())
         selectors = arch.xpath("//field[@name='struct_id' and not(@invisible) and not(@readonly) and not(@column_invisible)]")
         assert len(selectors) == 1 and not selectors[0].xpath('ancestor::*[@invisible or @readonly]')
+        for name in ('category_id', 'code'):
+            selectors = arch.xpath("//field[@name=$name and @required='1' and not(@readonly)]", name=name)
+            assert len(selectors) == 1 and not selectors[0].xpath('ancestor::*[@invisible or @readonly]')
     structure = rule.env['hr.payroll.structure']
     template = structure.search([('country_id', '=', False), ('rule_ids', '!=', False)], order='id', limit=1)
     categories = template.rule_ids.mapped('category_id').sorted('id')[:2]
@@ -148,5 +151,6 @@ def run(env, database):
             'category_and_code_field_ids': [8306, 8302],
             'valid_category_and_code_edit': True, 'empty_category_and_code_rejected': True,
             'community_line_storage_preserved': community,
+            'community_form_category_and_code_required': community,
             'community_editable_structure_selector': community,
             'community_membership_reconciled': community, 'fixture_rolled_back': True}

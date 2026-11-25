@@ -104,12 +104,20 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
                 spec = ast.literal_eval(updated.decode('utf-8-sig'))
                 rule_view = target / 'views' / 'original_configuration.xml'
                 tree = ET.parse(rule_view)
-                rule_config = tree.find("./record[@id='salary_rule_original_config_form']/field[@name='arch']/xpath")
+                rule_arch = tree.find("./record[@id='salary_rule_original_config_form']/field[@name='arch']")
+                assert rule_arch is not None
+                rule_config = rule_arch.find('xpath')
                 assert rule_config is not None and not rule_config.findall(".//field[@name='struct_id']")
                 primary = ET.Element('group', {'groups': 'payroll.group_payroll_manager'})
                 ET.SubElement(primary, 'field', {'name': 'struct_id', 'string': 'Estructura salarial',
                     'options': "{'no_create': True, 'no_create_edit': True}"})
                 rule_config.insert(0, primary)
+                for name in ('category_id', 'code'):
+                    xpath = ET.SubElement(rule_arch, 'xpath', {
+                        'expr': f"//field[@name='{name}' and @required='require_code_and_category']",
+                        'position': 'attributes',
+                    })
+                    ET.SubElement(xpath, 'attribute', {'name': 'required'}).text = '1'
                 tree.write(rule_view, encoding='utf-8')
                 models = target / 'models'
                 declarations = {}
