@@ -22,6 +22,9 @@ def compare_case(before, after):
     phases = [before['phase'], after['phase']]
     result = {'phases': phases, 'errors': [before.get('error_type'), after.get('error_type')],
               'exact': False}
+    if 'fixture' in before or 'fixture' in after:
+        assert before['fixture'] == after['fixture'], 'Draft basis fixtures differ'
+        result['fixture'] = before['fixture']
     measurements = ('inputs', 'original_work_entries', 'worked_days_final', 'original_rule_ids')
     result['original_inputs_days_and_rules_equal'] = all(
         key in before and key in after and before[key] == after[key] for key in measurements)

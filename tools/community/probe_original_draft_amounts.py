@@ -1,5 +1,5 @@
 """Compare new drafts on the real Cerro and OCA engines using original masters."""
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 import json
 from pathlib import Path
@@ -21,11 +21,16 @@ CASES = (
 )
 INPUTS = ((1, 1234), (2, 4321))
 NOVEMBER = (date(2026, 11, 1), date(2026, 11, 30))
+PARTIAL = (date(2026, 11, 9), date(2026, 11, 13))
 BASIS_FIXTURES = (
-    ('paid_only', NOVEMBER, (8, 0)),
-    ('more_paid', NOVEMBER, (8, 4)),
-    ('more_unpaid', NOVEMBER, (4, 8)),
-    ('february', (date(2026, 2, 1), date(2026, 2, 28)), (4, 4)),
+    ('paid_only', {'entry_hours': (8, 0)}),
+    ('more_paid', {'entry_hours': (8, 4)}),
+    ('more_unpaid', {'entry_hours': (4, 8)}),
+    ('february', {'period': (date(2026, 2, 1), date(2026, 2, 28))}),
+    ('equal_days_unequal_hours', {'entry_hours': (4, 8), 'draft_days': (1, 1), 'wage': 720001}),
+    ('opposite_days_and_hours', {'entry_hours': (8, 4), 'draft_days': (1, 2), 'wage': 720001}),
+    ('partial_paid_only', {'period': PARTIAL, 'entry_hours': (4, 0)}),
+    ('partial_unpaid_only', {'period': PARTIAL, 'entry_hours': (0, 4)}),
 )
 
 
@@ -54,7 +59,7 @@ def capture_basis(slip):
 
 
 def run_case(env, spec, community, progress, marker, native_days=None,
-             period=NOVEMBER, entry_hours=(4, 4)):
+             period=NOVEMBER, entry_hours=(4, 4), draft_days=None, wage=720000):
     model = env['hr.payslip'].with_user(7).with_context(tracking_disable=True, lang='en_US')
     company = model.env.company
     employee = model.env['hr.employee'].search([
@@ -77,10 +82,16 @@ def run_case(env, spec, community, progress, marker, native_days=None,
 
     progress['phase'] = 'contract'
     start, stop = period
+    progress['fixture'] = {
+        'period': [start.isoformat(), stop.isoformat()],
+        'wage': decimal(wage),
+        'currency_rounding': decimal(company.currency_id.rounding),
+        'draft_days': list(draft_days) if draft_days is not None else None,
+    }
     contracts = env['hr.contract'].with_context(tracking_disable=True).with_company(company)
     contract_vals = {'name': marker, 'employee_id': employee.id, 'company_id': company.id,
         'date_start': start, 'resource_calendar_id': calendar.id, 'structure_type_id': structure.type_id.id,
-        'wage': 720000}
+        'wage': wage}
     if 'struct_id' in contracts._fields:
         contract_vals['struct_id'] = structure.id
     contract = contracts.create(contract_vals)
@@ -89,10 +100,12 @@ def run_case(env, spec, community, progress, marker, native_days=None,
     zone = pytz.timezone(calendar.tz)
     entries = env['hr.work.entry'].with_context(tracking_disable=True)
     progress['original_work_entries'] = []
-    for kind, day, hours in ((attendance, 2, entry_hours[0]), (absence, 3, entry_hours[1])):
+    for offset, (kind, hours) in enumerate(zip((attendance, absence), entry_hours), start=1):
         if not hours:
             continue
-        span = [zone.localize(datetime.combine(start.replace(day=day), time(hour)))
+        entry_date = start + timedelta(days=offset)
+        assert entry_date <= stop
+        span = [zone.localize(datetime.combine(entry_date, time(hour)))
                 .astimezone(pytz.UTC).replace(tzinfo=None) for hour in (9, 9 + hours)]
         entry = entries.create({'name': marker, 'employee_id': employee.id, 'company_id': company.id,
             'contract_id': contract.id, 'work_entry_type_id': kind.id, 'date_start': span[0], 'date_stop': span[1]})
@@ -128,10 +141,22 @@ def run_case(env, spec, community, progress, marker, native_days=None,
     elif not community:
         computed = [{key: value for key, value in row.items() if key in slip.worked_days_line_ids._fields
                      and key not in ('code', 'contract_id')} for row in computed]
+    if draft_days is not None:
+        # Keep real hours and original types. Exercise the editable draft
+        # dimensions independently, after recording the engine-generated days.
+        assert native_days is None and entry_type_ids == {attendance.id, absence.id}
+        days_by_type = dict(zip((attendance.id, absence.id), draft_days))
+        for row in computed:
+            row['number_of_days'] = days_by_type[row['work_entry_type_id']]
     slip.worked_days_line_ids = [Command.clear()] + [Command.create(row) for row in computed]
     progress['inputs'] = [[ident, amount] for ident, amount in INPUTS]
     progress['worked_days'] = worked_days(slip)
     assert all(row[3] == (row[0] == attendance.id) for row in progress['worked_days'])
+    if draft_days is not None:
+        assert {row[0]: (row[1], row[2]) for row in progress['worked_days']} == {
+            kind.id: (decimal(hours), decimal(days))
+            for kind, hours, days in zip((attendance, absence), entry_hours, draft_days)
+        }
     progress['original_rule_ids'] = expected_rules
 
     if spec['structure'] == 2:
@@ -193,7 +218,7 @@ def run(env, database, reference_path=None):
             progress['native_days_replay'] = trial(env, spec, community, original['worked_days_final'])
         results.append(progress)
     generic_structure = next(spec for spec in CASES if spec['structure'] == 2)
-    basis_cases = {name: trial(env, generic_structure, community, period=period, entry_hours=hours)
-                   for name, period, hours in BASIS_FIXTURES}
+    basis_cases = {name: trial(env, generic_structure, community, **fixture)
+                   for name, fixture in BASIS_FIXTURES}
     return {'database': database, 'operator_uid': 7, 'community': community,
             'drafts_only': True, 'cases': results, 'basis_cases': basis_cases}

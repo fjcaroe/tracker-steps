@@ -25,6 +25,7 @@ from offline_process import offline_odoo
 from build_original_anchor_profile import OWN
 from build_original_anchor_guards import guard_specs, render_sql
 from check_original_anchor_relations import column_contract, field_metadata
+from probe_original_master_visibility import SOURCE_INVENTORY_SHA256
 from validate_payroll_api import capture_original_native_visibility
 
 
@@ -174,6 +175,8 @@ def main():
     assert os.geteuid() == 0 and re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+',database)
     assert root.parent == Path('/opt/steps-validation') and root.name.startswith('community-original-handover-')
     assert (root/'anchor-profile.json').is_file() and sha(CAPSULE) == CAPSULE_SHA
+    assert sha(args.original_source_inventory) == SOURCE_INVENTORY_SHA256, (
+        'Use the sealed source inventory witness before creating private databases')
     os.umask(0o077)
     source = root / 'source'
     stage = root / 'anchor'
