@@ -129,7 +129,12 @@ def main():
     assert os.geteuid() == 0 and re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+',database)
     assert root.parent == Path('/opt/steps-validation') and root.name.startswith('community-original-handover-')
     assert (root/'anchor-profile.json').is_file() and sha(CAPSULE) == CAPSULE_SHA
-    source=root/'source';stage=root/'anchor';assert not stage.exists();stage.mkdir(mode=0o711)
+    os.umask(0o077)
+    source = root / 'source'
+    stage = root / 'anchor'
+    stage.mkdir(mode=0o700)
+    # Both service users need traversal for their own private data and receipts.
+    stage.chmod(0o711)
     reference = database.replace('_HANDOVER_', '_REFERENCE_')
     assert reference != database and len(reference) <= 63 and len(database) <= 63
     capsule=json.loads(CAPSULE.read_text());gate.capsule_rows(capsule)
