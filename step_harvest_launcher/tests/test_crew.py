@@ -160,6 +160,17 @@ class HarvestCrewCase(TransactionCase):
         self.assertFalse(any(row.get('attendance_id') == harvest.id for row in values))
         self.assertTrue(self.env['hr.work.entry'].search([('attendance_id', '=', native.id)]))
 
+    def test_cosecha_preserves_negative_hr_overtime(self):
+        worker = self.own.harvest_enroll_worker(self.enrollment())
+        native = self.env['hr.attendance'].create({
+            'employee_id': worker.id, 'check_in': '2026-11-24 08:00:00', 'check_out': '2026-11-24 14:00:00',
+        })
+        self.assertEqual(native.overtime_hours, -2)
+        harvest = self.own.harvest_record_attendance(self.attendance(worker))
+        native._compute_overtime_hours()
+        self.assertEqual(native.overtime_hours, -2)
+        self.assertEqual(harvest.overtime_hours, 0)
+
     def test_attendance_can_resolve_pending_enrollment_uuid(self):
         worker = self.own.harvest_enroll_worker(self.enrollment())
         values = self.attendance(worker); values['entries'][0].pop('worker_id'); values['entries'][0]['worker_uuid'] = 'private-enrollment'

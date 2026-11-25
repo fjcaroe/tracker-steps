@@ -85,6 +85,8 @@ class HarvestAttendance(models.Model):
         ], order='check_in desc,id desc')
         by_day = {}
         for row in rows:
+            if not row.worked_hours or not row.employee_id.resource_calendar_id:
+                continue
             zone = pytz.timezone(row.employee_id.resource_calendar_id.tz or row.employee_id.resource_id.tz or 'UTC')
             day = row.check_in.replace(tzinfo=timezone.utc).astimezone(zone).date()
             by_day.setdefault((row.employee_id.id, day), []).append(row)
