@@ -1,5 +1,33 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U22B · Referencia nativa de YTD activo, 25-11-2026
+
+En una copia fresca de Cerro con 414 módulos y 140 Enterprise, el operador
+original calculó con las reglas de la estructura 2. El caso usó contratos y
+entradas de ensayo, días editables con tipos originales y reinicio el 1 de
+enero. Con YTD activo, BASIC guardó CLP 360.000 en enero, CLP 720.000 en
+febrero con el mismo contrato y CLP 720.000 en marzo con otro contrato.
+Enero cerrado aportó al acumulado. Febrero abierto quedó excluido. Se
+comprobaron los cinco conceptos por SQL y por `_get_line_values`. El rollback
+restauró el flag original desactivado y dejó cero liquidaciones, contratos y
+entradas de trabajo.
+
+La prueba inicial se detuvo en los tipos de días generados de enero. Al
+mantener fija la base editable, la segunda prueba mostró que activar YTD
+solo en caché en el motor nativo no reproducía la acumulación. El diagnóstico
+final activó el flag por ORM dentro de la transacción revertida. No se
+modificó el cálculo de Community. Falta ejecutar en una pareja nueva la
+sonda Community y, después, validar la ampliación de la guarda entre contratos.
+El disco compartido quedó con 4,82 GB disponibles frente a la reserva de
+5 GiB del restaurador.
+
+Las estructuras originales tienen YTD desactivado. Ninguna de las 71 reglas
+tiene cuentas de débito o crédito en el respaldo. Se conserva el bloqueo de
+Nómina Chile y siguen pendientes contabilización, Previred, libro y consumidores
+HR. El último paquete aceptado sigue siendo U21B. Evidencia de la referencia
+en `~/.codex/local-artifacts/community-resume-20261125/U22B` y
+`/opt/steps-validation/community-original-handover-20261125U22B`.
+
 ## U21B · YTD almacenado de los borradores originales, 25-11-2026
 
 `step_payroll_oca_api` 18.0.1.19.0 genera las líneas nuevas de OCA con un
