@@ -46,6 +46,9 @@ def compare_case(before, after):
         result['basis'] = {key: {'native': before.get(key), 'community': after.get(key)}
                            for key in ('basis_before_compute', 'basis_after_compute')}
         result['exact'] &= all(pair['native'] == pair['community'] for pair in result['basis'].values())
+    if 'mutations' in before or 'mutations' in after:
+        result['mutations'] = {'native': before.get('mutations'), 'community': after.get('mutations')}
+        result['exact'] &= result['mutations']['native'] == result['mutations']['community']
     return result
 
 

@@ -97,6 +97,10 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
             if name == 'step_simpledigital_oca_security':
                 assert spec['data'] == ['security.xml']
                 omitted = list(spec['data']); spec['data'] = []
+                module = Path(__file__).with_name('original_anchor_worked_day_amount_model.py')
+                (target / 'original_anchor_worked_day_amount.py').write_bytes(module.read_bytes())
+                with (target / '__init__.py').open('ab') as imports:
+                    imports.write(b'\nfrom . import original_anchor_worked_day_amount\n')
             else:
                 omitted=[item for item in spec['data'] if item.startswith('security/')]
                 assert omitted == ['security/ir.model.access.csv','security/configuration_scope.xml']

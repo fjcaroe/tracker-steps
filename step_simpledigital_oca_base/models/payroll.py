@@ -95,7 +95,11 @@ class WorkedDays(models.Model):
             line.is_paid = line.payslip_id.struct_id not in line.work_entry_type_id.unpaid_structure_ids
             if line.contract_id.schedule_pay not in (False,'monthly'):
                 raise UserError(_('Only the audited monthly payroll basis is supported by this provider bridge.'))
-            line.amount = line.contract_id.wage/30.0*line.number_of_days if line.is_paid else 0.0
+            line.amount = line._step_paid_worked_day_amount() if line.is_paid else 0.0
+
+    def _step_paid_worked_day_amount(self):
+        self.ensure_one()
+        return self.contract_id.wage / 30.0 * self.number_of_days
 
 
 class Payslip(models.Model):

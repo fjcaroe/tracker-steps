@@ -31,6 +31,10 @@ BASIS_FIXTURES = (
     ('opposite_days_and_hours', {'entry_hours': (8, 4), 'draft_days': (1, 2), 'wage': 720001}),
     ('partial_paid_only', {'period': PARTIAL, 'entry_hours': (4, 0)}),
     ('partial_unpaid_only', {'period': PARTIAL, 'entry_hours': (0, 4)}),
+    ('half_weight', {'wage': 720001}),
+    ('split_paid', {'entry_hours': (8, 4), 'split_paid': True, 'wage': 720001}),
+    ('zero_hours', {'entry_hours': (4, 0), 'zero_hours': True}),
+    ('edit_sibling', {'edit_sibling': True}),
 )
 
 
@@ -58,8 +62,23 @@ def capture_basis(slip):
     }
 
 
+def exercise_sibling_changes(slip, absence):
+    unpaid = slip.worked_days_line_ids.filtered(lambda row: row.work_entry_type_id == absence)
+    unpaid.ensure_one()
+    unpaid.write({'number_of_hours': 8})
+    edited = capture_basis(slip)
+    unpaid.unlink()
+    removed = capture_basis(slip)
+    values = {'work_entry_type_id': absence.id, 'number_of_hours': 4, 'number_of_days': 0.5}
+    if 'contract_id' in slip.worked_days_line_ids._fields:
+        values['contract_id'] = slip.contract_id.id
+    slip.write({'worked_days_line_ids': [Command.create(values)]})
+    return {'edited': edited, 'removed': removed, 'added': capture_basis(slip)}
+
+
 def run_case(env, spec, community, progress, marker, native_days=None,
-             period=NOVEMBER, entry_hours=(4, 4), draft_days=None, wage=720000):
+             period=NOVEMBER, entry_hours=(4, 4), draft_days=None, wage=720000,
+             split_paid=False, zero_hours=False, edit_sibling=False):
     model = env['hr.payslip'].with_user(7).with_context(tracking_disable=True, lang='en_US')
     company = model.env.company
     employee = model.env['hr.employee'].search([
@@ -148,6 +167,13 @@ def run_case(env, spec, community, progress, marker, native_days=None,
         days_by_type = dict(zip((attendance.id, absence.id), draft_days))
         for row in computed:
             row['number_of_days'] = days_by_type[row['work_entry_type_id']]
+    if split_paid:
+        paid = next(row for row in computed if row['work_entry_type_id'] == attendance.id)
+        paid['number_of_hours'], paid['number_of_days'] = 4, 0.5
+        computed.append(dict(paid))
+    if zero_hours:
+        assert len(computed) == 1
+        computed[0]['number_of_hours'] = 0
     slip.worked_days_line_ids = [Command.clear()] + [Command.create(row) for row in computed]
     progress['inputs'] = [[ident, amount] for ident, amount in INPUTS]
     progress['worked_days'] = worked_days(slip)
@@ -178,6 +204,9 @@ def run_case(env, spec, community, progress, marker, native_days=None,
     rows = env.cr.fetchall()
     assert set(spec['essentials']) <= {ident for ident, *_ in rows} <= set(expected_rules)
     progress['lines'] = [[ident, *(decimal(value) for value in values)] for ident, *values in rows]
+    if edit_sibling:
+        progress['phase'] = 'edit_sibling'
+        progress['mutations'] = exercise_sibling_changes(slip, absence)
     progress['phase'] = 'complete'
 
 
