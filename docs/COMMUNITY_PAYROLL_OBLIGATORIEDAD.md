@@ -1,5 +1,11 @@
 # Obligatoriedad original y frontera OCA
 
+U12 recuperó el código obligatorio de categoría en el overlay privado de
+adopción de Cerro, con alta, edición, rechazo de valores vacíos y verificación
+del XML ID original. El contrato genérico de OCA de la tabla inferior sigue
+vigente. La pareja y el alcance se registran en
+[COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
+
 Bloque aceptado desde `c12c1f6e` en la pareja y upgrade C.
 Resultados y límites: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
 No es adopción de los 120 maestros ni conversión integral con cero Enterprise.

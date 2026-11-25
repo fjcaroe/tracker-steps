@@ -1,5 +1,50 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U12 · Código obligatorio de categoría salarial, 25-11-2026
+
+El perfil privado de adopción de Cerro declara obligatorio el código de
+`hr.salary.rule.category`. Odoo aplica la obligación ORM y PostgreSQL exige
+`NOT NULL`. La declaración se carga desde el overlay del adaptador OCA. El
+perfil genérico conserva su configuración opcional. El campo y su XML ID
+original conservan el destino 8332 y el namespace `hr_payroll`.
+
+El paquete `d3150db5` se probó bajo el bloqueo compartido en dos copias nuevas
+del mismo respaldo. Community oficial con OCA y la referencia nativa de Cerro
+aceptaron crear y editar una categoría con código y rechazaron las dos
+operaciones con el código vacío. Las categorías de prueba se revirtieron.
+La revisión física verificó la recuperación de esta única columna. De las 36
+diferencias físicas pendientes, siete requieren recuperar también `required`
+en el ORM. Se mantienen las 32 FK nuevas vacías.
+
+La adopción repitió 118 accesos, dos denegaciones, cinco formularios y cuatro
+menús. PostgreSQL confirmó los 71 vínculos guardados y la segunda ejecución
+creó cero. Quedaron exactas 999 de 1.000 proyecciones, 197 contadores y 60.686
+XML IDs. Se preservaron los adjuntos originales, históricos y vencimientos.
+Se repitieron las adiciones observadas en U11C de siete vínculos en menús nuevos
+y un adjunto clasificado como posible icono de menú. Coincidieron los cuatro
+contratos de almacenamiento y la FK Calendar. Pasaron 176 pruebas locales.
+
+El inventario de los tres productos coincidió módulo por módulo con U11C,
+incluidas fuentes privadas y huellas. Se revisaron 170 módulos propios en el
+repo, 40 fuera de Cerro y 75/9/14 apps con caminos declarados a Enterprise.
+La aceptación multifrente sigue en T2. La copia nativa es la referencia y la
+copia OCA sólo acredita la adopción parcial de Nómina.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U12` y
+`/opt/steps-validation/community-original-handover-20261125U12`.
+
+- Paquete `be1b6d810d9a8a66c5e7f965631019b3d56a978493887413859e404efc8db088`.
+- Respaldo `fb0fead68177b0dace2a8cacfc153a50826c35971522f1204a144c4a5aaf5f19`.
+- Relaciones `2e6b48a67b00acda231295e1ace37cd5744cf328fe8260dc2b443d91d06a8bbc`.
+- Admisión `dcd36d2202a096275e5c6ed3bebdaa9c2eb6fb4a8053213ec46552772d7cd94f`.
+
+Siguiente bloque: recuperar `hr.payroll.structure.type_id` en el perfil
+original y probar altas y ediciones con tipos de estructura existentes. Al
+seguir con reglas y líneas, verificar la relación primaria y M2M, las guardas
+de históricos y la compatibilidad del OCA general. Mantener abiertas las
+puertas financieras, HR, DTE, Tesorería, Calidad, Studio, Documentos, Firma y
+la recuperación integral de todos los productos con cero Enterprise.
+
 
 ## U11C — adopción funcional de la configuración original, 25-11-2026
 
@@ -600,51 +645,30 @@ por sus propios tickets; sus cambios fueron conservados e inventariados.
 ## Prompt de continuación
 
 ```text
-Continúa desde origin/codex/ambientes-canonicos-reparacion actualizada, en un
-worktree propio. Lee AGENTS.md, ~/.odoo/environments.json, operación canónica,
-workflow, plan, COMMUNITY_CONTINUACION.md, COMMUNITY_ADOPCION_MAESTROS.md,
-COMMUNITY_AUTONOMIA.md y sus referencias e inventario completo vigente.
+Haz fetch de origin/codex/ambientes-canonicos-reparacion y usa el worktree propio.
+Lee AGENTS.md, el registro de ambientes, la operación canónica, el workflow, el
+plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
+aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
-T2 normal acepta 671 CE/462 nativos, 33 propios/513 archivos y preservación de
-925 tablas/proyecciones, 147 contadores y 59.113 XML IDs. Conserva R3/S/Q4/D/H.
-Recupera las herramientas experimentales útiles de
-origin/codex/community-original-adoption-20261030; no confundas sus ensayos
-con la pareja normal aceptada ni integres código experimental sin pruebas.
+Usa U12 como referencia de adopción parcial y T2 para la pareja multifrente.
+Recupera el tipo obligatorio de la estructura salarial en el perfil original.
+Comprueba altas y ediciones con tipos existentes, permisos y ausencia de valores
+inventados. Quedan siete obligaciones ORM, incluidas la estructura primaria y
+categoría de regla, tipo de entrada y tipo de día. Verifica en cada paso que
+las 71 relaciones sigan siendo exactas e idempotentes y que el perfil genérico
+conserve su contrato. Continúa con las obligaciones físicas por proveedor.
 
-Prioriza cerrar la adopción original de 120 maestros/71 reglas sobre OCA:
-T2 congelada en 10278323 pasó 671/462 con postflight físico de seguridad y
-preservó 925 tablas/proyecciones, 147 contadores y 59.113 XML IDs. Conserva sus
-recibos separados de S y T1. F proyectó realmente 71 pares, luego cero, con
-commit bajo UID7 y sin modificar maestros. No repitas una inserción como si
-estuviera pendiente ni atribuyas certificación financiera a esa proyección.
-Reutiliza el Sourceproof nativo S7B y conserva su partición 118/2 bajo UID7.
-La lectura core de vistas y los savepoints UUID1 quedaron probados con sus
-fuentes y objetos reales; no vuelvas a ampliar SQL por conjetura. El Source
-real de menús c5a81c31… confirmó categoría oculta y tres visibles; G ya contrastó
-Target con ese testigo, cinco formularios y cuatro menús, con cero/cero nuevas
-inserciones. No repitas esos bloqueos como si faltara probar origen o Target.
-Conserva F y G separados y sus límites: no certifican los importes ni todos
-los flujos legados. Recupera las herramientas validadas de la rama indicada.
-Usa un overlay nuevo para 1.16.0, sin sobrescribir S7 ni sus fuentes congeladas.
-Revisa todos los metadatos, columnas, constraints,
-referencias opacas y menús legados antes de aceptar la cohorte. Evita el cambio
-VARCHAR→JSONB y restaura la semántica de las tres FK sólo con pruebas y guardas
-reales de históricos; CASCADE exige proteger run.unlink incluso ante hijos
-ocultos. No adoptes permisos nuevos sobre modelos originales.
+Certifica reglas, días, entradas, redondeos, YTD, asientos, Previred, libro y
+consumidores HR. Usa la referencia SyS y conserva las reglas de Cerro. Prosigue
+con DTE, CAF, folios, firma, respuestas SII, Tesorería, Calidad, Studio,
+Documentos, Firma y el resto de productos. Conserva Calendar, el Boolean bancario
+legado, 210233 descontinuada, IDs, maestros, ACL, saldos y correlativos.
 
-Usa la captura SyS A y su replay offline como referencia real, sin sustituir
-las reglas de Cerro ni atribuir cronología a sus 71 maestros. Cierra la prueba
-equivalente de reglas, días/entradas, redondeos/YTD, asientos, Previred y libro.
-Usa los tres agentes disponibles en worktrees separados y coordina SQL/ORM
-bajo /run/lock/steps-environments.lock. Conserva fuentes congeladas y reserva.
-
-Preserva IDs, maestros, ACL, relaciones, históricos, saldos y correlativos.
-Respeta Calendar, el Boolean bancario y 210233. No toques producción, QA-Cerro,
-vencimientos ni recalcules pagadas/validadas; no emitas al SII ni mensajes
-externos, no inventes maestros ni copies OEEL. Avanza después DTE/CAF/folios/
-firma/respuestas, Calidad y demás productos. Prueba el paquete exacto en CE
-oficial y copia fresca de Cerro, integra sólo lo validado, commit/push y
-python tools/git/verify_handoff.py --require-pushed. Mantén activa la continuidad
-horaria y no declares resuelto el 31 hasta la copia integral restaurable cero EE
-y la aceptación; el corte productivo queda fuera.
+Prueba el paquete exacto en Community oficial y una referencia fresca de Cerro
+con overlays y bases privadas, respaldo e inclusión bajo el lock compartido.
+Preserva históricos, vencimientos y datos de producción y QA-Cerro. Evita
+recalcular pagadas o validadas y emitir al SII real. Conserva la evidencia privada,
+publica los commits validados y ejecuta verify_handoff.py --require-pushed.
+Mantén el horario hasta verificar la copia integral restaurable con cero
+Enterprise y la aceptación. El corte productivo queda fuera de la automatización.
 ```
