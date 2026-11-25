@@ -112,9 +112,9 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
                 ET.SubElement(primary, 'field', {'name': 'struct_id', 'string': 'Estructura salarial',
                     'options': "{'no_create': True, 'no_create_edit': True}"})
                 rule_config.insert(0, primary)
-                for name in ('category_id', 'code'):
+                for field_name in ('category_id', 'code'):
                     xpath = ET.SubElement(rule_arch, 'xpath', {
-                        'expr': f"//field[@name='{name}' and @required='require_code_and_category']",
+                        'expr': f"//field[@name='{field_name}' and @required='require_code_and_category']",
                         'position': 'attributes',
                     })
                     ET.SubElement(xpath, 'attribute', {'name': 'required'}).text = '1'
