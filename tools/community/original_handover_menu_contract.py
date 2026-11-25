@@ -18,7 +18,10 @@ VISIBILITY_HASHES = {
     '70b8be19c2cd9d10c7746b851cfd839af9bd119d08fe255dfe8c9afedd347385',  # U11 Git LF
     '5a379c79b812a1adc05862b13e7ba465f51d111fe02785c69d181bf49a01926c',  # U11 CRLF
 'bee6eb555ce906c7879b74d02fb3d03117a76662665e1c29d08f9647dbd8aa59',
-    'afa2d84e04ead0336df33dab20c478966184f70632cced044db28fa81fd526b5'}
+    'afa2d84e04ead0336df33dab20c478966184f70632cced044db28fa81fd526b5',
+    '91474b56be987ecfa0c133a6416b9d63fa8116eba8a29b57a8435e8c79e26c1b',  # U13 Git LF
+    'd920f270c52313e18a90c44c02a213a0808c4c40061ec124a19e4f7a24793018',  # U13 CRLF
+}
 TARGET_ROUTES = (
     ('structure', 'payroll.hr_payroll_structure_menu', 'payroll.hr_payroll_structure_action', 'hr.payroll.structure'),
     ('rule', 'payroll.menu_action_hr_salary_rule_form', 'payroll.action_salary_rule_form', 'hr.salary.rule'),
