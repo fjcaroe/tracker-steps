@@ -2,6 +2,7 @@
 from itertools import combinations
 from uuid import uuid4
 
+from lxml import etree
 from odoo.fields import Command
 
 from probe_original_structure_required import rejected, require_private_pair
@@ -36,6 +37,11 @@ def run(env, database):
 
     # Use the original operator and keep the move within one existing scope.
     rule = rule.with_user(7)
+    if community:
+        view = rule.env.ref('payroll.hr_salary_rule_view_form')
+        arch = etree.fromstring(rule.get_view(view_id=view.id, view_type='form')['arch'].encode())
+        selectors = arch.xpath("//field[@name='struct_id' and not(@invisible) and not(@readonly)]")
+        assert len(selectors) == 1 and not selectors[0].xpath('ancestor::*[@invisible or @readonly]')
     structures = rule.env['hr.payroll.structure'].search([], order='id')
     scope_fields = [name for name in ('company_id', 'country_id') if name in structures._fields]
     pair = next(((first, second) for first, second in combinations(structures, 2)
@@ -82,4 +88,5 @@ def run(env, database):
     return {'database': database, 'operator_uid': rule.env.uid, 'required': True, 'not_null': True,
             'validated_restrict_fk': True, 'original_structure_ids': [first.id, second.id],
             'valid_create_and_primary_move': True, 'missing_create_and_edit_rejected': True,
+            'community_editable_structure_selector': community,
             'community_membership_reconciled': community, 'fixture_rolled_back': True}

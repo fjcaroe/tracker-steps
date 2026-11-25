@@ -102,6 +102,15 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
                 assert omitted == ['security/ir.model.access.csv','security/configuration_scope.xml']
                 updated,_ = ui_profile(original,cold.snapshot(target))
                 spec = ast.literal_eval(updated.decode('utf-8-sig'))
+                rule_view = target / 'views' / 'original_configuration.xml'
+                tree = ET.parse(rule_view)
+                rule_config = tree.find("./record[@id='salary_rule_original_config_form']/field[@name='arch']/xpath")
+                assert rule_config is not None and not rule_config.findall(".//field[@name='struct_id']")
+                primary = ET.Element('group', {'groups': 'payroll.group_payroll_manager'})
+                ET.SubElement(primary, 'field', {'name': 'struct_id', 'string': 'Estructura salarial',
+                    'options': "{'no_create': True, 'no_create_edit': True}"})
+                rule_config.insert(0, primary)
+                tree.write(rule_view, encoding='utf-8')
                 models = target / 'models'
                 declarations = {}
                 for field_group in ('category', 'structure', 'rule_structure'):
@@ -127,7 +136,8 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
         'deadline_resolved': False,
         'original_category_declaration_sha256': declarations['category'],
         'original_structure_declaration_sha256': declarations['structure'],
-        'original_rule_structure_declaration_sha256': declarations['rule_structure']}
+        'original_rule_structure_declaration_sha256': declarations['rule_structure'],
+        'original_rule_structure_view_sha256': sha(rule_view.read_bytes())}
     if original_storage:
         proof['original_storage_derivation'] = storage_derivation
         proof['original_history_deletion_derivation'] = history_deletion_derivation
