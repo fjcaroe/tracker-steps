@@ -42,6 +42,10 @@ quite la marca Presente a quienes no asistieron. Aplicar horario a todos vuelve
 a proponer las horas generales. Guarde la asistencia en el equipo y sincronice.
 Los enrolamientos se reciben antes que las asistencias y las entregas pendientes.
 
+Odoo calcula las horas trabajadas con el calendario del empleado, incluida la
+colación configurada. La entrada y la salida conservan las horas registradas;
+el total nativo puede descontar ese descanso.
+
 Inicio muestra los presentes de todos los cargos de la cuadrilla de la OT
 seleccionada. En Odoo, consulte o corrija las horas desde Cosecha → Cosecha propia
 → Asistencia o Cosecha → Contratistas → Asistencia. Ambos accesos usan la
