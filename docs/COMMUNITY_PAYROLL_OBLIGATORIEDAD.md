@@ -1,10 +1,11 @@
 # Obligatoriedad original y frontera OCA
 
-U12 recuperó el código obligatorio de categoría y U13D recuperó el tipo
-obligatorio de estructura en el overlay privado de adopción de Cerro. Los
-ensayos comprobaron alta, edición, rechazo de valores vacíos e identidad.
-U13D conserva la FK original con `ON DELETE RESTRICT`. El contrato genérico de OCA de la tabla inferior sigue
-vigente. La pareja y el alcance se registran en
+El overlay privado de adopción de Cerro recupera el código de categoría
+(U12), el tipo de estructura (U13D) y la estructura primaria de la regla
+(U14D) como campos obligatorios. Las dos relaciones conservan sus FK
+`ON DELETE RESTRICT`. U14D verifica el selector del formulario, el traslado
+de membresía y la columna opcional de la línea OCA. La tabla inferior describe
+el contrato genérico. Las parejas y el alcance se registran en
 [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
 Bloque aceptado desde `c12c1f6e` en la pareja y upgrade C.
