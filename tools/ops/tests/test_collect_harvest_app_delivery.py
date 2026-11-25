@@ -9,6 +9,7 @@ from configure_harvest_default_job import BACKEND_COMMIT, stage_identity
 
 PACKAGE_SHA, HELPER_SHA = 'a' * 64, 'b' * 64
 LIVE_DATABASES = {'development': 'LAB_TAREAS', 'qa-cerro': 'QA-CERROELPLOMO', 'cerro': 'CERRO_EL_PLOMO'}
+BACKUPS = {environment: '/opt/steps_backups/management_' + environment + '_20261125T000000Z' for environment in LIVE_DATABASES}
 PRESERVATION = ('previous_jobs_preserved', 'employees_preserved', 'roles_preserved', 'permissions_preserved')
 
 
@@ -18,16 +19,22 @@ def fixtures(environment='development'):
                   'applied': True, 'commit': BACKEND_COMMIT, 'release_sha256': PACKAGE_SHA,
                   'helper_sha256': HELPER_SHA, 'company_id': 1, 'user_id': 6, 'job_id': 10}
     configured.update(dict.fromkeys(PRESERVATION, True))
-    live = dict(configured, mode='live', database=LIVE_DATABASES[environment], job_id=20)
+    live = dict(configured, mode='live', database=LIVE_DATABASES[environment], job_id=20, backup=BACKUPS[environment])
     qa = {'database': database, 'commit': BACKEND_COMMIT, 'release_sha256': PACKAGE_SHA}
     return configured, live, qa
 
 
 def validate(values, environment='development'):
-    validate_default_job_delivery(*values, environment, PACKAGE_SHA, HELPER_SHA, LIVE_DATABASES[environment])
+    validate_default_job_delivery(*values, environment, PACKAGE_SHA, HELPER_SHA, LIVE_DATABASES[environment], BACKUPS[environment])
 
 
 class HarvestConfigurationCollectionCase(unittest.TestCase):
+    def test_other_deployment_backup_is_rejected(self):
+        values = fixtures()
+        values[1]['backup'] = BACKUPS['cerro']
+        with self.assertRaises(AssertionError):
+            validate(values)
+
     def test_copy_and_live_can_have_distinct_native_job_ids(self):
         for environment in LIVE_DATABASES:
             with self.subTest(environment=environment):

@@ -10,12 +10,13 @@ import configure_harvest_default_job as default_job
 from harvest_web_policy import validate_operations_review, validate_operations_smokes
 
 
-def validate_default_job_delivery(copy, live, qa, environment, package_sha, helper_sha, live_database):
+def validate_default_job_delivery(copy, live, qa, environment, package_sha, helper_sha, live_database, expected_backup):
     """Require the certified configuration and its separate published result."""
     default_job.validate_configuration_proof(copy, environment, package_sha, helper_sha)
     assert copy['database'] == qa['database']
     assert copy['commit'] == qa['commit'] and copy['release_sha256'] == qa['release_sha256']
     assert live['mode'] == 'live' and live['database'] == live_database
+    assert live.get('backup') == expected_backup, 'Configuration must use the collected deployment backup'
     for key in ('environment', 'stage', 'commit', 'release_sha256', 'helper_sha256', 'company_id', 'user_id'):
         assert live[key] == copy[key], 'Published default job configuration differs: ' + key
     assert live['applied'] is True
@@ -85,7 +86,7 @@ def main():
             configuration_files = [(kind, stage/('harvest-default-job-'+kind+'.json')) for kind in ('copy', 'live')]
             copy_configuration, live_configuration = (json.loads(path.read_text()) for _, path in configuration_files)
             validate_default_job_delivery(copy_configuration, live_configuration, qa, target, sha,
-                                          helper_sha, environments[target]['database'])
+                                          helper_sha, environments[target]['database'], backups[0])
             validate_operations_review(manifest, target, stage.name, qa,
                 json.loads((stage/'harvest-browser-proof.json').read_text()))
             crew_smoke = json.loads((stage/'harvest-crew-smoke.json').read_text())
