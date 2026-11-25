@@ -39,6 +39,10 @@ def compare_case(before, after):
                     'native_total': str(sum(row[-1] for row in native_rows)),
                     'community_total': str(sum(row[-1] for row in target_rows))})
         result['exact'] = result['original_inputs_days_and_rules_equal'] and not result['differences']
+    if 'basis_before_compute' in before and 'basis_before_compute' in after:
+        result['basis'] = {key: {'native': before.get(key), 'community': after.get(key)}
+                           for key in ('basis_before_compute', 'basis_after_compute')}
+        result['exact'] &= all(pair['native'] == pair['community'] for pair in result['basis'].values())
     return result
 
 
@@ -58,10 +62,14 @@ def compare(native, community, plan):
         if 'native_days_replay' in after:
             result['native_days_replay'] = compare_case(before, after['native_days_replay'])
         results.append(result)
+    native_basis = native.get('basis_cases', {})
+    target_basis = community.get('basis_cases', {})
+    assert native_basis.keys() == target_basis.keys()
+    basis_cases = {name: compare_case(native_basis[name], target_basis[name]) for name in native_basis}
     return {'schema': 1, 'pair': [native['database'], community['database']],
             'source_dump_sha256': plan['source_dump_sha256'],
-            'cases': results, 'all_compared_drafts_exact': all(
-                row['exact'] and row['generated_days_equal'] for row in results),
+            'cases': results, 'basis_cases': basis_cases, 'all_compared_drafts_exact': all(
+                row['exact'] and row['generated_days_equal'] for row in [*results, *basis_cases.values()]),
             'all_rules_certified': False, 'financial_certified': False}
 
 
