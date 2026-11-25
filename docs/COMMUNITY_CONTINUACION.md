@@ -2,6 +2,12 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
+U19 comparó borradores de la estructura 2 con días y horas en proporciones
+distintas, además de asistencia y ausencia aisladas en una fracción de mes.
+Cerro calculó por la fracción de horas pagadas y redondeó el importe de línea
+al peso. OCA mantuvo sueldo/30 por día. Sigue implementar el prorrateo acotado
+al contrato observado y probar sus dependencias ORM y casos límite.
+
 U18C localizó en cinco borradores de la estructura genérica la divergencia
 en el importe guardado de días y `paid_amount` antes de ejecutar las reglas.
 Coincidieron reglas, entradas y días generados. La referencia tomó la

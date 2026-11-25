@@ -1,5 +1,59 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U19 · Base pagada por horas y redondeo en la estructura 2, 25-11-2026
+
+La pareja privada del paquete `a3e19d3d` comparó la estructura original
+`hr_payroll.structure_002` con el operador UID7. Se conservaron las entradas
+de trabajo reales de los casos de prueba y los tipos originales. En dos
+borradores se fijaron los días de las líneas para distinguirlos de las horas
+sin alterar cómo cada motor generó inicialmente esas líneas.
+
+| Caso | Horas pagadas / no pagadas | Días pagados / no pagados | Base nativa (CLP) | Base OCA (CLP) |
+| --- | ---: | ---: | ---: | ---: |
+| Jornada asimétrica con sueldo de 720.001 | 4 / 8 | 1 / 1 | 240.000 | 24.000 |
+| Proporciones opuestas con sueldo de 720.001 | 8 / 4 | 1 / 2 | 480.001 | 24.000 |
+| Período parcial con asistencia y sueldo de 720.000 | 4 / 0 | 0,5 / 0 | 720.000 | 12.000 |
+| Período parcial con ausencia y sueldo de 720.000 | 0 / 4 | 0 / 0,5 | 0 | 0 |
+
+La referencia aplicó la fracción de horas pagadas sobre las horas registradas
+en las líneas y redondeó el importe almacenado al peso. El importe de la
+ausencia siguió en cero. Los importes de las líneas y `paid_amount` coincidieron
+antes y después de calcular en cada motor. El período parcial del 9 al 13 de
+noviembre conservó esta conducta con el contrato de prueba iniciado el día 9.
+La comparación resuelve la elección de unidad y confirma el redondeo a ambos
+lados del peso. Quedan por comprobar el empate exacto, varias líneas pagadas y
+el denominador cero antes de extender el contrato a esos casos.
+
+El perfil OCA sigue usando sueldo/30 por día pagado. El siguiente paquete debe
+acotar el prorrateo a los borradores mensuales de la estructura demostrada,
+exigir los permisos originales sobre las líneas que componen el denominador
+y comprobar la invalidación al editar, agregar o quitar líneas hermanas.
+Mantener el contrato genérico y la restauración histórica desde SQL. Nómina
+Chile conserva los bloqueos de parámetros Simple Digital y GROSS/BASIC. U19
+implementa la prueba funcional y adelanta al preflight el sello que antes podía
+fallar después de restaurar. El cálculo de producto sigue pendiente.
+
+Community oficial admitió 144 módulos y cero Enterprise. La referencia fresca
+conservó 414 módulos y 140 Enterprise. Ambas copias usaron el mismo respaldo
+privado bajo el bloqueo compartido y quedaron sin contratos, liquidaciones ni
+entradas de trabajo de prueba. Se mantuvieron 118 accesos, dos denegaciones, cinco
+formularios, cuatro menús y 71 vínculos persistidos con cero nuevos al repetir.
+Se preservaron 999/1.000 proyecciones literales, 197 contadores, 60.686 XML IDs,
+históricos, vencimientos, Calendar y cuatro contratos de almacenamiento. La
+revisión conserva el posible icono y los siete vínculos de menús nuevos ya
+clasificados, 32 FK adicionales vacías y 27 diferencias físicas de proveedores
+inactivos. Los tres inventarios instalados y las huellas de fuentes coinciden
+con U18, y pasaron 304 pruebas locales compatibles con Windows.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U19`
+y `/opt/steps-validation/community-original-handover-20261125U19`.
+
+- Paquete `12f0f36c57956c4100d60e227506b7c62b173940611289a56e3407bf14edf151`.
+- Respaldo `0631de31b58a17ed1446afc4c3609c384a46218a5aaf1480e524d2e4d004ea28`.
+- Comparación `d3b239293e9902851a8ea647ccdf39d7ad70eb00f40c0b0e34e0a5fd0b8e74a7`.
+- Admisión `5050ea326eedeaffff471e1c299cdf82ec1df6e1a7261d8cfb6f721fdaf66bef`.
+- Relaciones `35f053db25166beb913f1c2ca89e49ba831986b9efcd5a940c90faad09b8b7d0`.
+
 ## U18C · Importe guardado de días y base pagada, 25-11-2026
 
 La pareja privada restauró un solo respaldo fresco de Cerro. El paquete
@@ -957,11 +1011,11 @@ Lee AGENTS.md, el registro de ambientes, la operación canónica, el workflow, e
 plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
 aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
-Usa U18C como referencia de la base pagada y U17D para las entradas. Distingue
-horas y días con jornadas asimétricas y prueba el redondeo antes de cambiar
-el prorrateo. Mantén U16 para las cinco
-restricciones y T2 para la pareja multifrente. Compara el importe guardado de
-los días y la base `paid_amount` de la estructura 2 por período y calendario.
+Usa U19 como referencia de la fracción de horas pagadas y redondeo al peso
+en la estructura 2, y U17D para las entradas. Implementa ese contrato en
+borradores del perfil de Cerro y verifica edición de horas y líneas hermanas,
+varias líneas pagadas, empate de redondeo y denominador cero en ambos motores.
+Mantén U16 para las cinco restricciones y T2 para la pareja multifrente.
 Nómina Chile requiere parámetros originales de Simple Digital completos y
 resolver el bloqueo GROSS/BASIC con evidencia del motor nativo. Conserva los
 nombres e importes de pagadas y validadas. Agrupa las 27 diferencias físicas
