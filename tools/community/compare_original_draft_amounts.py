@@ -78,8 +78,9 @@ def compare(native, community, plan):
     ytd = {}
     if 'active_ytd' in native or 'active_ytd' in community:
         original, target = native['active_ytd'], community['active_ytd']
-        assert all(row['fixture_rolled_back'] and row['activation_in_memory']
-                   and row['excluded_open_period'] for row in (original, target))
+        assert all(row['fixture_rolled_back'] and row['excluded_open_period']
+                   for row in (original, target))
+        assert original['activation_in_memory'] is False and target['activation_in_memory'] is True
         ytd = {'same_contract_exact': all(original[key] == target[key]
                                          for key in ('baseline', 'same_contract')),
                'native_new_contract': original['new_contract'],

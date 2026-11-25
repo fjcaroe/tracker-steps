@@ -227,10 +227,11 @@ def run_case(env, spec, community, progress, marker, native_days=None,
 
     progress['phase'] = 'compute_sheet'
     assert slip.state == 'draft'
-    if active_ytd:
-        # Exercise the opt-in path without changing the sealed original flag.
+    if active_ytd and community:
+        # Exercise the guarded profile without writing its sealed flag.
         structure.env.cache.set(structure, structure._fields['ytd_computation'], True)
         slip.env.cache.set(slip, slip._fields['ytd_computation'], True)
+    if active_ytd:
         assert slip.ytd_computation and (company.ytd_reset_day, company.ytd_reset_month) == (1, '1')
     slip.compute_sheet()
     assert slip.state in ('draft', 'verify') and slip.number == marker
@@ -283,6 +284,10 @@ def active_ytd_trial(env, spec, community):
                         period=(date(2026, month, 1), date(2026, month, last_day)))
 
     try:
+        if not community:
+            # The native reference has no anchor trigger. The transaction rolls
+            # back the original flag together with every fixture record.
+            env['hr.payroll.structure'].browse(spec['structure']).write({'ytd_computation': True})
         january = make(1, 31)
         baseline = capture_ytd(january, {})
         january.state = 'done'
@@ -301,15 +306,15 @@ def active_ytd_trial(env, spec, community):
                 raise
             result['new_contract_rejected'] = True
         assert capture_ytd(january, {}) == baseline
-        env.cr.execute('SELECT ytd_computation FROM hr_payroll_structure WHERE id = %s',
-                       (spec['structure'],))
-        assert env.cr.fetchone() == (False,)
         result['baseline'] = baseline
     finally:
         env.cr.rollback()
+    env.cr.execute('SELECT ytd_computation FROM hr_payroll_structure WHERE id = %s',
+                   (spec['structure'],))
+    assert env.cr.fetchone() == (False,)
     for model in ('hr.payslip', 'hr.contract', 'hr.work.entry'):
         assert not env[model].search_count([('name', '=', marker)])
-    return {**result, 'fixture_rolled_back': True, 'activation_in_memory': True}
+    return {**result, 'fixture_rolled_back': True, 'activation_in_memory': community}
 
 
 def run(env, database, reference_path=None):
