@@ -14,7 +14,10 @@ import original_handover_visibility_contract as visibility
 
 SOURCE_HASHES = {'3a3d3dcea469f223ba1e120e909a6c54435619e7abc7c4b65f4f7f778e9337b3',
     'ef162f6989f1aa171a018c36d01b208a0dc0a63e03c6bc886a34e12da9f61056'}
-VISIBILITY_HASHES = {'bee6eb555ce906c7879b74d02fb3d03117a76662665e1c29d08f9647dbd8aa59',
+VISIBILITY_HASHES = {
+    '70b8be19c2cd9d10c7746b851cfd839af9bd119d08fe255dfe8c9afedd347385',  # U11 Git LF
+    '5a379c79b812a1adc05862b13e7ba465f51d111fe02785c69d181bf49a01926c',  # U11 CRLF
+'bee6eb555ce906c7879b74d02fb3d03117a76662665e1c29d08f9647dbd8aa59',
     'afa2d84e04ead0336df33dab20c478966184f70632cced044db28fa81fd526b5'}
 TARGET_ROUTES = (
     ('structure', 'payroll.hr_payroll_structure_menu', 'payroll.hr_payroll_structure_action', 'hr.payroll.structure'),
