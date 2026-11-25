@@ -2,6 +2,11 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
+U21B corrigió el YTD nulo en líneas de borrador con importe cero. Con el
+ajuste de acumulación original desactivado, 65 líneas de 13 borradores de
+la estructura 2 coinciden por SQL y API en los dos motores. Siguen la
+acumulación activa y los dos bloqueos de Nómina Chile 4.
+
 U20 implementó el prorrateo por horas de los borradores mensuales de la
 estructura 2 en el perfil Community de Cerro. Trece casos alcanzaron paridad
 exacta con la referencia nativa, incluidas edición de ausencias, varias líneas

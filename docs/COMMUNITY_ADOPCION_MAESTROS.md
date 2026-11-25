@@ -1,5 +1,47 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U21B · YTD almacenado de los borradores originales, 25-11-2026
+
+`step_payroll_oca_api` 18.0.1.19.0 genera las líneas nuevas de OCA con un
+cero explícito en YTD. Antes, un campo Monetary sin valor leía cero y la
+asignación posterior de cero podía dejar NULL en PostgreSQL. U21 detectó la
+diferencia en los borradores de solo ausencia no pagada y de denominador cero.
+La escritura posterior del acumulado se sigue haciendo con el cálculo
+existente. El cambio se aplica al generar líneas nuevas, sin backfill.
+
+El paquete `ba06fd8a` se probó en dos copias frescas del mismo respaldo bajo
+el bloqueo compartido. Con la estructura original 2 y su acumulación
+desactivada, UID7 comprobó 65 líneas en 13 borradores. El YTD guardado, el
+total de cada línea y lo devuelto por `_get_line_values` coincidieron en
+ambos motores, incluidos cuatro ceros explícitos. También se repitieron los
+casos de prorrateo U20. Community oficial/OCA instaló 144 módulos y cero
+Enterprise, y la referencia nativa conservó 414 módulos y 140 Enterprise.
+Los borradores y sus fixtures se revirtieron. Pasaron 304 pruebas locales
+compatibles con Windows.
+
+Se verificaron 118 accesos, dos denegaciones, cinco formularios, cuatro
+menús y 71 vínculos persistidos con cero nuevos al repetir. Se conservaron
+197 contadores, 60.686 XML IDs, históricos, vencimientos y Calendar. La revisión
+reprodujo las 999 de 1.000 proyecciones literales y las diferencias ya
+clasificadas de menús y adjuntos. Quedan 32 FK adicionales sin referencias
+pobladas y 27 diferencias físicas de proveedores inactivos.
+
+El inventario completo coincide módulo por módulo con U20 y el testigo U14.
+El metadato de Nómina Chile confirma que BASIC de Cerro pertenece a IMP, sin
+padre, mientras GROSS consulta ALW y BASIC. GROSS de SyS consulta IMP y BASIC.
+Se conserva el bloqueo estructural de Community y el requisito nativo de
+parámetros Simple Digital. Continúan pendientes la acumulación YTD activa, el
+cierre de Nómina Chile y la certificación financiera de las 71 reglas.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U21B`
+y `/opt/steps-validation/community-original-handover-20261125U21B`.
+
+- Paquete `92d93ce6a22c75712680d0d8499e38a1ef275c61bea80707092245033b39769f`.
+- Respaldo `088be09e5ee09bee7bbdc131980178b7f16f761d54f6043e864b6f96254915c2`.
+- Admisión `8d94bfc27467397cda126f01b582af8d7d795cd0116fd07712045fe3a986d585`.
+- Comparación `c1490c3c1c12a0c0c60c7c972af62bd35f074534e33eb8083e580a1caa7710d0`.
+- Relaciones `f5b6b215d7bc48cc41311a46fd9f051c1fb7473fac5b3e6811869f5b8d94181a`.
+
 ## U20 · Prorrateo por horas implementado en Community, 25-11-2026
 
 El paquete `99c4f405` aplica el cálculo original en los borradores mensuales
@@ -1056,8 +1098,10 @@ Lee AGENTS.md, el registro de ambientes, la operación canónica, el workflow, e
 plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
 aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
-Conserva U20 para el prorrateo de borradores de la estructura 2 y U17D para
-las entradas. Trata los dos bloqueos de Nómina Chile con evidencia del motor
+Conserva U21B para el YTD almacenado con acumulación desactivada, U20 para
+el prorrateo de la estructura 2 y U17D para las entradas. Prueba acumulación
+activa con fixtures aisladas o un consumidor contable y HR verificable.
+Trata los dos bloqueos de Nómina Chile con evidencia del motor
 nativo y de la referencia SyS. Si faltan parámetros originales, avanza un
 consumidor verificable con los registros ya preservados.
 Mantén U16 para las cinco restricciones y T2 para la pareja multifrente.
