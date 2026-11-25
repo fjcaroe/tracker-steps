@@ -2,10 +2,10 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
-U14D recuperó la estructura primaria obligatoria de la regla salarial en el
-perfil de Cerro. El gerente original comprobó el alta, el traslado y el rechazo
-de vacío en ambas copias. Community verificó el selector del formulario y la
-membresía OCA. Siguen la categoría y el código obligatorios de la regla.
+U15C recuperó la categoría y el código obligatorios de la regla salarial en el
+perfil de Cerro. El gerente original comprobó altas, ediciones y rechazo de
+vacíos. Community verificó el formulario y el almacenamiento de las líneas.
+Sigue el nombre obligatorio de la liquidación y las relaciones de entradas y días.
 
 T2 valida Foundation 1.16.0 y la FK de seguridad original por API oficial:
 33 addons propios/513 archivos, 671 casos Community y 462 nativos sin fallos

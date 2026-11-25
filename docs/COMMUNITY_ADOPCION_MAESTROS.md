@@ -1,5 +1,52 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U15C · Categoría y código obligatorios de la regla salarial, 25-11-2026
+
+El perfil privado de Cerro recupera `hr.salary.rule.category_id` y
+`hr.salary.rule.code` como obligatorios en el formulario, el ORM y PostgreSQL.
+Conserva los campos 8306 y 8302 y sus XML IDs originales de `hr_payroll`.
+La categoría de la regla conserva su FK validada `ON DELETE RESTRICT`.
+Community verificó que la categoría de la línea OCA siga siendo opcional
+con `ON DELETE SET NULL` y su código siga siendo obligatorio.
+
+El paquete `1097bfd2` pasó en dos bases privadas nuevas del mismo respaldo
+bajo la exclusión compartida. Community oficial con OCA registró 144 módulos
+instalados y cero Enterprise. La referencia fresca nativa registró 414
+instalados y 140 Enterprise. El gerente original creó una regla temporal
+con una categoría existente, cambió la categoría y el código, y comprobó
+el rechazo de ambos campos vacíos en altas y ediciones. Cada prueba revirtió
+sus registros. U15 comprobó el contrato ORM y físico. U15B se detuvo antes de
+crear bases por un enlace de addon incorrecto. U15C repitió el ensayo con
+el enlace corregido y comprobó los campos obligatorios en la vista efectiva.
+
+La admisión repitió 118 accesos, dos denegaciones, cinco formularios, cuatro
+menús y 71 vínculos persistidos, con cero altas al repetir. La revisión
+conservó 999 de 1.000 proyecciones literales, 197 contadores, 60.686 XML IDs,
+los históricos y los vencimientos. Sigue un adjunto adicional clasificado
+como posible icono y siete vínculos añadidos en menús nuevos. Coinciden los
+cuatro contratos de almacenamiento y la FK Calendar. Las 32 FK nuevas
+siguen vacías. Quedan 32 diferencias físicas, tres también de ORM. Pasaron
+304 pruebas locales compatibles con Windows.
+
+La auditoría de solo lectura coincide con U14 en módulos, dependencias,
+fuentes y huellas. Cerro conserva 414 instalados / 140 Enterprise / 133
+propios, Steps 310 / 123 / 19 y SyS 336 / 142 / 21. Hay 170 módulos propios
+en el repo, 40 fuera de Cerro, y 75/9/14 caminos de apps propias a Enterprise.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U15`
+y `/opt/steps-validation/community-original-handover-20261125U15C`.
+
+- Paquete `604516fa0026b9f6b72fb57af0ab5a6275e28215206f71a6a8c972b7963ab234`.
+- Respaldo `d16d7ebc0918b958f3f16391c99e6d9ac3402402e1281133794b10ee35d56ac4`.
+- Admisión `cd28ea60e41ee03bcc4f53cd37a64967725ea8f8cb32d077396829d32f903007`.
+- Relaciones `3c0655ec7a0324207bf3a76c29849ae0f4e4396ea5a9fb29c2e47e2eea345c7f`.
+- Inventario `4dd6d0b215a949b32a952a382055b08ebda1f94a1caf1bce76264fb255d26089`.
+
+Sigue el nombre de la liquidación (8371), luego las relaciones de entradas
+y días. T2 conserva su alcance multifrente. Siguen pendientes la certificación
+de Nómina y HR, DTE/CAF/SII, Tesorería, Calidad, Studio, Documentos, Firma, los
+demás productos y la restauración integral con cero Enterprise.
+
 ## U14D · Estructura primaria obligatoria de la regla salarial, 25-11-2026
 
 El perfil privado de Cerro recupera `hr.salary.rule.struct_id` como
@@ -754,11 +801,12 @@ Lee AGENTS.md, el registro de ambientes, la operación canónica, el workflow, e
 plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
 aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
-Usa U14D como referencia de adopción parcial y T2 para la pareja multifrente.
-Recupera `hr.salary.rule.category_id` y `hr.salary.rule.code` en el perfil de
-Cerro. Comprueba altas, ediciones, rechazo de vacío, ACL y la frontera de la
-línea histórica. Quedan cinco obligaciones ORM y 29 diferencias exclusivamente
-físicas.
+Usa U15C como referencia de adopción parcial y T2 para la pareja multifrente.
+Recupera `hr.payslip.name` (8371) en el perfil de Cerro. Comprueba altas,
+ediciones, rechazo de vacío y el flujo que asigna el nombre en OCA. Conserva
+el nombre histórico de liquidaciones pagadas o validadas y evita defaults
+inventados. Siguen las relaciones tipadas de entradas y días. Quedan tres
+obligaciones ORM y 29 diferencias exclusivamente físicas.
 Comprueba que las 71 relaciones sigan exactas e idempotentes y que el perfil
 genérico conserve su contrato. Mantén la cadena de sellos del inventario,
 el observador nativo y el verificador de menús al actualizar los recibos.

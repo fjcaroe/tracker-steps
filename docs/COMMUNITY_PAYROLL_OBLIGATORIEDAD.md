@@ -2,10 +2,11 @@
 
 El overlay privado de adopción de Cerro recupera el código de categoría
 (U12), el tipo de estructura (U13D) y la estructura primaria de la regla
-(U14D) como campos obligatorios. Las dos relaciones conservan sus FK
-`ON DELETE RESTRICT`. U14D verifica el selector del formulario, el traslado
-de membresía y la columna opcional de la línea OCA. La tabla inferior describe
-el contrato genérico. Las parejas y el alcance se registran en
+(U14D) como campos obligatorios. U15C recupera además la categoría y el código
+de la regla, incluso en el formulario, y conserva la categoría opcional de la
+línea OCA con `ON DELETE SET NULL` y su código obligatorio. Las relaciones
+obligatorias del maestro conservan sus FK `ON DELETE RESTRICT`. La tabla
+inferior describe el contrato genérico. Las parejas y el alcance se registran en
 [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
 Bloque aceptado desde `c12c1f6e` en la pareja y upgrade C.
