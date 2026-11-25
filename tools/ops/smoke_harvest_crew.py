@@ -122,7 +122,7 @@ def exercise_crew(client, policy, timezone_name, run_uuid=None):
     assert previous_members.issubset(set(native_crew['worker_ids'])) and worker_id in native_crew['worker_ids']
     summary = next(row for row in refreshed['crew_attendance'] if row['crew_id'] == crew['id'] and row['date'] == date.isoformat())
     assert worker_id in summary['worker_ids']
-    return {'run_uuid': run_uuid, 'native_worker_id': worker_id, 'native_crew_id': crew['id'],
+    return {'run_uuid': run_uuid, 'native_worker_id': worker_id, 'native_crew_id': crew['id'], 'native_job_id': employee['job_id'],
             'native_attendance_id': attendance_id, 'worker_enrollment': True, 'crew_attendance': True,
             'attendance_home_total': True, 'native_members_preserved': True, 'native_job_default': True,
             'scope_rejected_before_write': True, 'enrollment_idempotency': True, 'attendance_idempotency': True,
@@ -149,7 +149,14 @@ def main():
     evidence = exercise_crew(CrewClient(origin), policy, args.timezone)
     evidence.update({'feature': proof['feature'], 'stage': stage.name, 'database': proof['database'],
                      'web_commit': policy['harvest_web']['commit'], 'backend_commit': proof['commit'],
+                     'company_id': policy['company_id'], 'user_id': policy['user_id'],
                      'backend_sha256': proof['release_sha256'], 'created_at': datetime.now(timezone.utc).isoformat()})
+    configuration_path = stage/'harvest-default-job-copy.json'
+    if configuration_path.is_file():
+        from configure_harvest_default_job import bind_configuration_smoke, digest
+        evidence = bind_configuration_smoke(evidence, json.loads(configuration_path.read_text()),
+                                            policy['environment'], proof['release_sha256'],
+                                            digest(Path(__file__).with_name('configure_harvest_default_job.py')))
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(evidence, indent=2), encoding='utf-8')
     output.chmod(0o600)
