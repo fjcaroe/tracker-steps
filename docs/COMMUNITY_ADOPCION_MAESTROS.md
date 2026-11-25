@@ -1,5 +1,57 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U13D · Tipo obligatorio de estructura salarial, 25-11-2026
+
+El perfil privado de Cerro recupera la obligatoriedad de
+`hr.payroll.structure.type_id` en el ORM y PostgreSQL. Conserva el campo 8275,
+el XML ID original de `hr_payroll` y la FK validada con `ON DELETE RESTRICT`
+al maestro de tipos. La declaración se incluye en el overlay de adopción. El
+perfil genérico de OCA mantiene el campo opcional.
+
+El paquete `950f6932` se ejecutó bajo el bloqueo compartido en dos bases nuevas
+del mismo respaldo fresco, con directorios de datos 0700 y dump 0600. La
+copia Community oficial con OCA (144 instalados, cero Enterprise) y la
+referencia nativa (414 instalados, 140 Enterprise) crearon una estructura
+con un tipo original, la cambiaron a otro tipo existente y rechazaron el alta
+y la edición con el tipo vacío. Se comprobó el rollback de la estructura de
+prueba. La referencia nativa conserva su motor original.
+
+Se repitieron 118 accesos y dos denegaciones con el gerente original, cinco
+formularios y cuatro menús. La proyección guardó los 71 pares de estructuras
+y reglas y creó cero al repetir. La lectura PostgreSQL posterior confirmó los
+71 pares. La revisión conserva 999 de 1.000 proyecciones literales, 197
+contadores, 60.686 XML IDs y los históricos y vencimientos originales.
+Se observaron siete vínculos sólo en menús nuevos y un adjunto adicional
+clasificado como posible icono. Coinciden los cuatro contratos de almacenamiento
+y la FK Calendar. Las 32 FK nuevas siguen vacías. Quedan 35 diferencias
+físicas, seis también de obligatoriedad ORM. Pasaron 176 pruebas locales.
+
+El inventario readonly vigente coincide módulo por módulo con U12, incluidas
+las fuentes privadas y huellas. Cerro tiene 414 instalados / 140 Enterprise /
+133 propios, Steps 310 / 123 / 19 y SyS 336 / 142 / 21. De los 170 propios del
+repo, 40 están fuera de Cerro. Las matrices conservan 75/9/14 caminos de apps
+propias a Enterprise. Los ensayos U13, U13B y U13C se detuvieron antes de
+instalar OCA por sellos pendientes del inventario, el observador y el
+verificador de menús, respectivamente. U13D actualizó la cadena completa.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U13` y
+`/opt/steps-validation/community-original-handover-20261125U13D`.
+
+- Paquete `1756ab3ba7e98a11f75f9898190d30be4cc66609dbcf6c41209ebb5633b96ffd`.
+- Respaldo `6780ccb5a15a8b30ab53d1885810b60164cf9cb4902fc1584ebaf88c1154e0b4`.
+- Admisión `1b62c221b737d94dfe1d0a2f15d83dbf962b1372d76d88b6e6bdd2f0e071ce6e`.
+- Relaciones `22243c558f041209b9435a9f6274543985c7d3d774fed2701b0d5167acfce365`.
+- Inventario `1a1c9ac8e0c0ee2944c7b3986d211188d473e430b3953ebe69d7b091ac8e2861`.
+
+Siguiente bloque: restaurar `hr.salary.rule.struct_id` (8303), verificando
+alta, cambio de estructura y rechazo de vacío con maestros existentes. Probar
+la relación primaria y su membresía M2M, la herencia de líneas históricas y
+la idempotencia de las 71 reglas. Después seguir con categoría y código de
+regla, nombre de liquidación y relaciones de entradas y días. T2 sigue como
+pareja multifrente. Siguen pendientes la certificación financiera y de HR,
+DTE/CAF/SII, Tesorería, Calidad, Studio, Documentos/Firma, los demás productos
+y la copia integral restaurable con cero Enterprise.
+
 ## U12 · Código obligatorio de categoría salarial, 25-11-2026
 
 El perfil privado de adopción de Cerro declara obligatorio el código de
@@ -650,13 +702,13 @@ Lee AGENTS.md, el registro de ambientes, la operación canónica, el workflow, e
 plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
 aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
-Usa U12 como referencia de adopción parcial y T2 para la pareja multifrente.
-Recupera el tipo obligatorio de la estructura salarial en el perfil original.
-Comprueba altas y ediciones con tipos existentes, permisos y ausencia de valores
-inventados. Quedan siete obligaciones ORM, incluidas la estructura primaria y
-categoría de regla, tipo de entrada y tipo de día. Verifica en cada paso que
-las 71 relaciones sigan siendo exactas e idempotentes y que el perfil genérico
-conserve su contrato. Continúa con las obligaciones físicas por proveedor.
+Usa U13D como referencia de adopción parcial y T2 para la pareja multifrente.
+Recupera `hr.salary.rule.struct_id` con maestros existentes. Comprueba altas,
+ediciones, ACL y membresía M2M sin propagar obligaciones a líneas históricas.
+Quedan seis obligaciones ORM y 29 diferencias exclusivamente físicas.
+Comprueba que las 71 relaciones sigan exactas e idempotentes y que el perfil
+genérico conserve su contrato. Mantén la cadena de sellos del inventario,
+el observador nativo y el verificador de menús al actualizar los recibos.
 
 Certifica reglas, días, entradas, redondeos, YTD, asientos, Previred, libro y
 consumidores HR. Usa la referencia SyS y conserva las reglas de Cerro. Prosigue

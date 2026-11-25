@@ -2,10 +2,11 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
-U12 recuperó la obligatoriedad ORM y PostgreSQL del código de categoría salarial
-en el perfil de Cerro. Dos copias nuevas verificaron altas y ediciones, rollback,
-identidad del campo, permisos, menús y la proyección de 71 vínculos. Quedan 36
-diferencias físicas, siete también de ORM. Seguir con el tipo de estructura.
+U13D recuperó el tipo obligatorio de estructura salarial en el perfil de
+Cerro. Dos copias nuevas verificaron alta, cambio entre tipos existentes,
+rechazo de vacío, identidad 8275 y FK original. La admisión conservó permisos,
+menús y 71 vínculos. Quedan 35 diferencias físicas, seis también de ORM.
+Seguir con la estructura primaria de la regla y su membresía M2M.
 
 T2 valida Foundation 1.16.0 y la FK de seguridad original por API oficial:
 33 addons propios/513 archivos, 671 casos Community y 462 nativos sin fallos
