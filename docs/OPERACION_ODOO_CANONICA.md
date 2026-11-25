@@ -14,8 +14,9 @@ rechaza reapertura y nuevas entregas, conservando los reintentos por UUID.
 Mostrar el vínculo a la OT nativa y preservar los pendientes al actualizar.
 
 Cuadrillas toma tipo de tareo y contratista del maestro. El enrolamiento conserva
-empleados, cargos y miembros nativos; Cosechero se propone y solo se crea durante
-un enrolamiento autorizado cuando falta. La asistencia usa `hr.attendance`, con
+empleados, cargos y miembros nativos. Preparar el cargo Cosechero por empresa,
+si falta, mediante configuración versionada y conservar los permisos del operador.
+El enrolamiento usa ese cargo del maestro. La asistencia usa `hr.attendance`, con
 la cuadrilla relacionada y los permisos existentes, desde los dos menús de Cosecha.
 La cola por ambiente, usuario y empresa envía empleados y asistencia antes de las
 entregas. La primera etapa usa la misma tabla nativa de asistencia con ámbito
