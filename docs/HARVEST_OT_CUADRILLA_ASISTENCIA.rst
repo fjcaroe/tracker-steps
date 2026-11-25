@@ -33,8 +33,11 @@ Seleccionar trabajador en la app habilita su captura local de entregas.
 
 Guardar enrolamiento en este equipo conserva el alta pendiente. Sincronizar
 cuadrilla y asistencia crea el empleado nativo y lo incorpora a esa cuadrilla.
-El cargo se elige del maestro; Cosechero es la propuesta inicial y se crea al
-enrolar, con los permisos del usuario, únicamente cuando falta.
+El cargo se elige del maestro; Cosechero es la propuesta inicial. La preparación
+de la empresa configura ese cargo nativo y el enrolamiento reutiliza su registro
+con los permisos actuales del operador. Al preparar otra empresa, un encargado
+de los maestros debe comprobar que el cargo esté disponible. La entrega conserva
+los cargos, empleados y permisos anteriores.
 
 Registrar asistencia
 --------------------
