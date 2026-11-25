@@ -149,7 +149,7 @@ def checkpoint_queries(aliases, report):
         'tables': "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename IN (" + tables + ') ORDER BY tablename',
         'metadata_occupants': 'SELECT id,module,name,model,res_id,noupdate FROM ir_model_data WHERE id IN (' + pks
             + ') OR (module,name) IN ' + selector + ' ORDER BY id',
-        'action_462': "SELECT a.tableoid::regclass::text AS physical_table,a.id,a.type," 
+        'action_462': "SELECT a.tableoid::regclass::text AS physical_table,a.id,a.type,"
             "md5(to_jsonb(a)::text) AS row_md5 FROM ir_actions a WHERE a.id=462",
         'action_aliases': "SELECT id,module,name,model,res_id,noupdate FROM ir_model_data "
             "WHERE res_id=462 AND model LIKE 'ir.actions.%' ORDER BY id",

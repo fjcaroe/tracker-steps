@@ -169,6 +169,10 @@ def main():
             subprocess.run(['sudo','-u','postgres','pg_restore','--exit-on-error','--no-owner','--no-acl',
                 '--no-comments','--no-tablespaces','--role='+native_user,'-d',reference],
                 stdin=inp,stderr=log,check=True)
+        # The Community shell reads the reference through a readonly cursor
+        # using its own DB role. Scope these grants to the new private copy.
+        sql(reference, 'GRANT USAGE ON SCHEMA public TO ' + gate.identifier(dbuser)
+            + '; GRANT SELECT ON ALL TABLES IN SCHEMA public TO ' + gate.identifier(dbuser))
         store=data/'filestore'/database;store.mkdir(parents=True)
         subprocess.run(['rsync','-a',str(Path(prod['options']['data_dir'])/'filestore/CERRO_EL_PLOMO')+'/',str(store)+'/'],check=True)
         sql(database,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
