@@ -163,6 +163,10 @@ class HarvestCrewCase(TransactionCase):
         self.assertTrue(any(row.get('attendance_id') == native.id for row in values))
         self.assertFalse(any(row.get('attendance_id') == harvest.id for row in values))
         self.assertTrue(self.env['hr.work.entry'].search([('attendance_id', '=', native.id)]))
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            native.write({'harvest_crew_id': self.own.id})
+        self.assertFalse(native.harvest_crew_id)
+        self.assertTrue(self.env['hr.work.entry'].search([('attendance_id', '=', native.id)]))
 
     def test_cosecha_preserves_negative_hr_overtime(self):
         worker = self.own.harvest_enroll_worker(self.enrollment())

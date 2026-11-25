@@ -119,8 +119,8 @@ class HarvestAttendance(models.Model):
 
     def write(self, values):
         if 'harvest_crew_id' in values and any(
-                row.harvest_crew_id and values['harvest_crew_id'] != row.harvest_crew_id.id for row in self):
-            raise ValidationError(_('La asistencia de Cosecha conserva su cuadrilla; su integración con RR. HH. corresponde a una etapa posterior.'))
+                (values['harvest_crew_id'] or False) != row.harvest_crew_id.id for row in self):
+            raise ValidationError(_('La asistencia conserva su ámbito original de Cosecha o RR. HH.; su integración corresponde a una etapa posterior.'))
         return super().write(values)
 
     @api.constrains('harvest_crew_id', 'employee_id')
