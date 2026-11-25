@@ -1,16 +1,31 @@
 """Collect the certified Harvest backend, web, native reviews and isolation evidence."""
 import argparse
-import fcntl
 import hashlib
 import json
 from pathlib import Path
 import re
 import shutil
 import subprocess
+import configure_harvest_default_job as default_job
 from harvest_web_policy import validate_operations_review, validate_operations_smokes
 
 
+def validate_default_job_delivery(copy, live, qa, environment, package_sha, helper_sha, live_database):
+    """Require the certified configuration and its separate published result."""
+    default_job.validate_configuration_proof(copy, environment, package_sha, helper_sha)
+    assert copy['database'] == qa['database']
+    assert copy['commit'] == qa['commit'] and copy['release_sha256'] == qa['release_sha256']
+    assert live['mode'] == 'live' and live['database'] == live_database
+    for key in ('environment', 'stage', 'commit', 'release_sha256', 'helper_sha256', 'company_id', 'user_id'):
+        assert live[key] == copy[key], 'Published default job configuration differs: ' + key
+    assert live['applied'] is True
+    assert type(live['job_id']) is int and live['job_id'] > 0
+    assert all(live.get(key) is True for key in (
+        'previous_jobs_preserved', 'employees_preserved', 'roles_preserved', 'permissions_preserved'))
+
+
 def main():
+    import fcntl
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('base', type=Path)
     parser.add_argument('run_id')
@@ -28,6 +43,9 @@ def main():
     output.mkdir(mode=0o700, exist_ok=True)
     manifest = json.loads((base/'web/release.json').read_text())
     sha = hashlib.sha256((base/('harvest-odoo.tar.gz' if panel else 'harvest.tar.gz')).read_bytes()).hexdigest()
+    if operations:
+        helper_sha = default_job.digest(Path(default_job.__file__).resolve())
+        environments = json.loads(Path(__file__).with_name('environments.json').read_text())['environments']
     commits = set()
     counts_by_target = {}
     for target in ('development', 'qa-cerro', 'cerro'):
@@ -64,11 +82,19 @@ def main():
         if panel:
             shutil.copyfile(stage/'harvest-browser-proof.json', output/(target+'-copy-review.json'))
         if operations:
+            configuration_files = [(kind, stage/('harvest-default-job-'+kind+'.json')) for kind in ('copy', 'live')]
+            copy_configuration, live_configuration = (json.loads(path.read_text()) for _, path in configuration_files)
+            validate_default_job_delivery(copy_configuration, live_configuration, qa, target, sha,
+                                          helper_sha, environments[target]['database'])
             validate_operations_review(manifest, target, stage.name, qa,
                 json.loads((stage/'harvest-browser-proof.json').read_text()))
+            crew_smoke = json.loads((stage/'harvest-crew-smoke.json').read_text())
+            default_job.validate_crew_smoke(crew_smoke, copy_configuration, target, sha, helper_sha)
             validate_operations_smokes(manifest, qa,
                 json.loads((stage/'harvest-operations-smoke.json').read_text()),
-                json.loads((stage/'harvest-crew-smoke.json').read_text()))
+                crew_smoke)
+            for kind, source in configuration_files:
+                shutil.copyfile(source, output/(target+'-default-job-'+kind+'.json'))
             for kind in ('operations', 'crew'):
                 shutil.copyfile(stage/('harvest-'+kind+'-smoke.json'), output/(target+'-'+kind+'-smoke.json'))
             assert checked['ot_lifecycle_available'] is True and checked['crew_attendance_available'] is True
