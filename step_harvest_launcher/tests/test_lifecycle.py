@@ -56,10 +56,13 @@ class HarvestLifecycleCase(HttpCase):
         self.assertEqual(self.order.mobile_status, 'progress')
 
     def test_out_of_order_transitions_are_rejected(self):
-        for action in ('review', 'send', 'unknown'):
+        for action in ('approve', 'review', 'send', 'unknown'):
             with self.assertRaises(ValidationError):
                 self.order._harvest_transition(action, [])
         self.assertEqual(self.order.mobile_status, 'progress')
+        self.assertEqual(self.order.state, 'in')
+        self.assertFalse(self.order.mobile_approver_id)
+        self.assertFalse(self.order.mobile_approved_by_id)
 
     def test_native_write_permissions_are_required(self):
         public = self.env.ref('base.public_user')

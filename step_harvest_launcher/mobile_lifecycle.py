@@ -114,13 +114,13 @@ class HarvestMobileLifecycle(models.Model):
                         'mobile_state_date': fields.Datetime.now(), 'mobile_state_user_id': self.env.uid})
             return
         if action == 'approve':
+            if current not in ('closed', 'reviewed'):
+                raise ValidationError(_('Cierre la OT antes de aprobarla.'))
             approver = self.mobile_approver_id or self.env.user
             if approver != self.env.user or not self._harvest_valid_approver(approver):
                 raise AccessError(_('La aprobación debe realizarla el aprobador seleccionado con sus permisos actuales.'))
             if current == 'reviewed' and self.mobile_approved_by_id:
                 return
-            if current not in ('closed', 'reviewed'):
-                raise ValidationError(_('Cierre la OT antes de aprobarla.'))
             if not self.mobile_approver_id:
                 self.mobile_approver_id = approver
             native_approval = self.mobile_native_approval
