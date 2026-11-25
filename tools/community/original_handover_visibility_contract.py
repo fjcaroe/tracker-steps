@@ -19,11 +19,10 @@ GRAPH_SOURCE_OBSERVER_HASHES = {
     '0dfbc180c700f1f6a3e1abf59e5b8e741e25e083b74aec3728f346d3eb8cc92d',  # U11 Git LF
     'ae12c7a7ec37cd699eafc2fc6cb590f9029bc310a051cd3540b46efb04190bd9',  # U11 CRLF
 
-    '62aacd77626a5477768feeeb281854a578306f50247855a409a518eb8fef3a95',  # current exact installed graph
-    'f816321ef5fd01a2d904cf7c94b862fec4d331b9a8ed6304bef9e54c54b130d6',  # current exact installed graph
-
-    '62aacd77626a5477768feeeb281854a578306f50247855a409a518eb8fef3a95',  # explicit source-graph observer LF
-    'f816321ef5fd01a2d904cf7c94b862fec4d331b9a8ed6304bef9e54c54b130d6',  # same CRLF
+    '62aacd77626a5477768feeeb281854a578306f50247855a409a518eb8fef3a95',  # U12 Git LF
+    'f816321ef5fd01a2d904cf7c94b862fec4d331b9a8ed6304bef9e54c54b130d6',  # U12 CRLF
+    'a39f125e793065f7b9a5661998531e09cb131caabd4a011a59edbd8c0a65180d',  # U13 Git LF
+    '1c0e20b61d6c9bd1aa39af2869b61887921e50da5e079104a3507c04cfb4c8c7',  # U13 CRLF
 }
 SOURCE_OBSERVER_HASHES = LEGACY_SOURCE_OBSERVER_HASHES | GRAPH_SOURCE_OBSERVER_HASHES
 POLICY_TABLES = {'ir_model_access', 'ir_rule', 'rule_group_rel', 'ir_model_fields_group_rel',
