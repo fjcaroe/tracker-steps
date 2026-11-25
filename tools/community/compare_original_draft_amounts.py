@@ -49,6 +49,9 @@ def compare_case(before, after):
     if 'mutations' in before or 'mutations' in after:
         result['mutations'] = {'native': before.get('mutations'), 'community': after.get('mutations')}
         result['exact'] &= result['mutations']['native'] == result['mutations']['community']
+    if 'stored_ytd' in before or 'stored_ytd' in after:
+        result['stored_ytd_exact'] = before.get('stored_ytd') == after.get('stored_ytd')
+        result['exact'] &= result['stored_ytd_exact']
     return result
 
 

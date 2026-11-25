@@ -62,6 +62,29 @@ def capture_basis(slip):
     }
 
 
+def capture_ytd(slip):
+    """Check the stored snapshot and its consumer with the original flag."""
+    assert slip.ytd_computation == slip.struct_id.ytd_computation is False
+    lines = slip.line_ids
+    lines.check_access('read')
+    lines.flush_recordset(['code', 'salary_rule_id', 'total', 'ytd'])
+    slip.env.cr.execute("""
+        SELECT id, salary_rule_id, code, total, ytd
+          FROM hr_payslip_line
+         WHERE slip_id = %s
+         ORDER BY salary_rule_id, id
+    """, (slip.id,))
+    rows = slip.env.cr.fetchall()
+    assert {row[0] for row in rows} == set(lines.ids) and rows
+    codes = [row[2] for row in rows]
+    assert len(codes) == len(set(codes)), 'This probe covers unique original concepts'
+    values = slip._get_line_values(codes, ['total', 'ytd'])
+    for _, _, code, total, stored in rows:
+        assert stored is not None and stored == total
+        assert values[code][slip.id] == {'total': total, 'ytd': stored}
+    return [[rule, code, decimal(stored)] for _, rule, code, _, stored in rows]
+
+
 def exercise_sibling_changes(slip, absence):
     unpaid = slip.worked_days_line_ids.filtered(lambda row: row.work_entry_type_id == absence)
     unpaid.ensure_one()
@@ -204,6 +227,9 @@ def run_case(env, spec, community, progress, marker, native_days=None,
     rows = env.cr.fetchall()
     assert set(spec['essentials']) <= {ident for ident, *_ in rows} <= set(expected_rules)
     progress['lines'] = [[ident, *(decimal(value) for value in values)] for ident, *values in rows]
+    if spec['structure'] == 2:
+        progress['phase'] = 'stored_ytd'
+        progress['stored_ytd'] = capture_ytd(slip)
     if edit_sibling:
         progress['phase'] = 'edit_sibling'
         progress['mutations'] = exercise_sibling_changes(slip, absence)
