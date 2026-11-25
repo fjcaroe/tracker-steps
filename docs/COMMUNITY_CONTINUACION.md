@@ -2,6 +2,12 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
+U17D ensayó dos borradores con estructuras originales en las copias privadas.
+En la estructura 2 coincidieron los días, las entradas, el descuento y el reembolso. BASIC,
+GROSS y NET difirieron. La API OCA permite comprobar pertenencia de entradas
+en las condiciones originales. Nómina Chile sigue bloqueada por parámetros
+del contrato en la referencia y por la comprobación GROSS/BASIC en Community.
+
 U16 cerró la obligatoriedad del nombre de la liquidación, el tipo de entrada y
 el tipo de día trabajado, y restauró las restricciones físicas del tipo de renta
 y de jornada del contrato Simple Digital. Quedan 27 diferencias físicas de

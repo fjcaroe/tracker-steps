@@ -1,5 +1,65 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U17D · Comparación de importes de borrador, 25-11-2026
+
+Se ejecutó el paquete `4381d98f` en Community oficial con OCA y en una
+referencia nativa fresca de Cerro. Ambas bases restauraron el mismo respaldo.
+Community instaló 144 módulos y cero Enterprise. La referencia instaló 414
+módulos y 140 Enterprise. El operador original procesó borradores temporales
+con las reglas originales, dos entradas tipadas y entradas reales de trabajo
+con los maestros originales de asistencia y ausencia. Cada fixture se
+revirtió y quedaron cero liquidaciones en ambas bases.
+
+La estructura genérica original (2) calculó cinco conceptos en ambos motores.
+Coincidieron las entradas, las reglas seleccionadas, los días guardados, el
+descuento y el reembolso. Los importes de prueba en CLP mostraron esta diferencia:
+
+| Concepto | Referencia nativa | Community OCA |
+| --- | ---: | ---: |
+| BASIC | 360.000 | 12.000 |
+| GROSS | 360.000 | 12.000 |
+| NET | 363.087 | 15.087 |
+
+Ambos motores usaron las mismas fórmulas de BASIC, GROSS y NET, el mismo
+sueldo de prueba y medio día pagado y medio día de ausencia. El siguiente
+contraste debe comparar el importe almacenado del día y la base
+`paid_amount` por tipo de estructura y calendario. Se mantiene abierta la
+paridad monetaria.
+
+Nómina Chile (4) alcanzó el cálculo en ambas copias con los mismos días
+generados. La referencia nativa rechazó los parámetros incompletos del
+contrato en Simple Digital. El respaldo carecía de contratos y ninguno de
+los 12 trabajadores activos accesibles al operador tenía comuna registrada.
+Community conservó su bloqueo `GROSS_DISCONNECTED_FROM_BASIC`. La prueba
+conservó los maestros y las fórmulas originales.
+
+U17 y U17B detectaron `KeyError: 0` en condiciones originales que usan
+pertenencia sobre `inputs`. La API OCA 18.0.1.18.0 resuelve la pertenencia
+por código. U17C se detuvo durante el armado por el sello de versión del
+guard de históricos. U17D admite la versión revisada y exige el mismo
+archivo sellado. La prueba efectiva comprobó claves presentes y ausentes
+y permitió calcular las líneas de entrada de la estructura 2.
+
+Se conservan las cinco restricciones de U16. Las 27 diferencias físicas
+restantes requieren proveedores que el perfil anclado mantiene inactivos.
+La admisión conservó los 71 vínculos persistidos, los 118 accesos, dos
+denegaciones, cinco formularios y cuatro menús. Se preservaron 999 de 1.000
+proyecciones literales, 197 contadores, 60.686 XML IDs, los históricos y los
+vencimientos. Sigue un posible icono adicional y siete vínculos solo en menús
+nuevos. Coinciden los cuatro contratos físicos y Calendar. Las 32 FK
+adicionales siguen vacías. El inventario de solo lectura de los tres productos
+coincide con U16. Pasaron 304 pruebas locales compatibles con Windows.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U17`
+y `/opt/steps-validation/community-original-handover-20261125U17D`.
+
+- Paquete `029f37cc3452884a2c44b3803af6fbe07c048c6dbbff23386faca354fbc7eb47`.
+- Respaldo `7410705189a271fa8134ab82b8cd2849fe36b454f3eb9cf5b9c1711590fc8eee`.
+- Recibos de borrador nativo y Community `2b0bda06bb937d336b591a558609a9988b626b8c22268e5910ad52516312b9b0` y `7ae8d805ba250810f576f1de5006a3dd4c1c43e90221d6ef000b68a0384db4e9`.
+- Comparación de importes `a68cca7d87fcedf2c9ee1e4b09fea047a0223cfdc190feb52d1a5b2c7c550705`.
+- Admisión `0e4d889e695e53d3f6ad05271baaac4f15d1dcd7358d50b691e9d204d38d47dc`.
+- Relaciones `aac3b30ab74022f50eab1616b15cff1096f115392ebe073941943b15acc8c2c6`.
+
 ## U16 · Cinco requisitos de Nómina y contratos en un paquete, 25-11-2026
 
 El overlay de Cerro recupera el nombre de la liquidación (8371), el tipo
@@ -846,11 +906,13 @@ Lee AGENTS.md, el registro de ambientes, la operación canónica, el workflow, e
 plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
 aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
-Usa U16 como referencia de adopción parcial y T2 para la pareja multifrente.
-Certifica un borrador comparable con las reglas y maestros originales, entradas,
-asistencia y ausencias. Conserva los nombres e importes de pagadas y validadas.
-Agrupa las 27 diferencias físicas restantes por proveedor y exige pruebas de
-sus flujos antes de restaurar los contratos.
+Usa U17D como referencia de diagnóstico de importes, U16 para las cinco
+restricciones y T2 para la pareja multifrente. Compara el importe guardado de
+los días y la base `paid_amount` de la estructura 2 por período y calendario.
+Nómina Chile requiere parámetros originales de Simple Digital completos y
+resolver el bloqueo GROSS/BASIC con evidencia del motor nativo. Conserva los
+nombres e importes de pagadas y validadas. Agrupa las 27 diferencias físicas
+por proveedor y exige pruebas de sus flujos antes de restaurar los contratos.
 Comprueba que las 71 relaciones sigan exactas e idempotentes y que el perfil
 genérico conserve su contrato. Mantén la cadena de sellos del inventario,
 el observador nativo y el verificador de menús al actualizar los recibos.
