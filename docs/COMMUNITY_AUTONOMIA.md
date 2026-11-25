@@ -75,6 +75,12 @@ incluida la nueva app de T139/T140. Quedan Nómina certificada, DTE completo,
 Calidad y copia integral restaurable cero EE. El 31 sigue en riesgo alto;
 mantener límites y programación activa. El corte de producción queda fuera.
 
+U11C cerró la puerta funcional de configuración original con OCA real en la
+pareja fresca: 118 accesos, dos denegaciones, cinco formularios, cuatro menús
+y 71 vínculos con reintento idempotente. La siguiente puerta restaura las ocho
+obligaciones ORM de Nómina y revisa las 29 diferencias físicas restantes con
+los proveedores que las declaran.
+
 U8 comprobó el inventario nativo completo de 414 módulos y la visibilidad
 original de Nómina en una copia fresca: 118 de 120 maestros accesibles al
 gerente original, incluidas las 71 reglas y cuatro estructuras. Modelo 600 y

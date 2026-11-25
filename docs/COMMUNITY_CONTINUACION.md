@@ -19,6 +19,12 @@ gerente original, incluidas las 71 reglas y cuatro estructuras. Modelo 600 y
 reporte 462 conservados. Incorporar ese testigo de permisos a una nueva pareja
 anclada del mismo respaldo antes de restaurar obligatoriedad por proveedor.
 
+U11C reprodujo los permisos, cinco formularios y cuatro menús de Nómina en
+Community oficial/OCA a partir del respaldo fresco de Cerro. Materializó 71
+reglas y cero vínculos en el reintento. Se conservan 197 contadores y 60.686
+XML IDs. Pasar a la restauración por proveedor de 37 campos obligatorios,
+empezando por los ocho que también perdieron la marca ORM.
+
 U10 clasificó los 32 campos originales de U2 por identidad, XML IDs y
 obligatoriedad. Ocho perdieron también la marca ORM persistida y todos son
 de Nómina. El ensayo anclado U10B quedó preparado en su rama, a la espera
