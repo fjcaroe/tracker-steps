@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
+from unittest.mock import patch
 
 import pytz
 
@@ -135,6 +136,58 @@ class HarvestCrewCase(TransactionCase):
         self.assertEqual(native.overtime_hours, 3)
         self.assertEqual(harvest.overtime_hours, 0)
         self.assertEqual(overtime.duration, 3)
+
+    def test_cosecha_form_correction_preserves_native_employee_attendance_summary(self):
+        worker = self.own.harvest_enroll_worker(self.enrollment())
+        worker.resource_id.tz = 'UTC'
+        summary_fields = ['last_attendance_id', 'last_check_in', 'last_check_out',
+                          'attendance_state', 'hours_today', 'hours_last_month']
+
+        def summary(employee):
+            return (employee.last_attendance_id.id, employee.last_check_in,
+                    employee.last_check_out, employee.attendance_state,
+                    employee.hours_today, employee.hours_last_month)
+
+        with patch.object(fields.Datetime, 'now', return_value=datetime(2026, 11, 24, 18)):
+            native = self.env['hr.attendance'].create([
+                {'employee_id': worker.id, 'check_in': '2026-11-23 08:00:00',
+                 'check_out': '2026-11-23 09:00:00'},
+                {'employee_id': worker.id, 'check_in': '2026-11-24 08:00:00',
+                 'check_out': '2026-11-24 10:00:00'},
+            ])
+            worker._compute_last_attendance_id()
+            worker._compute_hours_today()
+            worker._compute_hours_last_month()
+            self.env.flush_all()
+            before = summary(worker)
+            self.assertEqual(before, (native[1].id, datetime(2026, 11, 24, 8),
+                                      datetime(2026, 11, 24, 10), 'checked_out', 2, 3))
+
+            previous = self.attendance(worker, uid='private-summary-previous')
+            previous['date'] = '2026-11-23'
+            previous['entries'][0].update(check_in='2026-11-23T12:00:00Z',
+                                          check_out='2026-11-23T15:00:00Z')
+            self.own.harvest_record_attendance(previous)
+            today = self.attendance(worker, uid='private-summary-today')
+            today['entries'][0]['check_in'] = '2026-11-24T12:00:00Z'
+            harvest = self.own.harvest_record_attendance(today)
+            cosecha_worker = worker.with_context(harvest_attendance_scope='cosecha')
+            self.assertEqual(set(cosecha_worker.attendance_ids.ids), set(native.ids))
+            harvest.with_context(harvest_attendance_scope='cosecha').write({
+                'check_out': '2026-11-24 17:00:00',
+            })
+            self.env.flush_all()
+            worker.invalidate_recordset(summary_fields + ['attendance_ids'])
+            # A form write must preserve stored HR fields before any explicit
+            # compute can repair them in the ordinary context.
+            self.assertEqual(summary(worker), before)
+            self.assertEqual(set(cosecha_worker.attendance_ids.ids), set(native.ids))
+            cosecha_worker._compute_last_attendance_id()
+            cosecha_worker._compute_hours_today()
+            cosecha_worker._compute_hours_last_month()
+            self.env.flush_all()
+            worker.invalidate_recordset(summary_fields)
+            self.assertEqual(summary(cosecha_worker), before)
 
     def test_cosecha_does_not_feed_immediate_or_regenerated_work_entries(self):
         worker = self.own.harvest_enroll_worker(self.enrollment())
