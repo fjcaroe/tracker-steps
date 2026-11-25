@@ -30,10 +30,25 @@ class HarvestEmployee(models.Model):
 
     harvest_enrollment_uid = fields.Char(copy=False, index=True)
     harvest_enrollment_fingerprint = fields.Char(copy=False)
+    # Employee HR summaries also consume this relation from Cosecha forms.
+    # Keep its cache and the native computes in the ordinary attendance scope.
+    attendance_ids = fields.One2many(context={'harvest_attendance_scope': False})
     _sql_constraints = [
         ('harvest_enrollment_company_unique', 'unique(company_id, harvest_enrollment_uid)',
          'Este enrolamiento Harvest ya fue recibido.'),
     ]
+
+    def _compute_last_attendance_id(self):
+        ordinary = self.with_context(harvest_attendance_scope=False)
+        return super(HarvestEmployee, ordinary)._compute_last_attendance_id()
+
+    def _compute_hours_today(self):
+        ordinary = self.with_context(harvest_attendance_scope=False)
+        return super(HarvestEmployee, ordinary)._compute_hours_today()
+
+    def _compute_hours_last_month(self):
+        ordinary = self.with_context(harvest_attendance_scope=False)
+        return super(HarvestEmployee, ordinary)._compute_hours_last_month()
 
 
 class HarvestAttendance(models.Model):
