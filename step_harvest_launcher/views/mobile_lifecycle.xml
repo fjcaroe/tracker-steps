@@ -6,7 +6,7 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='folio']" position="after">
                 <field name="mobile_work_order" readonly="1" invisible="not mobile_work_order"/>
-                <field name="mobile_status" readonly="1" invisible="not mobile_work_order"/>
+                <field name="mobile_status" readonly="1" invisible="not mobile_work_order and not mobile_state_date"/>
                 <field name="mobile_state_date" invisible="not mobile_state_date"/>
                 <field name="mobile_state_user_id" invisible="not mobile_state_user_id"/>
             </xpath>

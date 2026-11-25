@@ -1,9 +1,11 @@
 import json
+from lxml import etree
 
 from odoo import Command, fields
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import HttpCase, tagged
 from odoo.tests.common import new_test_user
+from odoo.tools.safe_eval import safe_eval
 
 
 @tagged('post_install', '-at_install')
@@ -72,12 +74,47 @@ class HarvestLifecycleCase(HttpCase):
         self.assertEqual(payload['order']['status'], 'Cerrada')
         self.assertEqual(payload['confirmed_delivery_uuids'], [self.line.mobile_uid])
         self.assertTrue(payload['order']['can_transition'])
+        action = self.env.ref('step_cosecha.action_step_cosecha_registry')
+        self.assertEqual(payload['order']['erp_url'], '/odoo/action-%s/%s' % (action.id, self.order.id))
+
+    def test_bootstrap_links_both_tareo_types_to_their_native_actions(self):
+        contractor = self.env['step.cosecha.registry'].with_company(self.company).create({
+            'name': 'Private lifecycle contractor order', 'type_tarea': 'contratista',
+            'product_uom_id': self.env.ref('uom.product_uom_kgm').id,
+            'company_id': self.company.id, 'date': fields.Datetime.now()})
+        self.authenticate(self.user.login, 'private-fixture')
+        response = self.url_open('/api/harvest/bootstrap', timeout=90)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['ok'], data)
+        orders = {row['odoo_id']: row for row in data['orders']}
+        for order, xmlid in ((self.order, 'step_cosecha.action_step_cosecha_registry'),
+                             (contractor, 'step_cosecha.action_step_cosecha_registry_contra')):
+            action = self.env.ref(xmlid)
+            self.assertEqual(action.res_model, 'step.cosecha.registry')
+            self.assertEqual(orders[order.id]['erp_url'], '/odoo/action-%s/%s' % (action.id, order.id))
 
     def test_changed_context_rejects_transition_without_changing_order(self):
         response = self.transition('close', scope='changed-context')
         self.assertEqual(response.status_code, 409)
         self.order.invalidate_recordset()
         self.assertEqual(self.order.mobile_status, 'progress')
+
+    def test_legacy_order_without_mobile_alias_shows_confirmed_lifecycle(self):
+        order = self.order.with_user(self.user)
+        order.mobile_work_order = False
+        name, folio = order.name, order.folio
+        view = order.get_view(view_id=self.env.ref('step_cosecha.view_step_cosecha_registry_form').id, view_type='form')
+        arch = etree.fromstring(view['arch'])
+        state_field, = arch.xpath(".//field[@name='mobile_status']")
+        expression = state_field.get('invisible')
+        self.assertTrue(safe_eval(expression, {'mobile_work_order': False, 'mobile_state_date': False}))
+        order._harvest_transition('close', [self.line.mobile_uid])
+        self.assertFalse(safe_eval(expression, {'mobile_work_order': order.mobile_work_order,
+                                               'mobile_state_date': order.mobile_state_date}))
+        self.assertEqual(order.mobile_status, 'closed')
+        self.assertFalse(order.mobile_work_order)
+        self.assertEqual((order.name, order.folio), (name, folio))
 
     def test_closed_order_rejects_new_delivery_but_retries_keep_native_identity(self):
         self.order._harvest_transition('close', [self.line.mobile_uid])
