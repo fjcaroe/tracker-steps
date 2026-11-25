@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from smoke_harvest_operations import exercise_operations, validate_operations_policy, OperationsClient
+from smoke_harvest_operations import exercise_operations, validate_operations_policy, OperationsClient, MANIFEST_READ_PATH
 from smoke_harvest_android_sync import ReviewClient, review_origin
 
 
@@ -22,6 +22,8 @@ class CopyClient:
         self.bypass_manifest = False
         self.accept_after_close = False
         self.repeat_id = 123
+        self.native_manifest = []
+        self.manifest_reads = []
         self.order = {'odoo_id': 22, 'crew_id': 33, 'status': self.status, 'erp_state': 'in', 'can_transition': True}
 
     def bootstrap(self):
@@ -36,13 +38,17 @@ class CopyClient:
             return 200, dict(self.bootstrap(), connected=True)
         if path.endswith('/bootstrap'):
             return 200, self.bootstrap()
+        if path == MANIFEST_READ_PATH:
+            self.manifest_reads.append(copy.deepcopy(payload))
+            return 200, {'jsonrpc': '2.0', 'id': 1, 'result': self.native_manifest}
         assert method == 'POST'
         self.posts.append(copy.deepcopy(payload))
         if payload['scope'] != self.scope and not self.bypass_scope:
             return 409, {'ok': False}
         if path.endswith('/sync'):
             record = payload['records'][0]
-            assert record['worker_id'] == 11
+            if not self.native_manifest:
+                assert record['worker_id'] == 11
             if record['client_uuid'].endswith('-AFTER-CLOSE') and not self.accept_after_close:
                 return 200, {'ok': False, 'results': [{'ok': False}]}
             result = {'ok': True, 'duplicate': self.has_delivery,
@@ -51,7 +57,8 @@ class CopyClient:
             self.has_delivery = True
             return 200, {'ok': True, 'results': [result]}
         assert path.endswith('/orders/transition')
-        if len(payload['delivery_uuids']) != 1 and not self.bypass_manifest:
+        expected = [row['mobile_uid'] for row in self.native_manifest]
+        if (payload['delivery_uuids'] != expected if expected else len(payload['delivery_uuids']) != 1) and not self.bypass_manifest:
             return 422, {'ok': False}
         self.status = {'close': 'Cerrada', 'review': 'Revisada', 'send': 'Enviada'}[payload['action']]
         return 200, {'ok': True, 'scope': self.scope, 'confirmed_delivery_uuids': payload['delivery_uuids'],
@@ -59,6 +66,35 @@ class CopyClient:
 
 
 class OperationsSmokeCase(unittest.TestCase):
+    def test_costing_order_retries_existing_manifest_without_creating_a_line(self):
+        client = CopyClient()
+        client.order['erp_state'] = 'costo'
+        client.has_delivery = True
+        client.native_manifest = [
+            {'id': 123, 'mobile_uid': 'HISTORICAL-DELIVERY-A', 'registry_id': [22, 'PRIVATE OT']},
+            {'id': 124, 'mobile_uid': 'HISTORICAL-DELIVERY-B', 'registry_id': [22, 'PRIVATE OT']},
+        ]
+        result = exercise_operations(client, {'user_id': 2, 'company_id': 7}, 'QA-HARVEST-OPS-' + 'b'*32)
+        self.assertEqual(result['new_lines'], 0)
+        self.assertEqual(result['existing_native_deliveries'], 2)
+        self.assertTrue(result['ot_close'] and result['ot_review'] and result['ot_send_confirmation'])
+        self.assertEqual(client.order['erp_state'], 'costo')
+        self.assertEqual(client.status, 'Enviada')
+        params = client.manifest_reads[0]['params']
+        self.assertEqual(params['model'], 'step.cosecha.tarja.registry.line')
+        self.assertEqual(params['method'], 'search_read')
+        self.assertEqual(params['args'], [[['registry_id', '=', 22], ['mobile_uid', '!=', False]]])
+        self.assertEqual(params['kwargs']['fields'], ['id', 'mobile_uid', 'registry_id'])
+        self.assertNotIn('PRIVATE', json.dumps(result))
+
+    def test_costing_order_without_manifest_fails_clearly_before_business_writes(self):
+        client = CopyClient()
+        client.order['erp_state'] = 'costo'
+        with self.assertRaisesRegex(AssertionError, 'existing mobile delivery manifest'):
+            exercise_operations(client, {'user_id': 2, 'company_id': 7})
+        self.assertEqual(len(client.manifest_reads), 1)
+        self.assertEqual(client.posts, [])
+
     def test_complete_native_flow_uses_one_original_uuid_and_omits_names(self):
         client = CopyClient()
         result = exercise_operations(client, {'user_id': 2, 'company_id': 7}, 'QA-HARVEST-OPS-' + 'b'*32)
@@ -68,7 +104,7 @@ class OperationsSmokeCase(unittest.TestCase):
         self.assertEqual(client.status, 'Enviada')
         self.assertNotIn('PRIVATE', json.dumps(result))
 
-    def test_missing_or_already_approved_order_prevents_any_post(self):
+    def test_missing_or_unusable_order_prevents_business_writes(self):
         for change in ({'erp_state': 'apro'}, {'status': 'Cerrada'}, {'can_transition': False}, {'crew_id': 999}):
             client = CopyClient()
             if 'status' in change:
@@ -94,6 +130,8 @@ class OperationsSmokeCase(unittest.TestCase):
         self.assertEqual(review_origin('http://127.0.0.1:8777'), 'http://127.0.0.1:8777')
         self.assertNotIn(('POST', '/api/harvest/orders/transition'), ReviewClient.allowed_requests)
         self.assertIn(('POST', '/api/harvest/orders/transition'), OperationsClient.allowed_requests)
+        self.assertNotIn(('POST', MANIFEST_READ_PATH), ReviewClient.allowed_requests)
+        self.assertIn(('POST', MANIFEST_READ_PATH), OperationsClient.allowed_requests)
 
     def test_certificate_requires_exact_stage_backend_copy_and_proxy(self):
         frontend = {'version': '0.0.8', 'commit': 'c'*40, 'files': {}}
