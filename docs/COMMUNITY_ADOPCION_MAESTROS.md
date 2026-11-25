@@ -1,5 +1,50 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U20 · Prorrateo por horas implementado en Community, 25-11-2026
+
+El paquete `99c4f405` aplica el cálculo original en los borradores mensuales
+de `hr_payroll.structure_002` del perfil privado de Cerro. Cada línea pagada
+recibe el sueldo mensual por su fracción de las horas registradas en todas
+las líneas, redondeado por la moneda de la compañía. Una ausencia no pagada
+y una línea sin horas con denominador cero guardan cero. La lectura de las
+horas exige los permisos originales sobre todas las líneas de la liquidación.
+El puente general conserva sueldo/30 por día fuera de esta estructura y
+el cómputo conserva la restauración SQL de importes históricos cerrados.
+
+El UID7 obtuvo paridad exacta con el motor nativo en 13 borradores de la
+estructura 2, incluyendo entradas, días, reglas aplicadas, importes de días
+guardados, `paid_amount` y líneas salariales. Con sueldo de 720.001 CLP y
+mitad de las horas pagadas, ambos guardaron 360.001 CLP. Dos líneas pagadas
+de 4 horas frente a una ausencia de 4 horas guardaron 240.000 CLP por línea
+pagada. En el borrador editable, aumentar de 4 a 8 horas la ausencia,
+eliminarla y reponerla devolvió 240.000, 720.000 y 360.000 CLP respectivamente,
+con el mismo resultado almacenado antes de volver a ejecutar reglas.
+
+Community oficial/OCA instaló 144 módulos y cero Enterprise. La referencia
+fresca conservó 414 módulos y 140 Enterprise. Las dos copias privadas se
+restauraron del mismo respaldo bajo el bloqueo compartido. Se verificaron
+118 accesos, dos denegaciones, cinco formularios, cuatro menús, 71 vínculos
+guardados con cero nuevos al repetir, y cero liquidaciones, contratos y
+entradas de prueba persistentes. La revisión conservó 999/1.000 proyecciones
+literales, 197 contadores, 60.686 XML IDs, históricos, vencimientos, Calendar
+y cuatro contratos de almacenamiento. Siguen las 32 FK adicionales vacías
+y las 27 diferencias físicas de proveedores inactivos ya documentadas.
+Pasaron 304 pruebas locales compatibles con Windows.
+
+La referencia de Nómina Chile 4 mantiene el bloqueo de parámetros Simple
+Digital, y Community mantiene la comprobación GROSS/BASIC. La paridad de
+borradores genéricos deja abiertas la certificación de las 71 reglas completas,
+YTD, contabilización, Previred, libro, consumidores HR y conversión integral.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U20`
+y `/opt/steps-validation/community-original-handover-20261125U20`.
+
+- Paquete `dbb008e1729bdd886f12e0e7ca135cf52f3027eff8005b189e6e3f84a80f6786`.
+- Respaldo `5e38986c1eed17430d6a34f9abc11916485292ad1eed556c34380d19141683b2`.
+- Comparación `afed7b1d4630ee38630ea908e05255bd8181319ee739a30958f1eb671e7a9e9b`.
+- Admisión `38ef44381ae61ba29a53b7f13c47ff9b1ce25ab64a38bddbf9988d8beab56dcc`.
+- Relaciones `0ab3cf321837874755e382c01ae5ac31aa59882f191df524c08357674c346510`.
+
 ## U19 · Base pagada por horas y redondeo en la estructura 2, 25-11-2026
 
 La pareja privada del paquete `a3e19d3d` comparó la estructura original
@@ -1011,10 +1056,10 @@ Lee AGENTS.md, el registro de ambientes, la operación canónica, el workflow, e
 plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
 aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
-Usa U19 como referencia de la fracción de horas pagadas y redondeo al peso
-en la estructura 2, y U17D para las entradas. Implementa ese contrato en
-borradores del perfil de Cerro y verifica edición de horas y líneas hermanas,
-varias líneas pagadas, empate de redondeo y denominador cero en ambos motores.
+Conserva U20 para el prorrateo de borradores de la estructura 2 y U17D para
+las entradas. Trata los dos bloqueos de Nómina Chile con evidencia del motor
+nativo y de la referencia SyS. Si faltan parámetros originales, avanza un
+consumidor verificable con los registros ya preservados.
 Mantén U16 para las cinco restricciones y T2 para la pareja multifrente.
 Nómina Chile requiere parámetros originales de Simple Digital completos y
 resolver el bloqueo GROSS/BASIC con evidencia del motor nativo. Conserva los

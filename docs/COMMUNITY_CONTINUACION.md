@@ -2,6 +2,12 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
+U20 implementó el prorrateo por horas de los borradores mensuales de la
+estructura 2 en el perfil Community de Cerro. Trece casos alcanzaron paridad
+exacta con la referencia nativa, incluidas edición de ausencias, varias líneas
+pagadas, denominador cero y redondeo. Nómina Chile 4 y la certificación
+financiera siguen pendientes.
+
 U19 comparó borradores de la estructura 2 con días y horas en proporciones
 distintas, además de asistencia y ausencia aisladas en una fracción de mes.
 Cerro calculó por la fracción de horas pagadas y redondeó el importe de línea
