@@ -19,6 +19,43 @@ SOURCE = {
 }
 
 
+REQUIRED_MODELS = b"""from odoo import fields, models
+
+
+class Structure(models.Model):
+    _inherit = 'hr.payroll.structure'
+
+    type_id = fields.Many2one(required=True)
+
+
+class Rule(models.Model):
+    _inherit = 'hr.salary.rule'
+
+    code = fields.Char(required=True)
+    category_id = fields.Many2one(required=True, ondelete='restrict')
+
+
+class RuleCategory(models.Model):
+    _inherit = 'hr.salary.rule.category'
+
+    code = fields.Char(required=True)
+
+
+class Payslip(models.Model):
+    _inherit = 'hr.payslip'
+
+    name = fields.Char(required=True)
+
+
+class PayslipLine(models.Model):
+    _inherit = 'hr.payslip.line'
+
+    # The line follows the rule classification without a stored column.
+    category_id = fields.Many2one(related='salary_rule_id.category_id', store=False,
+                                 readonly=True, copy=False, required=False)
+"""
+
+
 def build(source, repository, output):
     source = source.resolve(strict=True)
     repository = repository.resolve(strict=True)
@@ -50,6 +87,10 @@ def build(source, repository, output):
             manifest['data'] = kept
             old = seal(hashes(files))
             files['__manifest__.py'] = (repr(manifest) + '\n').encode()
+            if module == 'step_payroll_oca_api':
+                require('models/step_sys_required.py' not in files, 'SyS required overlay already present')
+                files['models/step_sys_required.py'] = REQUIRED_MODELS
+                files['models/__init__.py'] += b'\nfrom . import step_sys_required\n'
             target = top / 'own-profile' / module
             for name, body in files.items():
                 path = target / name

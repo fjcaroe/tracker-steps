@@ -10,6 +10,7 @@ from admit_sys_payroll_storage import related_identity
 from preflight_original_history_storage import require
 from sys_previred_preservation import identifier
 from prepare_sys_structure_storage import prepare as prepare_structure_storage
+from sys_cohort_required import inventory as required_inventory
 
 
 PAYROLL = {'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_previred_corrections',
@@ -194,6 +195,7 @@ def prepare(cr, database, graph):
     cr.execute("UPDATE ir_module_module SET state='uninstalled' WHERE state='installed' AND name=ANY(%s)",
                (sorted(excluded),))
     require(cr.rowcount == len(excluded), 'sys-cohort-concurrent-module-drift')
-    return {'database': database, 'structure_storage': rule_storage, 'roles': roles, 'retained_supplier_aliases': retained,
+    return {'database': database, 'structure_storage': rule_storage, 'roles': roles,
+            'mandatory_columns': required_inventory(cr), 'retained_supplier_aliases': retained,
             'protected': guards, 'excluded': sorted(excluded),
             'original_graph_database': graph['database'], 'integral_conversion': False}

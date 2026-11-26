@@ -16,6 +16,7 @@ import sys
 
 from preflight_original_history_storage import require
 from sys_previred_preservation import identifier
+from sys_cohort_required import guard as guard_required
 
 
 ROOTS = ('step_payroll_contracts', 'step_payroll_oca_api', 'step_simpledigital_oca_base',
@@ -49,6 +50,13 @@ def main():
     sys.path.insert(0, str(args.runtime.resolve()))
     from odoo.addons.base.models.ir_model import IrModelData
     from odoo import cli
+    from odoo.tools import sql
+    sql_file = args.runtime.resolve() / 'odoo/tools/sql.py'
+    require(Path(inspect.getsourcefile(sql.drop_not_null)).resolve() == sql_file
+            and hashlib.sha256(sql_file.read_bytes()).hexdigest() ==
+            '0470f3e4cfa2736ca1b402bad8e5047edb39fc79d68de2ae6f81853318722bff',
+            'sys-cohort-unreviewed-required-column-handler')
+    original_drop = sql.drop_not_null
 
     original = IrModelData._process_end
     require(Path(inspect.getsourcefile(original)).resolve() == model_file,
@@ -86,7 +94,9 @@ def main():
         calls.append(sorted(modules))
         return result
 
+    protected_drop = guard_required(original_drop, database, plan["mandatory_columns"])
     IrModelData._process_end = process_end
+    sql.drop_not_null = protected_drop
     try:
         sys.argv = [str(args.runtime / 'odoo-bin'), '-c', args.config, '-d', database,
                     '--db-filter=^' + database + '$', '--db_host=/var/run/postgresql',
@@ -103,6 +113,7 @@ def main():
         print('SYS_OFFICIAL_CLEANUP ' + json.dumps(calls))
     finally:
         IrModelData._process_end = original
+        sql.drop_not_null = original_drop
 
 
 if __name__ == '__main__':
