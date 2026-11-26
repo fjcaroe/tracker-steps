@@ -26,10 +26,10 @@ def digest(path, algorithm='sha256'):
     return value.hexdigest()
 
 
-def attachments(database):
-    prefix = 'COMMUNITY_SYS_PREVIRED_' if database.startswith('COMMUNITY_') else 'MANAGEMENT_QA_SYS_PREVIRED_'
+def attachments(database, read_query=query):
+    prefix = r'(?:(?:COMMUNITY|MANAGEMENT_QA)_SYS_PREVIRED_|MANAGEMENT_QA_(?:STEPS|CERRO)_CUSTODY_)'
     require(re.fullmatch(prefix + r'[A-Z0-9_]{1,32}', database), 'sys-store-private-database-required')
-    return json.loads(query(database, """
+    return json.loads(read_query(database, """
         SELECT json_build_object(
             'database', current_database(),
             'rows', count(*),
