@@ -31,3 +31,20 @@ La primera actualización general de Simple Digital en U40R intentó volver a
 escribir el grupo histórico de empleados. La protección de SyS detuvo esa
 operación. Se instaló la ruta de impresión por separado y se mantuvo la
 protección. La actualización general del proveedor chileno continúa pendiente.
+
+## Repetición desde una restauración limpia
+
+En U40R2 se partió nuevamente del respaldo de la cohorte U40E
+(`1acacf8f8754826d85e95730f4e65b9f031b84ef6fff34a943eea6b6c7438457`).
+Se instaló el puente de informes por su entrada oficial y se cargó únicamente
+la plantilla Steps mediante el cargador XML de Odoo. Se verificaron su
+arquitectura anterior, la fuente y sus identificadores originales. La segunda
+llamada reconoció la arquitectura aceptada y no escribió. La base conserva
+registrada la versión previa 18.0.1.7.2 del módulo base; el lector Python
+probado en esta derivada procede del paquete 18.0.1.7.3.
+
+Se imprimieron nuevamente cinco PDF de una página. Los 61 identificadores, los
+61 importes visibles y los cinco líquidos coincidieron. Los ocho adjuntos
+archivados y las filas originales de los grupos de usuarios conservaron sus
+huellas. El recibo independiente de esta repetición tiene SHA-256
+`c9c3d3256567e5b11f8593f5051f2ba78c5da6d9aefb83094c97d17a64bc0421`.
