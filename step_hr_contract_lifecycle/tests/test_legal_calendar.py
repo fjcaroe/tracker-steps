@@ -32,6 +32,12 @@ class TestLegalWorkweekCalendar(TransactionCase):
     def test_official_row_protected(self):
         official = self.Calendar.search([("is_official", "=", True)], limit=1)
         self.assertTrue(official)
+        seed = {key: official[key] for key in (
+            "date_from", "max_weekly_hours", "legal_reference", "is_official", "exception_reason")}
+        seed["date_from"] = str(seed["date_from"])
+        official._load_records_write(seed)
+        with self.assertRaises(UserError):
+            official._load_records_write(dict(seed, max_weekly_hours=999))
         with self.assertRaises(UserError):
             official.write({"max_weekly_hours": 999})
 

@@ -100,6 +100,15 @@ class HrLegalWorkweekCalendar(models.Model):
             self._check_technical_permission(vals)
         return super().write(vals)
 
+    def _load_records_write(self, values):
+        self.ensure_one()
+        seed_fields = {"date_from", "max_weekly_hours", "legal_reference", "is_official", "exception_reason"}
+        if self.is_official and set(values) == seed_fields and all(
+            self._fields[name].convert_to_cache(value, self) == self[name] for name, value in values.items()
+        ):
+            return
+        return super()._load_records_write(values)
+
     def unlink(self):
         for rec in self:
             if rec.is_official and not self.env.user.has_group(

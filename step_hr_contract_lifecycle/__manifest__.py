@@ -1,6 +1,6 @@
 {
     "name": "Steps - Gestión Contractual y Finiquitos (Núcleo)",
-    "version": "18.0.2.1.2",
+    "version": "18.0.2.1.3",
     "category": "Human Resources/Employees",
     "summary": "Núcleo contractual independiente de motor: contratos, cargas DT, avisos de término y finiquitos",
     "description": """

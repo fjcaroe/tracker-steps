@@ -74,8 +74,22 @@ que ya esté enviada o firmada. El estado de Firma se puede consultar en el
 formulario laboral. [Código del proveedor probado](https://github.com/OCA/sign/tree/6163139a41710e4192140ad42b2f4812f75b67b0/sign_oca)
 
 La acción previa intentaba crear una solicitud de Enterprise sin la plantilla
-obligatoria y fallaba en la restricción SQL. El núcleo 18.0.2.1.2 conserva
+obligatoria y fallaba en la restricción SQL. El núcleo 18.0.2.1.3 conserva
 las referencias históricas y el acceso al PDF. El complemento OCA habilita
 el botón **Preparar firma** para los usuarios de ese proveedor. Las pruebas
 ejercitan borradores y cancelaciones con cero destinatarios. El envío,
 la firma de una persona y la recepción del ejemplar firmado quedan pendientes.
+
+## Adopción en la copia Community de Cerro
+
+En una derivada privada del control U40D se restauraron los 677 objetos
+referenciados. El núcleo y el complemento de firma OCA quedaron instalados
+con 148 módulos activos y cero módulos Enterprise. Los 848 identificadores
+externos previos del núcleo conservaron su ID de metadato, modelo y registro.
+El núcleo incorporó un identificador nuevo. Los 48 registros de la biblioteca
+y sus 32 permisos explícitos mantuvieron sus relaciones.
+
+La primera instalación encontró tres fechas del calendario legal ya cargadas.
+Sus cinco valores coincidían con los del paquete distribuido. La versión
+18.0.2.1.3 reconoce esa recarga idéntica y conserva las tres filas tal como
+están. Las modificaciones efectivas continúan sujetas al permiso técnico.
