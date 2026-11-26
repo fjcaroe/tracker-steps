@@ -34,7 +34,7 @@ NATIVE_RUNTIME = Path('/opt/odoo18')
 CAPSULE_SHA = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
 RUNTIME = Path('/opt/steps-validation/community-foundation-final-20261027/community-runtime')
 REQUIRED_FIELD_PROBES = ('category', 'structure', 'rule_structure', 'payslip', 'draft_amounts',
-                         'unmapped_accounting', 'book_export')
+                         'unmapped_accounting', 'book_export', 'previred_txt')
 
 
 def restore_provider_contract_columns(database, reference):
@@ -76,7 +76,7 @@ def write(path, value):
 def exercise_required_field(source, stage, executable, options, database, field_group):
     receipt = stage / f'original-{field_group}-required.json'
     module = f'probe_original_{field_group}'
-    if field_group not in ('draft_amounts', 'unmapped_accounting', 'book_export'):
+    if field_group not in ('draft_amounts', 'unmapped_accounting', 'book_export', 'previred_txt'):
         module += '_required'
     reference_arg = ''
     if field_group == 'draft_amounts' and '_HANDOVER_' in database:
@@ -396,6 +396,12 @@ def main():
         assert not native_book.pop('foreign_company_denied')
         assert community_book.pop('foreign_company_denied')
         assert community_book == native_book, 'Original Libro export contract diverged'
+        previred_receipt = 'original-previred_txt-required.json'
+        native_previred = json.loads((native_stage / previred_receipt).read_bytes())
+        community_previred = json.loads((stage / previred_receipt).read_bytes())
+        assert not native_previred.pop('foreign_company_denied')
+        assert community_previred.pop('foreign_company_denied')
+        assert community_previred == native_previred, 'Original supplier Previred TXT contract diverged'
         write(stage/'business-after-cohort.json',column_snapshot(database,columns))
         write(stage/'identity-after.json',preservation.identity_contract(database))
         print('ORIGINAL_ANCHOR_COHORT_PROBED_REQUIRES_COMPLETE_PRESERVATION_REVIEW',flush=True)
