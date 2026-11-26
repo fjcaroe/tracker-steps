@@ -75,11 +75,11 @@ class HarvestLifecycleCase(HttpCase):
             'product_id': self.env['product.product'].create({'name': 'Private harvest fruit'}).id,
             'step_packaging_group': 'harvest', 'step_export_kg_per_box': 3.455,
         })
-        standard = self.order.copy({'mobile_work_order': 'PRIVATE-T242',
+        standard = self.order.create({'name': 'Private standard weight order', 'mobile_work_order': 'PRIVATE-T242',
+            'type_tarea': 'propio', 'company_id': self.company.id, 'date': fields.Datetime.now(),
             'mobile_standard_weight': True, 'mobile_packaging_id': packaging.id,
             'mobile_kg_per_box': packaging.step_export_kg_per_box,
-            'product_uom_id': self.env.ref('uom.product_uom_unit').id,
-            'tarja_registry_line': [Command.clear()]})
+            'product_uom_id': self.env.ref('uom.product_uom_unit').id})
         packaging.step_export_kg_per_box = 4.0
         rows = self.env['step.cosecha.tarja.registry.line']
         values = {'employee_id': self.worker.id, 'qty_kg': 9.27, 'qty_caja': 3, 'quantity': 9.27}
