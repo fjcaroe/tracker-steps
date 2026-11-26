@@ -198,6 +198,10 @@ def apply(output, snapshot_path):
             require(database in history, 'database not in historical receipt')
             fresh = candidate(history[database], databases(), managed.runtime_references(), proof)
             require(fresh == item, 'candidate changed since plan')
+            require(database not in databases(), 'database appeared before removal')
+            require(not managed.referenced(managed.runtime_references(),
+                    str(Path(item['path']).parent.parent), database),
+                    'runtime/config reference appeared before removal')
             result['in_progress'] = item['path']
             atomic(receipt, result)
             managed.remove_path(Path(item['path']), ROOT)

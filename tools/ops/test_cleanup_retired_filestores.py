@@ -121,6 +121,27 @@ class CleanupSafetyTests(unittest.TestCase):
             remove.assert_not_called()
         self.assertTrue(self.path.is_dir())
 
+    def test_apply_rechecks_database_and_references_after_tree_scan(self):
+        for index, (database_states, references) in enumerate([
+                ([set(), {self.database}], [[], []]),
+                ([set(), set()], [[], [str(self.stage / 'data')]])]):
+            with self.subTest(index=index):
+                output = self.root / ('race' + str(index) + '.json')
+                output.write_text(json.dumps({'schema': 1,
+                    'history_sha256': cleanup.HISTORY_SHA,
+                    'snapshot_proof': self.proof, 'candidates': [self.candidate()]}))
+                with (patch.object(cleanup, 'retired', return_value={self.database: self.row}),
+                      patch.object(cleanup, 'snapshots', return_value=self.proof),
+                      patch.object(cleanup, 'databases', side_effect=database_states),
+                      patch.object(cleanup.managed, 'runtime_references', side_effect=references),
+                      patch.object(cleanup, 'free_bytes', return_value=123),
+                      patch.object(cleanup, 'atomic', side_effect=lambda p, v: p.write_text(json.dumps(v))),
+                      patch.object(cleanup.managed, 'remove_path') as remove):
+                    with self.assertRaisesRegex(ValueError, 'appeared before removal'):
+                        cleanup.apply(output, self.root / 'snapshot-proof.json')
+                    remove.assert_not_called()
+                self.assertTrue(self.path.is_dir())
+
 
 if __name__ == '__main__':
     unittest.main()
