@@ -131,3 +131,14 @@ y el número de registros originales se conservaron. Las pruebas usaron llaves
 efímeras sintéticas y se ejecutaron con la red aislada. La autorización y el
 consumo fiscal de folios continúan fuera de este flujo.
 
+La referencia U40FQ repitió el caso sobre una restauración nueva de Cerro tomada
+el 26 de noviembre. Usó el respaldo SQL U40D
+`1d8c636dba84fbc851368fa3fd4d7785c32fbc88efc6d19652557c1aa4e0310c`
+y los adjuntos U40Q
+`b2e8884bb67a26d37c742f740ed061328dcdefab901f184d0f205fb424175efe`.
+El mismo paquete de ambas pruebas U40F
+(`2956c36f2f39db3767789030817975a447b8274d2d376735aaa84628266558c9`)
+ejecutó el caso completo con el proveedor original. Pasó 1 de 1 pruebas con
+cero fallos y errores. El conteo de registros CAF se conservó. El recibo de
+esta ejecución tiene SHA-256
+`c4938c03a6fe48211c83b9e831e73c61e376b8556c860678b920c357a3746abf`.
