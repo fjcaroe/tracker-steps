@@ -1,5 +1,34 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+## U36 · Contratos de días y entradas históricas de SyS
+
+El ensayo SQL en la candidata privada U33 agregó `contract_id` a las
+tablas originales de días e inputs dentro de una transacción reversible.
+Las 928 filas de días y las dos entradas recibieron el contrato de su
+liquidación original con coincidencia de empresa y empleado. Se verificó
+en el catálogo del testigo Cerro Community U29L la FK al contrato con
+`ON DELETE RESTRICT`. En ambas tablas, las pruebas de escritura
+rechazaron un contrato vacío y un ID inexistente. Las proyecciones de las
+columnas originales de ambas tablas coincidieron durante el ensayo.
+
+`rehearse_sys_child_contracts.py` tomó el bloqueo compartido y comparó el
+recibo de restauración antes y después del rollback. Después de revertir,
+las 25 proyecciones, 298 claves foráneas y 111 correlativos coincidieron
+y las dos columnas de ensayo desaparecieron. La candidata conserva el
+motor nativo. No se consultaron códigos o condiciones vigentes para
+completar datos históricos. Siguen pendientes su representación y la del
+diario de lote desconocido, el respaldo de filestore y la aceptación ORM
+del paquete bajo los roles originales.
+
+El recibo privado U36 tiene SHA-256
+`a9ee9b539baa4d4e8b2aff53c4505fda50fd35d1afe94422ad2badee094a6dcb`.
+Está en el directorio de evidencias U33 y en
+`~/.codex/local-artifacts/community-resume-20261125/U30`.
+El inventario integral U36 mantiene la huella de U35. Pasaron las 309
+regresiones compatibles con Windows. El ensayo cierra el vínculo en
+PostgreSQL. La aceptación de Previred v98 en Community requiere aún
+la conversión de SyS y el cotejo contra la referencia nativa.
+
 ## U35 · Procedencia contable de lotes SyS
 
 El recibo de admisión revalidó la candidata U33 contra las 25 proyecciones,
