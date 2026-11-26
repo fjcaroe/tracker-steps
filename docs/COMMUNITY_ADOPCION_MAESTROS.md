@@ -1,5 +1,69 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U27 · Previred normalizado en SyS y acción original de impresión en Cerro
+
+El gerente existente de Nómina validó y generó el TXT consolidado en una copia
+privada fresca de SyS. El asistente ejecutó el ORM y generador instalados con
+un contexto local de solicitud. El perfil v98 de octubre admitió las cinco
+liquidaciones elegibles y emitió cinco filas de 105 campos. El campo 28 de cada
+fila coincidió con las líneas AFP y AFP_EMP guardadas en SQL. El perfil v84 de
+mayo emitió una fila principal y una anexa para la única liquidación elegible.
+Junio y julio se quedaron en el resumen sin archivo por 11 y 12 movimientos
+sin fecha de término, respectivamente. Los hashes de liquidaciones, líneas,
+días, contratos, asientos y numeración de negocio coincidieron. El rollback
+retiró asistentes y lotes de ensayo.
+
+El respaldo SyS quedó bajo custodia privada con SHA256
+`f4d69b86a899cae3755ed1530739dec1204b1f2c7cc6c95eb6efe1a033900989`.
+La referencia ejecutó Simple Digital 18.0.1.0.0, Previred 18.0.3.8.7 y el
+adaptador 18.0.2.4.1. Los recibos y hashes de los TXT se guardaron sin exportar
+archivos de trabajadores. Los botones se ejecutaron directamente por ORM.
+La sesión del navegador y la transmisión oficial quedan pendientes. La
+referencia SyS acredita un caso histórico con el proveedor instalado. Queda
+pendiente reproducirlo con el motor Community y el puente de producción
+equivalente. No trasladar empleados, contratos ni maestros de SyS a Cerro.
+
+En una pareja fresca de Cerro restaurada del mismo respaldo, el usuario 7
+confirmó una liquidación de ensayo de la estructura 2 y usó la acción original
+462 desde la API de impresión. La acción conservó XML ID, enlace a la estructura
+y binding al modelo 600. La referencia ejecutó su renderer original y Community
+el renderer de importes almacenados. Ambos devolvieron el documento HTML y
+conservaron la acción, liquidación, líneas e importes. El rollback retiró las
+liquidaciones, contratos, entradas y asientos de ensayo. Quedan por verificar
+el PDF, su presentación y el recorrido del navegador.
+
+Paquete exacto `a8987453`, SHA256
+`257be4c9b8b4e3fe1bd6ef90febe17ae18d172081a89a9e3122c4f66659b622b`.
+Pareja privada serializada bajo el bloqueo compartido, con respaldo
+`8993bdeb784e2df06bd8c6714aa5355bfa3dedae60637819c621e60a29d37614`.
+Community oficial/OCA 144 módulos y cero Enterprise. Referencia 414/140.
+La revisión repitió la conservación de 999 de 1.000 proyecciones literales,
+197 contadores y 60.686 XML IDs. Se preservaron históricos, vencimientos, los
+contratos de almacenamiento y Calendar. Se verificaron 118/2 accesos, cinco
+formularios, cuatro menús, 71 vínculos y cero nuevos al repetir. Quedaron 32 FK
+nuevas vacías, 27 diferencias físicas de proveedores inactivos y el adjunto
+adicional candidato a icono. Pasaron 454 pruebas compatibles con Windows y las
+regresiones de cálculo, YTD, contabilidad individual, Libro y TXT crudo. La
+pareja y sus recibos se conservan en
+`/opt/steps-validation/community-original-handover-20261126U27`.
+
+Inventario de solo lectura
+`62ada2c99acdf21476bb9e762453cd9566b3c7e95db8668370e1bdbb02fa50d2`,
+idéntico a U26 y al testigo U14 por producto. Evidencia local en
+`~/.codex/local-artifacts/community-resume-20261125/U27`; copia SyS en
+`/opt/steps-validation/community-inventory-20261126U27`. No hubo escrituras en
+producción o QA-Cerro, recálculo histórico, cambio de credenciales o
+vencimientos ni emisión real.
+
+Siguiente bloque: preparar el replay acotado del contrato v98 de octubre en
+Community oficial con las identidades originales de SyS y comprobar los campos
+financieros almacenados. En Cerro, falta completar Nómina Chile 4 y el PDF de
+la acción 462 con los recursos originales de una copia aislada. Mantener
+pendientes la certificación de las 71 reglas, asientos con apuntes y por lote,
+las demás columnas del Libro, HR, DTE/CAF/SII, Tesorería, Calidad,
+Studio/Documentos/Firma, los otros productos y la restauración integral con cero
+Enterprise. Continúa la programación horaria.
+
 ## U26 · Salida TXT del proveedor Previred en el perfil original
 
 La sonda de la pareja privada usa el operador 7 y dos liquidaciones terminadas

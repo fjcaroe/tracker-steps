@@ -1,5 +1,14 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+U27 produjo el TXT normalizado v98 de octubre en una copia privada nativa de
+SyS. Las cinco liquidaciones elegibles emitieron cinco filas de 105 campos y
+las cinco cotizaciones AFP coincidieron con sus importes guardados. El v84 de
+mayo incluyó una anexa. Las fechas de término de movimientos bloquearon junio y
+julio. En una pareja fresca de Cerro, el usuario original renderizó HTML desde
+la acción 462 con ambos motores y conservó identidades e importes. El siguiente
+bloque es ensayar v98 con el puente Community y los maestros originales de SyS.
+Quedan el PDF de la acción 462 y la certificación de Nómina Chile 4.
+
 U26 verificó la salida TXT cruda de Previred de la estructura 2 en la pareja
 fresca de Cerro. Ambos motores devuelven una fila de 105 campos, con 29 días
 del proveedor, excluyen otra liquidación confirmada de diciembre y preservan
