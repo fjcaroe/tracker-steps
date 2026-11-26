@@ -2,6 +2,11 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
+U24 reprodujo el vínculo nativo al asiento borrador vacío al confirmar
+individualmente una liquidación de la estructura 2. Coincidieron diario,
+fecha, referencia e importes en una pareja fresca. Siguen las pruebas por
+lote, los asientos con apuntes y los consumidores de Nómina y HR.
+
 U23 verificó el YTD activo de la estructura 2 en una pareja fresca. Cinco
 conceptos coincidieron al usar el mismo contrato y al cambiarlo. El acumulado
 incluyó enero cerrado y excluyó febrero abierto, con rollback de la prueba.

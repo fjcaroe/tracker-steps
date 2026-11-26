@@ -1,5 +1,52 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U24 · Borrador contable de la liquidación individual, 26-11-2026
+
+El paquete `e1dff5fe` conserva en el perfil privado de Cerro el vínculo al
+asiento borrador que crea el motor nativo al confirmar individualmente una
+liquidación de `hr_payroll.structure_002` sin reglas con cuentas asignadas.
+El puente usa el diario salarial validado, la fecha contable y el permiso
+normal de creación de asientos. El movimiento queda sin líneas y sin
+numeración definitiva. El proveedor OCA procesa las liquidaciones con cuentas
+según su flujo habitual.
+
+UID7 comprobó en ambos motores el estado confirmado, el vínculo al borrador
+en el diario original, el cierre de período, la referencia de mes/año y
+cinco importes idénticos antes y después de confirmar. Community rechazó
+primero el contrato de ensayo sin diario. Para el caso positivo, ese
+contrato seleccionó el diario ya asociado a la estructura original.
+Ambas pruebas se revirtieron y conservaron el total de asientos y apuntes.
+En SyS, una consulta de solo lectura encontró 702 vínculos a 702
+borradores vacíos y cero reglas con cuentas registradas entre sus 92 reglas.
+
+La pareja fresca se restauró del mismo respaldo bajo el bloqueo compartido,
+con 144 módulos y cero Enterprise en Community oficial/OCA y 414 módulos
+con 140 Enterprise en la referencia nativa. Pasaron 304 pruebas locales
+compatibles con Windows, los 13 borradores de regresión y el YTD entre
+contratos. La revisión conservó 118 accesos, dos denegaciones, cinco
+formularios, cuatro menús, 71 vínculos de reglas y cero nuevos al repetir.
+Coincidieron 999 de 1.000 proyecciones literales, 197 contadores, 60.686 XML IDs,
+históricos, vencimientos, Calendar y cuatro contratos de almacenamiento.
+Se clasificaron siete vínculos de menús nuevos y un candidato a icono.
+Las 32 FK adicionales están vacías. Continúan 27 diferencias físicas de
+proveedores inactivos y cero diferencias ORM en ese grupo.
+
+Quedan pendientes confirmación por lote, contabilización con apuntes y
+Nómina Chile 4. Las 71 reglas del respaldo siguen sin cuentas asignadas.
+El siguiente bloque buscará una salida verificable de Libro, Previred o
+un consumidor de HR con los maestros existentes. La aceptación de la copia
+integral y los frentes fiscales, financieros y operativos siguen abiertos.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U24`
+y en `/opt/steps-validation/community-original-handover-20261126U24`.
+
+- Paquete `cf3f830f874bf4f78adf9cbbb982ed17dd2ba86d041dfd19e4e0597a00456e93`.
+- Respaldo `49f8da6a2bc7b7adcc326dbfb233bcd296e40f2f2c84aa8deadf69b69dd9bf5f`.
+- Admisión `ebe664afe91ef49bb6e7a8ebbc4f91d09454dc6633919870dee3a19b435beee3`.
+- Relaciones `14ac5ce549401eed84bd4d114c4022572233f9907759da8f029ac4c78db36fda`.
+- Recibo Community `63d63d763cf6a12f9780208c246463a3a0286083b8f76baead2b4ec30a77bc62`.
+- Recibo nativo `d025396af976a16345c8f6796b1cc9e47f21e51a1e208a18de67d4fce8b225eb`.
+
 ## U23 · YTD activo entre contratos en la estructura 2, 25-11-2026
 
 El paquete `03a82b06` permite acumular el YTD calendario de la estructura
@@ -1176,8 +1223,10 @@ plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
 aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
 Conserva U21B para el YTD almacenado con acumulación desactivada, U20 para
-el prorrateo de la estructura 2 y U17D para las entradas. Conserva U23 para YTD activo entre contratos en la estructura 2. Avanza
-con un consumidor contable o de HR verificable con los maestros existentes.
+el prorrateo de la estructura 2 y U17D para las entradas. Conserva U23 para
+YTD activo entre contratos y U24 para el borrador contable individual sin
+cuentas asignadas. Avanza con Libro, Previred o un consumidor de HR verificable
+con los maestros existentes.
 Trata los dos bloqueos de Nómina Chile con evidencia del motor
 nativo y de la referencia SyS. Si faltan parámetros originales, avanza un
 consumidor verificable con los registros ya preservados.
