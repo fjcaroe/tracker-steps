@@ -18,6 +18,7 @@ const { chromium } = require('playwright');
             { name:'cids',value:String(proof.company_id),domain:proof.host,path:'/',secure:true },
         ]);
         page = await context.newPage();
+        page.setDefaultTimeout(20000);
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
         // Reject every business write from this browser acceptance.
@@ -48,11 +49,17 @@ const { chromium } = require('playwright');
             await page.getByText(tag.name, {exact:true}).first().waitFor({timeout:30000});
             const kilos = page.locator('.o_field_widget[name="step_actual_kg"]');
             await kilos.waitFor();
+            await kilos.scrollIntoViewIfNeeded();
             await page.screenshot({path:path.join(output, `${tag.name}.png`),fullPage:true});
             checked.push({id:tag.package_id,kilos:row.step_actual_kg});
         }
         for (const id of [...new Set(proof.tags.map(t => t.picking_id))]) {
             await open(proof.actions.receipts, 'stock.picking', id);
+            await page.getByRole('tab', {name:'Fruta',exact:true}).click();
+            for (const tag of proof.tags.filter(t => t.picking_id === id)) {
+                await page.getByText(tag.name, {exact:true}).first().waitFor();
+            }
+            await page.locator('.o_field_widget[name="fruit_tag_line_ids"]').scrollIntoViewIfNeeded();
             await page.screenshot({path:path.join(output, `receipt-${id}.png`),fullPage:true});
         }
         for (const draft of proof.drafts) {
@@ -63,6 +70,7 @@ const { chromium } = require('playwright');
             const row = result.result.find(r => r.id === draft.id);
             assert.equal(row.step_fruit_state, 'draft');
             assert.equal(row.amount_total, draft.total);
+            await page.locator('.o_field_widget[name="amount_total"]').scrollIntoViewIfNeeded();
             await page.screenshot({path:path.join(output, `advance-${draft.id}.png`),fullPage:true});
         }
         assert.deepEqual(errors, []);
