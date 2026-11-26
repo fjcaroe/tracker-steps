@@ -1,6 +1,6 @@
 {
     "name": "SyS payroll history on OCA",
-    "version": "18.0.1.2.1",
+    "version": "18.0.1.3.0",
     "license": "LGPL-3",
     "depends": ["payroll_account", "step_payroll_oca_api"],
     "installable": True,

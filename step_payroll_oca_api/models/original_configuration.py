@@ -90,12 +90,7 @@ class Payslip(models.Model):
         return True
 
     def _step_check_original_posting_journal(self):
-        """Verify compatibility with OCA's actual stored related journal.
-
-        OCA posts through slip.journal_id (contract_id.journal_id). An original
-        structure property has not yet acquired precedence over that provider
-        policy. Reject a disagreement rather than assign either relationship.
-        """
+        """Verify the posting journal against the installed provider and original properties."""
         self.ensure_one()
         self.check_access("read")
         self.check_field_access_rights("read", ["company_id", "contract_id", "journal_id"])
@@ -107,18 +102,25 @@ class Payslip(models.Model):
             raise UserError(_("Select the original contract and salary journal before posting payroll."))
         # Reuse the audited actual contract selection and identity checks.
         contract = self._get_employee_contracts()
-        contract.check_field_access_rights("read", ["journal_id", "company_id"])
+        contract.check_field_access_rights("read", ["company_id"])
+        field = self._fields["journal_id"]
+        via_structure = field.related == "struct_id.journal_id" and not field.store
+        if via_structure:
+            self.check_field_access_rights("read", ["struct_id"])
+            source = self.struct_id.with_company(company)
+        else:
+            source = contract
+        source.check_access("read")
+        source.check_field_access_rights("read", ["journal_id"])
         journal = self.journal_id
         journal.check_access("read")
         journal.check_field_access_rights("read", ["company_id", "type"])
-        contract_journal = contract.journal_id
-        contract_journal.check_access("read")
         if not journal or journal.company_id != company:
             raise UserError(_("The OCA salary journal must belong to the payslip's original company."))
         if journal.type != "general":
             raise UserError(_("Payroll posting requires a general salary journal."))
-        if journal != contract_journal:
-            raise UserError(_("The original contract salary journal differs from the OCA posting journal."))
+        if journal != source.journal_id:
+            raise UserError(_("The original salary journal differs from the OCA posting journal."))
         for structure in self._step_selected_payroll_structures():
             original = structure.with_company(company)
             original.check_access("read")
@@ -130,8 +132,8 @@ class Payslip(models.Model):
                 raise UserError(_("The original structure salary journal property is unavailable."))
             stored = row[0]
             if stored is None:
-                # Only a wholly NULL original property permits the audited
-                # contract fallback. ir.default must not choose a new journal.
+                if via_structure and original == source:
+                    raise UserError(_("The selected structure has no original salary journal for this company."))
                 continue
             value = stored.get(str(company.id)) if isinstance(stored, dict) else None
             if not isinstance(value, int) or isinstance(value, bool) or not 0 < value < 2**31:
