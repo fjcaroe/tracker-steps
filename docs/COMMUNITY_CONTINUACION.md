@@ -1,5 +1,38 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+U32 prepara los cuatro puntos de comparación de almacenamiento SyS con
+`tools/community/capture_sys_previred_stage.py`. El coordinador conserva
+el bloqueo compartido durante la secuencia, aísla las bases de otros
+escritores y pasa el SHA-256 del dump efectivamente restaurado en ambas.
+Ejecutar con el usuario del sistema PostgreSQL, el socket local y Python
+con psycopg2. Usar un directorio privado para los recibos de cada etapa.
+
+| Etapa (`--stage`) | Base (`--database`) | Entradas adicionales |
+| --- | --- | --- |
+| `reference-restored` | Referencia SyS recién restaurada | Ninguna |
+| `candidate-restored` | Candidata SyS recién restaurada | `--baseline` referencia |
+| `candidate-upgraded` | Misma candidata después del upgrade | `--baseline` referencia, `--previous` candidata restaurada |
+| `candidate-rolled-back` | Misma candidata tras ejecutar y revertir el asistente | `--baseline` referencia, `--previous` candidata actualizada |
+
+Cada invocación recibe `--backup-sha256` y un `--output` nuevo. Una
+divergencia deja recibo privado y devuelve código 1, que debe detener la
+secuencia. La candidata recién restaurada debe coincidir incluso en las
+columnas, FK y correlativos adicionales. Después del upgrade, las
+adiciones requieren revisión de esquema aparte. El ejecutor sigue a cargo
+de la cronología, el bloqueo, el preflight de las columnas históricas y
+la validación funcional. Los recibos comparan el alcance U31 y enlazan las
+etapas con huellas de archivos. Quedan pendientes la admisión histórica
+y las pruebas en la pareja SyS, en Community oficial y en copia fresca de
+Cerro.
+
+PGlite ejecutó las 25 proyecciones en las cuatro etapas con identidad de
+base provista por el banco de pruebas. El ensayo rechazó una columna
+adicional en la restauración inicial y detectó una modificación persistida
+de un histórico y un correlativo después del rollback. Pasaron 309 pruebas
+compatibles con Windows. El servidor figuró RUNNING en GCP, pero SSH directo
+agotó el tiempo e IAP cerró la conexión antes del saludo. Quedó pendiente
+actualizar el inventario de solo lectura y ejecutar el ensayo con Odoo.
+
 U31 prepara la comparación literal de preservación de SyS para el ensayo v98.
 En una transacción de lectura repetible en cada copia privada, captura las
 columnas originales, huellas de filas e inventario de FK de 25 tablas de
@@ -9,8 +42,8 @@ escritores porque PostgreSQL no versiona los contadores en la transacción.
 Comparar la restauración inicial con la restauración candidata antes de Odoo,
 y repetir después del upgrade y del rollback de Previred con las mismas
 columnas. Los cambios en una fila original, una FK o un contador quedan
-identificados para revisión. Falta integrar este control al ejecutor privado
-y verificar sus proyecciones sobre el respaldo real junto con los contratos
+identificados para revisión. Falta ejecutar la secuencia U32 sobre
+el respaldo real junto con los contratos
 de permisos, navegación y v98. El control cubre el alcance indicado, y la
 aceptación integral requiere el inventario completo y el flujo Odoo.
 
