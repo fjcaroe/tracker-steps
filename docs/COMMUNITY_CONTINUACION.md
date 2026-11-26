@@ -2,6 +2,12 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
+U23 verificó el YTD activo de la estructura 2 en una pareja fresca. Cinco
+conceptos coincidieron al usar el mismo contrato y al cambiarlo. El acumulado
+incluyó enero cerrado y excluyó febrero abierto, con rollback de la prueba.
+El puente queda acotado al perfil original de Cerro. Siguen Nómina Chile 4,
+la configuración contable de las 71 reglas y los consumidores de Nómina y HR.
+
 U21B corrigió el YTD nulo en líneas de borrador con importe cero. Con el
 ajuste de acumulación original desactivado, 65 líneas de 13 borradores de
 la estructura 2 coinciden por SQL y API en los dos motores. Siguen la

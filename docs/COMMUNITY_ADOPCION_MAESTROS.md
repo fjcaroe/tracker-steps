@@ -1,5 +1,54 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U23 · YTD activo entre contratos en la estructura 2, 25-11-2026
+
+El paquete `03a82b06` permite acumular el YTD calendario de la estructura
+original `hr_payroll.structure_002` al cambiar de contrato en el perfil
+Community de Cerro. Los contratos deben ser legibles y pertenecer al mismo
+empleado y compañía. El motor conserva la guarda fuera de ese perfil y
+mantiene el alcance previo de reinicio, créditos y conceptos repetidos.
+
+Con UID7, cinco conceptos coincidieron por SQL y por `_get_line_values` en
+tres borradores de ensayo. BASIC guardó CLP 360.000 en enero, CLP 720.000 en
+febrero con el mismo contrato y CLP 720.000 en marzo con otro contrato.
+Marzo incluyó enero cerrado y excluyó febrero abierto. La referencia activó
+el flag por ORM dentro del rollback. Community lo activó en caché para
+respetar el sello del maestro. Después del rollback, ambas copias tenían
+cero liquidaciones, contratos y entradas de ensayo. Las cuatro estructuras
+conservaron el ajuste original desactivado.
+
+Se instaló el paquete exacto bajo el bloqueo compartido en una pareja fresca
+del mismo respaldo, con 144 módulos y cero Enterprise en Community oficial/OCA
+y 414 módulos y 140 Enterprise en la referencia nativa. El espacio de tablas
+privado de Community se creó en el volumen de datos para respetar la reserva
+de 5 GiB en PostgreSQL y 2 GiB en artefactos. Pasaron 304 pruebas locales
+compatibles con Windows y los 13 borradores de regresión U21B.
+
+La revisión comprobó 118 accesos, dos denegaciones, cinco formularios, cuatro
+menús y 71 vínculos persistidos, con cero nuevos al repetir. Conservó
+999 de 1.000 proyecciones literales, 197 contadores, 60.686 XML IDs,
+históricos, vencimientos, Calendar y los cuatro contratos de almacenamiento.
+Las diferencias clasificadas son siete vínculos en menús nuevos y un candidato
+a icono. Hay 32 FK adicionales sin referencias pobladas y siguen las 27
+diferencias físicas de proveedores inactivos, con cero diferencias ORM
+de obligatoriedad en ese grupo. El inventario de los tres productos y las
+matrices de caminos Enterprise coinciden con U22 y el testigo U14.
+
+Siguen el requisito nativo de parámetros Simple Digital y el bloqueo
+GROSS/BASIC de Nómina Chile 4. Las 71 reglas siguen sin cuentas de débito y
+crédito en el respaldo. Continuar por un consumidor contable o de HR que
+pueda contrastarse con los maestros existentes, y retomar después las puertas
+financieras y de conversión integral.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U23`
+y en `/opt/steps-validation/community-original-handover-20261125U23`.
+
+- Paquete `56466af45e23b925d281e7014faba69b53c20266a59709962fd36b96158f7d9e`.
+- Respaldo `062a8615c33188787cbb2a4565450c84504a18e107e1ce95b66d00db796131aa`.
+- Admisión `9ac8eb4eb7e06200cde52747ace18c558d4c7ce6873505434971b64b0193b426`.
+- Comparación `1cafba8af588d1fdaeb10dbd14f51b7198e77537de4df1c4caf62b8378532fc1`.
+- Relaciones `105aa50800c403c0ed346f6fb6603f2f678e35e4a9fb8d03386caff7eb049037`.
+
 ## U22B · Referencia nativa de YTD activo, 25-11-2026
 
 En una copia fresca de Cerro con 414 módulos y 140 Enterprise, el operador
@@ -1127,8 +1176,8 @@ plan, COMMUNITY_CONTINUACION.md, COMMUNITY_AUTONOMIA.md y los documentos de
 aceptación. Revisa el inventario integral y las fuentes privadas antes de editar.
 
 Conserva U21B para el YTD almacenado con acumulación desactivada, U20 para
-el prorrateo de la estructura 2 y U17D para las entradas. Prueba acumulación
-activa con fixtures aisladas o un consumidor contable y HR verificable.
+el prorrateo de la estructura 2 y U17D para las entradas. Conserva U23 para YTD activo entre contratos en la estructura 2. Avanza
+con un consumidor contable o de HR verificable con los maestros existentes.
 Trata los dos bloqueos de Nómina Chile con evidencia del motor
 nativo y de la referencia SyS. Si faltan parámetros originales, avanza un
 consumidor verificable con los registros ya preservados.
