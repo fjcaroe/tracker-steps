@@ -117,28 +117,23 @@ class HrLaborDocument(models.Model):
                 raise UserError(_("Indique el motivo de la cancelación."))
             doc.state = "cancelled"
 
+    def action_open_pdf(self):
+        self.ensure_one()
+        self.check_access("read")
+        attachment = self.pdf_attachment_id
+        if not attachment:
+            raise UserError(_("El documento no tiene PDF generado."))
+        attachment.check_access("read")
+        return {
+            "type": "ir.actions.act_url",
+            "url": "/web/content/%s?download=true" % attachment.id,
+            "target": "download",
+        }
+
     def action_send_to_sign(self):
         self.ensure_one()
-        if "sign.request" not in self.env:
-            raise UserError(
-                _(
-                    "El módulo Firma no está instalado en esta instancia. "
-                    "El documento sigue disponible como PDF para firma manual."
-                )
-            )
-        if not self.pdf_attachment_id:
-            raise UserError(_("El documento no tiene PDF generado."))
-        sign_request = self.env["sign.request"].create(
-            {
-                "template_id": False,
-                "reference": self.name,
-                "request_item_ids": [],
-            }
+        self.check_access("write")
+        raise UserError(
+            _("La firma electrónica requiere un proveedor de firma para documentos laborales. "
+              "Puede descargar el PDF emitido para firma manual.")
         )
-        self.write({"sign_reference": str(sign_request.id), "state": "sent_to_sign"})
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "sign.request",
-            "res_id": sign_request.id,
-            "view_mode": "form",
-        }

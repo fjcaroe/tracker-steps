@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_labor_document_oca_signature" model="ir.ui.view">
+        <field name="name">hr.labor.document.form.sign.oca</field>
+        <field name="model">hr.labor.document</field>
+        <field name="inherit_id" ref="step_hr_contract_lifecycle.view_hr_labor_document_form"/>
+        <field name="arch" type="xml">
+            <button name="action_send_to_sign" position="attributes">
+                <attribute name="invisible">state != 'generated'</attribute>
+                <attribute name="groups">sign_oca.sign_oca_group_user</attribute>
+            </button>
+            <field name="pdf_hash" position="after">
+                <field name="sign_oca_request_id" groups="sign_oca.sign_oca_group_user"/>
+                <field name="sign_oca_state" groups="sign_oca.sign_oca_group_user" invisible="not sign_oca_request_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

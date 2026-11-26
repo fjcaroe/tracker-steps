@@ -105,7 +105,8 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_send_to_sign" type="object" string="Enviar a firma" invisible="state != 'generated'"/>
+                    <button name="action_open_pdf" type="object" string="Descargar PDF" invisible="not pdf_attachment_id"/>
+                    <button name="action_send_to_sign" type="object" string="Preparar firma" invisible="1"/>
                     <button name="action_cancel" type="object" string="Cancelar" invisible="state == 'cancelled'"/>
                     <field name="state" widget="statusbar"/>
                 </header>
@@ -125,9 +126,9 @@
                             <field name="pdf_hash" readonly="1"/>
                         </group>
                     </group>
-                    <field name="pdf_attachment_id" widget="binary" filename="name" readonly="1"/>
-                    <group string="Cancelación" invisible="state != 'cancelled'">
-                        <field name="cancel_reason"/>
+                    <field name="pdf_attachment_id" invisible="1"/>
+                    <group string="Cancelación">
+                        <field name="cancel_reason" string="Motivo de cancelación" readonly="state == 'cancelled'"/>
                     </group>
                     <notebook>
                         <page string="Contenido">

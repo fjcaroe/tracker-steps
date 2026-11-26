@@ -1,6 +1,6 @@
 {
     "name": "Steps - Gestión Contractual y Finiquitos (Adaptador Agrícola)",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.0.1",
     "category": "Human Resources/Employees",
     "summary": "Adaptador de step_hr_contract_lifecycle para step_hr / l10n_cl_hr",
     "description": """

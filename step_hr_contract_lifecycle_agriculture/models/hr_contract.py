@@ -54,6 +54,10 @@ class HrContract(models.Model):
         return location
 
     # -- Interfaz de adaptación (sobreescribe al núcleo) -------------------------
+    def _steps_contract_template_location(self):
+        self.ensure_one()
+        return self.fundo_id.name or super()._steps_contract_template_location()
+
     def _steps_contract_payload(self):
         self.ensure_one()
         payload = super()._steps_contract_payload()

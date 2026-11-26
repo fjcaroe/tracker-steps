@@ -19,7 +19,7 @@ TEMPLATE_VARIABLES = {
         c._fields["labor_modality"].selection
     ).get(c.labor_modality, ""),
     "contrato.cargo": lambda c: c.job_id.name or "",
-    "contrato.fundo": lambda c: c.fundo_id.name or "",
+    "contrato.fundo": lambda c: c._steps_contract_template_location(),
     "contrato.fecha_inicio": lambda c: c.date_start and c.date_start.strftime("%d/%m/%Y") or "",
     "contrato.fecha_termino": lambda c: c.date_end and c.date_end.strftime("%d/%m/%Y") or "",
     "contrato.fecha_celebracion": lambda c: c.date_signature and c.date_signature.strftime("%d/%m/%Y") or "",

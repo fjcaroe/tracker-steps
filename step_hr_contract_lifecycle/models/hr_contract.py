@@ -192,6 +192,10 @@ class HrContract(models.Model):
     # su mapeo real. Los generadores DT y el motor de finiquito consumen
     # exclusivamente estos payloads normalizados.
 
+    def _steps_contract_template_location(self):
+        self.ensure_one()
+        return self.work_location_id.name or ""
+
     def _steps_contract_payload(self):
         """Datos contractuales normalizados (ubicación, jornada, etc.).
 
