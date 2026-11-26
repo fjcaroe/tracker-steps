@@ -195,12 +195,15 @@ def repair(env, plan):
                   'mail_mail', 'mail_notification')
         for table in tables:
             excluded, ids = [], []
-            if table == 'purchase_order':
+            if table == 'stock_quant_package':
+                ids = packages.ids
+                excluded = ['write_date', 'write_uid']
+            elif table == 'purchase_order':
                 ids = draft_ids
                 excluded = ['amount_total', 'amount_untaxed', 'amount_tax', 'amount_total_cc', 'write_date', 'write_uid']
             elif table == 'purchase_order_line':
                 ids = draft_line_ids
-                excluded = ['product_qty', 'product_uom_qty', 'step_fruit_source_rows', 'price_subtotal',
+                excluded = ['product_qty', 'product_uom_qty', 'step_fruit_source_rows', 'price_unit', 'price_subtotal',
                             'price_total', 'price_tax', 'untaxed_amount_to_invoice', 'write_date', 'write_uid']
             env.cr.execute(SQL('SELECT id,md5((to_jsonb(t)-CASE WHEN id=ANY(%s) THEN %s::text[] '
                                'ELSE ARRAY[]::text[] END)::text) FROM %s t ORDER BY id', ids, excluded, SQL.identifier(table)))
@@ -212,6 +215,10 @@ def repair(env, plan):
         return result
 
     before = fingerprints()
+    env.cr.execute('SELECT id,to_jsonb(t) FROM stock_quant_package t WHERE id=ANY(%s)', [packages.ids])
+    package_before = dict(env.cr.fetchall())
+    env.cr.execute('SELECT id,to_jsonb(t) FROM purchase_order_line t WHERE id=ANY(%s)', [draft_line_ids])
+    line_before = dict(env.cr.fetchall())
     financial_before = {d.id: {'id':d.id, 'name':d.name, 'untaxed':d.amount_untaxed,
                               'tax':d.amount_tax, 'total':d.amount_total} for d in drafts}
     # Preserve every quant outside the exact inventory/internal pairs.
@@ -248,14 +255,29 @@ def repair(env, plan):
             moves |= move
         for draft, line, sources, modified in draft_changes:
             _controlled(line).write({'step_fruit_source_rows': sources,
-                                     'product_qty': sum(source['quantity'] for source in sources)})
+                                     'product_qty': sum(source['quantity'] for source in sources),
+                                     'price_unit': line.price_unit})
         for draft in drafts:
             draft._fruit_check_sources()
     env.flush_all()
     env.invalidate_all()
     after = fingerprints()
+    env.cr.execute('SELECT id,to_jsonb(t) FROM stock_quant_package t WHERE id=ANY(%s)', [packages.ids])
+    package_after = dict(env.cr.fetchall())
+    package_changed = {key: [field for field in old if old[field] != package_after[key][field]]
+                       for key, old in package_before.items() if old != package_after[key]}
+    env.cr.execute('SELECT id,to_jsonb(t) FROM purchase_order_line t WHERE id=ANY(%s)', [draft_line_ids])
+    line_after = dict(env.cr.fetchall())
+    line_changed = {key: [field for field in old if old[field] != line_after[key][field]]
+                    for key, old in line_before.items() if old != line_after[key]}
+    # Native proforma writes normalize floating point noise to Product Price
+    # precision (e.g. a stored price ending in 000000002). Never reprice.
+    require(all(abs(float(old['price_unit']) - float(line_after[key]['price_unit'])) < 1e-8
+                for key, old in line_before.items()), 'Stored unit price changed')
     for table, rows in before.items():
-        require(all(after[table].get(k) == v for k, v in rows.items()), 'Historical row changed: ' + table)
+        require(all(after[table].get(k) == v for k, v in rows.items()), 'Historical row changed: ' + table
+                + (' ' + repr(package_changed) if table == 'stock_quant_package' else '')
+                + (' ' + repr(line_changed) if table == 'purchase_order_line' else ''))
         require(table in ('stock_move', 'stock_move_line') or rows.keys() == after[table].keys(), 'Rows added/removed: ' + table)
     require(set(after['stock_move']) - set(before['stock_move']) == set(moves.ids), 'Unexpected new moves')
     require(set(after['stock_move_line']) - set(before['stock_move_line']) == set(moves.move_line_ids.ids), 'Unexpected new move lines')
@@ -420,7 +442,8 @@ def main():
                 subprocess.run(['sudo','-u','postgres','pg_restore','--list'], stdin=stream, stdout=subprocess.DEVNULL, check=True)
             (stage/'odoo.conf').write_bytes(config.read_bytes()); (stage/'odoo.conf').chmod(0o600)
             live = probe(plan['database'], 'live')
-            require(live['rows'] == proof['tested']['rows'] and live['versions'] == proof['tested']['versions'], 'Live result differs')
+            require(live['rows'] == proof['tested']['rows'] and live['versions'] == proof['tested']['versions']
+                    and live['advance_drafts'] == proof['tested']['advance_drafts'], 'Live result differs')
             (stage/'live.json').write_text(json.dumps({'result':live, 'backup_sha256':digest(backup), 'identity':identity}, indent=2))
             print('RECEPTION_WEIGHT_APPLIED '+json.dumps({'total_kg':live['total_kg'],'boxes':live['boxes'],'moves':live['moves']}))
 
