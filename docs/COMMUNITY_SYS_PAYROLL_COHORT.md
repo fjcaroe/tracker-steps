@@ -5,7 +5,9 @@ copia privada de SyS. El asistente de Previred produjo el mismo TXT v98 que la
 referencia nativa de SyS. Los cinco trabajadores admitidos tienen AFP positiva
 conciliada con sus líneas originales. Cada fila contiene 105 campos y se
 reprodujeron los dos avisos sobre asignación familiar. No hubo anexos ni descartes.
-Ambos archivos tienen SHA-256
+El Libro de Remuneraciones reproduce asimismo las cinco filas, 147 columnas y
+SHA-256 `38d10fe52f0b1d41084e86658d33cd2fdbd44d783eeb8bdaf6005992e65f5009`
+de la exportaci�n nativa. Ambos archivos de Previred tienen SHA-256
 `10c69a74a4454f468acc8040f8fe60ea2361fc9003618f62dbbd071932622dd6`.
 
 ## Alcance del arranque

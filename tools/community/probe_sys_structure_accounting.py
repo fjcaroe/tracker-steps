@@ -15,6 +15,10 @@ def probe(shell_env, company_id, uid):
         assert structures._fields['rule_ids'].type == 'one2many'
         assert structures._fields['rule_ids'].inverse_name == 'struct_id'
         assert structures._fields['journal_id'].company_dependent
+        for model, fields in [('hr.payroll.structure', ['type_id']), ('hr.payslip', ['name']),
+                              ('hr.salary.rule', ['code', 'category_id']), ('hr.salary.rule.category', ['code']),
+                              ('hr.contract', ['income_tax_type', 'work_schedule_id'])]:
+            assert all(env[model]._fields[name].required for name in fields)
         rules = env['hr.salary.rule']
         assert rules._fields['struct_id'].required and rules._fields['struct_id'].ondelete == 'restrict'
         slips = env['hr.payslip']
@@ -37,4 +41,5 @@ def probe(shell_env, company_id, uid):
         assert len(batch) == 5
         for slip in batch:
             assert slip.struct_id.journal_id == slip.journal_id
-        return {'uid': uid, 'rules': len(original_rules), 'structures': len(original), 'slips': len(batch)}
+        return {'uid': uid, 'rules': len(original_rules), 'structures': len(original), 'slips': len(batch),
+                'required_original_fields': 7}
