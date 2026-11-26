@@ -5,8 +5,8 @@ import binascii
 from odoo import _, api
 from odoo.exceptions import AccessError, UserError
 from odoo.addons.step_l10n_cl_edi_core.caf import CAFError, normalize_rut, parse_caf
-from odoo.addons.step_l10n_cl_edi_core.ted import check_ted_against_caf, parse_ted
-from odoo.addons.step_l10n_cl_edi_core.dte_signature import DTEError, verify_signed_dte
+from odoo.addons.step_l10n_cl_edi_core.ted import TEDContext, check_ted_against_caf, parse_ted
+from odoo.addons.step_l10n_cl_edi_core.dte_signature import DTEContext, DTEError, verify_signed_dte
 
 
 MODEL = 'l10n_cl.dte.caf'
@@ -121,11 +121,24 @@ class CAFCustodyMixin:
             ted = parse_ted(decode_original(file_data))
         except (UserError, CAFError):
             raise UserError(_('El timbre no tiene un formato válido.')) from None
+        record = model._step_custody_find_original(ted.issuer_rut, ted.document_type, ted.folio)
+        return dict(record.step_custody_check_ted(file_data), caf_id=record.id)
+
+    @api.model
+    def _step_custody_find_original(self, issuer, kind, folio):
+        model = self.env[MODEL].sudo(False)
+        model._step_custody_scope()
         company = model.env.company
-        if ted.issuer_rut != company_rut(company):
-            raise UserError(_('El emisor del timbre debe corresponder a la empresa activa.'))
+        try:
+            verified_issuer = normalize_rut(issuer)
+        except CAFError:
+            raise UserError(_('El emisor del documento debe tener un RUT válido.')) from None
+        if verified_issuer != company_rut(company):
+            raise UserError(_('El emisor del documento debe corresponder a la empresa activa.'))
+        if type(kind) is not int or type(folio) is not int or not (0 < kind <= 999 and 0 < folio < 10**10):
+            raise UserError(_('El tipo de documento y el folio deben ser válidos.'))
         document = model.env['l10n_latam.document.type'].with_context(active_test=False).search([
-            ('country_id.code', '=', 'CL'), ('code', '=', str(ted.document_type))], limit=2)
+            ('country_id.code', '=', 'CL'), ('code', '=', str(kind))], limit=2)
         error = _('El folio requiere un único CAF del emisor y tipo de documento.')
         if len(document) != 1:
             raise UserError(error)
@@ -135,14 +148,13 @@ class CAFCustodyMixin:
         model.flush_model(['company_id', 'l10n_latam_document_type_id', 'start_nb', 'final_nb'])
         model.env.cr.execute("""SELECT id FROM l10n_cl_dte_caf
             WHERE company_id=%s AND l10n_latam_document_type_id=%s AND start_nb<=%s AND final_nb>=%s
-            ORDER BY id LIMIT 2""", (company.id, document.id, ted.folio, ted.folio))
+            ORDER BY id LIMIT 2""", (company.id, document.id, folio, folio))
         ids = [row[0] for row in model.env.cr.fetchall()]
         if len(ids) != 1:
             raise UserError(error)
         record = model.browse(ids)
-        # The normal record and field permissions are rechecked when the
-        # original attachment is read. Range metadata alone cannot verify a TED.
-        return dict(record.step_custody_check_ted(file_data), caf_id=record.id)
+        record._step_custody_scope()
+        return record
 
     def _step_custody_assert_caf_metadata(self, parsed):
         self.ensure_one()
@@ -156,20 +168,31 @@ class CAFCustodyMixin:
             raise UserError(_('Los datos del registro CAF no coinciden con su archivo original; la validación no los modifica.'))
 
     def _step_custody_check_signed_dte(self, file_data, certificate_pin, dte_context):
-        """Server-only verification against this CAF, never a signing RPC.
+        """Verify against the selected CAF or look it up by the independent expected folio.
 
         The explicit certificate pin authenticates only its bytes/key. No
         arbitrary authority map can be supplied here, so CAF authority, signer
         fiscal authorization and folio operations always remain unverified.
         """
-        self.ensure_one()
-        original = self._step_custody_original_bytes()  # roles/company first
+        record = self
+        if not record:
+            model = self.env[MODEL].sudo(False)
+            model._step_custody_scope()
+            if not isinstance(dte_context, DTEContext) or not isinstance(dte_context.ted_context, TEDContext):
+                raise UserError(_('Se requiere el contexto original del DTE.'))
+            expected = dte_context.ted_context
+            record = model._step_custody_find_original(expected.issuer_rut, expected.document_type, expected.folio)
+        record.ensure_one()
+        original = record._step_custody_original_bytes()
         try:
             result = verify_signed_dte(decode_original(file_data), original, certificate_pin, dte_context)
         except (UserError, DTEError):
             raise UserError(_('El DTE no coincide con el CAF y contexto indicados o su firma, certificado y esquema no son válidos.')) from None
-        self._step_custody_assert_caf_metadata(result.ted_verification.ted._caf)
-        return result.metadata()
+        record._step_custody_assert_caf_metadata(result.ted_verification.ted._caf)
+        metadata = result.metadata()
+        if not self:
+            metadata['caf_id'] = record.id
+        return metadata
 
     def step_custody_upload(self, *args, **kwargs):
         # The native reference adds only custody reads; its original upload and
