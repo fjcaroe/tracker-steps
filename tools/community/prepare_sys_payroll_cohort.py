@@ -85,7 +85,14 @@ END
     return {'max_id': last, 'rows': count, 'columns': list(keys)}
 
 
-def prepare(cr, database, graph):
+def original_xml_cutoff(cr):
+    cr.execute('SELECT max(id), count(*) FROM ir_model_data')
+    high, rows = cr.fetchone()
+    require(high and rows, 'SyS original XML catalog missing')
+    return {'max_id': high, 'rows': rows}
+
+
+def prepare(cr, database, graph, pre_adoption_xml=None):
     require(re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', database),
             'sys-cohort-new-private-database-required')
     cr.execute('SELECT current_database()')
@@ -195,7 +202,20 @@ def prepare(cr, database, graph):
     cr.execute("UPDATE ir_module_module SET state='uninstalled' WHERE state='installed' AND name=ANY(%s)",
                (sorted(excluded),))
     require(cr.rowcount == len(excluded), 'sys-cohort-concurrent-module-drift')
+    if pre_adoption_xml is None:
+        pre_adoption_xml = {k: guards['ir_model_data'][k] for k in ('rows', 'max_id')}
+    else:
+        # Only the source prefix is used for the 25-table native comparison.
+        # The DB triggers protect the larger post-adoption catalog in full.
+        require(set(pre_adoption_xml) == {'max_id', 'rows'}
+                and all(type(v) is int and v > 0 for v in pre_adoption_xml.values())
+                and pre_adoption_xml['max_id'] <= guards['ir_model_data']['max_id'],
+                'SyS original XML cutoff invalid')
+        cr.execute('SELECT count(*), max(id) FROM ir_model_data WHERE id<=%s', (pre_adoption_xml['max_id'],))
+        require(cr.fetchone() == (pre_adoption_xml['rows'], pre_adoption_xml['max_id']),
+                'SyS original XML rows changed during pre-adoption')
     return {'database': database, 'structure_storage': rule_storage, 'roles': roles,
+            'pre_adoption_xml': pre_adoption_xml,
             'mandatory_columns': required_inventory(cr), 'retained_supplier_aliases': retained,
             'protected': guards, 'excluded': sorted(excluded),
             'original_graph_database': graph['database'], 'integral_conversion': False}

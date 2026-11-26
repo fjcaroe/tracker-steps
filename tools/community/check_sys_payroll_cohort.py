@@ -29,7 +29,13 @@ def main():
     require(baseline['stage'] == 'reference-restored' and baseline['preserved'] is True
             and plan['database'] == args.database, 'sys-cohort-postflight-identity')
     original = baseline['snapshot']
-    xml_guard = plan['protected']['ir_model_data']
+    # A source field may be adopted by its real module before freezing
+    # ir.model.fields. Protect aliases introduced by that installation in the
+    # guard and compare the original prefix to the sealed native reference.
+    protected = plan['protected']['ir_model_data']
+    xml_guard = plan.get('pre_adoption_xml', protected)
+    require(xml_guard['max_id'] <= protected['max_id'] and xml_guard['rows'] <= protected['rows'],
+            'sys-cohort-invalid-pre-adoption-xml-prefix')
     require(xml_guard['rows'] == original['projections']['ir_model_data']['rows']
             and type(xml_guard['max_id']) is int, 'sys-cohort-original-xml-cutoff')
     os.umask(0o077)

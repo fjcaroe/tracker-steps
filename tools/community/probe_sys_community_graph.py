@@ -23,7 +23,7 @@ def main():
     p.add_argument('--data-dir', required=True)
     p.add_argument('--output', type=Path, required=True)
     args = p.parse_args()
-    if not re.fullmatch(r'COMMUNITY_SYS_PREVIRED_ADMISSION_[A-Z0-9_]{1,30}', args.database):
+    if not re.fullmatch(r'COMMUNITY_SYS_PREVIRED_(?:ADMISSION|COHORT)_[A-Z0-9_]{1,30}', args.database):
         raise ValueError('A private SyS admission derivative is required.')
     config.parse_config(['-c', args.odoo_config, '-d', args.database,
                          '--db-filter=^' + args.database + '$', '--db_host=/var/run/postgresql',
