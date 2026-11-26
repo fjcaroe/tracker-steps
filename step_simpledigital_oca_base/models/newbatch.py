@@ -54,6 +54,9 @@ def _stored(records):
 def _lock_relation(records, name):
     _read(records, [name])
     field = records._fields[name]
+    if field.type == "one2many":
+        children = _children(records, field.comodel_name, field.inverse_name)
+        return [(child[field.inverse_name].id, child.id) for child in children]
     records.flush_recordset([name])
     records.env.cr.execute(sql.SQL("SELECT {},{} FROM {} WHERE {}=ANY(%s) ORDER BY {},{} FOR SHARE").format(
         sql.Identifier(field.column1), sql.Identifier(field.column2), sql.Identifier(field.relation),

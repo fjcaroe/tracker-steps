@@ -1,3 +1,10 @@
+from odoo.addons.payroll import models as oca_models
+
+# The SyS first-init overlay registers this exact master with the OCA engine
+# so its native related fields already resolve during the first reflection.
+if not hasattr(oca_models, "step_sys_input_type"):
+    from . import input_type
+
 from . import payroll
 
 from . import work_entries

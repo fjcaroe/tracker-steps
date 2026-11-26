@@ -15,9 +15,10 @@ class HrPayslipRun(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        batches = super().create(vals_list)
-        if any(not batch.journal_id for batch in batches):
-            raise ValidationError(_("Select a salary journal for the new payroll batch."))
+        with self.env.cr.savepoint():
+            batches = super().create(vals_list)
+            if any(not batch.journal_id for batch in batches):
+                raise ValidationError(_("Select a salary journal for the new payroll batch."))
         return batches
 
     def write(self, vals):

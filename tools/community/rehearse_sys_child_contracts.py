@@ -74,7 +74,7 @@ def verify_unknown_field_witness(cursor, witness):
             'sys-history-witness-journal-fk-drift')
 
 
-def rehearse_unknown_fields(cursor, snapshot):
+def rehearse_unknown_fields(cursor, snapshot, fields_by_table=UNKNOWN_FIELDS):
     # Add columns without defaults: the old rows provide no historical value.
     cursor.execute("""
         LOCK TABLE public.hr_payslip_run, public.hr_payslip_line, public.account_journal
@@ -87,7 +87,7 @@ def rehearse_unknown_fields(cursor, snapshot):
     """)
     require(cursor.fetchone()[0] == 0, 'sys-history-unreviewed-batch-triggers')
     summaries = {}
-    for table, fields in UNKNOWN_FIELDS.items():
+    for table, fields in fields_by_table.items():
         relation = 'public.' + identifier(table)
         original = snapshot['columns'][table]
         require(not fields.keys() & original.keys(), 'sys-history-new-columns-required:' + table)

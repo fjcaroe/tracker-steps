@@ -78,16 +78,28 @@ class StoredPayslipReport(models.AbstractModel):
         self.env['hr.payroll.structure'].check_field_access_rights('read', list(required))
         self.env['hr.salary.rule.category'].check_field_access_rights('read', ['code'])
 
-        self.env.cr.execute("""SELECT l.id,l.slip_id,l.salary_rule_id,l.code,l.appears_on_payslip,
-            l.amount,l.quantity,l.rate,l.total,c.code
-            FROM hr_payslip_line l LEFT JOIN hr_salary_rule_category c ON c.id=l.category_id
+        line_records = children['hr.payslip.line']
+        # SyS exposes visibility and category through its original salary rule.
+        # OCA stores both on the line. Use the authorized line's declared fields
+        # for presentation and preserve the literal stored amounts below.
+        categories = {line.id: line.category_id.id for line in line_records}
+        visible = {line.id: line.appears_on_payslip for line in line_records}
+        self.env.cr.execute('SELECT id,code FROM hr_salary_rule_category WHERE id=ANY(%s)',
+                            [sorted({ident for ident in categories.values() if ident})])
+        category_codes = dict(self.env.cr.fetchall())
+        self.env.cr.execute("""SELECT l.id,l.slip_id,l.salary_rule_id,l.code,l.amount,l.quantity,l.rate,l.total
+            FROM hr_payslip_line l
             WHERE l.id=ANY(%s) ORDER BY l.slip_id,l.sequence,l.id""", [children['hr.payslip.line'].ids])
-        lines = {row[0]: dict(zip(('id', 'slip_id', 'salary_rule_id', 'code', 'visible',
-            'amount', 'quantity', 'rate', 'total', 'category'), row)) for row in self.env.cr.fetchall()}
-        self.env.cr.execute('SELECT id,payslip_id,code,number_of_days,number_of_hours '
+        lines = {row[0]: dict(zip(('id', 'slip_id', 'salary_rule_id', 'code', 'amount', 'quantity', 'rate', 'total'), row),
+                              visible=visible[row[0]], category=category_codes.get(categories[row[0]]))
+                 for row in self.env.cr.fetchall()}
+        worked_days = children['hr.payslip.worked_days']
+        codes = {day.id: day.code for day in worked_days}
+        self.env.cr.execute('SELECT id,payslip_id,number_of_days,number_of_hours '
                             'FROM hr_payslip_worked_days WHERE id=ANY(%s) ORDER BY id',
-                            [children['hr.payslip.worked_days'].ids])
-        days = {row[0]: dict(zip(('id', 'slip_id', 'code', 'days', 'hours'), row)) for row in self.env.cr.fetchall()}
+                            [worked_days.ids])
+        days = {ident: {'id': ident, 'slip_id': slip_id, 'code': codes[ident], 'days': number, 'hours': hours}
+                for ident, slip_id, number, hours in self.env.cr.fetchall()}
 
         # These presentation-only properties belong to the structure of an
         # already authorized slip. Employees do not gain payroll configuration
