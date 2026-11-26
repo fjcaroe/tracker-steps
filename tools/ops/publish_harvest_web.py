@@ -169,6 +169,7 @@ def main():
     parser.add_argument('--package', type=Path)
     parser.add_argument('--stage', type=Path)
     parser.add_argument('--expected-js-sha256', help='Observed pre-deployment build; reject concurrent static changes')
+    parser.add_argument('--wait-for-lease', action='store_true', help='Wait for the shared publication lock')
     args = parser.parse_args()
     assert os.geteuid() == 0
     web = args.web
@@ -183,7 +184,8 @@ def main():
     target = json.loads((Path(__file__).parent/'environments.json').read_text())['environments'][args.environment]
     assert target['url'].rstrip('/') == 'https://'+HOSTS[args.environment]
     with open('/run/lock/steps-environments.lock', 'a') as lease:
-        fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        flags = fcntl.LOCK_EX if args.wait_for_lease else fcntl.LOCK_EX | fcntl.LOCK_NB
+        fcntl.flock(lease, flags)
         if args.action == 'verify':
             print('HARVEST_WEB_SERVED_OK '+json.dumps(public_hashes(HOSTS[args.environment], manifest)))
             return
