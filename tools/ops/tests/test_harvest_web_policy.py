@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harvest_web_policy import (ANDROID_REVIEW_CHECKS, is_copy_sync_request,
     require_copy_sync_certificate, static_copy_identity, validate_android_review,
     validate_static_copy, validate_operations_copy, validate_operations_review,
-    OPERATIONS_REVIEW_CHECKS, OPERATIONS_V9_REVIEW_CHECKS, validate_operations_smokes,
+    OPERATIONS_REVIEW_CHECKS, OPERATIONS_V9_REVIEW_CHECKS, STANDARD_WEIGHT_REVIEW_CHECKS, validate_operations_smokes,
     require_operations_publication, validate_reviewed_messages)
 from native_business_profile import scoped_existing_user_environment
 
@@ -103,6 +103,26 @@ class AndroidPolicyCase(unittest.TestCase):
 
 
 class OperationsPolicyCase(unittest.TestCase):
+    def test_combined_release_requires_matching_backend_and_both_mobile_workflows(self):
+        frontend = dict(self.frontend, version='0.0.11')
+        stage = self.stage.replace('t236237', 't243')
+        proof = dict(self.proof, database=self.proof['database'].replace('t236237', 't243'),
+                     backend_versions={'step_harvest_launcher': '18.0.1.6.0'})
+        new_checks = (*STANDARD_WEIGHT_REVIEW_CHECKS, 'capture_without_tarja', 'worker_tarja_association_off')
+        review = dict(self.review, **dict.fromkeys((*OPERATIONS_V9_REVIEW_CHECKS, *new_checks), True))
+        review.update(database=proof['database'], reviewed_messages={236: 10650, 237: 10648, 242: 10673, 243: 10677})
+        require_operations_publication(frontend)
+        validate_operations_review(frontend, 'qa-cerro', stage, proof, review)
+        for check in new_checks:
+            with self.subTest(check=check), self.assertRaises(AssertionError):
+                validate_operations_review(frontend, 'qa-cerro', stage, proof, dict(review, **{check: False}))
+        with self.assertRaises(AssertionError):
+            validate_operations_copy(frontend, 'qa-cerro', stage,
+                dict(proof, backend_versions={'step_harvest_launcher': '18.0.1.5.0'}))
+        with self.assertRaises(AssertionError):
+            validate_operations_review(frontend, 'qa-cerro', stage, proof,
+                dict(review, reviewed_messages={236: 10650, 237: 10648, 242: 10673}))
+
     def test_v9_requires_revised_backend_human_answers_and_every_new_ui_check(self):
         frontend = {'version': '0.0.9', 'commit': 'a'*40}
         stage = 'management_development_t236237_' + 'b'*8
