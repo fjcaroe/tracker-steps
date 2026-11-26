@@ -4,6 +4,8 @@ Run only against a fresh private native Cerro control and an already loaded
 registry. The observer opens an official read-only connection, reads no payroll
 history/formula/amount fields, grants nothing and does not derive a target rule.
 """
+from original_anchor_paths import private_artifact
+
 import hashlib
 import json
 import os
@@ -184,14 +186,14 @@ def run(env, capsule_path, capsule_sha256, *, actor_uid=7, company_ids=(1, 2, 3,
     require(re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_REFERENCE_[A-Za-z0-9_]+', database),
         'fresh-private-original-native-control-required')
     output = Path(output).resolve()
-    require(output.is_relative_to(Path('/opt/steps-validation')) and output.parent.is_dir() and not output.exists(),
+    require(private_artifact(output) and output.parent.is_dir() and not output.exists(),
         'new-private-source-proof-required')
     raw = Path(capsule_path).read_bytes()
     require(capsule_sha256 == CAPSULE_SHA256 == sha(raw), 'original-source-capsule-seal-differs')
     capsule = json.loads(raw); expected = expected_projection(capsule)
     inventory_path = Path(source_inventory_path)
     require(inventory_path.is_file() and not inventory_path.is_symlink()
-        and inventory_path.resolve().is_relative_to(Path('/opt/steps-validation'))
+        and private_artifact(inventory_path)
         and inventory_path.stat().st_mode & 0o777 == 0o600, 'private-source-graph-inventory-required')
     inventory_raw = inventory_path.read_bytes()
     source_inventory_graph(inventory_raw)

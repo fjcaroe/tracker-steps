@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import stat
 
+from original_anchor_paths import private_artifact
 import payroll_configuration_adoption_preflight as gate
 from plan_original_payroll_bootstrap import original_aliases
 
@@ -30,7 +31,7 @@ TABLES = {'hr.payroll.structure': 'hr_payroll_structure',
 
 def _read_sealed(path, expected_sha256):
     path = Path(path).resolve()
-    gate.require(path.is_relative_to(Path('/opt/steps-validation'))
+    gate.require(private_artifact(path)
         and stat.S_IMODE(path.stat().st_mode) == 0o600, 'private-sealed-bootstrap-input-required')
     raw = path.read_bytes()
     gate.require(hashlib.sha256(raw).hexdigest() == expected_sha256, 'bootstrap-source-file-hash-mismatch')

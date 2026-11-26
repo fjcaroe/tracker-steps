@@ -4,6 +4,8 @@ No difference is accepted here. Original UI memberships, row hashes, cache
 metadata and expiration values are compared explicitly; no financial values,
 message bodies or attachment content leave PostgreSQL in this report.
 """
+from original_anchor_paths import private_artifact
+
 import argparse
 import ast
 from collections import Counter
@@ -172,7 +174,7 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('stage','review','output'):parser.add_argument('--'+name,type=Path,required=True)
     args=parser.parse_args()
-    require(not args.output.exists() and args.output.resolve().is_relative_to(Path('/opt/steps-validation')), 'new-private-output-required')
+    require(not args.output.exists() and private_artifact(args.output), 'new-private-output-required')
     result=classify(args.stage,args.review)
     with os.fdopen(os.open(args.output,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'w') as stream:json.dump(result,stream,indent=2)
     print('S7_PRESERVATION_CLASSIFIED_READONLY',result['menus']['all_original_pairs_preserved'],

@@ -1,4 +1,6 @@
 """Gate the physical relation additions of a private original-payroll handover."""
+from original_anchor_paths import private_artifact
+
 import argparse
 import hashlib
 import json
@@ -139,7 +141,7 @@ def main():
         parser.add_argument('--' + name, required=True, type=Path)
     args = parser.parse_args()
     stage = args.stage.resolve()
-    require(stage.is_relative_to('/opt/steps-validation') and args.review.resolve().parent == stage
+    require(private_artifact(stage) and args.review.resolve().parent == stage
         and args.output.resolve().parent == stage, 'private-stage-and-receipt-required')
     plan = json.loads((stage / 'handover-plan.json').read_bytes())
     target, source = plan['database'], plan['reference_database']

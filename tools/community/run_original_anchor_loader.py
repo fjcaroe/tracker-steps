@@ -5,6 +5,8 @@ isolation, complete witnesses and already installed SQL guards. This wrapper
 does not stage databases, uninstall modules, change source or replace cleanup.
 All ordinary installer writes remain the original Odoo CLI's responsibility.
 """
+from original_anchor_paths import private_artifact
+
 import argparse
 import ast
 import functools
@@ -30,7 +32,6 @@ TABLES = ('ir_model_data', 'ir_model', 'ir_model_fields', 'ir_model_fields_selec
           'hr_payroll_structure', 'hr_payroll_structure_type', 'hr_payslip_input_type',
           'hr_salary_rule', 'hr_salary_rule_category', 'ir_act_report_xml', 'res_groups_report_rel')
 DATABASE = r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+'
-PRIVATE_ROOT = Path('/opt/steps-validation')
 OWN = ('step_payroll_contracts', 'step_payroll_oca_api', 'step_simpledigital_oca_base',
        'step_simpledigital_oca_security', 'step_payroll_original_report')
 
@@ -52,7 +53,7 @@ def parse_arguments(arguments):
     gate.require(re.fullmatch(DATABASE, options.database), 'new-private-original-handover-required')
     gate.require(options.capsule_sha256 == retention.CAPSULE_SHA256, 'unreviewed-original-capsule-version')
     gate.require(re.fullmatch(r'[0-9a-f]{64}', options.identity_before_sha256), 'identity-before-hash-required')
-    gate.require(options.receipt.resolve().is_relative_to(PRIVATE_ROOT)
+    gate.require(private_artifact(options.receipt)
         and options.receipt.parent.is_dir() and not options.receipt.exists(), 'new-private-loader-receipt-required')
     options.launch_plan = validate_odoo_arguments(odoo_args, options.database)
     return options, odoo_args

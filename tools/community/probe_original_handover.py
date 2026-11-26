@@ -15,6 +15,7 @@ import re
 import stat
 import traceback
 
+from original_anchor_paths import private_artifact
 import payroll_configuration_adoption_preflight as gate
 import original_handover_visibility_contract as visibility
 import original_handover_view_query as core_view
@@ -24,7 +25,6 @@ import original_handover_menu_contract as menu_contract
 
 CAPSULE_SHA256 = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
 DATABASE = r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+'
-PRIVATE_ROOT = Path('/opt/steps-validation')
 ADMISSION_SCOPES = ('full', 'projection-only')
 HISTORY_TABLES = {
     'hr_payslip', 'hr_payslip_line', 'hr_payslip_input',
@@ -94,7 +94,7 @@ def identifier(value):
 
 def sealed_json(path, expected):
     path = Path(path)
-    require(path.is_absolute() and path.resolve().is_relative_to(PRIVATE_ROOT)
+    require(path.is_absolute() and private_artifact(path)
         and not path.is_symlink(), 'sealed-input-outside-private-root')
     info = path.stat()
     require(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600,
@@ -593,7 +593,7 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
     require(re.fullmatch(DATABASE, env.cr.dbname or ''), 'private-original-handover-database-required')
     require(capsule_sha256 == CAPSULE_SHA256, 'unreviewed-original-capsule')
     output = Path(output_path)
-    require(output.is_absolute() and output.resolve().is_relative_to(PRIVATE_ROOT)
+    require(output.is_absolute() and private_artifact(output)
         and output.parent.is_dir() and not output.exists() and not output.is_symlink(),
         'new-private-output-required')
     result = {'schema': 1, 'database': env.cr.dbname, 'probe_sha256': sha(Path(__file__).read_bytes()),

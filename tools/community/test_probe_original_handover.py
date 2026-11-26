@@ -131,7 +131,7 @@ class HandoverProbeCase(unittest.TestCase):
             root = Path(folder)
             source = root / 'source.json'
             source.write_text('{"private":"opaque"}')
-            with patch.object(probe, 'PRIVATE_ROOT', root):
+            with patch.object(probe, 'private_artifact', lambda path: path.resolve().is_relative_to(root)):
                 with patch.object(probe.stat, 'S_IMODE', return_value=0o600):
                     self.assertEqual(probe.sealed_json(source, probe.sha(source.read_bytes())), {'private': 'opaque'})
                     with self.assertRaises(probe.ProbeBlocked):
