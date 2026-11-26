@@ -1,5 +1,36 @@
 # Referencia real SyS e identidad de conceptos históricos — 28-10-2026
 
+## U41 · Previred v98 en la restauración completa de SyS
+
+El asistente original de Previred validó y generó octubre de 2026 con el
+operador original en la restauración nativa U40N. Las cinco liquidaciones
+produjeron cinco filas de 105 campos, sin descartes ni anexos. El aporte AFP
+de cada fila coincidió con AFP + AFP_EMP almacenado en SQL. El TXT fue
+idéntico byte por byte al del ensayo nativo U33 y conserva los dos avisos
+de asignación familiar trasladada a IPS. Coincidieron los snapshots de
+liquidaciones, asientos, contratos, días, entradas y correlativos de
+negocio. Se revirtieron las filas del asistente y del lote.
+
+La prueba usó el bloqueo compartido, socket local y red aislada. Reutilizó
+U40N y su respaldo ya verificado. Recibo privado
+`~/.codex/local-artifacts/community-resume-20261125/U41/sys-u40n-previred.log`
+con SHA-256
+`4841fb5819a24d6f85fabeb1d2a568c08c1240f77500efc5d9e61b6bb794352a`.
+El inventario completo U41 coincidió con U40, incluidos caminos Enterprise,
+fuentes privadas y módulos fuera de Cerro. Su SHA-256 es
+`4000869f2c1ca59fc378e39361809fde3accdf07fced47a960bf4f4d68c622cd`.
+
+`tools/community/compare_sys_previred_v98.py REFERENCIA CANDIDATA --community`
+comprueba la misma compañía y operador, AFP SQL, avisos, hash del TXT,
+preservación, rollback y una única cohorte de octubre con cero Enterprise.
+Se verificó la rama nativa del comparador con ambos recibos reales y se
+rechazaron seis variantes de recibo alterado. La opción Community queda
+preparada para el recibo de SyS. El ensayo de admisión conserva su guard
+de histórico, que bloqueó una escritura de inicialización sobre líneas en
+U40C triald. No se inició otro upgrade ni se modificaron addons en U41.
+La aceptación Community de SyS, la pareja para el paquete de admisión y la
+conversión integral siguen pendientes.
+
 ## Libro de octubre de 2026 y referencia vigente de Nómina Chile
 
 El usuario ratificó el 26 de noviembre que SyS es el proyecto operativo de
