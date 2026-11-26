@@ -30,6 +30,10 @@ que ya estaban almacenados. El ensayo se revirtió en cada copia.
 La restauración nativa de SyS y la copia fresca de Cerro corresponden al
 respaldo de noviembre. En la derivada Community de SyS la adopción de los tres
 campos se hizo antes de proteger sus identidades y cargar los módulos libres.
+En esa derivada U40S coincidieron las 25 proyecciones contables y de nómina,
+los 53.659 identificadores externos originales, las 298 claves foráneas y los
+111 contadores. El recibo de preservación tiene SHA-256
+``adabfd405b17f65095ee7222fd86eac308cf6a8cce7270cf4367eb4d6b327fe9``.
 Restan las otras personalizaciones de SyS, incluida la impresión duplicada,
 y la aceptación en Desarrollo.
 
