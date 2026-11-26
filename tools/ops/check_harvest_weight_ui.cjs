@@ -37,8 +37,8 @@ async function main() {
         const packaging = data.harvest_packagings.find(row => row.kg_per_box >= 0.01);
         assert.ok(packaging, 'A Cosecha packaging with a positive weight is required');
         const workers = new Set(data.workers.map(row => row.id));
-        const crew = data.crews.find(row => row.worker_ids?.some(id => workers.has(id)) &&
-            (row.type === 'propio' || row.contractor));
+        const crew = data.crews.find(row => (row.type === 'propio' || row.contractor) &&
+            (mode === 'live' || row.worker_ids?.some(id => workers.has(id))));
         const worker = crew?.worker_ids.find(id => workers.has(id));
         const center = data.cost_centers.find(row => data.farms.some(farm => farm.id === row.farm_id) &&
             data.varieties.some(variety => variety.id === row.variety_id));
