@@ -64,6 +64,7 @@ def main():
                       candidate_graph_resolved=len(proposed), native_oeel=sum(v == 'OEEL-1' for v in installed.values()),
                       missing_installed=missing, candidate_engine_resolved=sorted(candidates & names),
                       candidate_engine_missing=sorted(candidates - names),
+                      resolved_dependencies={name: sorted(proposed[name].info['depends']) for name in sorted(names)},
                       previred_graph={n: n in names for n in sorted(installed) if 'previred' in n or
                                       n == 'l10n_cl_simpledigital_payroll'},
                       full_source_graph_resolved=not missing and candidates <= names,
