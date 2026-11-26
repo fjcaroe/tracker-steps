@@ -13,7 +13,8 @@ from pathlib import Path
 import re
 import uuid
 
-from harvest_web_policy import OPERATIONS_VERSIONS, REVISED_OPERATIONS_VERSIONS, require_copy_sync_certificate
+from harvest_web_policy import (OPERATIONS_VERSIONS, OPERATIONS_CASES, REVISED_OPERATIONS_VERSIONS,
+                                WEIGHT_VERSIONS, require_copy_sync_certificate)
 from smoke_harvest_android_sync import ReviewClient, positive_id, require_success, review_origin
 
 
@@ -49,8 +50,7 @@ def validate_operations_policy(origin, stage_name, proof, policy):
     assert frontend['version'] in OPERATIONS_VERSIONS
     assert re.fullmatch('[a-f0-9]{40}', proof['commit'])
     assert re.fullmatch('[a-f0-9]{64}', proof['release_sha256'])
-    prefix = 't242_' if frontend['version'] == '0.0.10' else 't236237_'
-    run_id = prefix + proof['commit'][:8]
+    run_id = OPERATIONS_CASES[frontend['version']][0] + '_' + proof['commit'][:8]
     assert stage_name == 'management_' + environment + '_' + run_id
     assert proof['database'] == 'MANAGEMENT_QA_' + environment.upper() + '_' + run_id
     assert proof['feature'] == 'harvest-app' and proof['business_preserved'] is True
@@ -201,7 +201,8 @@ def exercise_revised_operations(client, policy, run_uuid=None):
              'tarja': 'QA-OPS-' + run_uuid[-12:], 'row': 'QA-OPERATIONS', 'boxes': 1, 'kilos': 1,
              'event_datetime': datetime.now(timezone.utc).isoformat()}
     pending = dict(first, client_uuid=run_uuid + '-PENDING', tarja=first['tarja'] + '-PENDING')
-    weights = policy.get('harvest_web', {}).get('version') == '0.0.10'
+    version = policy.get('harvest_web', {}).get('version')
+    weights = version in WEIGHT_VERSIONS
     if weights:
         packaging = next((row for row in bootstrap['harvest_packagings'] if row['kg_per_box'] >= 0.01), None)
         assert packaging, 'Select an existing company with a Cosecha packaging and kilos per box'
@@ -296,13 +297,25 @@ def exercise_revised_operations(client, policy, run_uuid=None):
         manual_order = {key: work_order[key] for key in ('crew_id', 'farm_id', 'variety_id', 'cost_id', 'approver_id')}
         manual_order['id'] = manual_order['client_uuid'] = run_uuid + '-MANUAL-OT'
         manual = dict(first, client_uuid=run_uuid + '-MANUAL', work_order=manual_order, boxes=2, kilos=9.27)
+        if version == '0.0.11':
+            assert bootstrap['allows_without_tarja'] is True
+            manual_order['without_tarja'] = True
+            manual['tarja'] = ''
         status, saved = client.request('POST', '/api/harvest/sync', {'scope': scope, 'records': [manual]})
         require_success(status, saved, 'Manual hundredths')
         result, = saved['results']
         assert result['ok'] is True and result['duplicate'] is False
-        row, = read_native_manifest(client, result['work_order_id'], fields)
+        row, = read_native_manifest(client, result['work_order_id'], (*fields, 'num_tarja'))
         assert (row['qty_caja'], row['qty_kg'], row['quantity']) == (2, 9.27, 9.27)
         weight_evidence = {'native_standard_weight': True, 'native_manual_hundredths': True}
+        if version == '0.0.11':
+            assert not row['num_tarja']
+            status, closed = client.request('POST', '/api/harvest/orders/transition', {
+                'scope': scope, 'work_order': {'odoo_id': result['work_order_id']}, 'action': 'close',
+                'delivery_uuids': [manual['client_uuid']]})
+            require_success(status, closed, 'Close without a tarja')
+            assert closed['order']['without_tarja'] and closed['order']['status'] == 'Cerrada'
+            weight_evidence['native_capture_without_tarja'] = True
     return {'run_uuid': run_uuid, 'native_order_id': order_id, 'native_line_id': first_id,
             'native_line_ids': [first_id, ack['id']], 'native_worker_id': worker_id, 'native_crew_id': crew['id'],
             'native_approver_id': policy['user_id'], 'new_lines': 2, 'native_context': True,

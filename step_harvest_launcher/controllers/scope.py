@@ -123,6 +123,7 @@ class ScopedHarvestApi(StepHarvestApi):
                     cuartel=record.cuartel_id.display_name or '',
                     crew_id=crew.id or False, crew_type=record.type_tarea,
                     standard_weight=record.mobile_standard_weight,
+                    without_tarja=record.mobile_without_tarja,
                     packaging_id=packaging.id or False,
                     packaging=packaging.display_name if packaging and packaging.has_access('read') else '',
                     kg_per_box=record.mobile_kg_per_box)
@@ -135,6 +136,8 @@ class ScopedHarvestApi(StepHarvestApi):
             raise ValidationError(_('El envase de cosecha no coincide con el de la OT existente.'))
         if values.get('standard_weight') is True and not order.mobile_standard_weight:
             raise ValidationError(_('El modo de pesaje no coincide con el de la OT existente.'))
+        if values.get('without_tarja') is True and not order.mobile_without_tarja:
+            raise ValidationError(_('La OT existente registra cosecha con tarja.'))
         return order
 
     def _harvest_order_extra_values(self, values):
@@ -148,7 +151,8 @@ class ScopedHarvestApi(StepHarvestApi):
                 raise ValidationError(_('Seleccione un envase de cosecha con kilos por caja mayores que cero.'))
             if values.get('kg_per_box') != kg_per_box:
                 raise ValidationError(_('Los kilos por caja del maestro cambiaron. Revise el envase antes de sincronizar la OT.'))
-        return {'mobile_standard_weight': standard, 'mobile_packaging_id': packaging.id if packaging else False,
+        return {'mobile_standard_weight': standard, 'mobile_without_tarja': values.get('without_tarja') is True,
+                'mobile_packaging_id': packaging.id if packaging else False,
                 'mobile_kg_per_box': kg_per_box if standard else 0,
                 'product_uom_id': request.env.ref('uom.product_uom_unit' if standard else 'uom.product_uom_kgm').id}
 
@@ -216,6 +220,7 @@ class ScopedHarvestApi(StepHarvestApi):
         payload = dict(payload)
         if request.session.uid and 'orders' in payload and 'crews' in payload:
             payload['harvest_packagings'] = self._reference_data('harvest_packagings')
+            payload['allows_without_tarja'] = True
         payload['scope'] = environment_scope(request.env) if request.session.uid else False
         if request.session.uid and 'company' in payload:
             # Public controllers use the actual request company, just like

@@ -175,6 +175,34 @@ class HarvestNativeScopeCase(HttpCase):
             self.assertFalse(self.env['step.cosecha.tarja.registry.line'].search([
                 ('mobile_uid', '=', changed['client_uuid'])]))
 
+    def test_order_without_tarja_rejects_folio_and_retains_worker_and_quantity(self):
+        order = self.orders[0]
+        order.mobile_without_tarja = True
+        self.authenticate(self.users[0].login, 'private-fixture')
+        data = self.get_payload('/api/harvest/bootstrap')
+        self.assertTrue(data['allows_without_tarja'])
+        native = next(row for row in data['orders'] if row['odoo_id'] == order.id)
+        self.assertTrue(native['without_tarja'])
+        record = {'client_uuid': 'private_t243_delivery', 'worker_id': self.workers[0].id,
+                  'tarja': '', 'boxes': 2, 'kilos': 4.27, 'work_order': native}
+        headers = {'Content-Type': 'application/json'}
+        rejected = self.url_open('/api/harvest/sync', data=json.dumps({'scope': data['scope'],
+            'records': [dict(record, client_uuid='private_t243_unexpected_folio', tarja='UNEXPECTED')]}), headers=headers).json()
+        self.assertFalse(rejected['ok'])
+        payload = json.dumps({'scope': data['scope'], 'records': [record]})
+        result = self.url_open('/api/harvest/sync', data=payload, headers=headers).json()
+        self.assertTrue(result['ok'], result)
+        line = self.env['step.cosecha.tarja.registry.line'].browse(result['results'][0]['id'])
+        self.assertFalse(line.num_tarja)
+        self.assertEqual(line.employee_id, self.workers[0])
+        self.assertEqual((line.qty_caja, line.qty_kg), (2, 4.27))
+        repeat = self.url_open('/api/harvest/sync', data=payload, headers=headers).json()
+        self.assertEqual(repeat['results'][0]['id'], line.id)
+        closed = self.url_open('/api/harvest/orders/transition', data=json.dumps({'scope': data['scope'],
+            'work_order': native, 'action': 'close', 'delivery_uuids': [record['client_uuid']]}), headers=headers).json()
+        self.assertTrue(closed['ok'], closed)
+        self.assertEqual(closed['order']['status'], 'Cerrada')
+
     def test_plot_catalog_tracks_center_and_upload_saves_native_relation(self):
         company, foreign_company = self.companies
         env = self.env(context=dict(self.env.context, allowed_company_ids=self.companies.ids))

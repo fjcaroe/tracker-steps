@@ -16,7 +16,9 @@ async function main() {
         const page = await context.newPage();
         page.setDefaultTimeout(40000);
         await page.goto(`${origin}/cosecha/`, { waitUntil: 'domcontentloaded' });
-        await page.getByText(/· Harvest 0\.0\.10$/).waitFor();
+        const build = page.getByText(/· Harvest 0\.0\.(10|11)$/);
+        await build.waitFor();
+        const version = (await build.textContent()).split('Harvest ').at(-1);
         const data = await context.request.get(`${origin}/api/harvest/bootstrap`).then(response => response.json());
         assert.ok(data.ok && data.harvest_packagings.length);
         const packaging = data.harvest_packagings.find(row => row.kg_per_box >= 0.01);
@@ -82,9 +84,30 @@ async function main() {
         await manual.fill('9.27');
         assert.equal(await manual.evaluate(input => !input.readOnly && input.validity.valid && input.step === '0.01'), true);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        const withoutTarja = {};
+        if (version === '0.0.11') {
+            await page.getByTitle('Configuración', { exact: true }).click();
+            await page.locator('.setting').filter({ hasText: 'Folio de tarja' })
+                .getByRole('button', { name: 'Sin tarja', exact: true }).click();
+            await page.locator('.setting').filter({ hasText: 'Asociar trabajador a tarja' })
+                .getByText('Desactivado', { exact: true }).waitFor();
+            await draft(false);
+            await nav.getByRole('button', { name: /^Registrar(?:\s|$)/ }).click();
+            await page.getByRole('button', { name: 'Guardar entrega' }).waitFor();
+            assert.equal(await page.getByRole('button', { name: /^(Abrir|Cerrar) tarja$/ }).count(), 0);
+            assert.equal(await page.getByLabel('Tarja', { exact: true }).count(), 0);
+            if (mode === 'copy') {
+                await page.getByLabel('Trabajador', { exact: true }).selectOption(String(worker));
+                await page.getByLabel('Hilera', { exact: true }).fill('QA-T243');
+                await page.locator('.quantity-row input[type=number]').fill('9.27');
+                await page.getByRole('button', { name: 'Guardar entrega' }).click();
+                await page.getByText(/9\.27 kg ·/).waitFor();
+            }
+            Object.assign(withoutTarja, { capture_without_tarja: true, worker_tarja_association_off: true });
+        }
         fs.writeFileSync(output, JSON.stringify({ packaging_selector: true, standard_weight_readonly: true,
             manual_weight_hundredths: true, mobile_layout: true, local_weight_preserved: mode === 'copy',
-            native_context: true, version: '0.0.10', server_writes: false }, null, 2));
+            native_context: true, version, server_writes: false, ...withoutTarja }, null, 2));
     } finally {
         await browser.close();
     }

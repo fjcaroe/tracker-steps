@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+T243 (10677, adjunto 3644) autoriza Harvest 0.0.11 y `step_harvest_launcher`
+18.0.1.6.0 en Desarrollo, Cerro y QA-Cerro. La opción Folio de tarja → Sin tarja
+se aplica a las nuevas OT y desactiva la asociación de trabajador a folio.
+Se registra la cosecha con su trabajador, cajas y kilos nativos, dejando vacío
+el folio. No se abre ni cierra una tarja en el dispositivo. Se conservan las
+entregas ya registradas y su ciclo de cierre y aprobación por OT. Certificar
+el paquete en copias privadas `t243_<commit-backend>`, incluido el registro
+con y sin folio, el reintento de sincronización y la regresión de T242.
+
 T242 (10673, adjunto 3643) autoriza Harvest 0.0.10 y `step_harvest_launcher`
 18.0.1.5.0 en Desarrollo, Cerro y QA-Cerro. Las nuevas OT con peso estándar
 usan el embalaje nativo del grupo Cosecha y conservan sus kilos por caja al
