@@ -77,11 +77,8 @@ def checked_slips(env, ids):
     return slips
 
 
-def book(env, req, start, end, slips, key):
+def book(env, req, route, start, end, slips, key):
     from odoo.addons.l10n_cl_simpledigital_payroll.controllers import libro_remuneraciones
-    routes = [r for r in env['ir.http'].routing_map().iter_rules() if r.endpoint.__name__ == 'export_libro_remuneraciones_csv']
-    route, = routes
-    assert route.endpoint.routing['auth'] == 'user' and route.endpoint.routing['type'] == 'http'
     def download(header):
         res = route.endpoint(date_from=start.isoformat(), date_to=end.isoformat(),
                              include_header=str(header), company_id=env.company.id)
@@ -153,6 +150,9 @@ def refusal(exc, key):
 def run(shell, key, report_progress=None):
     if shell.cr.dbname not in DATABASES or not isinstance(key, bytes) or len(key) != 32:
         raise ValueError('Use the exact isolated SyS databases and a shared private comparison key')
+    routes = [r for r in shell['ir.http'].routing_map().iter_rules() if r.endpoint.__name__ == 'export_libro_remuneraciones_csv']
+    route, = routes
+    assert route.endpoint.routing['auth'] == 'user' and route.endpoint.routing['type'] == 'http'
     before = snapshot(shell)
     latest = closed_scope(shell)
     enterprise = shell['ir.module.module'].search_count([('license','=','OEEL-1'),('state','=','installed')])
@@ -182,7 +182,7 @@ def run(shell, key, report_progress=None):
                                     with cr.savepoint():
                                         slips = checked_slips(env, ids)
                                         if name == 'book':
-                                            actor[name] = operation(env, req, start, end, slips, key)
+                                            actor[name] = operation(env, req, route, start, end, slips, key)
                                         else:
                                             actor[name] = operation(env, start, end, slips, key)
                                 except (UserError, HTTPException) as exc:
