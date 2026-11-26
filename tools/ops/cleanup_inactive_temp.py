@@ -1,8 +1,9 @@
 """Plan and retire explicit, old, inactive Steps build directories.
 
-Whole directories must be direct /var/tmp/steps-* children and clean Git clones.
-Only generated node_modules/.venv/venv may be selected below those children;
-the source tree and its lock/requirements files are preserved in that case.
+Whole directories must be direct /var/tmp/steps-* children and clean Git clones
+whose HEAD is already represented by remote refs. Generated node_modules,
+.venv/venv, or recognized Playwright browsers may be selected below those
+children; the source tree and its lock/requirements files are preserved.
 Plans contain filesystem identities, never shell commands. No Odoo database,
 configuration, release, live log, or service is changed.
 """
@@ -30,6 +31,7 @@ MIN_AGE_SECONDS = 7 * 24 * 3600
 NAME = re.compile(r'steps-[A-Za-z0-9][A-Za-z0-9_.-]*')
 EVIDENCE_NAME = re.compile(r'server-disk-cleanup-[A-Za-z0-9][A-Za-z0-9_.-]*')
 DEPENDENCIES = {'node_modules', '.venv', 'venv'}
+BROWSER_REVISION = re.compile(r'(chromium|chromium_headless_shell|ffmpeg|firefox|webkit)-[0-9]+')
 IGNORED_BUILD = DEPENDENCIES | {'dist', 'build', '.cache', '.vite', '__pycache__',
     '.pytest_cache', '.mypy_cache', 'coverage', '.next', '.nuxt', '.turbo'}
 
@@ -81,22 +83,32 @@ def candidate_path(path, root=TEMP_ROOT):
         raise UnsafeCandidate('absolute, canonical, non-symlink path required')
     if path.parent == root and NAME.fullmatch(path.name):
         project, kind = path, 'clean_clone'
-    elif (path.name in DEPENDENCIES and path.parent.parent == root
+    elif (path.name in DEPENDENCIES | {'browsers'} and path.parent.parent == root
           and NAME.fullmatch(path.parent.name)):
-        project, kind = path.parent, 'dependencies'
+        project = path.parent
+        kind = 'browser_cache' if path.name == 'browsers' else 'dependencies'
     else:
         raise UnsafeCandidate('outside explicit Steps temporary build scope')
     if (project.is_symlink() or not project.is_dir() or path.is_symlink()
             or not path.is_dir() or path.stat().st_dev != root.stat().st_dev):
         raise UnsafeCandidate('real directories on the temporary filesystem required')
-    if kind == 'dependencies':
-        if path.name == 'node_modules':
+    if kind != 'clean_clone':
+        if path.name in {'node_modules', 'browsers'}:
             markers = [project / 'package-lock.json', project / 'npm-shrinkwrap.json']
         else:
             markers = list(project.glob('requirements*.txt'))
         if not any(marker.is_file() and not marker.is_symlink()
                    and marker.resolve().parent == project for marker in markers):
             raise UnsafeCandidate('dependency lock or requirements file missing')
+        if kind == 'browser_cache':
+            revisions = 0
+            for child in path.iterdir():
+                if (child.is_symlink() or not child.is_dir()
+                        or not (child.name == '.links' or BROWSER_REVISION.fullmatch(child.name))):
+                    raise UnsafeCandidate('browser cache contains an unrecognized entry')
+                revisions += bool(BROWSER_REVISION.fullmatch(child.name))
+            if not revisions:
+                raise UnsafeCandidate('browser cache has no recognized Playwright revision')
     return project, kind
 
 
@@ -104,10 +116,13 @@ def clean_git(path):
     gitdir = path / '.git'
     if not gitdir.is_dir() or gitdir.is_symlink():
         raise UnsafeCandidate('whole directory is not an independent Git clone')
-    result = subprocess.run(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false',
-        '-c', 'core.hooksPath=/dev/null', '-C', str(path), 'status', '--porcelain=v1',
+    command = ['git', '--no-optional-locks', '--no-replace-objects',
+               '-c', 'core.fsmonitor=false', '-c', 'core.hooksPath=/dev/null', '-C', str(path)]
+    environment = dict(os.environ, GIT_NO_LAZY_FETCH='1', GIT_TERMINAL_PROMPT='0',
+                       GIT_ALLOW_PROTOCOL='')
+    result = subprocess.run([*command, 'status', '--porcelain=v1',
         '-z', '--untracked-files=all', '--ignore-submodules=none', '--ignored=matching'],
-        capture_output=True, timeout=60, check=False)
+        capture_output=True, timeout=60, check=False, env=environment)
     if result.returncode:
         raise UnsafeCandidate('Git status could not establish a clean source tree')
     for entry in result.stdout.split(b'\0'):
@@ -118,6 +133,10 @@ def clean_git(path):
         name = Path(os.fsdecode(entry[3:]).rstrip('/'))
         if not any(part in IGNORED_BUILD for part in name.parts):
             raise UnsafeCandidate('ignored file is not a recognized build artifact')
+    published = subprocess.run([*command, 'rev-list', '--count', 'HEAD', '--not', '--remotes'],
+        capture_output=True, timeout=60, check=False, env=environment)
+    if published.returncode or published.stdout.strip() != b'0':
+        raise UnsafeCandidate('Git HEAD contains commits not represented by remote refs')
 
 
 def identity(info):
@@ -230,7 +249,7 @@ def apply_plan(plan, receipt, root=TEMP_ROOT, collect=runtime_references,
             if current != candidate:
                 raise UnsafeCandidate('filesystem identity or contents changed since plan')
             # Refresh process/config references immediately before deletion.
-            if any(str(path.parent if current['kind'] == 'dependencies' else path) in value
+            if any(str(path.parent if current['kind'] != 'clean_clone' else path) in value
                    for value in collect()):
                 raise UnsafeCandidate('project became referenced before deletion')
             if identity(path.lstat()) != candidate['identity']:
