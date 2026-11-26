@@ -124,7 +124,8 @@ def probe(env):
                 assert response.status_code == 200 and response.mimetype == 'application/pdf'
                 response.direct_passthrough = False
                 assert response.get_data() == raw
-                response.close()
+                if hasattr(response, 'close'):
+                    response.close()
             finally:
                 http._request_stack.pop()
         finally:

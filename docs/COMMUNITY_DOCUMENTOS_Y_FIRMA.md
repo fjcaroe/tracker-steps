@@ -93,3 +93,19 @@ La primera instalación encontró tres fechas del calendario legal ya cargadas.
 Sus cinco valores coincidían con los del paquete distribuido. La versión
 18.0.2.1.3 reconoce esa recarga idéntica y conserva las tres filas tal como
 están. Las modificaciones efectivas continúan sujetas al permiso técnico.
+La comparación de las columnas originales de los doce modelos persistentes
+del núcleo y de los vínculos contractuales confirmó los mismos datos en las
+trece tablas. Incluye las tres transiciones y las 21 causales de término.
+
+El usuario interno emitió un contrato de ensayo en esa copia desde el menú
+de emisión masiva. En la transacción se prepararon un contrato, una ubicación
+y una plantilla. El PDF incluyó la ubicación relacionada con el contrato.
+El permiso de lectura y la descarga por el controlador web permitieron obtener
+los mismos bytes que el original, con denegación al usuario público. Se
+verificaron los vínculos en el historial laboral y la preparación, reapertura
+y cancelación de una misma solicitud OCA sin destinatarios.
+
+El mismo paquete se probó en dos copias nativas de SyS con un emisor original.
+En una se ejercitó la firma manual mediante descarga. En la otra se le asignó
+durante el ensayo el permiso OCA de usuario de sus propios documentos.
+La asignación se revirtió junto con el contrato y el borrador.
