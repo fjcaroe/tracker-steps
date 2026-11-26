@@ -68,15 +68,19 @@ def render(env, account, row):
             'read_existing_record': bool(sample), 'rendered_sha256': digest_arch(rendered['arch'])}
 
 
-def capture(env, reference=None, adopted=None):
+def capture(env, reference=None, adopted=None, selected=None):
     definitions = inventory(env)
     if reference:
         assert definitions == reference['definitions']
+    wanted = set(definitions) if selected is None else set(selected)
+    assert wanted and wanted <= definitions.keys()
     accounts = env['res.users'].search([('active', '=', True), ('share', '=', False), ('id', '!=', 1)])
     accounts = accounts.sorted(lambda user: (user.id != 6, user.id != 2, user.id))
     qualified = {}
     errors = {}
     for alias, row in definitions.items():
+        if alias not in wanted:
+            continue
         if adopted is not None:
             assert env.ref(adopted[alias]) == env.ref('studio_customization.' + alias)
         candidates = accounts
@@ -95,4 +99,4 @@ def capture(env, reference=None, adopted=None):
     if reference:
         assert json.loads(json.dumps(qualified)) == reference['qualified']
     return {'definitions': definitions, 'qualified': qualified, 'errors': errors,
-            'resolved_views': len(qualified), 'active_views': len(definitions)}
+            'resolved_views': len(qualified), 'selected_views': len(wanted), 'active_views': len(definitions)}
