@@ -1,5 +1,19 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+U31 prepara la comparación literal de preservación de SyS para el ensayo v98.
+En una transacción de lectura repetible en cada copia privada, captura las
+columnas originales, huellas de filas e inventario de FK de 25 tablas de
+nómina, contabilidad, seguridad e identidades, y los correlativos de Odoo.
+El ejecutor debe mantener el bloqueo compartido y aislar las copias de otros
+escritores porque PostgreSQL no versiona los contadores en la transacción.
+Comparar la restauración inicial con la restauración candidata antes de Odoo,
+y repetir después del upgrade y del rollback de Previred con las mismas
+columnas. Los cambios en una fila original, una FK o un contador quedan
+identificados para revisión. Falta integrar este control al ejecutor privado
+y verificar sus proyecciones sobre el respaldo real junto con los contratos
+de permisos, navegación y v98. El control cubre el alcance indicado, y la
+aceptación integral requiere el inventario completo y el flujo Odoo.
+
 U30 prepara el preflight de SyS para el v98 de octubre. Antes de iniciar Odoo,
 el perfil `sys-previred` comprueba en una copia privada que existen ambas
 tablas de historial, con filas y con las columnas físicas originales de
