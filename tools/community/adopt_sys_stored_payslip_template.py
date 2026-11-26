@@ -47,7 +47,9 @@ def run(env):
         template, = tree.xpath('./template[@id="report_payslip" and @inherit_id="payroll.report_payslip"]')
         xml = etree.Element('odoo')
         xml.append(template)
-        convert_xml_import(env, 'step_simpledigital_oca_base', BytesIO(etree.tostring(xml)), mode='update')
+        extracted = BytesIO(etree.tostring(xml))
+        extracted.name = 'step_simpledigital_oca_base/views/compatibility.xml'
+        convert_xml_import(env, 'step_simpledigital_oca_base', extracted, mode='update')
         env.flush_all()
         after = fingerprint(env, view.id)
         if after != ACCEPTED or env.ref(VIEW) != view or env.ref('hr_payroll.action_report_payslip') != action:
