@@ -23,6 +23,12 @@ def validate_plan(plan):
             and set(r['name'] for r in rows)|set(missing)==set(names),'Incomplete/ambiguous scope')
     require(plan['old_packaging']['id']!=plan['new_packaging']['id'],'Packaging must change')
     require(len({t['id'] for r in rows for t in r['tags']})==sum(len(r['tags']) for r in rows),'Repeated tag')
+    for row in rows:
+        require(type(row['id']) is int and row['id']>0 and row['name'] in names,'Invalid receipt identity')
+        require(row['move_ids'] and len(set(row['move_ids']))==len(row['move_ids'])
+                and all(type(k) is int and k>0 for k in row['move_ids']),'Invalid operation identity')
+        require(row['tags'] and all(type(t['id']) is int and t['id']>0
+                and type(t['row_id']) is int and t['row_id']>0 for t in row['tags']),'Invalid tag identity')
 
 
 def repair(env, plan):
@@ -94,8 +100,9 @@ def repair(env, plan):
     require(all(d.company_id==company and d.state=='draft' and d.step_fruit_state=='draft'
                 and d.step_advance_basis=='received' and d.step_advance_proforma
                 and not d.invoice_ids and not d.step_fruit_generated_move_ids for d in drafts),'Only uninvoiced advance drafts may change')
-    lines=scoped['purchase.order.line'].browse([l['id'] for d in plan['drafts'] for l in d['lines']])
-    require(set(lines.ids)==set(drafts.order_line.ids),'Draft lines changed')
+    all_lines=scoped['purchase.order.line'].browse([l['id'] for d in plan['drafts'] for l in d['lines']])
+    require(set(all_lines.ids)==set(drafts.order_line.ids),'Draft lines changed')
+    lines=all_lines.filtered(lambda line:any(s['tag_id'] in tags.ids for s in line.step_fruit_source_rows or []))
     changes=[];seen=set()
     for line in lines:
         sources=copy.deepcopy(line.step_fruit_source_rows or [])
@@ -166,10 +173,12 @@ def repair(env, plan):
     require(etree.fromstring(view['arch']).xpath("//field[@name='product_packaging_id']"),'Native receipt form missing packaging')
     receipt_web=receipts.web_read({'name':{},'state':{},'move_ids':{'fields':{'product_packaging_id':{},'quantity':{},'step_fruit_packaging_qty':{}}}})
     for receipt in receipt_web:
-        require(all(m['product_packaging_id']['id']==target.id for m in receipt['move_ids']),'Native operation web read differs')
+        require(all((m['product_packaging_id'] if isinstance(m['product_packaging_id'],int)
+                     else m['product_packaging_id']['id'])==target.id for m in receipt['move_ids']),'Native operation web read differs')
     return {'database':env.cr.dbname,'ticket':241,'company_id':company.id,'user_id':scoped.uid,
         'receipts':[{'id':r.id,'name':r.name,'packaging_id':target.id,'boxes':boxes_before[r.id]} for r in receipts],
-        'tags':[{'id':t.id,'name':t.name,'packaging_id':t.step_packaging_id.id,'kilos':t.step_actual_kg,'boxes':t.box_count} for t in tags],
+        'tags':[{'id':t.id,'name':t.name,'receipt_id':t.step_process_reception_id.id,
+                 'packaging_id':t.step_packaging_id.id,'kilos':t.step_actual_kg,'boxes':t.box_count} for t in tags],
         'drafts':[{'id':d.id,'name':d.name,'total':d.amount_total,'state':d.step_fruit_state} for d in drafts],
         'missing_receipts':plan['missing_receipts'],'updated_rows':updated,'already_applied':already,
         'stock_quantities_ledger_lots_boxes_preserved':True,'prices_amounts_taxes_exchange_preserved':True,
