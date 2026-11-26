@@ -26,31 +26,30 @@ def digest(rows):
     return hashlib.sha256(json.dumps(rows, separators=(',', ':')).encode()).hexdigest()
 
 
-def protect_originals(cr):
-    # Snapshot the original IDs once. Even a compute invalidation on a
-    # different slip must not change an original row while probing new drafts.
-    cr.execute("CREATE TEMP TABLE sys_original_slips ON COMMIT DROP AS SELECT id FROM hr_payslip")
-    cr.execute("ALTER TABLE pg_temp.sys_original_slips ADD PRIMARY KEY(id)")
-    cr.execute("""
-        CREATE FUNCTION pg_temp.reject_original_payroll_write() RETURNS trigger
-        LANGUAGE plpgsql AS $guard$
+def protect_existing(cr, source, relations):
+    # All identifiers below come from the two fixed call sites. OLD and NEW
+    # must both be checked because a child can be reassigned to a different parent.
+    protected = 'sys_original_' + source
+    cr.execute(f"CREATE TEMP TABLE {protected} ON COMMIT DROP AS SELECT id FROM {source}")
+    cr.execute(f"ALTER TABLE pg_temp.{protected} ADD PRIMARY KEY(id)")
+    cr.execute(f"""
+        CREATE FUNCTION pg_temp.reject_{source}_write() RETURNS trigger LANGUAGE plpgsql AS $guard$
         BEGIN
-            IF TG_OP <> 'INSERT' AND EXISTS (SELECT FROM pg_temp.sys_original_slips
+            IF TG_OP <> 'INSERT' AND EXISTS (SELECT FROM pg_temp.{protected}
                     WHERE id = (to_jsonb(OLD)->>TG_ARGV[0])::int) THEN
-                RAISE EXCEPTION 'Original payroll write during draft replay';
+                RAISE EXCEPTION 'Original record changed during payroll replay';
             END IF;
-            IF TG_OP <> 'DELETE' AND EXISTS (SELECT FROM pg_temp.sys_original_slips
+            IF TG_OP <> 'DELETE' AND EXISTS (SELECT FROM pg_temp.{protected}
                     WHERE id = (to_jsonb(NEW)->>TG_ARGV[0])::int) THEN
-                RAISE EXCEPTION 'Original payroll write during draft replay';
+                RAISE EXCEPTION 'Original record changed during payroll replay';
             END IF;
             IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
             RETURN NEW;
         END $guard$
     """)
-    for table, key in (('hr_payslip', 'id'), ('hr_payslip_line', 'slip_id'),
-                       ('hr_payslip_input', 'payslip_id'), ('hr_payslip_worked_days', 'payslip_id')):
-        cr.execute(f"CREATE TRIGGER sys_protect_original_slip BEFORE INSERT OR UPDATE OR DELETE "
-                   f"ON public.{table} FOR EACH ROW EXECUTE FUNCTION pg_temp.reject_original_payroll_write('{key}')")
+    for table, key in relations:
+        cr.execute(f"CREATE TRIGGER sys_protect_before_replay BEFORE INSERT OR UPDATE OR DELETE "
+                   f"ON public.{table} FOR EACH ROW EXECUTE FUNCTION pg_temp.reject_{source}_write('{key}')")
 
 
 def day_facts(slip):
@@ -70,7 +69,27 @@ def admit_original_children(slip):
         records.browse([r[0] for r in slip.env.cr.fetchall()]).check_access('read')
 
 
-def replay(scope, original_id, employee, contract, structure, day_source):
+def confirmation(draft, original, calculated):
+    cr = draft.env.cr
+    draft.with_context(without_compute_sheet=True).action_payslip_done()
+    draft.env.flush_all()
+    assert draft.state == 'done' and draft.move_id and draft.move_id != original.move_id
+    assert calculated == amounts(cr, draft.id)
+    move = draft.move_id
+    move.check_access('read')
+    source = original.move_id
+    source.check_access('read')
+    assert source
+    cr.execute("SELECT id FROM pg_temp.sys_original_account_move WHERE id = %s", [move.id])
+    assert not cr.fetchall()
+    fields = ('state', 'move_type', 'date', 'journal_id', 'company_id')
+    return {'move_state': move.state, 'move_lines': len(move.line_ids),
+            'matches_original_header': all(move[k] == source[k] for k in fields),
+            'matches_original_line_count': len(move.line_ids) == len(source.line_ids),
+            'closed_payroll_amounts_unchanged': True}
+
+
+def replay(scope, original_id, employee, contract, structure, day_source, confirm):
     cr = scope.env.cr
     original = scope.browse(original_id)
     original.check_access('read')
@@ -109,7 +128,7 @@ def replay(scope, original_id, employee, contract, structure, day_source):
     draft.worked_days_line_ids.flush_recordset()
     current = amounts(cr, draft.id)
     assert current and stored == amounts(cr, original_id)
-    return {'source_slip': original_id, 'historical_sha256': digest(stored), 'draft_sha256': digest(current),
+    result = {'source_slip': original_id, 'historical_sha256': digest(stored), 'draft_sha256': digest(current),
             'historical_lines': len(stored), 'draft_lines': len(current),
             'historical_net_rules': [r[0] for r in stored if r[1]=='NET'],
             'draft_net_rules': [r[0] for r in current if r[1]=='NET'],
@@ -117,26 +136,34 @@ def replay(scope, original_id, employee, contract, structure, day_source):
             'historical_day_rows': len(historical_days), 'entered_day_rows': len(entered_days),
             'entered_days_match_historical': entered_days == historical_days,
             'calculated_days_match_historical': day_facts(draft) == historical_days}
+    if confirm:
+        result['confirmation'] = confirmation(draft, original, current)
+    return result
 
 
-def probe(env, company, uid):
+def probe(env, company, uid, confirm=False):
     assert re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_)[A-Z0-9_]+', env.cr.dbname)
-    scope = env['hr.payslip'].with_user(uid).with_context(allowed_company_ids=[company], tracking_disable=True)
+    scope = env['hr.payslip'].with_user(uid).with_context(
+        allowed_company_ids=[company], tracking_disable=True, mail_notify_force_send=False)
     assert not scope.env.su and scope.env.company.id == company
     cr = env.cr
     try:
-        protect_originals(cr)
+        protect_existing(cr, 'hr_payslip', (
+            ('hr_payslip', 'id'), ('hr_payslip_line', 'slip_id'),
+            ('hr_payslip_input', 'payslip_id'), ('hr_payslip_worked_days', 'payslip_id')))
+        if confirm:
+            protect_existing(cr, 'account_move', (('account_move', 'id'), ('account_move_line', 'move_id')))
         cr.execute("""SELECT id, employee_id, contract_id, struct_id FROM hr_payslip
             WHERE company_id=%s AND date_from='2026-10-01' AND date_to='2026-10-31'
             AND state IN ('done','paid') ORDER BY id""", [company])
         originals = cr.fetchall()
         assert len(originals) == 5
         result = []
-        for day_source in ('current_work_entries', 'stored_worked_days'):
+        for day_source in (('stored_worked_days',) if confirm else ('current_work_entries', 'stored_worked_days')):
             for row in originals:
                 # Independent rollbacks keep a prior draft out of YTD/period searches.
                 with cr.savepoint() as trial:
-                    result.append(replay(scope, *row, day_source=day_source))
+                    result.append(replay(scope, *row, day_source=day_source, confirm=confirm))
                     trial.rollback()
         return {'uid': uid, 'company': company, 'rows': result}
     finally:

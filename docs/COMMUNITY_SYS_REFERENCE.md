@@ -43,11 +43,26 @@ resultados por separado. Reescribir NET para igualarlo al Libro perdería el
 comportamiento original de cuatro liquidaciones.
 
 Los cinco asientos vinculados a la cohorte de octubre carecen de apuntes.
+Al confirmar cinco borradores nuevos, la configuración real produjo cinco
+asientos nuevos en borrador, cada uno sin apuntes. La compañía, diario,
+tipo de asiento, estado y fecha coincidieron con sus respectivos originales.
+El cálculo permaneció igual después de confirmar. Las pruebas bloquearon
+por completo toda escritura sobre asientos, apuntes y liquidaciones originales.
 Una consulta de toda la restauración encontró 702 asientos vinculados sin
 apuntes. Las 92 reglas de SyS carecen de cuentas de débito y crédito
 configuradas. El ensayo del Libro permite comparar ingresos y descuentos
 guardados. La aceptación de contabilización con apuntes requiere además un
 flujo privado con cuentas acreditadas.
+
+Las cinco liquidaciones tienen ocho PDF archivados. Se leyeron con el rol
+original y se verificaron contra los bytes restaurados fuera del servidor.
+Los ocho muestran el sueldo base e imponible que figuran en sus líneas
+BASIC y GROSS. Seis muestran el NET guardado. Los otros dos pertenecen a
+una liquidación con tres documentos distintos. Se conservaron los tres.
+La impresión con el mayor ID de adjunto de cada liquidación sí coincide
+con su NET en los cinco casos. La preservación incluye todas las versiones.
+Los comprobantes privados son `sys-october-confirm-reference.json` y
+`sys-archived-pdf-results.json`.
 
 El recibo privado `sys-book-receipt.json` está en
 `~/.codex/local-artifacts/community-resume-20261125/U40`. El CSV nativo
