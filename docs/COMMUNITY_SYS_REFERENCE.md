@@ -6,6 +6,32 @@ El usuario ratificó el 26 de noviembre que SyS es el proyecto operativo de
 Nómina Chile. Sus liquidaciones y sus maestros son la referencia financiera.
 Cerro mantiene sus propias pruebas de integración y preservación.
 
+La restauración nativa U40N usa el SQL íntegro del respaldo U33 y sus
+2.678 archivos. Los nueve objetos que faltaban se recuperaron y cada uno
+coincide por tamaño y checksum con su referencia original. La comparación
+entre restauraciones cubre las 607.663 filas de las 1.134 tablas públicas,
+854 secuencias con sus valores y definiciones, propietarios y ACL de 1.988
+relaciones, 11.927 columnas y 5.777 restricciones. Todos coincidieron antes
+de probar los borradores. Se conservaron copias privadas de SQL, archivos
+y recibos fuera del servidor. Esta restauración usa el motor nativo.
+
+Con el usuario original de Nómina se crearon borradores nuevos para las
+cinco liquidaciones de octubre. Se ensayó por separado la jornada que
+genera hoy el motor y la jornada física guardada en cada liquidación.
+Ambas ejecuciones devolvieron las mismas 86 líneas históricas (20, 15,
+19, 15 y 17), comparadas por regla, código, importe, cantidad, tasa y total.
+Los cinco casos usaron la regla NET 32. Al regenerar jornadas, sólo dos de
+las cinco coincidieron por tipo, días y horas con el original. Al ingresar
+las jornadas guardadas se conservaron esas dimensiones en los cinco casos.
+Los originales quedaron protegidos con disparadores transaccionales y cada
+borrador se revirtió antes de iniciar el siguiente.
+
+Los comprobantes privados en `~/.codex/local-artifacts/community-resume-20261125/U40`
+son `full-native-restore.json` y `sys-october-draft-and-days-reference.json`.
+Repetir las dos modalidades en la derivada Community de SyS para aceptar
+el cálculo y los días. La cohorte de octubre no incluye la liquidación
+histórica con dos reglas NET.
+
 En la restauración nativa de SyS, el usuario original de Nómina exportó el
 Libro de Simple Digital de octubre en lectura repetible, sin acceso de red.
 El archivo contiene cinco trabajadores y 147 columnas. La exportación con y
