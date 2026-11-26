@@ -7,6 +7,36 @@ menús visibles, reportes y automatizaciones. No se modificaron sus datos ni
 se desinstaló Studio durante esta auditoría. Demo, Admin y Everfruit permanecen
 fuera del circuito de publicación.
 
+Actualización de SyS, 26 de noviembre
+------------------------------------
+
+Los módulos ``step_sys_hr_fields`` y ``step_sys_hr_simpledigital_views``
+versionan tres campos y dos vistas de Nómina de SyS. La categoría del empleado
+y el tipo de contrato siguen vinculados a sus maestros. La cotización
+adicional conserva sus decimales y nulos originales. Se mantuvieron las tres
+columnas, los IDs de campo y vista, las referencias de Studio y las políticas
+de acceso. Antes del cambio el formulario efectivo de contratos omitía la
+cotización porque la página de pensiones había cambiado. Ahora el porcentaje
+se muestra junto a la opción de AFP.
+
+El paquete tiene SHA-256
+``9ca8cb625404e10ad775df1a2fe2c762796792ec5938b36dac5f4ff0c613cb09``.
+Se ejercitaron la lista de empleados, el formulario de contratos, la selección
+de maestros, edición y vaciado con un responsable de RR. HH. El usuario
+público no obtuvo permiso para modificar un contrato. En SyS se cotejaron
+los 237 empleados y los 238 contratos, incluidos los diez valores de cotización
+que ya estaban almacenados. El ensayo se revirtió en cada copia.
+
+La restauración nativa de SyS y la copia fresca de Cerro corresponden al
+respaldo de noviembre. En la derivada Community de SyS la adopción de los tres
+campos se hizo antes de proteger sus identidades y cargar los módulos libres.
+En esa derivada U40S coincidieron las 25 proyecciones contables y de nómina,
+los 53.659 identificadores externos originales, las 298 claves foráneas y los
+111 contadores. El recibo de preservación tiene SHA-256
+``adabfd405b17f65095ee7222fd86eac308cf6a8cce7270cf4367eb4d6b327fe9``.
+Restan las otras personalizaciones de SyS, incluida la impresión duplicada,
+y la aceptación en Desarrollo.
+
 Inventario por ambiente
 -----------------------
 
@@ -32,8 +62,8 @@ diferencia comprende campos sin dueño Studio, incluidos campos dinámicos de
 planes analíticos y reportes de nómina. No deben borrarse ni migrarse solo por
 tener ``state=manual`` o empezar por ``x_``.
 
-Pendientes concretos
---------------------
+Pendientes registrados el 6 de octubre
+--------------------------------------
 
 1. Cerro: pasar a XML versionado las dos personalizaciones activas de listas
    de ``account.analytic.account`` y ``res.company``. No hay modelos ni campos

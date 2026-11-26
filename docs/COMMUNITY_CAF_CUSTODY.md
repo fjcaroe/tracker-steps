@@ -142,3 +142,22 @@ ejecutó el caso completo con el proveedor original. Pasó 1 de 1 pruebas con
 cero fallos y errores. El conteo de registros CAF se conservó. El recibo de
 esta ejecución tiene SHA-256
 `c4938c03a6fe48211c83b9e831e73c61e376b8556c860678b920c357a3746abf`.
+
+## Concurrencia de custodia, 26 de noviembre de 2026
+
+En U40FC se ejecutaron dos escrituras Odoo simultáneas por cada escenario,
+sobre los registros CAF originales de copias privadas de Community y Cerro.
+PostgreSQL confirmó que un escritor esperaba al otro en ambos escenarios y
+en los dos proveedores. Cada escritor presentó un CAF sintético distinto,
+válido para la misma empresa, tipo y rango. Se conservaron los registros
+originales con su auditoría y la secuencia de identificadores.
+
+Cuando el primero confirmó, el segundo recibió un conflicto de serialización.
+La repetición en una transacción nueva rechazó el adjunto duplicado. Cuando
+el primero revirtió, el segundo confirmó y conservó su archivo. Cada rango
+pudo verificar únicamente el TED correspondiente al archivo que prevaleció.
+El ensayo cubrió la custodia de archivos para verificar folios históricos.
+La reserva y la emisión fiscal siguen pendientes de validación.
+
+El recibo de ambos proveedores tiene SHA-256
+`76db9cd06b16202fc5ce95baeec12eaedfacc3c3cd2029f78f5ea9d6d8e7ed2c`.
