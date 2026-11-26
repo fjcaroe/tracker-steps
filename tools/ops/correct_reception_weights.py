@@ -4,10 +4,13 @@ Private JSON plan identifies the company, existing business user and every row,
 including its previous/approved kilograms. No customer data belongs in Git.
 The receipt distribution must already contain the approved weights. Preserve
 historical receipt/product-correction moves and add native inventory deltas for
-third-party stock. No module upgrade, valuation, accounting or notifications.
+third-party stock. The separately approved private plan also updates the two
+unapproved advance drafts, retaining every source price, exchange rate and tax.
+No module upgrade, valuation, invoice, approval or notifications.
 """
 import argparse
 import configparser
+import copy
 from datetime import datetime, timezone
 import fcntl
 import hashlib
@@ -39,8 +42,10 @@ def validate_plan(plan):
             'package_id', 'detail_id', 'receipt_line_id', 'picking_id',
             'lot_id', 'product_id', 'owner_id', 'location_id', 'boxes')), 'Invalid identity')
         require(0 < row['old_kg'] < row['new_kg'], 'Only the approved positive corrections are supported')
-    require(round(sum(row['old_kg'] for row in plan['tags']), 2) == 4300.5, 'Previous total differs')
-    require(round(sum(row['new_kg'] for row in plan['tags']), 2) == 4455.4, 'Approved total differs')
+    require(round(sum(row['old_kg'] for row in plan['tags']), 2) == plan['expected_before_total'], 'Previous total differs')
+    require(round(sum(row['new_kg'] for row in plan['tags']), 2) == plan['expected_after_total'], 'Approved total differs')
+    require(plan.get('update_advance_drafts') is True, 'Explicit draft-update decision required')
+    require(len(plan['draft_proformas']) == 2 and len({r['id'] for r in plan['draft_proformas']}) == 2, 'Two explicit drafts required')
 
 
 def repair(env, plan):
@@ -50,15 +55,18 @@ def repair(env, plan):
     from odoo.addons.step_inventory_packing.models.fruit_package import StepFruitPackageLine
     from odoo.tools import SQL
     from odoo.tools.float_utils import float_compare
+    from odoo.addons.step_packing_fruit_proforma.purchase import _controlled
+    from odoo.addons.step_producer_advances.claims import lock_companies
     from native_business_profile import scoped_existing_user_environment
 
     validate_plan(plan)
     require(env.cr.dbname == plan['database'] or env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_t240_'), 'Unexpected database')
     env.cr.execute("SET LOCAL lock_timeout='10s'")
+    lock_companies(env['res.company'].browse(plan['company_id']))
     # Also prevents a new OT, repalletization or purchase claim while validating.
     env.cr.execute('LOCK TABLE stock_picking, stock_move, stock_move_line, stock_quant, '
                    'stock_quant_package, step_fruit_package_line, step_packing_picking_tag_line, '
-                   'step_packing_production, step_packing_repack_line, purchase_order '
+                   'step_packing_production, step_packing_repack_line, purchase_order, purchase_order_line '
                    'IN SHARE ROW EXCLUSIVE MODE')
     env.invalidate_all()
     company = env['res.company'].browse(plan['company_id']).exists()
@@ -71,7 +79,20 @@ def repair(env, plan):
     packages = scoped['stock.quant.package'].browse([r['package_id'] for r in plan['tags']])
     require(len(packages.exists()) == 7, 'Missing tag')
     packages.check_access('write')
-    wizard = scoped['step.reception.product.correction']
+    drafts = scoped['purchase.order'].search([
+        ('company_id', '=', company.id), ('step_fruit_proforma', '=', True),
+        ('step_fruit_state', '!=', 'cancel'), ('step_fruit_tag_ids', 'in', packages.ids)])
+    require(set(drafts.ids) == {r['id'] for r in plan['draft_proformas']}, 'Active proformas changed')
+    require(all(d.state == 'draft' and d.step_fruit_state == 'draft' and d.step_advance_proforma
+                and d.step_advance_basis == 'received' and not d.invoice_ids
+                and not d.step_fruit_generated_move_ids and not d.date_approve
+                and not d.step_fruit_approval_reference and not d.step_fruit_supplier_invoice_received
+                for d in drafts), 'Only unapproved, uninvoiced received-weight advance drafts may change')
+    drafts.check_access('write')
+    drafts.order_line.check_access('write')
+    draft_ids = drafts.ids
+    draft_line_ids = drafts.order_line.ids
+    draft_changes = []
     checks, status = [], []
     for spec in plan['tags']:
         tag = packages.browse(spec['package_id'])
@@ -101,8 +122,15 @@ def repair(env, plan):
                 and quant.product_id == detail.product_id and quant.owner_id == detail.producer_id
                 and quant.lot_id == detail.lot_id and not quant.reserved_quantity, 'Stock identity/reservation differs')
         require(not tag.step_packing_production_id and not detail.source_package_id, 'A process/split is already linked')
-        check = wizard.new({'picking_id': receipt.id})
-        check._check_unused(tag)
+        # Weight correction has its own explicit draft-advance authorization.
+        # Retain all the product-correction guard's physical/document checks.
+        require(not scoped['step.packing.production'].sudo().search_count([
+                    ('company_id', '=', company.id), ('step_packing_input_tag_ids', 'in', tag.ids)])
+                and not scoped['step.packing.repack.line'].sudo().search_count([
+                    '|', ('source_package_id', 'in', tag.ids), ('target_package_id', 'in', tag.ids)])
+                and not scoped['step.fruit.package.line'].sudo().search_count([('source_package_id', 'in', tag.ids)])
+                and not tag.step_export_shipment_ids and not tag.step_guide_ids and not tag.step_invoice_ids,
+                'Process, split, repalletization or delivery document exists')
         detail._check_open_ot()
         old = not float_compare(detail.kilos, spec['old_kg'], precision_digits=2)
         new = not float_compare(detail.kilos, spec['new_kg'], precision_digits=2)
@@ -126,6 +154,37 @@ def repair(env, plan):
         status.append('old' if old else 'new')
         checks.append((spec, tag, row, detail, quant))
     require(len(set(status)) == 1, 'Partially corrected plan requires review')
+    specifications = {s['package_id']: s for s in plan['tags']}
+    for draft in drafts:
+        approved = next(r for r in plan['draft_proformas'] if r['id'] == draft.id)
+        require(draft.name == approved['name'], 'Draft identity differs')
+        if status[0] == 'old':
+            for table, record_id, expected in [('purchase_order', draft.id, approved['row_md5'])] + [
+                    ('purchase_order_line', r['id'], r['row_md5']) for r in approved['lines']]:
+                env.cr.execute(SQL('SELECT md5(to_jsonb(t)::text) FROM %s t WHERE id=%s', SQL.identifier(table), record_id))
+                require(env.cr.fetchone() == (expected,), 'Draft changed since approved private plan')
+        require(set(draft.order_line.ids) == {r['id'] for r in approved['lines']}, 'Draft lines changed')
+        for line in draft.order_line:
+            sources = copy.deepcopy(line.step_fruit_source_rows or [])
+            require(sources and not line.display_type and line.product_uom == kg, 'Expected kilogram source line')
+            modified = []
+            for source in sources:
+                spec = specifications.get(source['tag_id'])
+                if not spec:
+                    continue
+                expected = spec['old_kg'] if status[0] == 'old' else spec['new_kg']
+                require(source['tag_line_id'] == spec['detail_id'] and source['receipt_id'] == spec['picking_id']
+                        and source['producer_id'] == spec['owner_id'] and not source['production_id']
+                        and not source['input_tag_id'] and source['export_ratio'] == 0
+                        and not float_compare(source['quantity'], expected, precision_digits=2)
+                        and not float_compare(source['received_kg'], expected, precision_digits=2), 'Draft source differs')
+                source.update(quantity=spec['new_kg'], received_kg=spec['new_kg'],
+                              amount=spec['new_kg'] * source['price_unit'],
+                              source_amount=spec['new_kg'] * source['source_price'])
+                modified.append(spec['package_id'])
+            if modified:
+                draft_changes.append((draft, line, sources, modified))
+    require({tag_id for d, l, s, ids in draft_changes for tag_id in ids} == set(packages.ids), 'Not every corrected tag has one draft source')
 
     def fingerprints():
         result = {}
@@ -135,7 +194,16 @@ def repair(env, plan):
                   'stock_valuation_layer', 'stock_lot', 'product_template', 'res_partner',
                   'mail_mail', 'mail_notification')
         for table in tables:
-            env.cr.execute(SQL('SELECT id,md5(to_jsonb(t)::text) FROM %s t ORDER BY id', SQL.identifier(table)))
+            excluded, ids = [], []
+            if table == 'purchase_order':
+                ids = draft_ids
+                excluded = ['amount_total', 'amount_untaxed', 'amount_tax', 'amount_total_cc', 'write_date', 'write_uid']
+            elif table == 'purchase_order_line':
+                ids = draft_line_ids
+                excluded = ['product_qty', 'product_uom_qty', 'step_fruit_source_rows', 'price_subtotal',
+                            'price_total', 'price_tax', 'untaxed_amount_to_invoice', 'write_date', 'write_uid']
+            env.cr.execute(SQL('SELECT id,md5((to_jsonb(t)-CASE WHEN id=ANY(%s) THEN %s::text[] '
+                               'ELSE ARRAY[]::text[] END)::text) FROM %s t ORDER BY id', ids, excluded, SQL.identifier(table)))
             result[table] = dict(env.cr.fetchall())
         env.cr.execute('SELECT id,md5((to_jsonb(t)-CASE WHEN id=ANY(%s) '
                        "THEN ARRAY['kilos','quantity','write_date','write_uid'] ELSE ARRAY[]::text[] END)::text) "
@@ -144,6 +212,8 @@ def repair(env, plan):
         return result
 
     before = fingerprints()
+    financial_before = {d.id: {'id':d.id, 'name':d.name, 'untaxed':d.amount_untaxed,
+                              'tax':d.amount_tax, 'total':d.amount_total} for d in drafts}
     # Preserve every quant outside the exact inventory/internal pairs.
     allowed_quant_keys = set()
     for spec, tag, row, detail, quant in checks:
@@ -176,6 +246,11 @@ def repair(env, plan):
             # detail guard, retaining native ORM fields and constraints.
             super(StepFruitPackageLine, detail).write({'quantity': spec['new_kg'], 'kilos': spec['new_kg']})
             moves |= move
+        for draft, line, sources, modified in draft_changes:
+            _controlled(line).write({'step_fruit_source_rows': sources,
+                                     'product_qty': sum(source['quantity'] for source in sources)})
+        for draft in drafts:
+            draft._fruit_check_sources()
     env.flush_all()
     env.invalidate_all()
     after = fingerprints()
@@ -210,6 +285,13 @@ def repair(env, plan):
         rows.append({'name': tag.name, 'package_id': tag.id, 'old_kg': spec['old_kg'],
                      'kilos': tag.step_actual_kg, 'stock_kg': quant.quantity, 'boxes': tag.box_count,
                      'receipt_kg': row.kilos, 'lot_id': quant.lot_id.id, 'owner_id': quant.owner_id.id})
+    financial = []
+    for draft in drafts:
+        require(draft.state == 'draft' and draft.step_fruit_state == 'draft' and not draft.invoice_ids, 'Draft workflow changed')
+        for line in draft.order_line:
+            require(not float_compare(line.product_qty, sum(s['quantity'] for s in line.step_fruit_source_rows), precision_digits=2), 'Draft quantity differs')
+        financial.append({'before':financial_before[draft.id], 'after':{'id':draft.id, 'name':draft.name,
+                          'untaxed':draft.amount_untaxed,'tax':draft.amount_tax,'total':draft.amount_total}})
     # Exercise the business profile's real menu, effective form, and web read.
     visible = scoped['ir.ui.menu']._visible_menu_ids()
     for xmlid in ('step_packing_operations.menu_packing_reception_process',
@@ -219,13 +301,15 @@ def repair(env, plan):
     arch = etree.fromstring(packages.get_view(view_type='form')['arch'])
     require(arch.xpath("//field[@name='step_actual_kg']"), 'Native tag form missing kilograms')
     web = packages.web_read({'name': {}, 'step_actual_kg': {}, 'box_count': {}, 'step_tag_state': {}})
-    require(len(web) == 7 and round(sum(r['step_actual_kg'] for r in web), 2) == 4455.4, 'Native web read differs')
+    require(len(web) == 7 and round(sum(r['step_actual_kg'] for r in web), 2) == plan['expected_after_total'], 'Native web read differs')
     versions = {m.name: m.latest_version for m in env['ir.module.module'].search([('name', 'in', MODULES), ('state', '=', 'installed')])}
     require(len(versions) == len(MODULES), 'Missing installed module')
     return {'database': env.cr.dbname, 'company_id': company.id, 'user_id': scoped.uid,
             'rows': rows, 'total_kg': round(sum(r['kilos'] for r in rows), 2),
-            'boxes': sum(r['boxes'] for r in rows), 'added_kg': 154.9,
+            'boxes': sum(r['boxes'] for r in rows),
+            'added_kg': round(plan['expected_after_total'] - plan['expected_before_total'], 2),
             'moves': moves.ids, 'already_applied': status[0] == 'new',
+            'advance_drafts': financial,
             'native_menu_form_web_read': True, 'historical_rows_preserved': True,
             'accounting_valuation_notifications_unchanged': True, 'versions': versions}
 
@@ -300,7 +384,7 @@ def main():
                 require(not any(a in ('-u', '-i', '--update', '--init') or a.startswith(('--update=', '--init=')) for a in argv), 'Concurrent upgrade')
         current = baseline(config)
         if args.mode == 'rehearse':
-            stage.mkdir(mode=0o755, exist_ok=False)
+            stage.mkdir(mode=0o700, exist_ok=False)
             (stage/'identity.json').write_text(json.dumps(identity))
             stamp = datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')
             clone = 'MANAGEMENT_QA_CERRO_t240_' + stamp
