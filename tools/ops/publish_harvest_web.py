@@ -82,12 +82,16 @@ def patch_config(source, host, root):
     location = /cosecha/manifest.webmanifest {
         alias ROOT/manifest.webmanifest;
         default_type application/manifest+json;
-        add_header Cache-Control "no-cache";
+        etag off;
+        if_modified_since off;
+        add_header Cache-Control "no-store";
     }
     location = /cosecha/sw.js {
         alias ROOT/sw.js;
         default_type application/javascript;
-        add_header Cache-Control "no-cache";
+        etag off;
+        if_modified_since off;
+        add_header Cache-Control "no-store";
         add_header Service-Worker-Allowed "/cosecha/";
     }
     location ^~ /cosecha/assets/ {
@@ -98,7 +102,11 @@ def patch_config(source, host, root):
         alias ROOT/;
         index index.html;
         try_files $uri $uri/ /cosecha/index.html;
-        add_header Cache-Control "no-cache";
+        # Reproducible archives share epoch mtime and often HTML size. nginx's
+        # default mtime/size ETag then collides between different releases.
+        etag off;
+        if_modified_since off;
+        add_header Cache-Control "no-store";
     }
 '''.replace('ROOT', str(root))
     block = block[:-1] + snippet + '}'
@@ -142,7 +150,7 @@ def public_hashes(host, manifest, attempts=1):
                 hashes[name] = hashlib.sha256(response.read()).hexdigest()
                 assert hashes[name] == expected, url
                 if name.endswith(('index.html', 'sw.js', 'manifest.webmanifest')):
-                    assert 'no-cache' in response.headers.get('Cache-Control', ''), url
+                    assert 'no-store' in response.headers.get('Cache-Control', ''), url
             return hashes
         except (OSError, urllib.error.URLError, AssertionError):
             if attempt + 1 == attempts:
@@ -158,6 +166,27 @@ def current_javascript_hash(host):
     assert len(scripts) == 1 and scripts[0].startswith('/cosecha/assets/')
     assert '..' not in scripts[0] and '://' not in scripts[0]
     return hashlib.sha256(urllib.request.urlopen(base+scripts[0], timeout=40).read()).hexdigest()
+
+
+def verify_shell_revalidation(host, manifest):
+    """A client carrying epoch/size validators must receive the current bytes."""
+    checked = {}
+    for path, name in (('', 'index.html'), ('index.html', 'index.html'),
+                       ('sw.js', 'sw.js'), ('manifest.webmanifest', 'manifest.webmanifest')):
+        expected = manifest['files']['app/'+name]
+        url = 'https://'+host+'/cosecha/'+path
+        response = urllib.request.urlopen(urllib.request.Request(url, headers={'Cache-Control':'no-cache'}), timeout=40)
+        content = response.read()
+        assert hashlib.sha256(content).hexdigest() == expected, url
+        for condition in ({'If-None-Match':'"0-'+format(len(content),'x')+'"'},
+                          {'If-Modified-Since':'Thu, 01 Jan 1970 00:00:00 GMT'}):
+            request = urllib.request.Request(url, headers={**condition, 'Cache-Control':'no-cache'})
+            fresh = urllib.request.urlopen(request, timeout=40)
+            assert fresh.status == 200 and hashlib.sha256(fresh.read()).hexdigest() == expected, url
+            assert 'no-store' in fresh.headers.get('Cache-Control','') and not fresh.headers.get('ETag'), url
+            assert not fresh.headers.get('Clear-Site-Data'), 'Preserve local pending records'
+        checked[path or '/'] = {'status':200, 'sha256':expected, 'legacy_validators_ignored':True}
+    return checked
 
 
 def main():
@@ -188,6 +217,7 @@ def main():
         fcntl.flock(lease, flags)
         if args.action == 'verify':
             print('HARVEST_WEB_SERVED_OK '+json.dumps(public_hashes(HOSTS[args.environment], manifest)))
+            print('HARVEST_CACHE_REVALIDATION_OK '+json.dumps(verify_shell_revalidation(HOSTS[args.environment], manifest)))
             return
         stage = args.stage
         assert stage.resolve() == stage and stage.parent == Path('/opt/steps-validation')
@@ -272,6 +302,7 @@ def main():
             subprocess.run(['nginx', '-t'], check=True)
             subprocess.run(['systemctl', 'reload', 'nginx'], check=True)
             served = public_hashes(HOSTS[args.environment], manifest, attempts=20)
+            verify_shell_revalidation(HOSTS[args.environment], manifest)
         except BaseException:
             config_path.write_text(original)
             subprocess.run(['nginx', '-t'], check=True)
