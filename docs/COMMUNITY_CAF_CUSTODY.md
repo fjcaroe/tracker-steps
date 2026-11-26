@@ -161,3 +161,41 @@ La reserva y la emisión fiscal siguen pendientes de validación.
 
 El recibo de ambos proveedores tiene SHA-256
 `76db9cd06b16202fc5ce95baeec12eaedfacc3c3cd2029f78f5ea9d6d8e7ed2c`.
+
+## Verificación del DTE firmado por folio
+
+La verificación privada que ya recibe un DTE firmado, el certificado fijado y
+los datos esperados de un documento puede localizar el CAF original usando el
+emisor, el tipo y el folio de esos datos. Después coteja el documento con el CAF y
+el certificado. La misma operación sigue admitiendo un registro CAF seleccionado.
+El timbre y el DTE usan la misma búsqueda de rangos históricos en la empresa
+activa. Un solapamiento, incluso con un registro oculto por permisos, impide
+seleccionar un CAF.
+
+En U40FD se utilizaron documentos, certificados y llaves sintéticos con el
+acceso a red aislado. El caso funcional cubre Contabilidad e Inventario,
+un empleado sin permiso, otra empresa, un folio distinto del timbrado, un
+tipo inválido, un certificado que difiere del previsto y un rango superpuesto.
+Se comprobaron el estado de un rango agotado, su adjunto original y la
+secuencia de identificadores. Este ensayo verifica documentos históricos.
+La emisión, la autorización fiscal del firmante y la aceptación del SII siguen
+pendientes.
+
+En el primer ensayo, la creación de los siete registros sintéticos de Community
+adelantó en siete posiciones el contador de identificadores técnicos. La
+comparación integral confirmó que las filas de CAF y los adjuntos originales
+eran idénticos a la fuente. Para ensayar lecturas históricas, los casos
+preparan ahora registros sintéticos con identificadores negativos reservados
+en la misma tabla. Las pruebas existentes de carga conservan la creación
+habitual por Odoo.
+
+La repetición U40FD2 restauró ambas bases en los espacios privados de
+PostgreSQL en `/opt`. El paquete
+`bbe67c8016d598bb7fde72692e95a42ae3158b7f412f91c6a80965731d9f8951`
+registró la versión 18.0.1.4.0 en ambos proveedores. Community oficial pasó
+7 de 7 pruebas y la referencia de Cerro, restaurada desde U40FQ, pasó las
+mismas 7. Las filas CAF, todos sus adjuntos y la secuencia de identidad
+conservaron sus huellas en ambas copias, incluida la preparación y reversión
+de los datos sintéticos. Pasaron además 18 pruebas de firma DTE y 17 de CAF
+sin acceso de red. El recibo funcional tiene SHA-256
+`217d9fa190d1a0e6e2176b512131c2da8957aa1fce5cb64c6ceda685ebb9041d`.
