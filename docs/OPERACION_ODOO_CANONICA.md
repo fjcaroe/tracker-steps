@@ -1,5 +1,17 @@
 # Operación y publicación de Odoo
 
+T241 autoriza corregir las relaciones de embalaje de las recepciones indicadas
+en el plan privado de Cerro, sucursal Packing San Javier. Conservar kilos,
+cajas, productos/lotes de los movimientos históricos y la corrección nativa
+de producto. Armonizar solo el embalaje y su etiqueta en los anticipos aún en
+borrador, sin cambiar precios, impuestos, cambio ni importes. Usar
+`correct_reception_packaging.py` con copia fresca, repetición sin escrituras,
+comparación completa de datos conservados, respaldo decodificado y bloqueo
+compartido. No instala addons ni genera movimientos o documentos financieros.
+Las referencias no encontradas requieren aclaración: no inferir otros folios
+ni acreditar catorce correcciones si solo se identificaron doce. Mantener el
+ticket abierto mientras falten referencias. Ver `T241_CORRECCION_EMPAQUETADO.md`.
+
 T243 (10677, adjunto 3644) autoriza Harvest 0.0.11 y `step_harvest_launcher`
 18.0.1.6.0 en Desarrollo, Cerro y QA-Cerro. La opción Folio de tarja → Sin tarja
 se aplica a las nuevas OT y desactiva la asociación de trabajador a folio.
