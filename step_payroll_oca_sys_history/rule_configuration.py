@@ -6,6 +6,8 @@ from odoo.exceptions import UserError
 from odoo.tools import format_date
 
 
+CONFIRMED_COMPANIES = {2, 5, 6, 7, 8, 12, 13, 29, 32, 36, 37}
+
 RULE_FIELDS = (
     'struct_id', 'sequence', 'category_id', 'code', 'quantity', 'condition_select', 'condition_range',
     'condition_range_min', 'condition_range_max', 'condition_python', 'amount_select', 'amount_fix',
@@ -52,6 +54,36 @@ class Payslip(models.Model):
         values['categories'] = SysCategoryMapping(values['categories'].dict)
         return values
 
+    def _step_sys_matches_closed_worked_days(self):
+        """Recognize an exact, readable original attendance snapshot on a new draft."""
+        self.ensure_one()
+        if self.company_id.id not in CONFIRMED_COMPANIES or self.company_id != self.env.company:
+            return False
+        original = self.search([
+            ('id', '!=', self.id), ('state', 'in', ('done', 'paid')),
+            ('company_id', '=', self.company_id.id), ('employee_id', '=', self.employee_id.id),
+            ('contract_id', '=', self.contract_id.id), ('struct_id', '=', self.struct_id.id),
+            ('date_from', '=', self.date_from), ('date_to', '=', self.date_to),
+            ('credit_note', '=', self.credit_note),
+        ], limit=2)
+        if len(original) != 1:
+            return False
+        days = self.env['hr.payslip.worked_days']
+        fields = ['payslip_id', 'work_entry_type_id', 'number_of_days', 'number_of_hours']
+        for slip in (original, self):
+            slip.check_field_access_rights('read', ['worked_days_line_ids'])
+        days.check_field_access_rights('read', fields)
+        days.flush_model(fields)
+        self.env.cr.execute(
+            'SELECT id FROM hr_payslip_worked_days WHERE payslip_id IN (%s,%s)', [original.id, self.id])
+        days.browse([row[0] for row in self.env.cr.fetchall()]).check_access('read')
+        def snapshot(slip):
+            return sorted((day.work_entry_type_id.id, day.number_of_days, day.number_of_hours)
+                          for day in slip.worked_days_line_ids)
+        actual = snapshot(self)
+        return bool(actual and all(work_type and hours > 0 and count > 0 for work_type, count, hours in actual)
+                    and actual == snapshot(original))
+
     def action_payslip_done(self):
         structure = self.env.ref('l10n_cl_simpledigital_payroll.structure_chile', raise_if_not_found=False)
         with self.env.cr.savepoint():
@@ -88,7 +120,7 @@ class Structure(models.Model):
         # free engines both with and without an employee movement. Both rules
         # run under their own identities. This only describes which line the
         # engines retain after evaluation; it never filters the engine's rules.
-        if (self.env.company.id != 37 or self.id != 4 or len(rules) != 67
+        if (self.env.company.id not in CONFIRMED_COMPANIES or self.id != 4 or len(rules) != 67
                 or duplicates != {'MOV_7': [67, 68], 'NET': [8, 32]}
                 or self != self.env.ref('l10n_cl_simpledigital_payroll.structure_chile', raise_if_not_found=False)):
             return {}

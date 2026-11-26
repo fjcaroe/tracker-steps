@@ -67,7 +67,9 @@ class Payslip(models.Model):
                 raise UserError(_('Complete Chile payroll data before calculation: %s',', '.join(missing)))
             if not {'BASIC','GROSS','NET'} <= set(report['essential_ids']):
                 raise UserError(_('Adopt the original base, gross and net rules before processing Chile payroll.'))
-            if not contract.get_work_hours(slip.date_from,slip.date_to):
+            if (not contract.get_work_hours(slip.date_from,slip.date_to)
+                    and not (hasattr(slip, '_step_sys_matches_closed_worked_days')
+                             and slip._step_sys_matches_closed_worked_days())):
                 raise UserError(_('Generate actual work entries before calculating Chile payroll.'))
             if contract.wage_type!='monthly' or contract.schedule_pay!='monthly':
                 raise UserError(_('This provider rehearsal supports audited monthly wage payroll only.'))
