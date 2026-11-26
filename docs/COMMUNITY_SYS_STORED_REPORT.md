@@ -79,3 +79,21 @@ reglas se volvieron a imprimir los cinco documentos históricos con el operador
 original. Se cotejaron de nuevo los cinco líquidos y las 61 filas visibles.
 El recibo independiente de esos PDF tiene SHA-256
 `5b13f4a13c0d6a9dc9a969444eeaf55cddaa5dc544a52371a88069c43f1a6bec`.
+
+## Instalación integrada U40I
+
+La instalación en frío de la cohorte de SyS registró y ejecutó Simple Digital
+18.0.1.7.3 y la ruta de impresión 18.0.1.0.2. La acción original 1431 generó
+las cinco liquidaciones cerradas de octubre, de una página cada una. En un
+segundo equipo se comprobaron los archivos por SHA-256, se leyó el líquido
+directamente del texto de cada PDF y se contrastó con su línea NET almacenada.
+Pasaron los cinco cotejos, los 61 identificadores e importes visibles en QWeb
+y las huellas de los ocho PDF históricos. La comparación de las tablas de
+liquidaciones, entradas, jornadas, reglas, contratos y la acción conservó las
+huellas anteriores.
+
+El verificador encontró las 16 reglas Steps ya instaladas y agregó cero.
+Los dos gerentes originales conservaron acceso a las 86 líneas de las cinco
+liquidaciones. Cada una de esas liquidaciones conserva la vinculación original
+de su empleado. El recibo independiente tiene SHA-256
+`704b58cc63bbffa716ee40e777cabf94d010d9a9e108dbf4c78c365d74596161`.
