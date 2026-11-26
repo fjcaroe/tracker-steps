@@ -248,7 +248,11 @@ def baseline(config):
         for manifest in Path(root.strip()).glob('*/__manifest__.py'):
             resolved.setdefault(manifest.parent.name, manifest.parent)
     sources = {}
-    for name, path in resolved.items():
+    # Hash the effective stock/packing stack, not unrelated frontend/vendor
+    # assets that happen to live below a legacy addon root.
+    relevant = {name: path for name, path in resolved.items()
+                if name in MODULES or name.startswith(('stock', 'step_inventory', 'step_packing', 'step_producer'))}
+    for name, path in relevant.items():
         h = hashlib.sha256()
         for source in sorted(path.rglob('*')):
             if source.is_file() and '__pycache__' not in source.parts and source.suffix in ('.py', '.xml', '.csv', '.js', '.css', '.scss'):
@@ -305,7 +309,8 @@ def main():
             with backup.open('xb') as stream:
                 os.fchmod(stream.fileno(), 0o600)
                 subprocess.run(['sudo','-u','postgres','pg_dump','-Fc',plan['database']], stdout=stream, check=True)
-            subprocess.run(['sudo','-u','postgres','pg_restore','--list',str(backup)], stdout=subprocess.DEVNULL, check=True)
+            with backup.open('rb') as stream:
+                subprocess.run(['sudo','-u','postgres','pg_restore','--list'], stdin=stream, stdout=subprocess.DEVNULL, check=True)
             subprocess.run(['sudo','-u','postgres','createdb','-O','cerro_odoo18',clone], check=True)
             query(clone, 'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
             with backup.open('rb') as stream:
@@ -327,7 +332,8 @@ def main():
             with backup.open('xb') as stream:
                 os.fchmod(stream.fileno(), 0o600)
                 subprocess.run(['sudo','-u','postgres','pg_dump','-Fc',plan['database']], stdout=stream, check=True)
-            subprocess.run(['sudo','-u','postgres','pg_restore','--list',str(backup)], stdout=subprocess.DEVNULL, check=True)
+            with backup.open('rb') as stream:
+                subprocess.run(['sudo','-u','postgres','pg_restore','--list'], stdin=stream, stdout=subprocess.DEVNULL, check=True)
             (stage/'odoo.conf').write_bytes(config.read_bytes()); (stage/'odoo.conf').chmod(0o600)
             live = probe(plan['database'], 'live')
             require(live['rows'] == proof['tested']['rows'] and live['versions'] == proof['tested']['versions'], 'Live result differs')
