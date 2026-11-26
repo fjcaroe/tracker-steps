@@ -105,7 +105,8 @@ def verify_real_actors(env, company_id):
                         AND u.login NOT IN ('synthetic_sys_report_1','synthetic_sys_report_2') ORDER BY u.id""",
                    (company_id,))
     real = [uid for uid, in env.cr.fetchall()]
-    assert len(real) >= 1
+    if len(real) != 2 or linked:
+        raise ValueError('October SyS actor or employee linkage differs from the original restored census')
     administrative = []
     for uid in real:
         actor = api.Environment(env.cr, uid, {'allowed_company_ids': [company_id]})
@@ -117,6 +118,7 @@ def verify_real_actors(env, company_id):
             ids = [ident for ident, in env.cr.fetchall()]
             actor['hr.payslip.line'].browse(ids).check_access('read')
             administrative.append(len(ids))
-    assert administrative and len(set(administrative)) == 1
+    if administrative != [86, 86]:
+        raise ValueError('Expected both original managers to retain all 86 October salary lines')
     return dict(policy, active_internal=len(real), payroll_managers_verified=len(administrative),
                 closed_slips=len(rows), lines_per_manager=administrative[0], employee_links=linked)
