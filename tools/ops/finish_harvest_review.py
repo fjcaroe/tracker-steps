@@ -18,6 +18,7 @@ registry = json.loads(next(line.partition(' ')[2] for line in registry_lines if 
 assert registry['versions'] == proof['backend_versions']
 assert ui['version'] == web['version'] and ui['native_context'] is True and ui['server_writes'] is False
 assert ui['local_weight_preserved'] is True
+assert ui['native_weight_form'] is True and ui['harvest_launcher'] is True
 assert policy['copy_sync_allowed'] is True and policy['database'] == proof['database']
 
 from harvest_web_policy import validate_operations_review, validate_operations_smokes

@@ -19,6 +19,19 @@ async function main() {
         const build = page.getByText(/· Harvest 0\.0\.(10|11)$/);
         await build.waitFor();
         const version = (await build.textContent()).split('Harvest ').at(-1);
+        const launcher = await context.request.get(`${origin}/harvest/open`, { maxRedirects: 0 });
+        assert.equal(launcher.status(), 302);
+        assert.equal(new URL(launcher.headers().location, origin).pathname, '/cosecha/');
+        const nativeForm = await context.request.post(`${origin}/web/dataset/call_kw/step.cosecha.registry/get_view`, {
+            data: { jsonrpc: '2.0', method: 'call', params: { model: 'step.cosecha.registry',
+                method: 'get_view', args: [false, 'form'], kwargs: {} } },
+        }).then(response => response.json());
+        const arch = nativeForm.result?.arch;
+        assert.equal(typeof arch, 'string');
+        for (const field of ['mobile_packaging_id', 'mobile_standard_weight', 'mobile_kg_per_box']) {
+            assert.match(arch, new RegExp(`name="${field}"`));
+        }
+        if (version === '0.0.11') assert.match(arch, /name="mobile_without_tarja"/);
         const data = await context.request.get(`${origin}/api/harvest/bootstrap`).then(response => response.json());
         assert.ok(data.ok && data.harvest_packagings.length);
         const packaging = data.harvest_packagings.find(row => row.kg_per_box >= 0.01);
@@ -107,7 +120,8 @@ async function main() {
         }
         fs.writeFileSync(output, JSON.stringify({ packaging_selector: true, standard_weight_readonly: true,
             manual_weight_hundredths: true, mobile_layout: true, local_weight_preserved: mode === 'copy',
-            native_context: true, crew_native_type_contractor: true, version, server_writes: false, ...withoutTarja }, null, 2));
+            native_context: true, native_weight_form: true, harvest_launcher: true,
+            crew_native_type_contractor: true, version, server_writes: false, ...withoutTarja }, null, 2));
     } finally {
         await browser.close();
     }
