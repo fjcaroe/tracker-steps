@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+La revisión del reclamo de versiones Harvest del 26-11-2026 mantiene el paquete
+certificado 0.0.11 en Desarrollo, Cerro y QA-Cerro y corrige únicamente su caché
+HTTP. Las entregas reproducibles comparten fecha y tamaño del HTML: el ETag de
+Nginx podía validar erróneamente la página anterior. Usar `no-store`, `etag off`
+e `if_modified_since off` para el shell, SW y manifiesto; conservar los recursos
+con hash y los pendientes del navegador. La reparación usa el mismo paquete,
+prueba real en Nginx/Chromium desde 0.0.3 y 0.0.5, respaldo, bloqueo y revisión
+de Desarrollo primero. No cambia addons ni datos. Ver `HARVEST_CACHE_VERSIONES.md`.
+
 T241 autoriza corregir las relaciones de embalaje de las recepciones indicadas
 en el plan privado de Cerro, sucursal Packing San Javier. Conservar kilos,
 cajas, productos/lotes de los movimientos históricos y la corrección nativa
