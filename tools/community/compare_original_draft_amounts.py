@@ -7,6 +7,8 @@ import json
 import os
 from pathlib import Path
 
+from original_anchor_paths import private_artifact
+
 
 def lines_by_rule(rows):
     result = defaultdict(list)
@@ -97,7 +99,7 @@ def main():
     parser.add_argument('stage', type=Path)
     args = parser.parse_args()
     stage = args.stage.resolve()
-    assert stage.is_relative_to('/opt/steps-validation') and stage.name == 'anchor'
+    assert private_artifact(stage) and stage.name == 'anchor'
     files = [stage / 'native-witness/original-draft_amounts-required.json',
              stage / 'original-draft_amounts-required.json', stage / 'handover-plan.json']
     bodies = [path.read_bytes() for path in files]

@@ -4,6 +4,8 @@ Literal byte hashes remain literal. Any difference is reported as a blocker;
 technical additions or numeric representation changes require their own proof.
 No production database connection or update operation is provided.
 """
+from original_anchor_paths import private_artifact
+
 import argparse
 from contextlib import contextmanager
 import json
@@ -58,7 +60,7 @@ def _compare(stage, database):
     stage = Path(stage).resolve()
     assert re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+', database)
     plan = json.loads((stage/'handover-plan.json').read_text())
-    assert plan['database'] == database and stage.parent.parent == Path('/opt/steps-validation')
+    assert plan['database'] == database and private_artifact(stage)
     columns = json.loads((stage/'original-columns.json').read_text())
     reference=plan['reference_database']
     assert reference==database.replace('_HANDOVER_','_REFERENCE_')

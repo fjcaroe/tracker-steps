@@ -5,6 +5,8 @@ approved read-only bootstrap, lease and complete process witnesses. This module
 does not load a registry, override any source method, execute an action, create
 an actor, grant access, or decide whether a target menu is equivalent.
 """
+from original_anchor_paths import private_artifact
+
 import hashlib
 import json
 import os
@@ -47,7 +49,7 @@ def sha(raw):
 
 def sealed_json(path, digest):
     path = Path(path).resolve()
-    need(path.is_relative_to(Path('/opt/steps-validation')) and path.is_file()
+    need(private_artifact(path) and path.is_file()
         and stat.S_IMODE(path.stat().st_mode) == 0o600, 'private-sealed-input-required')
     raw = path.read_bytes()
     need(re.fullmatch('[a-f0-9]{64}', digest) and sha(raw) == digest, 'input-seal-differs')
@@ -163,7 +165,7 @@ def run(env, *, capsule_path, capsule_sha256, identity_path, identity_sha256,
         original_model_id=600, original_report_ids=[462])
     bindings = original_bindings(identity)
     output = Path(output).resolve()
-    need(output.is_relative_to(Path('/opt/steps-validation')) and output.parent.is_dir()
+    need(private_artifact(output) and output.parent.is_dir()
         and not output.exists(), 'new-private-output-required')
     mro = [klass.__module__ + '.' + klass.__name__ for klass in type(env['hr.payslip']).__mro__]
     need(any(value.startswith('odoo.addons.hr_payroll.') for value in mro)

@@ -22,6 +22,8 @@ import payroll_configuration_adoption_preflight as gate
 import validate_agriculture_core as preservation
 from validate_community_reports import sql
 from offline_process import offline_odoo
+from original_anchor_paths import ANCHOR_DATA_ROOT, VALIDATION_ROOT
+from original_report_loopback import pdf_derivative_name
 from build_original_anchor_profile import OWN
 from build_original_anchor_guards import guard_specs, render_sql
 from check_original_anchor_relations import column_contract, field_metadata
@@ -73,22 +75,61 @@ def write(path, value):
         json.dump(value, stream, indent=2)
 
 
-def exercise_required_field(source, stage, executable, options, database, field_group):
-    receipt = stage / f'original-{field_group}-required.json'
+def exercise_required_field(source, stage, executable, options, database, field_group, *, pdf=False):
+    suffix = 'pdf' if pdf else 'required'
+    label = f'original-{field_group}-{suffix}'
+    receipt = stage / f'{label}.json'
     module = f'probe_original_{field_group}'
     if field_group not in ('draft_amounts', 'unmapped_accounting', 'book_export', 'previred_txt', 'payslip_report'):
         module += '_required'
     reference_arg = ''
     if field_group == 'draft_amounts' and '_HANDOVER_' in database:
         reference_arg = ', ' + repr(str(stage / 'native-witness' / receipt.name))
+    command = executable + options
+    if pdf:
+        assert field_group == 'payslip_report'
+        reference_arg = ', ' + repr(str(stage / 'original-payslip-report.pdf'))
+        command = ['/usr/bin/python3.10', str(source / 'tools/community/original_report_loopback.py'), *command]
     expression = ('import json, sys; sys.path.insert(0, ' + repr(str(source / 'tools/community')) + '); '
                   f'from {module} import run; result = run(env, ' + repr(database) + reference_arg + '); '
                   'open(' + repr(str(receipt)) + ', "x").write(json.dumps(result, indent=2))')
-    with (stage / f'original-{field_group}-required.log').open('x') as log:
-        status = subprocess.run(offline_odoo(executable + options), input=expression, text=True,
+    log_path = stage / f'{label}.log'
+    with log_path.open('x') as log:
+        status = subprocess.run(offline_odoo(command), input=expression, text=True,
                                 stdout=log, stderr=subprocess.STDOUT)
     assert status.returncode == 0 and receipt.is_file(), f'Original {field_group} write probe failed; inspect private log'
+    if pdf:
+        log_text = log_path.read_text(errors='replace')
+        for bundle in ('common', 'pdf'):
+            assert re.search(rf'"GET /web/assets/[^ ]+/web\.report_assets_{bundle}\.min\.css HTTP/[^"]+" 200 ', log_text), (
+                f'Isolated report stylesheet {bundle} was not served successfully')
     receipt.chmod(0o600)
+    return json.loads(receipt.read_bytes())
+
+
+def exercise_derived_pdf(source, stage, executable, options, database, data, owner):
+    derivative = pdf_derivative_name(database)
+    assert len(derivative) <= 63 and data.is_dir()
+    filestore = data / 'filestore'
+    target = filestore / derivative
+    subprocess.run(['sudo', '-u', owner.pw_name, 'cp', '-a', '--reflink=auto',
+                    str(filestore / database), str(target)], check=True)
+    database_owner = sql('postgres',
+        'SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = ' + gate.literal(database))
+    assert database_owner
+    # Odoo's anonymous asset requests can select only a database that its
+    # configured PostgreSQL role owns. The OS user only owns the filestore.
+    subprocess.run(['sudo', '-u', 'postgres', 'createdb', '--template=' + database,
+                    '--owner=' + database_owner, derivative], check=True)
+    options = [derivative if option == database else
+               '--db-filter=^' + derivative + '$' if option == '--db-filter=^' + database + '$' else option
+               for option in options]
+    receipt = exercise_required_field(source, stage, executable, options, derivative, 'payslip_report', pdf=True)
+    assert re.fullmatch(r'[a-f0-9]{64}', receipt.pop('pdf_sha256'))
+    assert re.fullmatch(r'[a-f0-9]{64}', receipt.pop('body_sha256'))
+    write(stage / 'original-payslip-pdf-derivation.json',
+          {'database': derivative, 'template': database, 'filestore_copied': True})
+    return receipt
 
 
 def manifest(folder):
@@ -175,9 +216,14 @@ def main():
     parser.add_argument('--root',type=Path,required=True);parser.add_argument('--database',required=True)
     parser.add_argument('--original-source-inventory', type=Path, required=True)
     parser.add_argument('--private-tablespace-on-data-disk', action='store_true')
+    parser.add_argument('--exercise-derived-pdf', action='store_true')
     args = parser.parse_args();root=args.root.resolve();database=args.database
     assert os.geteuid() == 0 and re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+',database)
-    assert root.parent == Path('/opt/steps-validation') and root.name.startswith('community-original-handover-')
+    assert root.parent in (VALIDATION_ROOT, ANCHOR_DATA_ROOT)
+    assert root.name.startswith('community-original-handover-')
+    if root.parent == ANCHOR_DATA_ROOT:
+        assert args.private_tablespace_on_data_disk and ANCHOR_DATA_ROOT.is_dir()
+        assert not ANCHOR_DATA_ROOT.is_symlink()
     assert (root/'anchor-profile.json').is_file() and sha(CAPSULE) == CAPSULE_SHA
     assert sha(args.original_source_inventory) == SOURCE_INVENTORY_SHA256, (
         'Use the sealed source inventory witness before creating private databases')
@@ -207,7 +253,7 @@ def main():
         if args.private_tablespace_on_data_disk:
             data_mount = Path('/srv/odoo-data')
             assert data_mount.is_mount() and data_mount.stat().st_dev == pg_data.stat().st_dev
-            assert data_mount.stat().st_dev != root.stat().st_dev
+            assert data_mount.stat().st_dev != VALIDATION_ROOT.stat().st_dev
             location = data_mount / ('steps-' + root.name)
             tablespace = 'steps_anchor_' + root.name.removeprefix('community-original-handover-').lower().replace('-', '_')
             assert re.fullmatch(r'[a-z0-9_]{1,63}', tablespace)
@@ -215,7 +261,7 @@ def main():
         else:
             assert sql('postgres', "SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname="
                        + gate.literal(tablespace)) == str(location)
-        for volume, reserve_gib in ((pg_data, 5), (location if location.exists() else location.parent, 5), (root, 2)):
+        for volume, reserve_gib in ((pg_data, 5), (location if location.exists() else location.parent, 5), (VALIDATION_ROOT, 2), (root, 2)):
             stats = os.statvfs(volume)
             assert stats.f_bavail * stats.f_frsize >= reserve_gib * 1024**3, f'Insufficient free space on {volume}'
         assert sql('CERRO_EL_PLOMO','SELECT count(*) FROM hr_payslip')=='0', 'This trial admits Cerro with no payroll history only'
@@ -291,14 +337,18 @@ def main():
                                  original_source_inventory=args.original_source_inventory)
         capture_original_native_visibility(source, native_stage, native,
             Path('/etc/odoo18-cerroelplomo.conf'), prod['options']['addons_path'], native_data, native_owner)
-        for field_group in REQUIRED_FIELD_PROBES:
-            exercise_required_field(source, native_stage,
-                ['sudo', '-u', native_owner.pw_name, '/usr/bin/python3.10', str(NATIVE_RUNTIME/'odoo-bin'), 'shell'],
-                ['-c', '/etc/odoo18-cerroelplomo.conf', '-d', reference, '--db-filter=^'+reference+'$',
+        native_command = ['sudo', '-u', native_owner.pw_name, '/usr/bin/python3.10',
+                          str(NATIVE_RUNTIME/'odoo-bin'), 'shell']
+        native_opts = ['-c', '/etc/odoo18-cerroelplomo.conf', '-d', reference, '--db-filter=^'+reference+'$',
                  '--db_host=/var/run/postgresql', '--addons-path='+prod['options']['addons_path'],
                  '--data-dir='+str(native_data), '--load=base,web', '--workers=0', '--max-cron-threads=0',
-                 '--without-demo=all', '--no-http', '--stop-after-init',
-                 '--logfile='+str(native_stage/f'{field_group}-odoo.log')], reference, field_group)
+                 '--without-demo=all', '--no-http', '--stop-after-init']
+        for field_group in REQUIRED_FIELD_PROBES:
+            exercise_required_field(source, native_stage, native_command,
+                native_opts + ['--logfile='+str(native_stage/f'{field_group}-odoo.log')], reference, field_group)
+        if args.exercise_derived_pdf:
+            native_pdf = exercise_derived_pdf(source, native_stage, native_command,
+                                               native_opts, reference, native_data, native_owner)
         specs=guard_specs(capsule,identity,identity,preflight);guard_sql=render_sql(database,specs)
         (stage/'guards.sql').write_text(guard_sql);(stage/'guards.sql').chmod(0o600);sql(database,guard_sql)
         tests=[]
@@ -410,6 +460,9 @@ def main():
         assert community_report == native_report, 'Original payslip report action contract diverged'
         write(stage/'business-after-cohort.json',column_snapshot(database,columns))
         write(stage/'identity-after.json',preservation.identity_contract(database))
+        if args.exercise_derived_pdf:
+            community_pdf = exercise_derived_pdf(source, stage, normal, normal_opts, database, data, owner)
+            assert community_pdf == native_pdf == community_report, 'Derived PDF action contract diverged'
         print('ORIGINAL_ANCHOR_COHORT_PROBED_REQUIRES_COMPLETE_PRESERVATION_REVIEW',flush=True)
 
 

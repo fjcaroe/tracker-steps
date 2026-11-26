@@ -1,31 +1,51 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
-## U29 · PDF con hojas de estilo y revisión final pendiente
+## U29 · PDF de Nómina y preservación de adjuntos
 
-El candidato `188ade92` ejecutó la acción 462 con el operador original 7
-en Community oficial/OCA y en la referencia nativa de la estructura 2.
-Los dos procesos completaron la generación en derivadas privadas. El
-ejecutor exigió HTTP 200 de las dos hojas de estilo en ambos motores.
-El PDF Community descargado contiene una página, sueldo base de CLP 360.000
-y líquido de CLP 363.087. La navegación y la presentación quedan pendientes.
+El operador 7 imprimió la estructura 2 de Cerro desde la acción original 462
+y el binding al modelo 600. Se ejecutó la misma acción en Community
+oficial/OCA (144 instalados, cero Enterprise) y en la referencia nativa
+(414/140). Los PDF de una página contienen CLP 360.000 de sueldo base y
+CLP 363.087 de líquido. Ambos motores sirvieron las hojas de estilo de la
+impresión con HTTP 200. El ensayo usó la API de impresión. Quedan la navegación
+desde el navegador y la presentación Community, con conceptos repetidos y
+la etiqueta final del líquido pendiente de revisión.
 
-U29K verificó que la pareja de control conservó cada fila original
-de adjuntos. U29L repitió el flujo con el dueño SQL correcto en las
-derivadas y el archivo final de comparación aún debe recuperarse. La sesión
-SSH se interrumpió mientras corría esa comparación. El acceso directo y
-el túnel IAP agotaron el tiempo antes del saludo SSH. La evidencia de
-U29K respalda su propio ensayo, cuyos recursos CSS Community devolvieron
-404. El candidato U29L permanece en `codex/community-isolated-report-pdf-u29`
-hasta contrastar su pareja exacta. Pasaron 305 pruebas compatibles con
-Windows y el inventario de los tres productos coincidió con U28.
+La pareja se restauró desde un respaldo único bajo el bloqueo compartido.
+Cada PDF se generó en una derivada con base y filestore propios, propietario
+SQL heredado de su base de control y servidor temporal en loopback aislado.
+La generación de recursos quedó dentro de las derivadas. Todos los adjuntos
+originales de la pareja conservaron sus filas, incluidas las dos cachés CSS
+que U28 había sustituido. Quedó el candidato a icono adicional ya observado.
+El clasificador conservó `acceptance=false`, por lo que este cierre se limita al contrato de
+impresión y a la preservación literal de las filas originales.
+Las liquidaciones y líneas de ensayo, contratos, entradas y asientos no
+persistieron.
 
+La revisión confirmó 999/1.000 proyecciones literales, 197 contadores,
+60.686 XML IDs, 118 accesos, dos denegaciones, cinco formularios y cuatro
+menús. Persistieron 71 vínculos y cero nuevos al repetir, más los siete
+vínculos exclusivos de menús nuevos. Calendar, los cuatro contratos de
+almacenamiento y los vencimientos se preservaron. Las 32 FK nuevas siguen
+vacías y quedan 27 diferencias físicas de proveedores inactivos. Pasaron
+305 pruebas compatibles con Windows. El inventario de los tres productos
+coincide byte por byte con U28.
+
+Paquete exacto `188ade92`, SHA256 `11d1e81d536e8c0729f817093041d70517cd430772854d020039cee027be5a26`.
+Respaldo `8c0d77da001de158bde231c2f61ac412e9b5b86554957811db52daeb2979671e`.
+Admisión `74fc5ff772a4cc609f6719e3733865ea3f986c5a75f333167d5b05a9c1c92b84`.
+Preservación `86ad10c419ed8ee5f9d5a4c64b9faaac512e1a5abb0028e8dc3118a8a1981494`.
+Clasificación `603499d2a8e36987e314de6dfdd6c686a864fbade31b787be765f1e477ae25ae`.
+Relaciones `7b722aec05eab8897a001dfdfa16e35cc1387ae3adf6e778dee3252dd3cc7071`.
 Evidencia privada en
 `~/.codex/local-artifacts/community-resume-20261125/U29` y
 `/srv/odoo-data/steps-anchor-validation/community-original-handover-20261126U29L`.
-Recuperar la revisión y el PDF nativo de U29L desde esa pareja existente.
-Al resolver la revisión, seguir con el replay Previred v98 en SyS Community
-con los maestros originales y cinco AFP guardadas. Persiste el alcance de
-[COMMUNITY_AUTONOMIA.md](COMMUNITY_AUTONOMIA.md).
+
+Siguiente bloque. Probar v98 de octubre de SyS con los maestros de SyS y sus
+cinco AFP almacenadas en su copia privada Community. La admisión de Cerro
+anclado está limitada a una base fuente sin liquidaciones, por lo que SyS
+requiere su propio plan de preservación antes de activar el puente.
+Siguen las puertas de [COMMUNITY_AUTONOMIA.md](COMMUNITY_AUTONOMIA.md).
 
 ## U28 · PDF de la acción original 462 y preservación de recursos
 

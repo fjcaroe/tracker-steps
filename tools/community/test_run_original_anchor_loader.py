@@ -43,7 +43,7 @@ class OriginalAnchorLoaderCase(unittest.TestCase):
             own = ['--runtime', str(root), '--database', self.database, '--capsule', str(root / 'capsule'),
                 '--capsule-sha256', loader.retention.CAPSULE_SHA256, '--identity-before', str(root / 'identity'),
                 '--identity-before-sha256', 'c' * 64, '--receipt', str(root / 'receipt.json')]
-            with patch.object(loader, 'PRIVATE_ROOT', root):
+            with patch.object(loader, 'private_artifact', lambda path: path.resolve().is_relative_to(root)):
                 options, args = loader.parse_arguments(own + ['--'] + self.argv())
                 self.assertEqual(options.database, self.database)
                 self.assertEqual(args, self.argv())
