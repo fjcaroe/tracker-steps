@@ -38,11 +38,19 @@ def main():
                         ('step_l10n_cl_caf_native_reference', 'TestDTESignatureNativeCAFCustody')):
         node = next(row for row in ast.parse((source / addon / 'tests/test_dte_signature.py').read_text()).body
             if isinstance(row, ast.ClassDef) and row.name == name)
-        selected = {row.name.removeprefix('test_') for row in node.body
-            if isinstance(row, ast.FunctionDef) and row.name.startswith('test_')}
-        if selected != assertions or len(selected) != 5:
+        methods = [row for row in node.body if isinstance(row, ast.FunctionDef) and row.name.startswith('test_')]
+        delegates = set()
+        for method in methods:
+            calls = [item.func.attr.removeprefix('assert_') for item in ast.walk(method)
+                     if isinstance(item, ast.Call) and isinstance(item.func, ast.Attribute)
+                     and isinstance(item.func.value, ast.Name) and item.func.value.id == 'self'
+                     and item.func.attr.startswith('assert_')]
+            if len(calls) != 1:
+                raise RuntimeError('Each concrete custody test must invoke one shared actor case')
+            delegates.add(calls[0])
+        if delegates != assertions or len(methods) != len(assertions) or len(methods) != 6:
             raise RuntimeError('Custody DTE concrete selection differs from shared actor cases')
-        print('%s_TEST_METHODS %s' % (name, len(selected)), flush=True)
+        print('%s_TEST_METHODS %s' % (name, len(methods)), flush=True)
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(type('TestDTESignatureCore',
         (module.DTESignatureCaseMixin, unittest.TestCase), {}))
     result = unittest.TextTestRunner(verbosity=2).run(suite)

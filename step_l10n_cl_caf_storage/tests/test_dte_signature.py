@@ -4,6 +4,9 @@ from odoo.addons.step_l10n_cl_caf_custody_core.tests.dte_signature_common import
 
 @tagged('post_install', '-at_install')
 class TestDTESignatureCustodyStorage(DTESignatureCustodyAssertions, TransactionCase):
+    def test_signed_dte_lookup_on_original_folio(self):
+        self.assert_signed_dte_lookup()
+
     def test_dte_signature_check_is_readonly_and_has_no_fiscal_authority(self):
         self.assert_dte_signature_check_is_readonly_and_has_no_fiscal_authority()
 
