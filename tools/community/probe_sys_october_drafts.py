@@ -89,7 +89,7 @@ def confirmation(draft, original, calculated):
             'closed_payroll_amounts_unchanged': True}
 
 
-def replay(scope, original_id, employee, contract, structure, day_source, confirm):
+def prepare_draft(scope, original_id, employee, contract, structure, day_source):
     cr = scope.env.cr
     original = scope.browse(original_id)
     original.check_access('read')
@@ -122,6 +122,14 @@ def replay(scope, original_id, employee, contract, structure, day_source, confir
     entered_days = day_facts(draft)
     if day_source == 'stored_worked_days':
         assert entered_days == historical_days
+    return original, draft, stored, historical_days, entered_days
+
+
+def replay(scope, original_id, employee, contract, structure, day_source, confirm):
+    original, draft, stored, historical_days, entered_days = prepare_draft(
+        scope, original_id, employee, contract, structure, day_source)
+    marker = draft.number
+    cr = scope.env.cr
     draft.compute_sheet()
     assert draft.state in ('draft','verify') and not draft.move_id and draft.number == marker
     draft.line_ids.flush_recordset(['salary_rule_id','code','amount','quantity','rate','total'])
