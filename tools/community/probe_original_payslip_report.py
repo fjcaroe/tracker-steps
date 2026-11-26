@@ -73,6 +73,14 @@ def run(env, database, pdf_output=None):
         document = html.fromstring(body)
         assert document.xpath('//div[contains(concat(" ",normalize-space(@class)," ")," page ")]')
         assert slip.employee_id.name in ' '.join(document.itertext())
+        if community:
+            values = actor._step_original_report_ce_renderer()._get_report_values(slip.ids)
+            printed = document.xpath('//*[@data-step-line-id]/@data-step-line-id')
+            expected = values['step_report_lines'](slip).ids
+            assert expected and sorted(map(int, printed)) == sorted(expected), 'printed payroll row identity drift'
+            summary = document.xpath('//*[@id="to_pay"]')
+            assert len(summary) == 1 and 'Líquido a recibir' in summary[0].text_content()
+            assert slip.company_id.currency_id.symbol in summary[0].text_content()
         env.invalidate_all()
         assert snapshot(env) == counts and capture_ytd(slip, {}) == amounts
         assert report_snapshot(env, slip) == stored

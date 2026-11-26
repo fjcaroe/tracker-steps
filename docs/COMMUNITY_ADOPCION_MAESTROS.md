@@ -1,5 +1,34 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U40D · Presentación de importes almacenados en Cerro
+
+La acción 462 imprimió una página en cada motor desde una pareja restaurada
+del mismo respaldo. Con el usuario 7 y la estructura 2, Community mostró
+una fila por cada línea salarial visible, los importes en CLP y el líquido
+final rotulado. El HTML cotejó la lista completa de IDs con las líneas que
+el operador podía imprimir. La revisión del PDF comprobó sueldo base de
+360.000 y líquido de 363.087. Pasaron ambas descargas CSS en cada motor.
+La navegación de usuario en el navegador sigue pendiente.
+
+La copia de referencia tenía 414 módulos instalados y 140 Enterprise.
+El perfil parcial de Nómina en Community tenía 144 instalados y cero
+Enterprise. El plan dejó 277 módulos originales fuera del perfil.
+El respaldo vigente aportó 60.691 XML IDs originales y 199 contadores.
+Se preservaron todos, los adjuntos originales, 999 de 1.000 proyecciones
+literales, la partición de permisos 118/2, cinco formularios, cuatro menús
+y los 71 vínculos de reglas. La diferencia en adjuntos sigue siendo el
+icono adicional. Las 27 columnas de proveedores inactivos mantuvieron
+sus valores y sus recuentos frente a la referencia fresca. El inventario
+incluye una compañía más que el del ensayo anterior. La comprobación
+final usó los datos del respaldo probado.
+
+Paquete `4d6e8288`, SHA-256
+`00097e6a6091459ae052c82346487bc8624b0ece3f000f38291cc9c564eade9a`.
+PDF Community `53d10ee39445d49509cdf47cdb1a6f8a06fed4396b15747927782a1861af6418`.
+Evidencia privada `~/.codex/local-artifacts/community-resume-20261125/U40/U40D`.
+Pasaron 305 pruebas locales compatibles con Windows de la rama canónica.
+La certificación financiera de Nómina Chile usa las liquidaciones de SyS.
+
 ## U29 · PDF de Nómina y preservación de adjuntos
 
 El operador 7 imprimió la estructura 2 de Cerro desde la acción original 462
