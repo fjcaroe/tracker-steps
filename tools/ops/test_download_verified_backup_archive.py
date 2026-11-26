@@ -145,6 +145,41 @@ class ArchiveValidation(unittest.TestCase):
         with self.assertRaises(ValueError):
             client.ssh_command('-oProxyCommand=anything', ['true'])
 
+    def test_successful_download_promotes_verified_bytes_before_retirement(self):
+        payload = self.build()
+        raw_plan = json.dumps(self.plan).encode()
+        remote = {'complete': True, 'tar_exit': 0, 'gzip_exit': 0,
+                  'plan_sha256': hashlib.sha256(raw_plan).hexdigest(),
+                  'archive_sha256': hashlib.sha256(payload).hexdigest(),
+                  'archive_bytes': len(payload)}
+        process = Mock(stdout=io.BytesIO(payload))
+        process.wait.return_value = process.poll.return_value = 0
+        output = self.root / 'output.tar.gz'
+
+        def authorized_run(*args, **kwargs):
+            self.assertEqual(output.read_bytes(), payload)
+            receipt = json.loads(output.with_name(output.name + '.verified.json').read_text())
+            self.assertTrue(receipt['verified'])
+            return types.SimpleNamespace(returncode=0, stdout=b'complete', stderr=b'')
+
+        with (patch.object(client, 'remote_read', side_effect=[raw_plan, json.dumps(remote).encode()]),
+              patch.object(client.subprocess, 'Popen', return_value=process),
+              patch.object(client.subprocess, 'run', side_effect=authorized_run) as run):
+            result = client.download('odoo-new', '/tool.py', '/plan.json',
+                                     output, 0, 1024 ** 3, True)
+        self.assertTrue(result['verified'])
+        self.assertEqual(run.call_count, 2)
+        self.assertFalse(output.with_name(output.name + '.part').exists())
+
+    def test_existing_output_is_never_overwritten(self):
+        output = self.root / 'output.tar.gz'
+        output.write_bytes(b'keep existing user archive')
+        with patch.object(client, 'remote_read') as read:
+            with self.assertRaisesRegex(ValueError, 'already exists'):
+                client.download('odoo-new', '/tool.py', '/plan.json', output, 0, 1024 ** 3)
+            read.assert_not_called()
+        self.assertEqual(output.read_bytes(), b'keep existing user archive')
+
 
 if __name__ == '__main__':
     unittest.main()

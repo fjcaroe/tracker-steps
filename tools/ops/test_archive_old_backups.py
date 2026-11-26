@@ -195,6 +195,15 @@ class ArchiveSafety(unittest.TestCase):
             while gz.read(1024 * 1024):
                 pass
         self.assertEqual(set(expected), set(actual))
+        # Exercise the same full validator used on the Windows destination,
+        # including GNU tar PAX timestamps and numeric ownership.
+        import download_verified_backup_archive as client
+        compressed_path = self.evidence / 'verification-fixture.tar.gz'
+        compressed_path.write_bytes(compressed)
+        with patch.object(client, 'ROOTS', {str(self.backups)}):
+            verified = client.verify_archive(compressed_path, plan)
+        self.assertEqual(verified['files'], 603)
+        self.assertEqual(verified['logical_bytes'], plan['logical_bytes'])
 
 
 if __name__ == '__main__':
