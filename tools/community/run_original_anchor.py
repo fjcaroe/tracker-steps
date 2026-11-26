@@ -171,6 +171,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',type=Path,required=True);parser.add_argument('--database',required=True)
     parser.add_argument('--original-source-inventory', type=Path, required=True)
+    parser.add_argument('--private-tablespace-on-data-disk', action='store_true')
     args = parser.parse_args();root=args.root.resolve();database=args.database
     assert os.geteuid() == 0 and re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+',database)
     assert root.parent == Path('/opt/steps-validation') and root.name.startswith('community-original-handover-')
@@ -197,12 +198,34 @@ def main():
         print('ORIGINAL_ANCHOR_WAITING_FOR_SHARED_LEASE',flush=True);fcntl.flock(lease,fcntl.LOCK_EX)
         assert not sql('postgres','SELECT 1 FROM pg_database WHERE datname='+gate.literal(database))
         assert not sql('postgres','SELECT 1 FROM pg_database WHERE datname='+gate.literal(reference))
-        for path,reserve in ((Path(sql('postgres','SHOW data_directory')),5*1024**3),(root,2*1024**3)):
-            st=os.statvfs(path);assert st.f_bavail*st.f_frsize>=reserve
-        assert sql('postgres',"SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname='steps_community_storage_20261028_community'")=='/opt/steps-validation/community-payroll-storage-20261028/community'
+        pg_data = Path(sql('postgres', 'SHOW data_directory'))
+        tablespace = 'steps_community_storage_20261028_community'
+        location = Path('/opt/steps-validation/community-payroll-storage-20261028/community')
+        if args.private_tablespace_on_data_disk:
+            data_mount = Path('/srv/odoo-data')
+            assert data_mount.is_mount() and data_mount.stat().st_dev == pg_data.stat().st_dev
+            assert data_mount.stat().st_dev != root.stat().st_dev
+            location = data_mount / ('steps-' + root.name)
+            tablespace = 'steps_anchor_' + root.name.removeprefix('community-original-handover-').lower().replace('-', '_')
+            assert re.fullmatch(r'[a-z0-9_]{1,63}', tablespace)
+            assert not location.exists() and not location.is_symlink()
+        else:
+            assert sql('postgres', "SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname="
+                       + gate.literal(tablespace)) == str(location)
+        for volume, reserve_gib in ((pg_data, 5), (location if location.exists() else location.parent, 5), (root, 2)):
+            stats = os.statvfs(volume)
+            assert stats.f_bavail * stats.f_frsize >= reserve_gib * 1024**3, f'Insufficient free space on {volume}'
         assert sql('CERRO_EL_PLOMO','SELECT count(*) FROM hr_payslip')=='0', 'This trial admits Cerro with no payroll history only'
         assert sql('CERRO_EL_PLOMO',"SELECT count(*) FROM ir_module_module WHERE state IN ('to install','to upgrade','to remove')")=='0'
-        subprocess.run(['sudo','-u','postgres','createdb','--owner='+dbuser,'--tablespace=steps_community_storage_20261028_community',database],check=True)
+        if args.private_tablespace_on_data_disk:
+            assert not sql('postgres', "SELECT 1 FROM pg_tablespace WHERE spcname=" + gate.literal(tablespace))
+            postgres = pwd.getpwnam('postgres')
+            location.mkdir(mode=0o700)
+            os.chown(location, postgres.pw_uid, postgres.pw_gid)
+            sql('postgres', 'CREATE TABLESPACE ' + gate.identifier(tablespace) + ' LOCATION ' + gate.literal(str(location)))
+            assert sql('postgres', "SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname="
+                       + gate.literal(tablespace)) == str(location)
+        subprocess.run(['sudo','-u','postgres','createdb','--owner='+dbuser,'--tablespace='+tablespace,database],check=True)
         with (stage/'source.dump').open('wb') as out:
             subprocess.run(['sudo','-u','postgres','pg_dump','-Fc','CERRO_EL_PLOMO'],stdout=out,check=True)
         with (stage/'source.dump').open('rb') as inp,(stage/'restore.log').open('w') as log:
@@ -294,7 +317,8 @@ def main():
         (stage/'capsule.json').write_bytes(CAPSULE.read_bytes());(stage/'capsule.json').chmod(0o600)
         write(stage/'handover-plan.json',{'profile':'original-cohort-anchor','database':database,'reference_database':reference,'required':sorted(required),
             'preserved_free_installed':sorted(keep),'quarantined_modules':quarantined,'role_aliases':roles,
-            'source_dump_sha256':sha(stage/'source.dump'),'all_products_operational':False,
+            'source_dump_sha256':sha(stage/'source.dump'),'community_tablespace':tablespace,
+            'all_products_operational':False,
             'deadline_resolved':False,'production_changed':False,'paid_history_admitted':False})
         for path in (stage,*stage.rglob('*')):
             if not path.is_symlink() and not path.is_relative_to(native_data):

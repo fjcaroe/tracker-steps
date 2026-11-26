@@ -29,10 +29,12 @@ class Payslip(models.Model):
             values.setdefault('ytd', 0.0)
         return lines
 
+    def _step_allows_cross_contract_ytd(self, previous_slips):
+        return False
+
     def _step_ytd_previous_lines(self):
         self.ensure_one()
-        # This explicitly supports calendar years only. Fiscal reset settings and
-        # cross-contract accumulation require their own native parity evidence.
+        # Fiscal reset settings require their own native parity evidence.
         if self.company_id.ytd_reset_day!=1 or self.company_id.ytd_reset_month!='1':
             raise UserError(_('Custom YTD resets require separate native parity validation.'))
         domain=[('employee_id','=',self.employee_id.id),('company_id','=',self.company_id.id),
@@ -41,7 +43,8 @@ class Payslip(models.Model):
         slips=self.search(domain)
         if len(slips)!=self.sudo().search_count(domain):
             raise AccessError(_('The complete payroll history must be readable for YTD.'))
-        if any(slip.contract_id!=self.contract_id for slip in slips):
+        other_contract_slips = slips.filtered(lambda slip: slip.contract_id != self.contract_id)
+        if other_contract_slips and not self._step_allows_cross_contract_ytd(other_contract_slips):
             raise UserError(_('Cross-contract YTD requires a separately validated conversion.'))
         lines=slips.mapped('line_ids');lines.check_access('read')
         if len(lines)!=self.env['hr.payslip.line'].sudo().search_count([('slip_id','in',slips.ids)]):

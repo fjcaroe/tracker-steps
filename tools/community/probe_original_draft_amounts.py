@@ -292,19 +292,13 @@ def active_ytd_trial(env, spec, community):
         baseline = capture_ytd(january, {})
         january.state = 'done'
         february = make(2, 28, january.contract_id)
-        result['same_contract'] = capture_ytd(february, {
-            code: float(stored) for _, code, stored in baseline
-        })
-        result['excluded_open_period'] = february.state in ('draft', 'verify')
-        try:
-            with env.cr.savepoint():
-                march = make(3, 31)
-                assert march.contract_id != january.contract_id
-                result['new_contract'] = capture_ytd(march)
-        except UserError as exc:
-            if not community or 'Cross-contract YTD' not in str(exc):
-                raise
-            result['new_contract_rejected'] = True
+        previous = {code: float(stored) for _, code, stored in baseline}
+        result['same_contract'] = capture_ytd(february, previous)
+        assert february.state in ('draft', 'verify')
+        march = make(3, 31)
+        assert march.contract_id != january.contract_id
+        result['new_contract'] = capture_ytd(march, previous)
+        result['excluded_open_period'] = True
         assert capture_ytd(january, {}) == baseline
         result['baseline'] = baseline
     finally:

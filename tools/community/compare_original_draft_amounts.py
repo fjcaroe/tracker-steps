@@ -83,8 +83,8 @@ def compare(native, community, plan):
         assert original['activation_in_memory'] is False and target['activation_in_memory'] is True
         ytd = {'same_contract_exact': all(original[key] == target[key]
                                          for key in ('baseline', 'same_contract')),
-               'native_new_contract': original['new_contract'],
-               'community_new_contract_rejected': target.get('new_contract_rejected', False)}
+               'new_contract_exact': original['new_contract'] == target['new_contract']}
+        assert all(ytd.values()), 'Active YTD differs from the native reference'
     return {'schema': 1, 'pair': [native['database'], community['database']],
             'source_dump_sha256': plan['source_dump_sha256'], 'active_ytd': ytd,
             'cases': results, 'basis_cases': basis_cases, 'all_compared_drafts_exact': all(
