@@ -1,5 +1,36 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+## U37 · Custodia de adjuntos SyS bloqueada por objetos ausentes
+
+Las dos restauraciones SQL de U33 conservan las mismas 5.440 filas de
+adjuntos. Las 5.186 referencias a filestore apuntan a 2.678 objetos
+únicos. La comparación contra el filestore de SyS encontró nueve ausentes
+y cero discrepancias de tamaño en los presentes. Los nueve objetos
+afectan 17 referencias, con cinco liquidaciones, un documento, diez
+referencias de contactos y una fila sin modelo. La misma clasificación
+aparece en SyS activo mediante una consulta de solo lectura. Ninguna
+referencia faltante pertenece a la caché de recursos web.
+
+`custody_sys_previred_filestore.py` volvió a comprobar el hash del dump,
+comparó las filas de adjuntos de la pareja y detuvo la copia al detectar
+la ausencia bajo el bloqueo compartido. El ensayo con archivos de prueba
+en el servidor restauró y comprobó un objeto completo y rechazó ausencia,
+contenido corrupto y rutas inválidas en SQL y en el archivo de respaldo.
+La búsqueda por checksum en dos copias históricas locales de SyS, el
+archivo local de 2025 y los bytes almacenados en PostgreSQL de U33 y SyS
+activo recuperó cero objetos. No se generó un respaldo de filestore
+sellado ni se inició Odoo sobre la candidata.
+
+El inventario integral U37 mantiene la huella de U36. Los recibos de
+lectura y la prueba quedan en
+`~/.codex/local-artifacts/community-resume-20261125/U30` como `u37-*`.
+Siguiente paso de custodia: localizar un respaldo histórico de SyS que
+conserve los bytes exactos, verificarlos por tamaño y SHA-1 en una
+ubicación privada y repetir el ensayo completo. Mantener las filas
+originales y su identidad de adjunto. En paralelo sigue disponible el
+ensayo reversible de los campos de nómina sin procedencia histórica.
+Previred v98 Community y la recuperación integral siguen pendientes.
+
 ## U36 · Contratos de días y entradas históricas de SyS
 
 El ensayo SQL en la candidata privada U33 agregó `contract_id` a las
