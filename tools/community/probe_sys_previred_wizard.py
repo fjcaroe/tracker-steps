@@ -16,7 +16,6 @@ from odoo.exceptions import UserError
 from odoo.http import Response, _request_stack
 
 from odoo.addons.step_hr_previred.tools import previred
-from odoo.addons.step_payroll_contracts.access import has_payroll_role
 
 
 PRIVATE_DB = re.compile(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_)[A-Za-z0-9_]+')
@@ -38,12 +37,12 @@ def snapshots(env):
     return result
 
 
-def authorized_wizard(env, users, company):
+def authorized_wizard(env, users, company, is_manager):
     for user in users.filtered(lambda candidate: company in candidate.company_ids):
         wizard = env['step.previred.export.wizard'].with_user(user).with_context(
             allowed_company_ids=[company.id])
         if (wizard.env.user.has_group('step_hr_previred.group_previred_generate')
-                and has_payroll_role(wizard.env, 'manager')):
+                and is_manager(wizard.env)):
             return wizard
     return None
 
@@ -115,6 +114,14 @@ def run(env):
     enterprise_count = sum(module.license == 'OEEL-1' for module in installed)
     if community:
         assert enterprise_count == 0 and 'payroll' in installed.mapped('name')
+        from odoo.addons.step_payroll_contracts.access import has_payroll_role
+
+        def is_manager(role_env):
+            return has_payroll_role(role_env, 'manager')
+    else:
+        def is_manager(role_env):
+            return role_env.user.has_group('hr_payroll.group_hr_payroll_manager')
+
     env['ir.http'].routing_map()
     before = snapshots(env)
     env.cr.execute("""
@@ -139,9 +146,9 @@ def run(env):
     october_candidates = []
     try:
         for company_id, start, count in cohorts:
-            if community and (start != OCTOBER or count != 5):
+            if start != OCTOBER or count != 5:
                 continue
-            wizard = authorized_wizard(env, users, env['res.company'].browse(company_id))
+            wizard = authorized_wizard(env, users, env['res.company'].browse(company_id), is_manager)
             if wizard is None:
                 continue
             try:

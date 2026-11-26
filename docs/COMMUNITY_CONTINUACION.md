@@ -19,6 +19,41 @@ recibos se guardan con modo 0600. Los adjuntos del filestore quedan fuera
 de esta fase SQL y requieren su propio respaldo y verificación para la
 admisión integral.
 
+La pareja fresca U33 pasó el preflight PostgreSQL antes de iniciar Odoo.
+Cada copia contiene 765 liquidaciones y 12.029 líneas, sin nulos en las
+dos columnas verificadas. Las 25 proyecciones, 298 FK y 111 correlativos
+coincidieron entre copias, sin diferencias de columnas o relaciones en
+el alcance del control. El SHA-256 del dump común es
+`669f58d3eb1f5240bcd248b2f2a905d52b76752274dfc5396d14b5ad118c17f0`.
+La evidencia está en
+`/opt/steps-validation/community-sys-previred-20261126U33` y en
+`~/.codex/local-artifacts/community-resume-20261125/U30` (archivos U33).
+
+La comparación de catálogo con Community de Cerro U29L encontró tipos y
+obligatoriedad compatibles en las columnas compartidas de liquidaciones,
+líneas, días y entradas. El catálogo de Cerro incluye columnas adicionales
+en esas tablas. En el alcance de 25 tablas hay 51 columnas de SyS ausentes
+en Cerro, 184 adicionales en Cerro y diez diferencias de obligatoriedad,
+distribuidas en 14 tablas. La admisión de SyS debe verificar cada diferencia
+y el comportamiento de las columnas nuevas con la historia real antes
+de instalar el puente.
+
+En la referencia nativa restaurada del mismo dump, el gerente UID 2
+validó y generó Previred v98 de octubre. El TXT contiene cinco filas
+de 105 campos, sin descartes ni anexos. Las cinco AFP coinciden con
+`AFP + AFP_EMP` almacenadas y el hash del TXT coincide con U27
+(`10c69a74a4454f468acc8040f8fe60ea2361fc9003618f62dbbd071932622dd6`).
+La captura de referencia después del rollback fue idéntica. El primer
+intento se detuvo al importar el adaptador Community, ausente en SyS.
+El segundo usó el grupo nativo de Nómina y ejercitó los botones reales
+en un contexto de petición local aislado.
+
+La candidata restaurada conserva el grafo nativo de SyS. Quedan la
+admisión específica, el upgrade aislado con fuentes Community oficiales
+y la comprobación del mismo TXT bajo el rol original. Completar los
+recibos tras upgrade y rollback, y repetir el paquete exacto en copia
+fresca aislada de Cerro. El código queda en la rama candidata.
+
 U32 prepara los cuatro puntos de comparación de almacenamiento SyS con
 `tools/community/capture_sys_previred_stage.py`. El coordinador conserva
 el bloqueo compartido durante la secuencia, aísla las bases de otros
