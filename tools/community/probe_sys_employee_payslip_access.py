@@ -65,7 +65,9 @@ def run(env, company_id, prepared=False):
     admin = env(context=ctx)
     def read(env_for, ids):
         return allowed_call(lambda: env_for['hr.payslip'].browse(ids).check_access('read'))
-    real_readers = [read(api.Environment(env.cr, uid, ctx), [ident for ident, _ in originals]) for uid in real_actors]
+    real_scopes = [api.Environment(env.cr, uid, ctx) for uid in real_actors]
+    real_readers = [read(scope, [ident for ident, _ in originals]) for scope in real_scopes]
+    real_managers = sum(scope.user.has_group('hr_payroll.group_hr_payroll_manager') for scope in real_scopes)
     action = env.ref('hr_payroll.action_report_payslip')
     assert action.id == 1431
     fixtures = []
@@ -99,6 +101,7 @@ def run(env, company_id, prepared=False):
             foreign, foreign_line = fixtures[1-idx][2:]
             scope = api.Environment(env.cr, uid, ctx)
             assert not scope.su and scope.user.employee_id.id == employee_id
+            assert not scope.user.has_group('hr_payroll.group_hr_payroll_user')
             report = scope['ir.actions.report']
             def render(ident):
                 slip = scope['hr.payslip'].browse(ident)
@@ -115,5 +118,6 @@ def run(env, company_id, prepared=False):
         env.cr.execute('SELECT count(*) FROM hr_payslip WHERE id=%s',(ident,))
         assert env.cr.fetchone()==(0,)
     env.cr.rollback()
-    return {'existing_ordinary_users':len(real_actors),'existing_read_all_october':sum(real_readers),
+    return {'other_active_internal_users':len(real_actors),'other_original_payroll_managers':real_managers,
+            'existing_read_all_october':sum(real_readers),
             'synthetic_employee_results':results,'business_fixtures_rolled_back':True}
