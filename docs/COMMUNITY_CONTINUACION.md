@@ -1,5 +1,42 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+## U39 · Diario desconocido en lotes históricos de SyS
+
+`step_payroll_oca_sys_history` es un addon optativo para la futura
+admisión de SyS. Mantiene nullable el diario histórico, elimina el valor
+por defecto del motor y conserva la relación RESTRICT al diario existente.
+El alta exige un diario. La edición de otros campos admite el nulo
+heredado. La asignación explícita usa el control de compañía de Odoo y
+una vez asignado el diario no se puede vaciar. El addon no declara
+permisos y queda fuera del paquete de Cerro.
+
+El paquete exacto se instaló bajo el bloqueo compartido en una derivada
+privada de la copia Community oficial/OCA U29L, con cero módulos
+Enterprise y red aislada. El usuario original 7 seleccionó un diario
+existente, probó alta y edición, y verificó los rechazos de alta vacía,
+creación múltiple incompleta, vaciado y diario de otra compañía. Una
+fila de ensayo con diario nulo conservó ese valor al editar otro campo.
+Se cotejaron las dos ACL del modelo con su origen y se revirtieron
+las filas de ensayo. Pasaron 309 regresiones compatibles con Windows.
+Quedan tres suites Linux/PostgreSQL fuera de esa cuenta.
+
+Paquete SHA-256
+`7695b7343785bc56507417fac54b971bac88354004569cb2e099b3579736ad3c`.
+Evidencia privada `u39-probe-result.txt` y `u39-batch-acl.txt` en
+`~/.codex/local-artifacts/community-resume-20261125/U30`. El inventario
+completo U39 conserva la huella de U38, incluidos módulos fuera de Cerro,
+fuentes recuperables y caminos Enterprise. Sigue pendiente probar con
+la identidad y los lotes históricos de SyS, los cuatro asientos entre
+compañías y el paquete exacto en una copia fresca de Cerro.
+
+La búsqueda adicional revisó 43 directorios, nueve archivos locales y
+ocho archivos de GCS por tamaño y SHA-1. Siguen faltando los nueve objetos
+de SyS. El recibo privado es `u39-recovery.json`. Los snapshots del
+disco de datos de septiembre y octubre de 2026 y el de la instancia
+archivada de septiembre son las siguientes fuentes identificadas.
+Siguen el bloqueo de custodia, la admisión de los cinco campos U38
+restantes y el cotejo Previred v98 frente a su referencia nativa.
+
 ## U38 · Campos de SyS sin valor histórico acreditado
 
 La candidata privada U33 ensayó seis columnas nuevas sin valores por
