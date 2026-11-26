@@ -33,6 +33,7 @@ def file_digest(path):
 
 ABSENT_FIELDS = {'hr_payslip_line': {'condition_select': 'character varying', 'condition_python': 'text'},
                  'hr_payslip_run': {'journal_id': 'integer'}}
+PRIVATE_TABLESPACE = 'steps_community_storage_20261028_community'
 RELATED = {
     ('hr.payslip.input', 'code'): ('char', True, 'input_type_id.code'),
     ('hr.payslip.input', 'contract_id'): ('many2one', True, 'payslip_id.contract_id'),
@@ -95,18 +96,32 @@ def run(args):
     require(re.fullmatch(r'MANAGEMENT_QA_SYS_PREVIRED_[A-Z0-9_]+', native),
             'sys-admission-native-reference-required')
     original = reference['snapshot']
+    tablespace = getattr(args, 'tablespace', None)
+    require(tablespace in (None, PRIVATE_TABLESPACE), 'sys-admission-unreviewed-tablespace')
     if not args.verify_only:
         size, owner, encoding, collate, ctype = json.loads(query('postgres',
             "SELECT json_build_array(pg_database_size(oid),pg_get_userbyid(datdba),"
             "pg_encoding_to_char(encoding),datcollate,datctype) FROM pg_database "
             f"WHERE datname='{native}'"))
-        require(shutil.disk_usage(query('postgres', 'SHOW data_directory')).free >= 5 * GIB + size,
+        data = Path(query('postgres', 'SHOW data_directory'))
+        target = data
+        options = []
+        if tablespace:
+            target = Path(query('postgres', f"SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname='{tablespace}'"))
+            require(target.resolve().is_relative_to(Path('/opt/steps-validation/community-payroll-storage-20261028')),
+                    'sys-admission-private-tablespace-path')
+            options = ['--tablespace=' + tablespace]
+        require(shutil.disk_usage(data).free >= 5 * GIB and shutil.disk_usage(target).free >= 5 * GIB + size,
                 'sys-admission-insufficient-restore-space')
         # createdb fails if the exact name already exists. Never restore over it.
-        pg('createdb', '--owner=' + owner, '--template=template0', '--encoding=' + encoding,
+        pg('createdb', *options, '--owner=' + owner, '--template=template0', '--encoding=' + encoding,
            '--lc-collate=' + collate, '--lc-ctype=' + ctype, args.database)
         pg('pg_restore', '--exit-on-error', '--no-tablespaces', '--dbname=' + args.database, str(dump))
     summary = {}
+    if tablespace:
+        require(query('postgres', "SELECT t.spcname FROM pg_database d JOIN pg_tablespace t ON d.dattablespace=t.oid "
+                      f"WHERE d.datname='{args.database}'") == tablespace, 'sys-admission-restore-tablespace-drift')
+        summary['tablespace'] = tablespace
     with closing(psycopg2.connect(dbname=args.database, host=SOCKET, user='postgres')) as db:
         if not args.verify_only:
             db.set_session(readonly=True, isolation_level='REPEATABLE READ')
@@ -141,6 +156,7 @@ def main():
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--database', required=True)
     parser.add_argument('--verify-only', action='store_true')
+    parser.add_argument('--tablespace', choices=[PRIVATE_TABLESPACE])
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     os.umask(0o077)
