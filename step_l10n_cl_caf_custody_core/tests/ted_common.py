@@ -11,6 +11,43 @@ from .common import CAFCustodyAssertions
 
 
 class TEDCustodyAssertions(CAFCustodyAssertions):
+    def assert_ted_folio_lookup(self):
+        record = self.custody_record()
+        model = self.manager_model()
+        value = base64.b64encode(self.ted_fixture())
+        self.env.cr.execute("SELECT last_value,is_called FROM l10n_cl_dte_caf_id_seq")
+        before = self.env.cr.fetchone()
+        self.env.cr.execute("UPDATE l10n_cl_dte_caf SET status='spent' WHERE id=%s", [record.id])
+        record.invalidate_recordset(['status'])
+        for user in (self.manager, self.stock_manager):
+            result = model.with_user(user).step_custody_check_ted_for_folio(value)
+            self.assertEqual(result['caf_id'], record.id)
+            self.assertTrue(result['ted_signature_verified'])
+            self.assertFalse(result['folio_operations_enabled'])
+        with self.assertRaises(AccessError):
+            model.with_user(self.employee).step_custody_check_ted_for_folio(value)
+        with self.assertRaises(UserError):
+            model.with_context(allowed_company_ids=[self.other_company.id]).step_custody_check_ted_for_folio(value)
+        with self.assertRaises(UserError):
+            model.step_custody_check_ted_for_folio(base64.b64encode(self.ted_fixture().replace(b'<MNT>1234', b'<MNT>1235')))
+        # A CAF from a different company cannot introduce an ambiguity. Once
+        # both ranges are in this company even a record rule hiding the
+        # competing metadata cannot authorize selection of the visible one.
+        self.env.cr.execute("""INSERT INTO l10n_cl_dte_caf
+            (id,filename,company_id,l10n_latam_document_type_id,start_nb,final_nb,issued_date,status)
+            SELECT -910002,'SYNTHETIC_OVERLAP.xml',%s,l10n_latam_document_type_id,start_nb,final_nb,issued_date,status
+            FROM l10n_cl_dte_caf WHERE id=%s""", [self.other_company.id, record.id])
+        self.assertEqual(model.step_custody_check_ted_for_folio(value)['caf_id'], record.id)
+        self.env.cr.execute("UPDATE l10n_cl_dte_caf SET company_id=%s WHERE id=-910002", [self.company.id])
+        self.env['ir.rule'].create({'name': 'Synthetic hidden overlap', 'model_id': self.env['ir.model']._get_id(record._name),
+                                     'domain_force': "[('id','!=',-910002)]"})
+        self.assertFalse(model.search_count([('id', '=', -910002)]))
+        with self.assertRaises(UserError):
+            model.step_custody_check_ted_for_folio(value)
+        self.env.cr.execute("SELECT last_value,is_called FROM l10n_cl_dte_caf_id_seq")
+        self.assertEqual(self.env.cr.fetchone(), before)
+        self.assertEqual(record.status, 'spent')
+
     def ted_fixture(self):
         return synthetic_ted(self.original, self.issuer_key)[0]
 
