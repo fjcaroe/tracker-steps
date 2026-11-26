@@ -113,3 +113,21 @@ La compilación/inspección de fuentes no sustituye esos casos Odoo aún pendien
 Siguen abiertos ancla/CAF reales, asignador fiscal concurrente, estados de
 habilitación/consumo, firma/TED/PDF417/DTE/guías/exportación, respuestas/reintentos
 SII y adopción integral restaurable cero Enterprise. El 31 continúa en riesgo.
+
+## Verificación histórica por folio, 26 de noviembre de 2026
+
+Contabilidad e Inventario pueden verificar un TED que ya contiene folio. El método
+`step_custody_check_ted_for_folio` localiza el rango del emisor y tipo de
+documento en la empresa activa, comprueba el acceso al CAF y verifica la firma
+del timbre con el original guardado. Un rango agotado puede verificar un timbre
+antiguo. Si dos CAF abarcan el folio, incluso si una regla de acceso oculta uno
+de ellos, la operación se detiene.
+
+El paquete `c075cdd4` pasó una prueba funcional en cada copia privada restaurada
+del par U40F, con Odoo 18 Community y con el proveedor nativo de Cerro. Se
+ejercitaron los dos perfiles autorizados, un empleado sin permiso, un emisor
+ajeno, un timbre alterado y rangos superpuestos. El estado del CAF, la secuencia
+y el número de registros originales se conservaron. Las pruebas usaron llaves
+efímeras sintéticas y se ejecutaron con la red aislada. La autorización y el
+consumo fiscal de folios continúan fuera de este flujo.
+
