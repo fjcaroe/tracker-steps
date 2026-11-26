@@ -97,3 +97,11 @@ Los dos gerentes originales conservaron acceso a las 86 líneas de las cinco
 liquidaciones. Cada una de esas liquidaciones conserva la vinculación original
 de su empleado. El recibo independiente tiene SHA-256
 `704b58cc63bbffa716ee40e777cabf94d010d9a9e108dbf4c78c365d74596161`.
+
+En U40RS se completó también la generación del PDF físico como cada empleado
+de ensayo. Ambas cuentas imprimieron su documento por la acción 1431. En otro
+equipo se verificaron los bytes por SHA-256 y se extrajeron el nombre del titular
+y su líquido sintético en ambos archivos. Odoo denegó las dos impresiones
+cruzadas antes de generar un PDF. Los documentos de ensayo se revirtieron.
+SHA-256 del recibo
+`2998747f6baf40c72993c977ad57a9ede33d5e24e766e3bb49692ee3764e4021`.
