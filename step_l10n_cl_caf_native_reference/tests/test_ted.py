@@ -6,6 +6,9 @@ from odoo.addons.step_l10n_cl_caf_custody_core.tests.ted_common import TEDCustod
 class TestTEDNativeCAFCustody(TEDCustodyAssertions, TransactionCase):
     native_reference = True
 
+    def test_unique_original_folio_lookup_as_both_roles(self):
+        self.assert_ted_folio_lookup()
+
     def test_ted_check_is_readonly_and_not_authority_or_folio_enablement(self):
         self.assert_ted_check_is_readonly_and_not_authority_or_folio_enablement()
 

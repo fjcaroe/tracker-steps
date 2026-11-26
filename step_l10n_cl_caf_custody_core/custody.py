@@ -2,10 +2,10 @@
 import base64
 import binascii
 
-from odoo import _
+from odoo import _, api
 from odoo.exceptions import AccessError, UserError
 from odoo.addons.step_l10n_cl_edi_core.caf import CAFError, normalize_rut, parse_caf
-from odoo.addons.step_l10n_cl_edi_core.ted import check_ted_against_caf
+from odoo.addons.step_l10n_cl_edi_core.ted import check_ted_against_caf, parse_ted
 from odoo.addons.step_l10n_cl_edi_core.dte_signature import DTEError, verify_signed_dte
 
 
@@ -111,6 +111,38 @@ class CAFCustodyMixin:
         # Deliberately no caller-supplied authority map, status transition,
         # persistent verification flag, audit write, attachment or folio use.
         return result.metadata()
+
+    @api.model
+    def step_custody_check_ted_for_folio(self, file_data):
+        """Locate the original CAF for an already stamped folio and verify the TED."""
+        model = self.env[MODEL].sudo(False)
+        model._step_custody_scope()
+        try:
+            ted = parse_ted(decode_original(file_data))
+        except (UserError, CAFError):
+            raise UserError(_('El timbre no tiene un formato válido.')) from None
+        company = model.env.company
+        if ted.issuer_rut != company_rut(company):
+            raise UserError(_('El emisor del timbre debe corresponder a la empresa activa.'))
+        document = model.env['l10n_latam.document.type'].with_context(active_test=False).search([
+            ('country_id.code', '=', 'CL'), ('code', '=', str(ted.document_type))], limit=2)
+        error = _('El folio requiere un único CAF del emisor y tipo de documento.')
+        if len(document) != 1:
+            raise UserError(error)
+        # Historical verification includes spent ranges. A hidden overlapping
+        # range must not turn an ambiguous folio into a unique match.
+        model.check_field_access_rights('read', ['company_id', 'l10n_latam_document_type_id', 'start_nb', 'final_nb'])
+        model.flush_model(['company_id', 'l10n_latam_document_type_id', 'start_nb', 'final_nb'])
+        model.env.cr.execute("""SELECT id FROM l10n_cl_dte_caf
+            WHERE company_id=%s AND l10n_latam_document_type_id=%s AND start_nb<=%s AND final_nb>=%s
+            ORDER BY id LIMIT 2""", (company.id, document.id, ted.folio, ted.folio))
+        ids = [row[0] for row in model.env.cr.fetchall()]
+        if len(ids) != 1:
+            raise UserError(error)
+        record = model.browse(ids)
+        # The normal record and field permissions are rechecked when the
+        # original attachment is read. Range metadata alone cannot verify a TED.
+        return dict(record.step_custody_check_ted(file_data), caf_id=record.id)
 
     def _step_custody_assert_caf_metadata(self, parsed):
         self.ensure_one()
