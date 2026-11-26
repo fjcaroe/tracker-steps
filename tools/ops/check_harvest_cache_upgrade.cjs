@@ -20,8 +20,10 @@ const {chromium}=require('playwright');
     }
     async function policy(fixed){
         for(let i=0;i<40;i++){
-            const r=await fetch(url,{cache:'no-store'});
-            if(r.headers.get('cache-control')===(fixed?'no-store':'no-cache'))return;
+            try{
+                const r=await fetch(url,{cache:'no-store'});await r.arrayBuffer();
+                if(r.headers.get('cache-control')===(fixed?'no-store':'no-cache'))return;
+            }catch{/* A retiring nginx worker may close its keep-alive socket. */}
             await new Promise(resolve=>setTimeout(resolve,150));
         }
         throw new Error('nginx cache policy did not change');
