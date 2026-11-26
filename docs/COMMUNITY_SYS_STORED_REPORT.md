@@ -48,3 +48,34 @@ Se imprimieron nuevamente cinco PDF de una página. Los 61 identificadores, los
 archivados y las filas originales de los grupos de usuarios conservaron sus
 huellas. El recibo independiente de esta repetición tiene SHA-256
 `c9c3d3256567e5b11f8593f5051f2ba78c5da6d9aefb83094c97d17a64bc0421`.
+
+## Alcance de lectura en SyS
+
+La copia nativa U40RP y la copia Community U40RS se restauraron por separado.
+Los cinco empleados de las liquidaciones cerradas de octubre carecen de usuario
+vinculado. Se crearon dos usuarios de ensayo, cada uno con el grupo original de
+empleado de nómina y su propio empleado de ensayo, para comprobar la propiedad
+sin modificar registros de personal real. Los contratos, liquidaciones y líneas
+de ensayo se revirtieron al finalizar cada prueba.
+
+U40RS recibió a los dos usuarios antes de instalar el sello que protege las
+membresías originales. Se validó la definición y el estado activo de ese sello
+antes del ensayo. Los grupos y las vinculaciones originales conservaron sus
+huellas. El proceso de admisión agregó las 16 reglas que Steps ya distribuye
+para liquidaciones, líneas, entradas y días trabajados. La segunda ejecución
+reconoció las mismas 16 reglas y agregó cero. Las reglas y permisos de modelos
+originales de SyS conservaron sus huellas.
+
+Con las reglas instaladas, ambos empleados de ensayo pudieron consultar su
+propia liquidación y su línea. Odoo denegó a cada uno la liquidación y la línea
+del otro empleado. Los dos usuarios internos originales con rol de gerente
+conservaron lectura de las cinco liquidaciones históricas y sus 86 líneas.
+
+La prueba comparativa de la copia nativa permitió a cada empleado de ensayo
+consultar los dos documentos y las dos líneas, y denegó el informe HTML en ambos
+casos. En Community, con cada cuenta autenticada, la acción original 1431
+generó el HTML propio y denegó el ajeno en ambos cruces. Tras incorporar esas
+reglas se volvieron a imprimir los cinco documentos históricos con el operador
+original. Se cotejaron de nuevo los cinco líquidos y las 61 filas visibles.
+El recibo independiente de esos PDF tiene SHA-256
+`5b13f4a13c0d6a9dc9a969444eeaf55cddaa5dc544a52371a88069c43f1a6bec`.
