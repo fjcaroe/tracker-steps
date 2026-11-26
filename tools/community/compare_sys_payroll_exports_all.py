@@ -45,6 +45,8 @@ def compare(native, community):
     candidate, other = index(community)
     if original.keys() != candidate.keys() or actors.keys() != other.keys() or len(original) != 12:
         raise ValueError('Different company or authenticated operator census')
+    if len(actors) != 24 or any(len(record['operators']) != 2 for record in original.values()):
+        raise ValueError('Expected the two original active internal operators for every closed company')
     periods = Counter()
     kinds = ('previred','book')
     receipts = {kind:{'matched':0,'native':Counter(),'community':Counter()} for kind in kinds}
