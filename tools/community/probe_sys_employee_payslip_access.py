@@ -37,7 +37,18 @@ def allowed_call(fn):
     return True
 
 
-def run(env, company_id):
+def prepare_actors(env, company_id):
+    if not re.fullmatch(r'COMMUNITY_SYS_REPORT_ROLES_[A-Z0-9]+', env.cr.dbname):
+        raise ValueError('Only a dedicated pre-seal employee-role fixture can persist actors')
+    admin = env(context=dict(env.context, allowed_company_ids=[company_id], tracking_disable=True, no_reset_password=True))
+    logins = [f'synthetic_sys_report_{i}' for i in (1, 2)]
+    if admin['res.users'].with_context(active_test=False).search_count([('login', 'in', logins)]):
+        raise ValueError('Use a fresh role fixture')
+    return [new_test_user(admin, login=login, groups='base.group_user,l10n_cl_simpledigital_payroll.group_hr_payroll_employee',
+                          company_id=company_id, company_ids=[Command.set([company_id])]).id for login in logins]
+
+
+def run(env, company_id, prepared=False):
     if not re.fullmatch(r'(?:COMMUNITY|MANAGEMENT_QA)_SYS_REPORT_ROLES_[A-Z0-9]+', env.cr.dbname):
         raise ValueError('Use a new isolated SyS report-role derivative')
     env.cr.execute("""SELECT p.id,p.contract_id FROM hr_payslip p WHERE p.company_id=%s AND p.date_from='2026-10-01'
@@ -59,9 +70,15 @@ def run(env, company_id):
     fixtures = []
     with env.cr.savepoint() as trial:
         for number, (source_slip, source_contract) in enumerate(originals[:2], 1):
-            user = new_test_user(admin, login=f'synthetic_sys_report_{number}',
-                groups='base.group_user,l10n_cl_simpledigital_payroll.group_hr_payroll_employee',
-                company_id=company.id, company_ids=[Command.set(company.ids)])
+            login = f'synthetic_sys_report_{number}'
+            if prepared:
+                user = admin['res.users'].search([('login', '=', login), ('company_id', '=', company.id)])
+                user.ensure_one()
+                assert user.with_user(user).has_group('l10n_cl_simpledigital_payroll.group_hr_payroll_employee')
+                assert not user.with_user(user).has_group('payroll.group_payroll_user')
+            else:
+                user = new_test_user(admin, login=login, groups='base.group_user,l10n_cl_simpledigital_payroll.group_hr_payroll_employee',
+                    company_id=company.id, company_ids=[Command.set(company.ids)])
             employee = admin['hr.employee'].create({'name': f'Synthetic payroll owner {number}', 'company_id': company.id,
                                                      'user_id': user.id, 'resource_calendar_id': company.resource_calendar_id.id})
             contract = copied_row(admin, 'hr_contract', source_contract,
