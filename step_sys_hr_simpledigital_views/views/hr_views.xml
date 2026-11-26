@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="employee_list" model="ir.ui.view">
+        <field name="name">SyS – categoría y tipo de contrato del empleado</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_tree"/>
+        <field name="priority">160</field>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='name']" position="after">
+                <field name="identification_id" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='activity_ids']" position="after">
+                <field name="contract_ids" optional="show"/>
+                <field name="x_studio_tipo_contrato" optional="show"/>
+                <field name="x_studio_categora_empleado" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="contract_pension" model="ir.ui.view">
+        <field name="name">SyS – cotización adicional del contrato</field>
+        <field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
+        <field name="priority">600</field>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='AFP']//field[@name='afp_option']" position="after">
+                <field name="x_studio_cotizacin_obligatoria_adicional" widget="percentage"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
