@@ -56,7 +56,8 @@ def run(env, company_id, prepared=False):
     originals = env.cr.fetchall()
     assert len(originals) == 5
     env.cr.execute("""SELECT u.id FROM res_users u JOIN res_company_users_rel cu ON cu.user_id=u.id
-                      WHERE cu.cid=%s AND u.active AND NOT u.share AND u.id NOT IN (1,2) ORDER BY u.id""", (company_id,))
+                      WHERE cu.cid=%s AND u.active AND NOT u.share AND u.id NOT IN (1,2)
+                      AND u.login NOT IN ('synthetic_sys_report_1','synthetic_sys_report_2') ORDER BY u.id""", (company_id,))
     real_actors = [uid for uid, in env.cr.fetchall()]
     assert real_actors
     company = env['res.company'].browse(company_id)
