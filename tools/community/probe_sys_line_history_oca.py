@@ -38,7 +38,8 @@ def require_private(env):
 
 def snapshot(env):
     result = {}
-    for model in ("hr.payslip", "hr.contract", "hr.salary.rule", *STORAGE_FIELDS):
+    for model in ("hr.payslip", "hr.contract", "hr.salary.rule", "hr.payslip.input.type", "hr.work.entry.type",
+                  *STORAGE_FIELDS):
         query = sql.SQL("SELECT to_jsonb(t) - %s::text[] FROM {} t ORDER BY id").format(
             sql.Identifier(env[model]._table))
         env.cr.execute(query, (list(STORAGE_FIELDS.get(model, ())),))
@@ -86,7 +87,7 @@ def initialize_provider(env, before):
         for name in names:
             field = env[model]._fields[name]
             if name in RELATED.get(model, {}):
-                assert not field.store
+                assert not field.store and field.related == ".".join(RELATED[model][name])
             else:
                 assert not field.required and not field.default
     env.registry.init_models(env.cr, list(STORAGE_FIELDS), {})
@@ -117,12 +118,19 @@ def rejected(operation, exception, expected):
 def verify(env, before):
     require_private(env)
     module = env["ir.module.module"].search([("name", "=", MODULE), ("state", "=", "installed")])
-    assert module.installed_version == "18.0.1.2.0"
+    assert module.installed_version == "18.0.1.2.1"
     scope = env["hr.payslip"].with_user(7).with_context(tracking_disable=True, lang="en_US")
     history = scope.search([("name", "=", MARKER)])
     history.ensure_one()
     assert history.state == "done" and snapshot(env) == before
     assert history.payslip_run_id.name == MARKER and not history.payslip_run_id.journal_id
+    batches = scope.env["hr.payslip.run"]
+    journal = scope.env["account.journal"].search([("company_id", "=", history.company_id.id),
+                                                  ("type", "=", "general")], limit=1)
+    count = batches.search_count([])
+    rejected(lambda: batches.create([{"name": MARKER, "journal_id": journal.id}, {"name": MARKER}]),
+             ValidationError, "Select a salary journal")
+    assert batches.search_count([]) == count
     rows = (history.line_ids, history.input_line_ids, history.worked_days_line_ids)
     counts = {}
     for records in rows:
@@ -153,6 +161,9 @@ def verify(env, before):
     assert all(line.code == line.input_type_id.code for line in slip.input_line_ids)
     assert all(day.code == day.work_entry_type_id.code for day in slip.worked_days_line_ids)
     assert slip._step_check_saved_input_values()
+    after_calculation = snapshot(env)
+    for master in ("hr.contract", "hr.salary.rule", "hr.payslip.input.type", "hr.work.entry.type"):
+        assert after_calculation[master] == before[master], master
     calculated = slip.line_ids
     for line in calculated:
         for name in FIELDS["hr.payslip.line"]:
@@ -190,6 +201,6 @@ def verify(env, before):
     env.cr.rollback()
     assert snapshot(env) == before and not scope.search_count([("name", "=", MARKER + "_NEW")])
     return {"uid": scope.env.uid, "legacy_rows_checked": counts, "fields": sum(map(len, FIELDS.values())),
-            "computed_draft_lines": len(calculated.ids), "seven_original_table_projections_and_acl_preserved": True,
+            "computed_draft_lines": len(calculated.ids), "nine_original_table_projections_and_acl_preserved": True,
             "closed_rows_preserved": True, "five_nonstored_related_fields": True,
             "atomic_mixed_create": True, "rehearsal_rolled_back": True}

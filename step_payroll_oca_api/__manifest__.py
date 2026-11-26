@@ -1,5 +1,5 @@
 {'name': 'step_payroll_oca_api',
- 'version': '18.0.1.20.1',
+ 'version': '18.0.1.20.2',
  'license': 'LGPL-3',
  'depends': ['payroll_account', 'step_payroll_contracts', 'hr_work_entry_contract', 'hr_work_entry_holidays'],
  'data': ['security/ir.model.access.csv', 'security/configuration_scope.xml', 'views/payroll_structure.xml', 'views/original_configuration.xml', 'views/saved_inputs.xml', 'views/original_input_type.xml'],

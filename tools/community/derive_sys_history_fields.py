@@ -10,6 +10,9 @@ from tempfile import TemporaryDirectory
 from build_numeric_input_engine import hashes, require, seal, sha
 from original_history_engine_contract import _snapshot
 
+INPUT_TYPE_SOURCE_SHA = "2bf1684676ca199bf429b84ea85b1548ff728a5a699c99aa6c07f9266f4bb629"
+MODELS_INIT_SHA = "4fd8751d1d36c43aacfad5585fcf73d86a076183cb5474bb1b25359b9035b882"
+
 
 # The pristine pinned OCA files and the reviewed storage derivations differ
 # in name translation, original labels and numeric precision. Keep those edits.
@@ -51,34 +54,34 @@ EDITS = {
 }
 
 
-def plan(modules):
+def plan(modules, input_type_source=None):
     """Input comes from the caller's verified engine. Never read a database or master."""
     require(set(modules) == {"payroll", "payroll_account"}, "Both OCA providers are required")
     result = {module: files.copy() for module, files in modules.items()}
     for files in result.values():
         require(ast.literal_eval(files["__manifest__.py"].decode())["license"] == "LGPL-3",
                 "Only the reviewed free OCA providers are supported")
+    if input_type_source is None:
+        input_type_source = (Path(__file__).resolve().parents[2] / "step_payroll_oca_api/models/input_type.py").read_bytes()
+    input_type_source = input_type_source.replace(b"\r\n", b"\n")
+    require(sha(input_type_source) == INPUT_TYPE_SOURCE_SHA, "The reviewed Steps input type provider is required")
+    payroll = result["payroll"]
+    require(sha(payroll["models/__init__.py"]) == MODELS_INIT_SHA and "models/step_sys_input_type.py" not in payroll,
+            "Unreviewed OCA model import graph")
+    payroll["models/step_sys_input_type.py"] = input_type_source
+    payroll["models/__init__.py"] += b"\nfrom . import step_sys_input_type\n"
     for (module, path), pins in PINS.items():
         body = result[module][path]
         require(sha(body) in pins, "Unreviewed OCA field source: " + path)
         before, after = EDITS[path]
         require(body.count(before) == 1, "Missing unique OCA declaration: " + path)
         if path in ("models/hr_payslip_input.py", "models/hr_payslip_worked_days.py"):
-            # The master relations are registered by the payroll API extension.
-            # Resolve them only at read time until the complete profile sets
-            # the native related paths. Never materialize a transient column.
             is_input = path == "models/hr_payslip_input.py"
             kind = "input_type_id" if is_input else "work_entry_type_id"
-            after = (b'    code = fields.Char(\n        compute="_compute_sys_master_code", '
-                     + f"store=False, readonly=True, copy=False, required={is_input},".encode())
-            body += f'''
-    def _compute_sys_master_code(self):
-        if "{kind}" not in self._fields:
-            from odoo.exceptions import UserError
-            raise UserError("The original payroll type provider must be installed to read its code.")
-        for row in self:
-            row.code = row.{kind}.code
-'''.encode()
+            comodel = "hr.payslip.input.type" if is_input else "hr.work.entry.type"
+            after = (f'    {kind} = fields.Many2one("{comodel}", required=True, ondelete="restrict")\n'
+                     f'    code = fields.Char(\n        related="{kind}.code", store=False, readonly=True, '
+                     f'copy=False, required={is_input},').encode()
             contract = b'        string="Contract",\n        required=True,'
             require(body.count(contract) == 1, "Unique OCA child contract required")
             body = body.replace(contract, b'        string="Contract",\n        related="payslip_id.contract_id",\n'
@@ -88,7 +91,7 @@ def plan(modules):
     return result
 
 
-def build(source, output):
+def build(source, output, input_type_source=None):
     source, output = source.resolve(strict=True), output.resolve()
     private = (Path("/opt/steps-validation"), Path("/srv/odoo-data/steps-anchor-validation"))
     require(any(output.is_relative_to(path) for path in private) and not output.exists()
@@ -101,10 +104,11 @@ def build(source, output):
                 and ast.literal_eval(manifest.read_text())["license"] == "LGPL-3",
                 "Free provider manifest required before reading source")
         modules[name] = _snapshot(source_module)
-    candidate = plan(modules)
+    candidate = plan(modules, input_type_source)
     receipt = {"original": {name: seal(hashes(files)) for name, files in modules.items()},
                "derived": {name: seal(hashes(files)) for name, files in candidate.items()},
-               "changed_files": [f"{module}/{path}" for module, path in PINS]}
+               "changed_files": [f"{module}/{path}" for module, path in PINS] + ["payroll/models/__init__.py"],
+               "early_master": {"file": "payroll/models/step_sys_input_type.py", "source_sha256": INPUT_TYPE_SOURCE_SHA}}
     with TemporaryDirectory(dir=output.parent) as tmp:
         stage = Path(tmp) / "engine"
         for module, files in candidate.items():
@@ -122,5 +126,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--input-type-source", type=Path, help="Reviewed Steps models/input_type.py")
     args = parser.parse_args()
-    print(json.dumps(build(args.source, args.output), sort_keys=True))
+    print(json.dumps(build(args.source, args.output, args.input_type_source.read_bytes() if args.input_type_source else None),
+                     sort_keys=True))
