@@ -1,5 +1,16 @@
 # Operación y publicación de Odoo
 
+T240 autoriza corregir los kilos de siete tarjas C de la sucursal indicada en
+el plan privado, únicamente en Cerro. La confirmación humana durante la atención
+incluye actualizar dos anticipos en borrador, sin facturas, conservando precios,
+tipo de cambio e impuestos. Usar `correct_reception_weights.py`: copia fresca,
+prueba de repetición, respaldo nuevo, bloqueo y rechazo de cambios concurrentes.
+Conservar cajas, lotes, propietarios y movimientos históricos; agregar solo
+las diferencias mediante movimientos nativos de stock de tercero, sin valoración
+ni contabilidad. Comprobar los formularios reales y ambos borradores, retirar
+la sesión temporal y conservar evidencia privada. No actualiza addons ni los
+datos de capacitación de QA-Cerro. Ver `T240_CORRECCION_KILOS_RECEPCION.md`.
+
 Las respuestas humanas T236/10650 y T237/10648 amplían la entrega a Harvest
 0.0.9 y `step_harvest_launcher` 18.0.1.4.1. La 0.0.8 se publicó inicialmente
 solo en Desarrollo; no acredita esas respuestas ni el cierre de los tickets.
