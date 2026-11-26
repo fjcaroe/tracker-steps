@@ -68,7 +68,7 @@ async function main() {
             const person = data.workers.find(row => row.id === worker);
             await page.locator('tr').filter({ hasText: person.nip }).getByRole('button', { name: 'Deshabilitado' }).click();
             await nav.getByRole('button', { name: /^Registrar(?:\s|$)/ }).click();
-            await page.getByLabel('Trabajador', { exact: true }).selectOption(String(worker));
+            await page.locator('form.capture-card select').selectOption(String(worker));
             await page.getByLabel('Hilera', { exact: true }).fill('QA-T242');
             await page.getByRole('button', { name: 'Guardar entrega' }).click();
             await page.getByText(new RegExp(`${expected(2)} kg ·`)).waitFor();
@@ -84,7 +84,7 @@ async function main() {
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
         fs.writeFileSync(output, JSON.stringify({ packaging_selector: true, standard_weight_readonly: true,
             manual_weight_hundredths: true, mobile_layout: true, local_weight_preserved: mode === 'copy',
-            native_context: true, version: '0.0.10', server_writes: false }, null, 2));
+            native_context: true, crew_native_type_contractor: true, version: '0.0.10', server_writes: false }, null, 2));
     } finally {
         await browser.close();
     }
