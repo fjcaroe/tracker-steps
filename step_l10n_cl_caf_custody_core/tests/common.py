@@ -63,15 +63,14 @@ class CAFCustodyAssertions:
         return self.env['l10n_cl.dte.caf'].with_user(self.manager).with_context(
             allowed_company_ids=[self.company.id])
 
-    def custody_record(self):
+    def custody_record(self, *, historical=False):
         values = dict(filename='SYNTHETIC_NOT_SII_CAF.xml', company_id=self.company.id,
             l10n_latam_document_type_id=self.document.id, start_nb=50, final_nb=101,
             issued_date=fields.Date.to_date('2026-10-01'))
-        if not self.native_reference:
+        if not (self.native_reference or historical):
             return self.manager_model().create(dict(values, caf_file=base64.b64encode(self.original)))
-        # Seed the actual native table without executing/copying its upload or
-        # consuming its PostgreSQL master-ID sequence. These are synthetic data,
-        # not a simulated model, CAF authority or source historical record.
+        # Historical reads start from a persisted fixture on the original table.
+        # Keep its ID sequence intact, including after the test transaction rolls back.
         record_id = -900001
         self.env.cr.execute('SELECT id FROM l10n_cl_dte_caf WHERE id=%s', [record_id])
         self.assertFalse(self.env.cr.fetchone(), 'Synthetic CAF identity already used')

@@ -12,7 +12,7 @@ from .common import CAFCustodyAssertions
 
 class TEDCustodyAssertions(CAFCustodyAssertions):
     def assert_ted_folio_lookup(self):
-        record = self.custody_record()
+        record = self.custody_record(historical=True)
         model = self.manager_model()
         value = base64.b64encode(self.ted_fixture())
         self.env.cr.execute("SELECT last_value,is_called FROM l10n_cl_dte_caf_id_seq")

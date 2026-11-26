@@ -27,7 +27,7 @@ class DTESignatureCustodyAssertions(CAFCustodyAssertions):
             cls.dte_context, cls.document_key, caf_authorities={3: cls.anchor})
 
     def assert_signed_dte_lookup(self):
-        record = self.custody_record()
+        record = self.custody_record(historical=True)
         model = self.manager_model()
         payload = base64.b64encode(self.signed_dte)
         self.env.cr.execute('SELECT last_value,is_called FROM l10n_cl_dte_caf_id_seq')
@@ -71,7 +71,7 @@ class DTESignatureCustodyAssertions(CAFCustodyAssertions):
         self.assertEqual(self.env.cr.fetchone(), counter)
 
     def assert_dte_signature_check_is_readonly_and_has_no_fiscal_authority(self):
-        record = self.custody_record()
+        record = self.custody_record(historical=True)
         attachment = self.attachment(record)
         names = ['filename', 'company_id', 'l10n_latam_document_type_id', 'start_nb',
                  'final_nb', 'issued_date', 'status', 'write_uid', 'write_date']
@@ -100,7 +100,7 @@ class DTESignatureCustodyAssertions(CAFCustodyAssertions):
             record.step_custody_reserve_folio()
 
     def assert_dte_signature_check_preserves_actor_company_and_unassigned_legacy_scope(self):
-        record = self.custody_record()
+        record = self.custody_record(historical=True)
         payload = base64.b64encode(self.signed_dte)
         for actor in (self.manager, self.stock_manager):
             scoped = record.with_user(actor).with_context(allowed_company_ids=[self.company.id])
@@ -119,7 +119,7 @@ class DTESignatureCustodyAssertions(CAFCustodyAssertions):
         self.assertFalse(record.company_id)
 
     def assert_dte_signature_check_rechecks_cached_role_revocation(self):
-        record = self.custody_record()
+        record = self.custody_record(historical=True)
         args = (base64.b64encode(self.signed_dte), self.certificate_pin, self.dte_context)
         self.assertTrue(record._step_custody_check_signed_dte(*args)['dte_xml_signature_verified'])
         self.manager.write({'groups_id': [Command.unlink(self.env.ref('account.group_account_manager').id)]})
@@ -127,7 +127,7 @@ class DTESignatureCustodyAssertions(CAFCustodyAssertions):
             record._step_custody_check_signed_dte(*args)
 
     def assert_bad_dte_context_and_pin_do_not_repair_caf_or_legacy_download(self):
-        record = self.custody_record()
+        record = self.custody_record(historical=True)
         original_hash = hashlib.sha256(record._step_custody_original_bytes()).hexdigest()
         for payload, pin, context in (
             (b'not base64!', self.certificate_pin, self.dte_context),
@@ -146,7 +146,7 @@ class DTESignatureCustodyAssertions(CAFCustodyAssertions):
         self.assertEqual(record.step_custody_download()['type'], 'ir.actions.act_url')
 
     def assert_dte_rejects_source_metadata_mismatch_without_repair(self):
-        record = self.custody_record()
+        record = self.custody_record(historical=True)
         original_hash = hashlib.sha256(record._step_custody_original_bytes()).hexdigest()
         self.env.cr.execute('UPDATE l10n_cl_dte_caf SET start_nb=49 WHERE id=%s', [record.id])
         record.invalidate_recordset(['start_nb'])
