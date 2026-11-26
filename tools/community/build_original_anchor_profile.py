@@ -125,7 +125,8 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
                 tree.write(rule_view, encoding='utf-8')
                 models = target / 'models'
                 declarations = {}
-                for field_group in ('category', 'structure', 'rule_structure', 'payslip', 'ytd'):
+                for field_group in ('category', 'structure', 'rule_structure', 'payslip', 'ytd',
+                                    'unmapped_accounting'):
                     name_in_overlay = f'original_anchor_{field_group}'
                     declaration = Path(__file__).with_name(f'{name_in_overlay}_model.py').read_bytes()
                     with (models / f'{name_in_overlay}.py').open('xb') as module:
@@ -151,6 +152,7 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
         'original_rule_structure_declaration_sha256': declarations['rule_structure'],
         'original_payslip_declaration_sha256': declarations['payslip'],
         'original_ytd_declaration_sha256': declarations['ytd'],
+        'original_unmapped_accounting_declaration_sha256': declarations['unmapped_accounting'],
         'original_rule_structure_view_sha256': sha(rule_view.read_bytes())}
     if original_storage:
         proof['original_storage_derivation'] = storage_derivation

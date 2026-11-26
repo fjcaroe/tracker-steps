@@ -33,7 +33,8 @@ CAPSULE = Path('/opt/steps-validation/community-original-config-20261029/configu
 NATIVE_RUNTIME = Path('/opt/odoo18')
 CAPSULE_SHA = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
 RUNTIME = Path('/opt/steps-validation/community-foundation-final-20261027/community-runtime')
-REQUIRED_FIELD_PROBES = ('category', 'structure', 'rule_structure', 'payslip', 'draft_amounts')
+REQUIRED_FIELD_PROBES = ('category', 'structure', 'rule_structure', 'payslip', 'draft_amounts',
+                         'unmapped_accounting')
 
 
 def restore_provider_contract_columns(database, reference):
@@ -74,7 +75,9 @@ def write(path, value):
 
 def exercise_required_field(source, stage, executable, options, database, field_group):
     receipt = stage / f'original-{field_group}-required.json'
-    module = 'probe_original_draft_amounts' if field_group == 'draft_amounts' else f'probe_original_{field_group}_required'
+    module = f'probe_original_{field_group}'
+    if field_group not in ('draft_amounts', 'unmapped_accounting'):
+        module += '_required'
     reference_arg = ''
     if field_group == 'draft_amounts' and '_HANDOVER_' in database:
         reference_arg = ', ' + repr(str(stage / 'native-witness' / receipt.name))
@@ -381,6 +384,12 @@ def main():
         for field_group in REQUIRED_FIELD_PROBES:
             exercise_required_field(source, stage, normal,
                 normal_opts + ['--logfile='+str(stage/f'{field_group}-odoo.log')], database, field_group)
+        accounting_receipt = 'original-unmapped_accounting-required.json'
+        native_accounting = json.loads((native_stage / accounting_receipt).read_bytes())
+        community_accounting = json.loads((stage / accounting_receipt).read_bytes())
+        assert not native_accounting.pop('missing_contract_journal_rejected')
+        assert community_accounting.pop('missing_contract_journal_rejected')
+        assert community_accounting == native_accounting, 'Original draft accounting link diverged'
         write(stage/'business-after-cohort.json',column_snapshot(database,columns))
         write(stage/'identity-after.json',preservation.identity_contract(database))
         print('ORIGINAL_ANCHOR_COHORT_PROBED_REQUIRES_COMPLETE_PRESERVATION_REVIEW',flush=True)
