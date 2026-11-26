@@ -1,5 +1,36 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+U34 revalidó la candidata de SyS de U33 contra el recibo de restauración.
+Coincidieron las 25 proyecciones, 298 claves foráneas y 111 correlativos.
+El inventario renovado de los tres productos tiene el mismo SHA-256 de U33.
+
+`tools/community/inspect_sys_history_admission.py` ejecutó el diagnóstico
+en PostgreSQL bajo el bloqueo compartido y con transacciones de solo lectura.
+La candidata tiene 754 liquidaciones cerradas, 11.861 líneas, 913 filas de
+días y dos entradas vinculadas a ellas. Todas las columnas de snapshots
+verificadas están presentes y carecen de nulos en la cohorte cerrada.
+Las 928 filas de días y las dos entradas, incluidas las de borradores,
+enlazan un contrato de la misma empresa y empleado por su liquidación. Los
+tipos enlazados de las 930 filas tienen código vigente. Hace falta acreditar
+la semántica histórica del código antes de materializarlo.
+
+La copia Community de Cerro presenta siete columnas obligatorias nuevas
+respecto a SyS en las cuatro tablas históricas. Días y entradas requieren
+`code` y `contract_id`. Las líneas requieren `amount_select`,
+`condition_select` y `condition_python`. El lote añade `journal_id`.
+El siguiente ensayo debe conservar la lectura de históricos sin atribuir
+a las líneas la configuración vigente de las reglas. Para el lote hay
+que acreditar el diario desde sus vínculos contables. Conservar intacto
+el guard de Cerro y resolver los proveedores y el filestore de SyS antes
+de iniciar Odoo en la candidata. Luego comparar v98 contra el TXT nativo.
+
+El recibo U34 tiene SHA-256
+`0d6ffe53ce07e5c4a15560971490cb57e379a3d6f2c24adc9b802dfdbe864126`.
+Se conserva en el directorio privado U33 de evidencias del servidor y
+localmente en `~/.codex/local-artifacts/community-resume-20261125/U30`.
+El ensayo conserva la candidata nativa. La comparación de estructura
+utilizó la copia Community de Cerro U29L existente.
+
 U33 recuperó SSH y renovó el inventario completo de los tres productos.
 El SHA-256 coincide byte por byte con U29L
 (`62ada2c99acdf21476bb9e762453cd9566b3c7e95db8668370e1bdbb02fa50d2`).
