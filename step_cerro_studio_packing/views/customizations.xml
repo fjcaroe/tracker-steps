@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="process_types" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.packing.process.type.list customization</field>
+        <field name="model">step.packing.process.type</field>
+        <field name="inherit_id" ref="step_packing.view_step_packing_process_type_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//list[1]/field[@name='name']" position="after">
+                    <field name="step_category" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="packing_summary" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.packing.production.summary.list customization</field>
+        <field name="model">step.packing.production</field>
+        <field name="inherit_id" ref="step_packing_operations.view_packing_production_summary_list"/>
+        <field name="priority">160</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='step_packing_export_kg']" position="after">
+                    <field name="step_packing_export_percent" optional="show" avg="Promedio de % exportación"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="package_tags" model="ir.ui.view">
+        <field name="name">Odoo Studio: packing.tag.report.list customization</field>
+        <field name="model">stock.quant.package</field>
+        <field name="inherit_id" ref="step_packing_ticket_revision.tag_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='step_tag_state']" position="after">
+                    <field name="harvest_date" optional="show"/>
+                </xpath>
+                <xpath expr="//field[@name='step_actual_kg']" position="attributes">
+                    <attribute name="sum">Suma de Kilos reales</attribute>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="packing_orders" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.packing.production.list customization</field>
+        <field name="model">step.packing.production</field>
+        <field name="inherit_id" ref="step_packing_operations.view_packing_production_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='step_packing_input_kg']" position="attributes">
+                    <attribute name="sum">Suma de Kilos a proceso</attribute>
+                </xpath>
+                <xpath expr="//field[@name='step_packing_export_kg']" position="attributes">
+                    <attribute name="sum">Suma de Kilos exportación</attribute>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="external_receptions" model="ir.ui.view">
+        <field name="name">Odoo Studio: stock.picking.process.reception.list customization</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="step_packing_ticket_revision.view_external_process_reception_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="fruit_species_id" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="process_reception_form" model="ir.ui.view">
+        <field name="name">Odoo Studio: packing.process.reception.revision.form customization</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="step_packing_reception_revision.view_process_reception_form"/>
+        <field name="priority">160</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='operations']/field[@name='move_ids_without_package']/list[1]/field[@name='product_uom']" position="after">
+                    <field name="availability" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="dispatch_types" model="ir.ui.view">
+        <field name="name">Odoo Studio: x.tipo.despacho.list.steps customization</field>
+        <field name="model">step.freight.dispatch.type</field>
+        <field name="inherit_id" ref="step_operations_ui.view_freight_dispatch_type_list"/>
+        <field name="priority">160</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='active']" position="after">
+                    <field name="step_recipient_kind" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>

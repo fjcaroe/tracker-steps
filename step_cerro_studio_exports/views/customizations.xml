@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="payment_rates" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.export.payment.concept.list customization</field>
+        <field name="model">step.export.payment.concept</field>
+        <field name="inherit_id" ref="step_export.view_step_export_payment_concept_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='code']" position="after">
+                    <field name="standard_cost_per_kg" optional="show" sum="Suma de Costo estándar por kg"/>
+                    <field name="standard_cost_per_box" optional="show" sum="Suma de Costo estándar por caja"/>
+                    <field name="standard_cost_per_pallet" optional="show" sum="Suma de Costo estándar por pallet"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="export_partners" model="ir.ui.view">
+        <field name="name">Odoo Studio: res.partner.list customization</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="priority">160</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='email']" position="after">
+                    <field name="step_export" optional="show"/>
+                    <field name="step_export_receiver" optional="show"/>
+                    <field name="step_export_generic_receiver" optional="show"/>
+                    <field name="step_export_consignee" optional="show"/>
+                    <field name="step_export_default_consignee_id" optional="show"/>
+                    <field name="step_export_notify" optional="show"/>
+                    <field name="step_export_default_notify_id" optional="show"/>
+                    <field name="step_export_forwarder" optional="show"/>
+                    <field name="step_export_customs_agent" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="analytic_centres" model="ir.ui.view">
+        <field name="name">Odoo Studio: account.analytic.account.list customization</field>
+        <field name="model">account.analytic.account</field>
+        <field name="inherit_id" ref="step_hr.step_view_account_analytic_account_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//list[1]/field[@name='company_id'][2]" position="after">
+                    <field name="farm" optional="show"/>
+                    <field name="type_costo" optional="show"/>
+                    <field name="etapa_costo" optional="show"/>
+                    <field name="especie_id" optional="show"/>
+                    <field name="date_plant" optional="show"/>
+                    <field name="has_cost" optional="show" sum="Suma de Has CCosto"/>
+                    <field name="plant_cost" optional="show" sum="Suma de Plantas CCosto"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="farms" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.fundo.list customization</field>
+        <field name="model">step.fundo</field>
+        <field name="inherit_id" ref="step_hr.view_step_fundo_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='fundo_code']" position="after">
+                    <field name="csg_code" optional="show"/>
+                    <field name="sector_id" optional="show"/>
+                </xpath>
+                <xpath expr="//field[@name='hec_total']" position="attributes">
+                    <attribute name="sum">Suma de Hectáreas Totales</attribute>
+                </xpath>
+                <xpath expr="//field[@name='hec_disp']" position="attributes">
+                    <attribute name="sum">Suma de Hectáreas Disponibles</attribute>
+                </xpath>
+                <xpath expr="//list[1]/field[@name='hec_plant']" position="attributes">
+                    <attribute name="sum">Suma de Hectáreas Plantadas</attribute>
+                </xpath>
+                <xpath expr="//list[1]/field[@name='hec_plant'][2]" position="attributes">
+                    <attribute name="sum">Suma de Hectáreas Plantadas</attribute>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="analytic_centre_form" model="ir.ui.view">
+        <field name="name">Odoo Studio: analytic.analytic.account.form customization</field>
+        <field name="model">account.analytic.account</field>
+        <field name="inherit_id" ref="step_hr.step_view_account_analytic_account_form"/>
+        <field name="priority">900</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='has_cuartel']" position="attributes">
+                    <attribute name="sum">Suma de Has Cuartel</attribute>
+                </xpath>
+                <xpath expr="//field[@name='plant_cuartel']" position="attributes">
+                    <attribute name="sum">Suma de Plantas Cuartel</attribute>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>

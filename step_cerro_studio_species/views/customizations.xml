@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="species" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.especie.list customization</field>
+        <field name="model">step.especie</field>
+        <field name="inherit_id" ref="step_hr.view_step_especie_list"/>
+        <field name="priority">160</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='cod_especie']" position="after">
+                    <field name="sag_code" optional="show"/>
+                    <xpath expr="//field[@name='kg_caja']" position="move"/>
+                    <field name="base_boxes_per_pallet" optional="show"/>
+                    <xpath expr="//field[@name='type_especie']" position="move"/>
+                </xpath>
+                <xpath expr="//field[@name='plu']" position="after">
+                    <xpath expr="//field[@name='company_ids']" position="move"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>
