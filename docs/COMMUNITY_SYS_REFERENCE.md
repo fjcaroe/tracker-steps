@@ -1,5 +1,32 @@
 # Referencia real SyS e identidad de conceptos históricos — 28-10-2026
 
+## Libro de octubre de 2026 y referencia vigente de Nómina Chile
+
+El usuario ratificó el 26 de noviembre que SyS es el proyecto operativo de
+Nómina Chile. Sus liquidaciones y sus maestros son la referencia financiera.
+Cerro mantiene sus propias pruebas de integración y preservación.
+
+En la restauración nativa de SyS, el usuario original de Nómina exportó el
+Libro de Simple Digital de octubre en lectura repetible, sin acceso de red.
+El archivo contiene cinco trabajadores y 147 columnas. La exportación con y
+sin cabecera conserva exactamente las cinco filas. El sueldo (2101) coincide
+con BASIC almacenado en los cinco casos. El líquido del Libro (5501) equivale
+a haberes (5201) menos descuentos (5301) en los cinco y coincide con el NET
+guardado en una liquidación. La comparación Community debe comprobar ambos
+resultados por separado. Reescribir NET para igualarlo al Libro perdería el
+comportamiento original de cuatro liquidaciones.
+
+Los cinco asientos vinculados a la cohorte de octubre carecen de apuntes.
+Una consulta de toda la restauración encontró 702 asientos vinculados sin
+apuntes. Las 92 reglas de SyS carecen de cuentas de débito y crédito
+configuradas. El ensayo del Libro permite comparar ingresos y descuentos
+guardados. La aceptación de contabilización con apuntes requiere además un
+flujo privado con cuentas acreditadas.
+
+El recibo privado `sys-book-receipt.json` está en
+`~/.codex/local-artifacts/community-resume-20261125/U40`. El CSV nativo
+tiene SHA-256 `38d10fe52f0b1d41084e86658d33cd2fdbd44d783eeb8bdaf6005992e65f5009`.
+
 Continuación desde 61b6ca1. El usuario indicó que SyS tiene liquidaciones y
 procesos reales: se incorpora como referencia autorizada. No volver a pedirle
 la base de referencia ni tratarla como inexistente. Esto no autoriza escrituras,
