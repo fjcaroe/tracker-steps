@@ -1,5 +1,52 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U25 · CSV de Simple Digital con una liquidación confirmada, 26-11-2026
+
+El paquete `d37c2d94` incorpora una prueba funcional del Libro de Remuneraciones
+en la pareja privada de Cerro. El operador original UID7 invocó el controlador
+registrado del proveedor en la referencia nativa y el controlador protegido en
+Community. Se utilizó un contexto de solicitud local con el ORM y el generador
+reales. La prueba valida el controlador y su respuesta, con la sesión y la
+navegación del navegador pendientes.
+
+Ambas respuestas entregaron un adjunto CSV Windows-1252 con 147 columnas,
+cabeceras idénticas y una fila. Sueldo (2101) leyó los CLP 360.000 almacenados
+de la liquidación confirmada de la estructura 2. La exportación excluyó el
+borrador de CLP 720.000 del mismo período y el selector sin cabecera devolvió
+la misma fila. Community rechazó una compañía ajena. Los importes y estados
+guardados se conservaron durante la exportación y el rollback dejó cero
+liquidaciones, contratos y entradas de ensayo.
+
+El alcance cubre el sueldo base, la selección por período y estado y el formato
+de descarga. Las demás columnas financieras y tributarias, los datos de
+Nómina Chile 4 y Previred con registros prestacionales siguen pendientes.
+Continuar por Previred con los maestros originales disponibles y registrar
+cualquier parámetro requerido que falte antes de certificar su TXT.
+
+Pareja fresca restaurada del mismo respaldo bajo el bloqueo compartido.
+Community oficial/OCA quedó con 144 módulos y cero Enterprise, y la referencia
+con 414 módulos y 140 Enterprise. Pasaron 454 pruebas locales compatibles con
+Windows y las regresiones privadas de 13 borradores, YTD y confirmación
+individual. Se verificaron 118 accesos, dos denegaciones, cinco formularios,
+cuatro menús y 71 vínculos de reglas, con cero nuevos al repetir.
+Coincidieron 999 de 1.000 proyecciones literales, 197 contadores y 60.686 XML IDs.
+Se conservaron históricos, vencimientos, Calendar y los cuatro contratos de
+almacenamiento. Las diferencias clasificadas siguen siendo siete vínculos de
+menús nuevos y un candidato a icono. Las 32 FK adicionales están vacías.
+Quedan 27 diferencias físicas de proveedores inactivos y cero diferencias ORM
+de obligatoriedad en ese grupo. Inventario de los tres productos igual a U24
+y al testigo U14.
+
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U25`
+y en `/opt/steps-validation/community-original-handover-20261126U25`.
+
+- Paquete `d9aeff6db6b9bdfb00538a38dc098cc01894907a4afdc9b4096192c4693c3832`.
+- Respaldo `45d5124f50309f57b6814a6ce6e0d4633e102bd65c60f02eba29a3b13be7e6d0`.
+- Admisión `6da9b1865a1bcfa31aeb0b8d70f8650312412a726228b2e97d57a7ee3cb78d54`.
+- Relaciones `e7d9318d9ce191637ff86eee5f225c15bbe4224f0eea6f17f27c2f838ff3cbda`.
+- Recibo Community `f01b280199304e6262fe75d9d814c9dfc9e02b627cbd41a01a2cf55e7e2a44ea`.
+- Recibo nativo `efd5065e4f4c32f5d76ba933fa2daae9a84a91d99c00630dbb1934214db2c63f`.
+
 ## U24 · Borrador contable de la liquidación individual, 26-11-2026
 
 El paquete `e1dff5fe` conserva en el perfil privado de Cerro el vínculo al

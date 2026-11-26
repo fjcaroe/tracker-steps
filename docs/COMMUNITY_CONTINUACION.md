@@ -2,6 +2,12 @@
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
+U25 verificó el CSV de Simple Digital en una pareja fresca. El operador
+exportó una liquidación confirmada de la estructura 2 y Sueldo (2101) leyó
+CLP 360.000 guardados en ambos motores. El borrador del mismo período quedó
+fuera y el ensayo se revirtió. Siguen las demás columnas, la navegación
+del Libro, Nómina Chile 4 y el TXT Previred con datos verificables.
+
 U24 reprodujo el vínculo nativo al asiento borrador vacío al confirmar
 individualmente una liquidación de la estructura 2. Coincidieron diario,
 fecha, referencia e importes en una pareja fresca. Siguen las pruebas por
