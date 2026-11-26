@@ -31,7 +31,14 @@ class Payslip(models.Model):
 class WorkedDays(models.Model):
     _inherit = "hr.payslip.worked_days"
 
+    name = fields.Char(required=False)
     currency_id = fields.Many2one(related="payslip_id.currency_id", store=False, readonly=True, copy=False, required=False)
+
+
+class PayslipInput(models.Model):
+    _inherit = "hr.payslip.input"
+
+    name = fields.Char(required=False)
 
 
 class PayslipLine(models.Model):
