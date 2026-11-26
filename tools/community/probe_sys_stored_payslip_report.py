@@ -7,8 +7,28 @@ import re
 
 from lxml import html
 from odoo import api
+from odoo.modules.module import get_manifest
+from psycopg2 import sql
 
 from probe_original_payslip_report import render_pdf
+
+INTEGRATED_COHORT = 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I'
+REPORT_MODULES = {'step_simpledigital_oca_base': '18.0.1.7.3', 'step_payroll_original_report': '18.0.1.0.2'}
+
+
+def historical_snapshot(env, action_id):
+    result = {}
+    for table in ('hr_payslip', 'hr_payslip_line', 'hr_payslip_input', 'hr_payslip_worked_days',
+                  'hr_salary_rule', 'hr_contract'):
+        env.cr.execute(sql.SQL("SELECT count(*),md5(string_agg(to_jsonb(t)::text,'|' ORDER BY id)) FROM {} t")
+                       .format(sql.Identifier(table)))
+        result[table] = env.cr.fetchone()
+    env.cr.execute('SELECT md5(to_jsonb(a)::text) FROM ir_act_report_xml a WHERE id=%s', (action_id,))
+    result['action'] = env.cr.fetchone()
+    env.cr.execute("SELECT count(*),md5(string_agg(to_jsonb(a)::text,'|' ORDER BY id)) FROM ir_attachment a "
+                   "WHERE res_model='hr.payslip' AND mimetype='application/pdf'")
+    result['archives'] = env.cr.fetchone()
+    return result
 
 
 def amount_text(value):
@@ -30,11 +50,20 @@ def archived(env, capsule):
 
 
 def run(shell_env, capsule, directory, action_id):
-    if not re.fullmatch(r'COMMUNITY_SYS_STORED_REPORT_[A-Z0-9_]+', shell_env.cr.dbname):
+    integrated = shell_env.cr.dbname == INTEGRATED_COHORT
+    if not integrated and not re.fullmatch(r'COMMUNITY_SYS_STORED_REPORT_[A-Z0-9_]+', shell_env.cr.dbname):
         raise ValueError('A private restored SyS reporting derivative is required')
     assert capsule['period'] == '2026-10'
     company, uid = capsule['company'], capsule['uid']
     env = api.Environment(shell_env.cr, uid, {'allowed_company_ids': [company], 'lang': 'es_CL', 'uid': uid})
+    base = historical_snapshot(env, action_id)
+    versions = {}
+    for name, expected in REPORT_MODULES.items():
+        module = shell_env['ir.module.module'].search([('name', '=', name), ('state', '=', 'installed')])
+        module.ensure_one()
+        versions[name] = {'database': module.latest_version, 'package': get_manifest(name)['version']}
+        if integrated:
+            assert set(versions[name].values()) == {expected}, 'Integrated report version mismatch: ' + name
     assert env.company.id == company and not env.su and env.company.currency_id.decimal_places == 0
     original_pdfs = archived(env, capsule)
     action = env.ref('hr_payroll.action_report_payslip')
@@ -84,4 +113,6 @@ def run(shell_env, capsule, directory, action_id):
                          'html_net_matches_stored': True, 'printed_ids_and_amounts_verified': True, 'pdf_sha256': digest})
     assert archived(env, capsule) == original_pdfs
     env.cr.rollback()
-    return {'action': action.id, 'uid': uid, 'slips': receipts, 'eight_archived_pdf_bytes_unchanged': True}
+    assert historical_snapshot(env, action_id) == base
+    return {'action': action.id, 'uid': uid, 'slips': receipts, 'versions': versions,
+            'historical_tables_preserved': True, 'eight_archived_pdf_bytes_unchanged': True}
