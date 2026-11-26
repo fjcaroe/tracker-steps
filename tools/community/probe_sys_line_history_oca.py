@@ -73,6 +73,12 @@ def prepare(env):
     batch = slip.env["hr.payslip.run"].create({"name": MARKER, "journal_id": journal.id})
     slip.write({"payslip_run_id": batch.id, "state": "done"})
     env.flush_all()
+    # Reproduce native SyS null labels in the synthetic closed rows before taking the baseline.
+    for rows in (slip.input_line_ids, slip.worked_days_line_ids):
+        table = sql.Identifier(rows._table)
+        env.cr.execute(sql.SQL("ALTER TABLE {} ALTER COLUMN name DROP NOT NULL").format(table))
+        env.cr.execute(sql.SQL("UPDATE {} SET name=NULL WHERE id=%s").format(table), (rows[0].id,))
+        rows.invalidate_recordset(["name"])
     before = snapshot(env)
     # Reproduce the SyS source layout. These columns only contain the new
     # fixture. Their absence is part of what the installation must handle.
@@ -86,6 +92,10 @@ def prepare(env):
 def initialize_provider(env, before):
     require_private(env)
     assert not env["ir.module.module"].search_count([("name", "=", MODULE), ("state", "=", "installed")])
+    for model in ("hr.payslip.input", "hr.payslip.worked_days"):
+        assert not env[model]._fields["name"].required
+        env.cr.execute(sql.SQL("SELECT count(*) FROM {} WHERE name IS NULL").format(sql.Identifier(env[model]._table)))
+        assert env.cr.fetchone()[0] == 1
     for model, names in STORAGE_FIELDS.items():
         env.cr.execute("SELECT attname FROM pg_attribute WHERE attrelid=%s::regclass "
                        "AND attname=ANY(%s) AND NOT attisdropped", (env[model]._table, list(names)))
@@ -209,5 +219,5 @@ def verify(env, before):
     assert snapshot(env) == before and not scope.search_count([("name", "=", MARKER + "_NEW")])
     return {"uid": scope.env.uid, "legacy_rows_checked": counts, "fields": sum(map(len, FIELDS.values())),
             "computed_draft_lines": len(calculated.ids), "nine_original_table_projections_and_acl_preserved": True,
-            "closed_rows_preserved": True, "nonstored_related_fields": sum(map(len, RELATED.values())),
+            "closed_rows_preserved": True, "legacy_null_labels": 2, "nonstored_related_fields": sum(map(len, RELATED.values())),
             "atomic_mixed_create": True, "rehearsal_rolled_back": True}

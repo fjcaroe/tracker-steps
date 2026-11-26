@@ -107,7 +107,8 @@ class OriginalPayrollReportRoute(models.Model):
             return values
         bodies, ids, header, footer, paper = values
         try:
-            header = stabilize_corporate_typography(header)
+            companies = self.sudo(False).env.companies
+            header = stabilize_corporate_typography(header, html, {company.id: company.name for company in companies})
         except ValueError as error:
             raise UserError(_('The payroll report company header is ambiguous or unsupported.')) from error
         return bodies, ids, header, footer, paper
