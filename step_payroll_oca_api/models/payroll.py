@@ -123,7 +123,8 @@ class Rule(models.Model):
         with normal.env.cr.savepoint():
             result = super(Rule, normal).write(values)
             for rule in normal:
-                if old.get(rule.id) and old[rule.id] != rule.struct_id:
+                if (old.get(rule.id) and old[rule.id] != rule.struct_id
+                        and old[rule.id]._fields['rule_ids'].type == 'many2many'):
                     old[rule.id].write({'rule_ids': [fields.Command.unlink(rule.id)]})
             if 'struct_id' in values:
                 normal._link_original_structure()
