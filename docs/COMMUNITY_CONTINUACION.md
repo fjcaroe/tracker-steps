@@ -1,5 +1,45 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+## U38 · Campos de SyS sin valor histórico acreditado
+
+La candidata privada U33 ensayó seis columnas nuevas sin valores por
+defecto en las tablas originales. PostgreSQL mantuvo vacíos los dos
+códigos de entrada y los 928 de días, las tres columnas de cálculo y
+condición en 12.029 líneas, y el diario de los 81 lotes. El catálogo de
+Cerro Community/OCA U29L exige las seis columnas y usa una clave foránea
+RESTRICT para el diario. El ensayo confirmó que imponer cualquiera de
+los seis NOT NULL sobre SyS falla con 23502. La clave foránea admite los
+diarios desconocidos como nulos y rechaza un ID inexistente con 23503.
+
+El ensayo repitió los dos vínculos de contrato de U36 en la misma
+transacción. Se cotejaron las proyecciones originales durante la prueba.
+Tras el rollback coincidieron las 25 proyecciones, 298 claves foráneas
+y 111 correlativos del recibo U33. El ensayo usó el bloqueo compartido.
+El recibo privado `u38-unknown-history.json` tiene SHA-256
+`8bfb9f4865e540ae061ee25699d95fce815db0e9cb90608127d3c6765d7a74fd`.
+Queda en el directorio de evidencias U33 del servidor y en
+`~/.codex/local-artifacts/community-resume-20261125/U30`.
+
+La búsqueda por tamaño y SHA-1 en cinco filestores accesibles recuperó
+cero de los nueve objetos de U37. La custodia sigue bloqueada. La candidata
+permanece nativa y el ensayo no habilita un upgrade.
+
+El inventario completo U38 conserva los conteos y el grafo de caminos
+Enterprise. En Cerro, `step_harvest_launcher` pasó a 18.0.1.6.0 y
+agregó dependencias de planificación de cosecha y productores.
+`step_cosecha_operations` se sirvió desde otra ruta con igual huella de
+fuentes. Inventario U38 SHA-256
+`4000869f2c1ca59fc378e39361809fde3accdf07fced47a960bf4f4d68c622cd`.
+
+Siguiente bloque. Preparar la compatibilidad ORM de SyS para respetar
+estos valores históricos desconocidos. Ejercitar alta y edición con el
+rol original, verificar selección de maestros y preservar asientos y
+compañías. Mantener la obligatoriedad del perfil de Cerro. Para el
+upgrade de SyS hace falta recuperar los adjuntos con un respaldo
+verificable, preparar el overlay y validar el mismo paquete en Community
+oficial y en copia fresca aislada de Cerro. El cotejo de v98 SyS requiere
+los cinco AFP originales y el hash de la referencia nativa.
+
 ## U37 · Custodia de adjuntos SyS bloqueada por objetos ausentes
 
 Las dos restauraciones SQL de U33 conservan las mismas 5.440 filas de
