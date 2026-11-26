@@ -72,10 +72,15 @@ def configuration_report(structure):
     # or conditions. Never certify a configuration by silently choosing a row.
     duplicate_codes={code:group.sorted(lambda rule:(rule.sequence,rule.id)).ids
                      for code,group in rules.grouped('code').items() if len(group)>1}
-    errors.extend('RULE_CODE_AMBIGUOUS:'+code for code in sorted(duplicate_codes) if code not in ESSENTIAL)
+    verified = (structure._step_verified_rule_collisions(rules, duplicate_codes)
+                if duplicate_codes and hasattr(structure,'_step_verified_rule_collisions') else {})
+    errors.extend('RULE_CODE_AMBIGUOUS:'+code for code in sorted(duplicate_codes)
+                  if code not in ESSENTIAL and code not in verified)
     for code in ESSENTIAL:
         found=rules.filtered(lambda rule:rule.code==code)
-        if len(found)!=1:errors.append(code+('_MISSING' if not found else '_AMBIGUOUS'))
+        if len(found)>1 and verified.get(code) in found.ids:
+            chosen[code] = found.browse(verified[code])
+        elif len(found)!=1:errors.append(code+('_MISSING' if not found else '_AMBIGUOUS'))
         else:chosen[code]=found
     basic_basis=None
     if len(chosen)==3:
@@ -104,6 +109,7 @@ def configuration_report(structure):
             'direct_rule_ids':scope['direct_rule_ids'],
             'inherited_rule_ids':sorted(set(rules.ids)-set(scope['direct_rule_ids'])),
             'duplicate_code_ids':duplicate_codes,
+            'verified_duplicate_result_ids':verified,
             'basic_basis':basic_basis,
             'essential_candidate_ids':{code:rules.filtered(lambda rule:rule.code==code).sorted(lambda rule:(rule.sequence,rule.id)).ids for code in ESSENTIAL},
             'errors':errors,'structural_checks_passed':not errors,'financial_certified':False,
