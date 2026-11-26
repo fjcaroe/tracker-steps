@@ -6,6 +6,10 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='folio']" position="after">
                 <field name="mobile_work_order" readonly="1" invisible="not mobile_work_order"/>
+                <field name="mobile_without_tarja" readonly="1" invisible="not mobile_work_order and not mobile_without_tarja"/>
+                <field name="mobile_packaging_id" readonly="1" invisible="not mobile_packaging_id"/>
+                <field name="mobile_standard_weight" readonly="1" invisible="not mobile_standard_weight"/>
+                <field name="mobile_kg_per_box" readonly="1" invisible="not mobile_standard_weight"/>
                 <field name="mobile_status" readonly="1" invisible="not mobile_work_order and not mobile_state_date"/>
                 <field name="mobile_approver_id" domain="[('active','=',True),('share','=',False),('company_ids','in',[company_id])]" readonly="mobile_status in ('reviewed','sent')"/>
                 <field name="mobile_approved_by_id" invisible="not mobile_approved_by_id"/>

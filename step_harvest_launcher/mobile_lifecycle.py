@@ -15,6 +15,7 @@ class HarvestMobileLifecycle(models.Model):
     })
 
     mobile_status = fields.Selection(tracking=True)
+    mobile_without_tarja = fields.Boolean(string='Registro sin tarja', copy=False)
     mobile_state_date = fields.Datetime(string='Último cambio Harvest', readonly=True, copy=False)
     mobile_state_user_id = fields.Many2one('res.users', string='Actualizado por', readonly=True, copy=False)
     mobile_approver_id = fields.Many2one('res.users', string='Aprobador', copy=False, tracking=True)

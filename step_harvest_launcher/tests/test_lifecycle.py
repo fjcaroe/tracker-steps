@@ -69,6 +69,30 @@ class HarvestLifecycleCase(HttpCase):
         with self.assertRaises(AccessError):
             self.order.with_user(public)._harvest_transition('close', [])
 
+    def test_standard_delivery_uses_box_count_and_snapshot_while_manual_keeps_kilos(self):
+        packaging = self.env['product.packaging'].create({
+            'name': 'Private harvest packaging', 'qty': 1,
+            'product_id': self.env['product.product'].create({'name': 'Private harvest fruit'}).id,
+            'step_packaging_group': 'harvest', 'step_export_kg_per_box': 3.455,
+        })
+        standard = self.order.create({'name': 'Private standard weight order', 'mobile_work_order': 'PRIVATE-T242',
+            'type_tarea': 'propio', 'company_id': self.company.id, 'date': fields.Datetime.now(),
+            'mobile_standard_weight': True, 'mobile_packaging_id': packaging.id,
+            'mobile_kg_per_box': packaging.step_export_kg_per_box,
+            'product_uom_id': self.env.ref('uom.product_uom_unit').id})
+        packaging.step_export_kg_per_box = 4.0
+        rows = self.env['step.cosecha.tarja.registry.line']
+        values = {'employee_id': self.worker.id, 'qty_kg': 9.27, 'qty_caja': 3, 'quantity': 9.27}
+        standard_line, manual_line = rows.create([
+            dict(values, registry_id=standard.id, mobile_uid='private_t242_standard'),
+            dict(values, registry_id=self.order.id, mobile_uid='private_t242_manual'),
+        ])
+        self.assertEqual((standard_line.qty_caja, standard_line.qty_kg, standard_line.quantity), (3, 10.37, 3))
+        self.assertEqual((standard.total_boxes, standard.total_kilos), (3, 10.37))
+        self.assertEqual((manual_line.qty_kg, manual_line.quantity), (9.27, 9.27))
+        with self.assertRaises(ValidationError):
+            rows.create(dict(values, registry_id=standard.id, mobile_uid='private_t242_fraction', qty_caja=1.5))
+
     def test_reopen_revokes_only_the_native_approval_created_by_harvest(self):
         order = self.order.with_user(self.user)
         for action in ('close', 'approve'):

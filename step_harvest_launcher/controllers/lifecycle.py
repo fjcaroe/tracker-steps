@@ -143,6 +143,8 @@ class LifecycleHarvestApi(ScopedHarvestApi):
         order._lock_harvest_order()
         if (order.mobile_status or 'progress') != 'progress' or order.state != 'in':
             raise ValidationError(_('La OT está cerrada o aprobada en Odoo y no admite nuevas entregas móviles.'))
+        if order.mobile_without_tarja and str(data.get('tarja') or '').strip():
+            raise ValidationError(_('Esta OT registra cosecha sin folio de tarja.'))
         values = dict(data, work_order=dict(data.get('work_order') or {}, odoo_id=order.id))
         return super()._sync_record(values)
 
