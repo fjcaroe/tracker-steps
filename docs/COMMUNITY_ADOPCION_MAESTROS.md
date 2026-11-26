@@ -1,5 +1,32 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U29 · PDF con hojas de estilo y revisión final pendiente
+
+El candidato `188ade92` ejecutó la acción 462 con el operador original 7
+en Community oficial/OCA y en la referencia nativa de la estructura 2.
+Los dos procesos completaron la generación en derivadas privadas. El
+ejecutor exigió HTTP 200 de las dos hojas de estilo en ambos motores.
+El PDF Community descargado contiene una página, sueldo base de CLP 360.000
+y líquido de CLP 363.087. La navegación y la presentación quedan pendientes.
+
+U29K verificó que la pareja de control conservó cada fila original
+de adjuntos. U29L repitió el flujo con el dueño SQL correcto en las
+derivadas y el archivo final de comparación aún debe recuperarse. La sesión
+SSH se interrumpió mientras corría esa comparación. El acceso directo y
+el túnel IAP agotaron el tiempo antes del saludo SSH. La evidencia de
+U29K respalda su propio ensayo, cuyos recursos CSS Community devolvieron
+404. El candidato U29L permanece en `codex/community-isolated-report-pdf-u29`
+hasta contrastar su pareja exacta. Pasaron 305 pruebas compatibles con
+Windows y el inventario de los tres productos coincidió con U28.
+
+Evidencia privada en
+`~/.codex/local-artifacts/community-resume-20261125/U29` y
+`/srv/odoo-data/steps-anchor-validation/community-original-handover-20261126U29L`.
+Recuperar la revisión y el PDF nativo de U29L desde esa pareja existente.
+Al resolver la revisión, seguir con el replay Previred v98 en SyS Community
+con los maestros originales y cinco AFP guardadas. Persiste el alcance de
+[COMMUNITY_AUTONOMIA.md](COMMUNITY_AUTONOMIA.md).
+
 ## U28 · PDF de la acción original 462 y preservación de recursos
 
 El operador 7 generó e inspeccionó una página PDF de la estructura 2 en cada

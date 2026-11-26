@@ -1,5 +1,11 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+U29L completó el ensayo funcional del PDF 462 con sus hojas de estilo en
+derivadas privadas. El candidato está publicado en su rama. La revisión
+de preservación de la pareja exacta quedó pendiente de recuperar tras la
+interrupción de SSH. Retomar la lectura de esa pareja antes de abrir otra.
+Después corresponde Previred v98 de SyS en Community con maestros originales.
+
 U28 probó el PDF de la acción 462 en una pareja fresca. Los dos motores
 imprimieron sueldo base de CLP 360.000 y líquido de CLP 363.087. El ensayo
 quedó fuera de la canónica por la sustitución de dos filas de caché CSS.
