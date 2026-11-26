@@ -79,13 +79,17 @@ def exercise_required_field(source, stage, executable, options, database, field_
     if field_group not in ('draft_amounts', 'unmapped_accounting', 'book_export', 'previred_txt', 'payslip_report'):
         module += '_required'
     reference_arg = ''
+    command = executable + options
     if field_group == 'draft_amounts' and '_HANDOVER_' in database:
         reference_arg = ', ' + repr(str(stage / 'native-witness' / receipt.name))
+    if field_group == 'payslip_report':
+        reference_arg = ', ' + repr(str(stage / 'original-payslip-report.pdf'))
+        command = ['/usr/bin/python3.10', str(source / 'tools/community/original_report_loopback.py'), *command]
     expression = ('import json, sys; sys.path.insert(0, ' + repr(str(source / 'tools/community')) + '); '
                   f'from {module} import run; result = run(env, ' + repr(database) + reference_arg + '); '
                   'open(' + repr(str(receipt)) + ', "x").write(json.dumps(result, indent=2))')
     with (stage / f'original-{field_group}-required.log').open('x') as log:
-        status = subprocess.run(offline_odoo(executable + options), input=expression, text=True,
+        status = subprocess.run(offline_odoo(command), input=expression, text=True,
                                 stdout=log, stderr=subprocess.STDOUT)
     assert status.returncode == 0 and receipt.is_file(), f'Original {field_group} write probe failed; inspect private log'
     receipt.chmod(0o600)
@@ -407,6 +411,7 @@ def main():
         community_report = json.loads((stage / report_receipt).read_bytes())
         for receipt in (native_report, community_report):
             assert re.fullmatch(r'[a-f0-9]{64}', receipt.pop('body_sha256'))
+            assert re.fullmatch(r'[a-f0-9]{64}', receipt.pop('pdf_sha256'))
         assert community_report == native_report, 'Original payslip report action contract diverged'
         write(stage/'business-after-cohort.json',column_snapshot(database,columns))
         write(stage/'identity-after.json',preservation.identity_contract(database))

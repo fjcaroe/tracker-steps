@@ -1,5 +1,7 @@
-"""Render HTML through Cerro's original payslip action on the private pair."""
+"""Render HTML and PDF through Cerro's original action on the private pair."""
 from hashlib import sha256
+import os
+from unittest.mock import patch
 from uuid import uuid4
 
 from lxml import html
@@ -21,7 +23,26 @@ def report_snapshot(env, slip):
     return action, payroll, lines
 
 
-def run(env, database):
+def render_pdf(actor, report, slip, output):
+    url = os.environ['STEPS_PRIVATE_REPORT_URL']
+    parameters = type(actor.env['ir.config_parameter'])
+    original = parameters.get_param
+
+    def get_param(records, key, default=False):
+        if key in ('report.url', 'web.base.url'):
+            return url
+        return original(records, key, default)
+
+    with patch.object(parameters, 'get_param', get_param):
+        pdf, kind = actor.with_context(force_report_rendering=True)._render_qweb_pdf(
+            report['report_name'], res_ids=[slip.id])
+    assert kind == 'pdf' and pdf.startswith(b'%PDF-')
+    with os.fdopen(os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
+        stream.write(pdf)
+    return sha256(pdf).hexdigest()
+
+
+def run(env, database, pdf_output):
     require_private_pair(env, database)
     community = '_HANDOVER_' in database
     before = snapshot(env)
@@ -52,12 +73,14 @@ def run(env, database):
         document = html.fromstring(body)
         assert document.xpath('//div[contains(concat(" ",normalize-space(@class)," ")," page ")]')
         assert slip.employee_id.name in ' '.join(document.itertext())
+        pdf_hash = render_pdf(actor, report, slip, pdf_output)
         env.invalidate_all()
         assert snapshot(env) == counts and capture_ytd(slip, {}) == amounts
         assert report_snapshot(env, slip) == stored
         assert slip.state == 'done' and action.id == 462 and slip.struct_id.report_id == action
         result = {'action': action.id, 'operator': slip.env.uid, 'structure': slip.struct_id.id,
-                  'presentation': kind, 'document_has_employee': True, 'body_sha256': sha256(body).hexdigest()}
+                  'presentation': kind, 'document_has_employee': True,
+                  'body_sha256': sha256(body).hexdigest(), 'pdf_sha256': pdf_hash}
     finally:
         env.cr.rollback()
     assert snapshot(env) == before
