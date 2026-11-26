@@ -1,4 +1,4 @@
-"""Admit the missing stock Steps employee rules on a sealed private SyS role fixture."""
+"""Admit the missing stock Steps employee rules on sealed private SyS cohorts."""
 
 from hashlib import sha256
 from io import BytesIO
@@ -48,8 +48,12 @@ def check_rule(env, xml, rule):
 
 def run(env, apply=False):
     fixture = bool(re.fullmatch(r'COMMUNITY_SYS_REPORT_ROLES_[A-Z0-9]+', env.cr.dbname))
-    if not fixture and (apply or env.cr.dbname != 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I'):
-        raise ValueError('Use a private SyS role fixture for admission or the integral cohort for verification')
+    if not fixture and env.cr.dbname != 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I':
+        raise ValueError('Use an isolated employee fixture or the accepted private integrated SyS cohort')
+    if (env.ref('hr_payroll.action_report_payslip').id != 1431
+            or env.ref('hr_payroll.group_hr_payroll_manager') != env.ref('payroll.group_payroll_manager')
+            or env.ref('hr_payroll.group_hr_payroll_user') != env.ref('payroll.group_payroll_user')):
+        raise ValueError('Expected the same original SyS action and payroll role identities')
     filename = MODULE + '/security.xml'
     with file_open(filename, 'rb') as stream:
         body = stream.read().replace(b'\r\n', b'\n')
@@ -83,3 +87,36 @@ def run(env, apply=False):
         if original_policy(env) != before:
             raise ValueError('The original SyS roles, memberships, rules or model access changed')
     return {'approved_rules':len(rules), 'added':len(missing), 'original_policy_preserved':True}
+
+def verify_real_actors(env, company_id):
+    """Verify real October access without assigning groups or linking original staff."""
+    from odoo import api
+
+    policy = run(env, apply=False)
+    env.cr.execute("""SELECT p.id, e.user_id
+                      FROM hr_payslip p JOIN hr_employee e ON e.id=p.employee_id
+                      WHERE p.company_id=%s AND p.date_from='2026-10-01' AND p.date_to='2026-10-31'
+                        AND p.state IN ('done','paid') ORDER BY p.id""", (company_id,))
+    rows = env.cr.fetchall()
+    assert len(rows) == 5
+    linked = sum(user_id is not None for _, user_id in rows)
+    env.cr.execute("""SELECT u.id FROM res_users u JOIN res_company_users_rel cu ON cu.user_id=u.id
+                      WHERE cu.cid=%s AND u.active AND NOT u.share AND u.id <> 1
+                        AND u.login NOT IN ('synthetic_sys_report_1','synthetic_sys_report_2') ORDER BY u.id""",
+                   (company_id,))
+    real = [uid for uid, in env.cr.fetchall()]
+    assert len(real) >= 1
+    administrative = []
+    for uid in real:
+        actor = api.Environment(env.cr, uid, {'allowed_company_ids': [company_id]})
+        assert not actor.su
+        if actor.user.has_group('hr_payroll.group_hr_payroll_manager'):
+            docs = actor['hr.payslip'].browse([ident for ident, _ in rows])
+            docs.check_access('read')
+            env.cr.execute('SELECT id FROM hr_payslip_line WHERE slip_id=ANY(%s) ORDER BY id', (docs.ids,))
+            ids = [ident for ident, in env.cr.fetchall()]
+            actor['hr.payslip.line'].browse(ids).check_access('read')
+            administrative.append(len(ids))
+    assert administrative and len(set(administrative)) == 1
+    return dict(policy, active_internal=len(real), payroll_managers_verified=len(administrative),
+                closed_slips=len(rows), lines_per_manager=administrative[0], employee_links=linked)

@@ -65,7 +65,10 @@ def run(env, company_id, prepared=False):
     admin = env(context=ctx)
     def read(env_for, ids):
         return allowed_call(lambda: env_for['hr.payslip'].browse(ids).check_access('read'))
-    real_scopes = [api.Environment(env.cr, uid, ctx) for uid in real_actors]
+    def actor(uid):
+        return api.Environment(env.cr, uid, {'uid': uid, 'allowed_company_ids': [company.id]})
+
+    real_scopes = [actor(uid) for uid in real_actors]
     real_readers = [read(scope, [ident for ident, _ in originals]) for scope in real_scopes]
     real_managers = sum(scope.user.has_group('hr_payroll.group_hr_payroll_manager') for scope in real_scopes)
     action = env.ref('hr_payroll.action_report_payslip')
@@ -99,7 +102,7 @@ def run(env, company_id, prepared=False):
         results = []
         for idx, (uid, employee_id, own, own_line) in enumerate(fixtures):
             foreign, foreign_line = fixtures[1-idx][2:]
-            scope = api.Environment(env.cr, uid, ctx)
+            scope = actor(uid)
             assert not scope.su and scope.user.employee_id.id == employee_id
             assert not scope.user.has_group('hr_payroll.group_hr_payroll_user')
             report = scope['ir.actions.report']
