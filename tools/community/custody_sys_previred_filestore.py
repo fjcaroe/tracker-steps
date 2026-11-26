@@ -70,32 +70,40 @@ def restore_objects(archive, target, catalog):
     require(not pending, 'sys-store-incomplete-archive')
 
 
-def capture(source, output, catalog):
+def capture(source, output, catalog, recovered=None):
     payload_bytes = sum(catalog.values())
     require(shutil.disk_usage(output).free >= 2 * 1024**3 + 2 * payload_bytes + 4096 * len(catalog),
             'sys-store-insufficient-reserve')
+    paths = {}
+    recovered_names = []
     for name, size in catalog.items():
         path = source / name
+        if recovered is not None and not os.path.lexists(path):
+            path = recovered / name
+            recovered_names.append(name)
         require(path.is_file() and path.resolve() == path and path.stat().st_size == size,
                 'sys-store-missing-or-invalid-source-object')
+        paths[name] = path
     with tempfile.TemporaryDirectory(prefix='verification-', dir=output) as stage:
         archive = Path(stage) / 'filestore.tar'
         with tarfile.open(archive, 'x') as bundle:
             for name in sorted(catalog):
-                bundle.add(source / name, arcname=name, recursive=False)
+                bundle.add(paths[name], arcname=name, recursive=False)
         target = Path(stage) / 'restored'
         target.mkdir()
         restore_objects(archive, target, catalog)
         archive_sha = digest(archive)
         os.link(archive, output / archive.name)
     return {'archive_sha256': archive_sha, 'payload_bytes': payload_bytes,
-            'verified_objects': len(catalog)}
+            'verified_objects': len(catalog), 'recovered_objects': sorted(recovered_names)}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--pair', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--recovered', type=Path,
+                        help='Private sibling directory of recovered content-addressed objects')
     args = parser.parse_args()
     os.umask(0o077)
     with open(LOCK, 'rb') as lock:
@@ -127,9 +135,14 @@ def main():
         require(args.output.is_absolute() and args.output.parent.resolve() == args.pair.resolve()
                 and not args.output.resolve().is_relative_to(source),
                 'sys-store-private-output-required')
+        if args.recovered is not None:
+            require(args.recovered.is_absolute() and args.recovered.resolve() == args.recovered
+                    and args.recovered.parent == args.pair.resolve() and args.recovered.is_dir()
+                    and not args.recovered.is_relative_to(source),
+                    'sys-store-private-recovery-source-required')
         args.output.mkdir(mode=0o700)
         manifest = manifests[0]
-        checked = capture(source, args.output, manifest.pop('references'))
+        checked = capture(source, args.output, manifest.pop('references'), args.recovered)
         save(args.output, 'filestore-receipt.json', {
             **manifest, **checked, 'sql_backup_sha256': backup['sha256'],
             'source': 'SyS', 'same_attachment_rows_in_sql_pair': True,
