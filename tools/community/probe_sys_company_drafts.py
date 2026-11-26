@@ -1,10 +1,10 @@
 """Replay the latest closed full month of each SyS payroll company on new, isolated drafts."""
 import re
 
-from probe_sys_october_drafts import amounts, digest, prepare_draft, protect_existing
+from probe_sys_october_drafts import amounts, confirmation, digest, prepare_draft, protect_existing
 
 
-def probe(env, uid):
+def probe(env, uid, selected=None, confirm=False):
     cr = env.cr
     assert re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname)
     native = bool(env['ir.module.module'].sudo().search_count([('state','=','installed'),('license','=','OEEL-1')]))
@@ -24,7 +24,11 @@ def probe(env, uid):
     try:
         protect_existing(cr, 'hr_payslip', (('hr_payslip','id'),('hr_payslip_line','slip_id'),
                          ('hr_payslip_worked_days','payslip_id'),('hr_payslip_input','payslip_id')))
+        if confirm:
+            protect_existing(cr, 'account_move', (('account_move', 'id'), ('account_move_line', 'move_id')))
         for source_id, employee, contract, structure, company, period, refund in cohort:
+            if selected is not None and source_id not in selected:
+                continue
             entry = {'source':source_id,'company':company,'period':period.isoformat()}
             try:
                 with cr.savepoint() as trial:
@@ -41,11 +45,16 @@ def probe(env, uid):
                     assert original.state in ('paid','done') and stored == amounts(cr,source_id)
                     entry.update(draft=digest(current), stored=digest(stored), lines=len(current),
                                  equals_stored=current==stored)
+                    if confirm:
+                        entry['confirmation'] = confirmation(draft, original, current)
                     trial.rollback()
             except Exception as exc:
                 import traceback
                 entry['error'] = type(exc).__name__
-                entry['call'] = traceback.extract_tb(exc.__traceback__)[-1].name
+                frame = traceback.extract_tb(exc.__traceback__)[-1]
+                entry['call'] = frame.name
+                if '/step_payroll_engine_transition/' in frame.filename and frame.name == 'compute_sheet':
+                    entry['policy'] = 'native_contract_review' if 'contratos tienen pendiente' in str(exc) else 'other_transition'
                 # Keep operator messages private. Do not export private formula text.
                 message = str(exc).splitlines()[0][:200]
                 if re.fullmatch(r'[A-Za-z0-9 _/.,():-]+',message):

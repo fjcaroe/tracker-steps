@@ -70,6 +70,9 @@ def admit_original_children(slip):
 
 
 def confirmation(draft, original, calculated):
+    from markupsafe import Markup
+    from odoo.exceptions import AccessError
+    from odoo.tools import format_date
     cr = draft.env.cr
     draft.with_context(without_compute_sheet=True).action_payslip_done()
     draft.env.flush_all()
@@ -78,14 +81,25 @@ def confirmation(draft, original, calculated):
     move = draft.move_id
     move.check_access('read')
     source = original.move_id
-    source.check_access('read')
-    assert source
+    comparable = bool(source)
+    if source:
+        try:
+            source.check_access('read')
+        except AccessError:
+            # Preserve the original company boundary even if the old foreign
+            # key references a journal entry outside the operator's company.
+            comparable = False
     cr.execute("SELECT id FROM pg_temp.sys_original_account_move WHERE id = %s", [move.id])
     assert not cr.fetchall()
     fields = ('state', 'move_type', 'date', 'journal_id', 'company_id')
+    period = format_date(draft.env, draft.date_to, date_format='MMMM y')
     return {'move_state': move.state, 'move_lines': len(move.line_ids),
-            'matches_original_header': all(move[k] == source[k] for k in fields),
-            'matches_original_line_count': len(move.line_ids) == len(source.line_ids),
+            'reference_matches_formatted_period': move.ref == period,
+            'narration_matches_slip_number': move.narration == Markup('<p>%s</p><br>') % draft.number,
+            'date_matches_period_end': move.date == draft.date_to,
+            'single_unassigned_partner': not move.partner_id,
+            'matches_original_header': all(move[k] == source[k] for k in fields) if comparable else None,
+            'matches_original_line_count': len(move.line_ids) == len(source.line_ids) if comparable else None,
             'closed_payroll_amounts_unchanged': True}
 
 
