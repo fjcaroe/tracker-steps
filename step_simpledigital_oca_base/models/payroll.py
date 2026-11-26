@@ -1,6 +1,7 @@
 """Functional model contracts for the actual Simple Digital provider on OCA."""
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.addons.payroll import models as oca_models
 from odoo.addons.step_payroll_contracts.history import history_protected, restore_snapshot_cache
 
 
@@ -83,7 +84,8 @@ class Contract(models.Model):
 
 class WorkedDays(models.Model):
     _inherit = 'hr.payslip.worked_days'
-    currency_id = fields.Many2one(related='payslip_id.company_id.currency_id')
+    if not hasattr(oca_models, 'step_sys_related'):
+        currency_id = fields.Many2one(related='payslip_id.company_id.currency_id')
     is_paid = fields.Boolean(compute='_compute_payment',store=True)
     amount = fields.Monetary(compute='_compute_payment',currency_field='currency_id',store=True)
 
@@ -104,7 +106,8 @@ class WorkedDays(models.Model):
 
 class Payslip(models.Model):
     _inherit = 'hr.payslip'
-    currency_id = fields.Many2one(related='company_id.currency_id')
+    if not hasattr(oca_models, 'step_sys_related'):
+        currency_id = fields.Many2one(related='company_id.currency_id')
     use_worked_day_lines = fields.Boolean(related='struct_id.use_worked_day_lines')
     net_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id',store=True)
     basic_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id',store=True)

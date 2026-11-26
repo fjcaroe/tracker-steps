@@ -18,14 +18,20 @@ FIELDS = {
 }
 MODULE = "step_payroll_oca_sys_history"
 MARKER = "SYS_LINE_HISTORY_REHEARSAL"
-STORAGE_FIELDS = {
-    **FIELDS, "hr.payslip.run": ("journal_id",),
-    "hr.payslip.input": ("code", "contract_id"), "hr.payslip.worked_days": ("code", "contract_id"),
-}
 RELATED = {
+    "hr.payslip": {"currency_id": ("contract_id", "currency_id")},
     "hr.payslip.input": {"code": ("input_type_id", "code"), "contract_id": ("payslip_id", "contract_id")},
-    "hr.payslip.worked_days": {"code": ("work_entry_type_id", "code"), "contract_id": ("payslip_id", "contract_id")},
-    "hr.payslip.line": {"amount_select": ("salary_rule_id", "amount_select")},
+    "hr.payslip.worked_days": {"code": ("work_entry_type_id", "code"), "contract_id": ("payslip_id", "contract_id"),
+                               "currency_id": ("payslip_id", "currency_id")},
+    "hr.payslip.line": {
+        **{name: ("salary_rule_id", name) for name in (
+            "amount_select", "amount_fix", "amount_percentage", "appears_on_payslip", "category_id", "partner_id")},
+        **{name: ("slip_id", name) for name in ("currency_id", "company_id")},
+    },
+}
+STORAGE_FIELDS = {
+    "hr.payslip.run": ("journal_id",),
+    **{model: tuple(dict.fromkeys((*FIELDS.get(model, ()), *paths))) for model, paths in RELATED.items()},
 }
 
 
@@ -38,7 +44,7 @@ def require_private(env):
 
 def snapshot(env):
     result = {}
-    for model in ("hr.payslip", "hr.contract", "hr.salary.rule", "hr.payslip.input.type", "hr.work.entry.type",
+    for model in ("hr.contract", "hr.salary.rule", "hr.payslip.input.type", "hr.work.entry.type",
                   *STORAGE_FIELDS):
         query = sql.SQL("SELECT to_jsonb(t) - %s::text[] FROM {} t ORDER BY id").format(
             sql.Identifier(env[model]._table))
@@ -56,7 +62,7 @@ def snapshot(env):
 def prepare(env):
     require_private(env)
     assert not env["ir.module.module"].search_count([("name", "=", MODULE), ("state", "=", "installed")])
-    for model in ("hr.payslip", *STORAGE_FIELDS):
+    for model in STORAGE_FIELDS:
         env.cr.execute(sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(env[model]._table)))
         assert env.cr.fetchone() == (0,), "Only a fresh, empty Cerro payroll derivative can receive this fixture"
     slip = run_case(env, CASES[1], True, {}, MARKER)
@@ -71,7 +77,7 @@ def prepare(env):
     # Reproduce the SyS source layout. These columns only contain the new
     # fixture. Their absence is part of what the installation must handle.
     for model, names in STORAGE_FIELDS.items():
-        changes = sql.SQL(", ").join(sql.SQL("DROP COLUMN {}").format(sql.Identifier(name)) for name in names)
+        changes = sql.SQL(", ").join(sql.SQL("DROP COLUMN IF EXISTS {}").format(sql.Identifier(name)) for name in names)
         env.cr.execute(sql.SQL("ALTER TABLE {} {}").format(sql.Identifier(env[model]._table), changes))
     env.cr.commit()
     return before
@@ -123,6 +129,7 @@ def verify(env, before):
     history = scope.search([("name", "=", MARKER)])
     history.ensure_one()
     assert history.state == "done" and snapshot(env) == before
+    assert history.currency_id == history.contract_id.currency_id
     assert history.payslip_run_id.name == MARKER and not history.payslip_run_id.journal_id
     batches = scope.env["hr.payslip.run"]
     journal = scope.env["account.journal"].search([("company_id", "=", history.company_id.id),
@@ -202,5 +209,5 @@ def verify(env, before):
     assert snapshot(env) == before and not scope.search_count([("name", "=", MARKER + "_NEW")])
     return {"uid": scope.env.uid, "legacy_rows_checked": counts, "fields": sum(map(len, FIELDS.values())),
             "computed_draft_lines": len(calculated.ids), "nine_original_table_projections_and_acl_preserved": True,
-            "closed_rows_preserved": True, "five_nonstored_related_fields": True,
+            "closed_rows_preserved": True, "nonstored_related_fields": sum(map(len, RELATED.values())),
             "atomic_mixed_create": True, "rehearsal_rolled_back": True}

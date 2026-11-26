@@ -12,6 +12,39 @@ from original_history_engine_contract import _snapshot
 
 INPUT_TYPE_SOURCE_SHA = "2bf1684676ca199bf429b84ea85b1548ff728a5a699c99aa6c07f9266f4bb629"
 MODELS_INIT_SHA = "4fd8751d1d36c43aacfad5585fcf73d86a076183cb5474bb1b25359b9035b882"
+SYS_RELATED = b'''# Private SyS/OCA overlay. Loaded after the pinned payroll model declarations.
+from odoo import fields, models
+
+
+class SalaryRule(models.Model):
+    _inherit = "hr.salary.rule"
+
+    partner_id = fields.Many2one("res.partner", string="Partner", ondelete="set null")
+
+
+class Payslip(models.Model):
+    _inherit = "hr.payslip"
+
+    currency_id = fields.Many2one(related="contract_id.currency_id", store=False, readonly=True, copy=False, required=False)
+
+
+class WorkedDays(models.Model):
+    _inherit = "hr.payslip.worked_days"
+
+    currency_id = fields.Many2one(related="payslip_id.currency_id", store=False, readonly=True, copy=False, required=False)
+
+
+class PayslipLine(models.Model):
+    _inherit = "hr.payslip.line"
+
+    amount_fix = fields.Float(related="salary_rule_id.amount_fix", store=False, readonly=True, copy=False, required=False, default=None)
+    amount_percentage = fields.Float(related="salary_rule_id.amount_percentage", store=False, readonly=True, copy=False, required=False, default=None)
+    appears_on_payslip = fields.Boolean(related="salary_rule_id.appears_on_payslip", store=False, readonly=True, copy=False, required=False, default=None)
+    category_id = fields.Many2one(related="salary_rule_id.category_id", store=False, readonly=True, copy=False, required=False, default=None, index=False)
+    partner_id = fields.Many2one(related="salary_rule_id.partner_id", store=False, readonly=True, copy=False, required=False, default=None)
+    company_id = fields.Many2one(related="slip_id.company_id", store=False, readonly=True, copy=False, required=False, default=None, index=False)
+    currency_id = fields.Many2one(related="slip_id.currency_id", store=False, readonly=True, copy=False, required=False)
+'''
 
 
 # The pristine pinned OCA files and the reviewed storage derivations differ
@@ -69,7 +102,9 @@ def plan(modules, input_type_source=None):
     require(sha(payroll["models/__init__.py"]) == MODELS_INIT_SHA and "models/step_sys_input_type.py" not in payroll,
             "Unreviewed OCA model import graph")
     payroll["models/step_sys_input_type.py"] = input_type_source
-    payroll["models/__init__.py"] += b"\nfrom . import step_sys_input_type\n"
+    require("models/step_sys_related.py" not in payroll, "Unexpected SyS related provider")
+    payroll["models/step_sys_related.py"] = SYS_RELATED
+    payroll["models/__init__.py"] += b"\nfrom . import step_sys_input_type, step_sys_related\n"
     for (module, path), pins in PINS.items():
         body = result[module][path]
         require(sha(body) in pins, "Unreviewed OCA field source: " + path)
@@ -107,7 +142,8 @@ def build(source, output, input_type_source=None):
     candidate = plan(modules, input_type_source)
     receipt = {"original": {name: seal(hashes(files)) for name, files in modules.items()},
                "derived": {name: seal(hashes(files)) for name, files in candidate.items()},
-               "changed_files": [f"{module}/{path}" for module, path in PINS] + ["payroll/models/__init__.py"],
+               "changed_files": [f"{module}/{path}" for module, path in PINS] + [
+                   "payroll/models/__init__.py", "payroll/models/step_sys_related.py"],
                "early_master": {"file": "payroll/models/step_sys_input_type.py", "source_sha256": INPUT_TYPE_SOURCE_SHA}}
     with TemporaryDirectory(dir=output.parent) as tmp:
         stage = Path(tmp) / "engine"
