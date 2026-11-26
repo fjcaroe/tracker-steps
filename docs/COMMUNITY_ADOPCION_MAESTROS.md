@@ -1,5 +1,54 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U26 · Salida TXT del proveedor Previred en el perfil original
+
+La sonda de la pareja privada usa el operador 7 y dos liquidaciones terminadas
+de la estructura 2 con los maestros del respaldo. La ruta Community incluye
+solo la liquidación de noviembre y rechaza una compañía no autorizada. La
+referencia observa el cuerpo original del mismo proveedor AGPL. Los importes
+guardados, estados, asientos y recuentos se conservan tras la lectura y el
+rollback retira las dos liquidaciones de ensayo y sus registros asociados.
+
+La salida cruda consiste en una fila de 105 campos y el proveedor informa
+29 días en este caso. El contrato de prueba carece de AFP configurada y la
+fila carece de código de la institución de salud. Este alcance verifica
+el contrato del proveedor y la guarda de compañía del perfil Community.
+La normalización del asistente Steps, los anexos, la liquidación chilena y la
+validez previsional del archivo siguen pendientes. El resultado de días tampoco
+certifica la base que aplica el normalizador de Steps.
+
+La consulta de solo lectura en SyS encontró 752 liquidaciones cerradas, todas
+con identificador de empleado, 710 vinculadas a contratos con AFP configurada
+y 202 contratos distintos. El asistente y adaptador están instalados en SyS.
+Siguiente bloque: elegir un período y compañía de SyS con maestros existentes
+y parámetros completos, preparar una copia privada admisible y probar el flujo
+normalizado con importes almacenados. Si depende de Nómina Chile sin parámetros
+equivalentes, avanzar el reporte original 462 desde su acción de impresión
+con usuario normal y revisión del documento generado.
+
+Paquete exacto `5d420d01`, SHA256
+`812218e39c1a40108d2f849b3ed96363e97d74c412ebef23c67f4af8581b96aa`.
+Pareja fresca serializada bajo el bloqueo compartido, con un respaldo
+`2531f93dd97c145dfa9b4a1eb5534739ba7efd94898e3330bee4070791c39001`
+con modo 0600 y directorios de datos 0700. Community oficial/OCA quedó en
+144 módulos y cero Enterprise. La referencia fresca quedó en 414/140.
+La revisión repitió 118/2 accesos, cinco formularios, cuatro menús y 71 vínculos
+con cero nuevos al reintentar. Comparó 999/1.000 proyecciones literales,
+197 contadores y 60.686 XML IDs. La única diferencia literal es el adjunto
+adicional candidato a icono. Se conservaron históricos, vencimientos,
+Calendar y los cuatro contratos de almacenamiento. Siguen 32 FK adicionales
+vacías y 27 diferencias solo físicas de proveedores fuera del perfil,
+incluido `resource.calendar.previred_workday_type` (9607). Las cinco
+restricciones de U16 quedaron verificadas. Pasaron 454 pruebas locales
+compatibles con Windows y las regresiones de prorrateo, YTD, asiento
+individual y Libro en la pareja fresca.
+
+Inventario de solo lectura
+`62ada2c99acdf21476bb9e762453cd9566b3c7e95db8668370e1bdbb02fa50d2`
+idéntico a U25 y U14 por producto. Evidencia privada en
+`~/.codex/local-artifacts/community-resume-20261125/U26` y
+`/opt/steps-validation/community-original-handover-20261126U26`.
+
 ## U25 · CSV de Simple Digital con una liquidación confirmada, 26-11-2026
 
 El paquete `d37c2d94` incorpora una prueba funcional del Libro de Remuneraciones

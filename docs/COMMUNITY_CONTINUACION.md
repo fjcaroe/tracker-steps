@@ -1,5 +1,13 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+U26 verificó la salida TXT cruda de Previred de la estructura 2 en la pareja
+fresca de Cerro. Ambos motores devuelven una fila de 105 campos, con 29 días
+del proveedor, excluyen otra liquidación confirmada de diciembre y preservan
+los importes guardados. Community rechaza una compañía ajena. Faltan AFP e
+institución de salud en el caso Cerro. Preparar la prueba del asistente
+normalizado con el período y los maestros existentes de una copia privada
+de SyS, o avanzar el reporte original 462 si persiste el bloqueo.
+
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
 
 U25 verificó el CSV de Simple Digital en una pareja fresca. El operador
