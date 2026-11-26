@@ -2,6 +2,7 @@
 
 import json
 import re
+from pathlib import Path
 
 from odoo import api, Command
 from odoo.addons.base.models.ir_qweb import QWebException
@@ -48,9 +49,16 @@ def prepare_actors(env, company_id):
                           company_id=company_id, company_ids=[Command.set([company_id])]).id for login in logins]
 
 
-def run(env, company_id, prepared=False):
+def run(env, company_id, prepared=False, pdf_directory=None):
     if not re.fullmatch(r'(?:COMMUNITY|MANAGEMENT_QA)_SYS_REPORT_ROLES_[A-Z0-9]+', env.cr.dbname):
         raise ValueError('Use a new isolated SyS report-role derivative')
+    if pdf_directory:
+        out = Path(pdf_directory).resolve(strict=True)
+        if not (prepared and env.cr.dbname == 'COMMUNITY_SYS_REPORT_ROLES_20261126U40RS'
+                and out == Path('/opt/steps-validation/community-sys-report-roles-20261126U40RS/employee-pdfs')):
+            raise ValueError('Use the dedicated private synthetic-employee PDF directory')
+        from probe_original_payslip_report import render_pdf
+
     env.cr.execute("""SELECT p.id,p.contract_id FROM hr_payslip p WHERE p.company_id=%s AND p.date_from='2026-10-01'
                       AND p.date_to='2026-10-31' AND p.state IN ('done','paid') ORDER BY p.id""", (company_id,))
     originals = env.cr.fetchall()
@@ -100,6 +108,7 @@ def run(env, company_id, prepared=False):
             fixtures.append((user.id, employee.id, slip, net_line))
         env.flush_all()
         results = []
+        pdfs = []
         for idx, (uid, employee_id, own, own_line) in enumerate(fixtures):
             foreign, foreign_line = fixtures[1-idx][2:]
             scope = actor(uid)
@@ -116,6 +125,19 @@ def run(env, company_id, prepared=False):
                      'read_peer_line':allowed_call(lambda: scope['hr.payslip.line'].browse(foreign_line).check_access('read')),
                      'print_own':allowed_call(lambda: render(own)), 'print_peer':allowed_call(lambda: render(foreign))}
             results.append(cases)
+            if pdf_directory:
+                checks = {}
+                for kind, ident in [('own', own), ('peer', foreign)]:
+                    slip = scope['hr.payslip'].browse(ident)
+                    req = action.with_env(scope).report_action(slip, config=False)
+                    path = out / f'employee-{idx + 1}-{kind}.pdf'
+                    if path.exists():
+                        raise ValueError('Use a fresh output directory for employee PDFs')
+                    def make_pdf():
+                        checks[kind + '_sha256'] = render_pdf(report, req, slip, str(path))
+                    checks[kind] = allowed_call(make_pdf)
+                    assert path.is_file() == checks[kind]
+                pdfs.append(checks)
         trial.rollback()
     for _,_,ident,_ in fixtures:
         env.cr.execute('SELECT count(*) FROM hr_payslip WHERE id=%s',(ident,))
@@ -123,4 +145,4 @@ def run(env, company_id, prepared=False):
     env.cr.rollback()
     return {'other_active_internal_users':len(real_actors),'other_original_payroll_managers':real_managers,
             'existing_read_all_october':sum(real_readers),
-            'synthetic_employee_results':results,'business_fixtures_rolled_back':True}
+            'synthetic_employee_results':results,'synthetic_pdf_results':pdfs,'business_fixtures_rolled_back':True}
