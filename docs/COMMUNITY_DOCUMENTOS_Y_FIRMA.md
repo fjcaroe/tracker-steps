@@ -28,6 +28,12 @@ está instalado el proveedor de Firma y existe una plantilla de firma en cada
 base, con cero solicitudes, firmantes y elementos de firma. Steps carece del
 proveedor instalado.
 
+SyS tiene dos usuarios internos activos que pueden usar Firma y emitir
+documentos laborales. En Cerro hay once usuarios de Firma, ocho son
+administradores de Firma y dos tienen también el permiso de emisión laboral.
+Steps carece de emisores asignados en esta copia. Los conteos excluyen a
+la cuenta técnica del sistema.
+
 La versión original de `step_hr_contract_lifecycle` es 18.0.2.0.1 en los tres
 productos. Su PDF laboral se guarda en `ir.attachment`, con vínculos al
 documento, contrato, trabajador y plantilla. En el grafo de dependencias

@@ -188,7 +188,9 @@ def probe(env):
     scope.flush_all()
     env.cr.rollback()
     if mapped_original_user:
-        assert not users[0].has_group('sign_oca.sign_oca_group_user')
+        env.cr.execute('SELECT count(*) FROM res_groups_users_rel WHERE uid=%s AND gid=%s',
+                       [users[0].id, env.ref('sign_oca.sign_oca_group_user').id])
+        assert env.cr.fetchone()[0] == 0
     print('LABOR_DOCUMENT_NATIVE=' + json.dumps({
         'uid': user.id, 'community_fixture': community, 'menu_and_forms': True, 'original_template_assignment': original_link,
         'original_labor_modality': original_modality,
