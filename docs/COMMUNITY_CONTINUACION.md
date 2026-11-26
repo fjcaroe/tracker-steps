@@ -1,5 +1,24 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+U33 recuperó SSH y renovó el inventario completo de los tres productos.
+El SHA-256 coincide byte por byte con U29L
+(`62ada2c99acdf21476bb9e762453cd9566b3c7e95db8668370e1bdbb02fa50d2`).
+SyS tiene 336 módulos instalados, 142 Enterprise y 21 propios. La consulta
+de solo lectura confirmó que las 25 tablas del control están presentes,
+que no hay acciones de módulos pendientes y que los motores nativos
+`hr_payroll` y `hr_payroll_account` están instalados.
+
+`tools/community/restore_sys_previred_pair.py` toma el bloqueo de ambientes,
+comprueba las reservas de disco y restaura dos bases privadas nuevas desde
+un único dump SQL de SyS. Se ejecuta como usuario del sistema PostgreSQL,
+con el socket local y un directorio padre privado. Reproduce propietario,
+codificación y configuración regional de la base. Conserva los propietarios
+y ACL contenidos en el dump. Valida las dos columnas históricas y encadena
+los dos primeros recibos de U32 antes de cargar el ORM. El respaldo y los
+recibos se guardan con modo 0600. Los adjuntos del filestore quedan fuera
+de esta fase SQL y requieren su propio respaldo y verificación para la
+admisión integral.
+
 U32 prepara los cuatro puntos de comparación de almacenamiento SyS con
 `tools/community/capture_sys_previred_stage.py`. El coordinador conserva
 el bloqueo compartido durante la secuencia, aísla las bases de otros
