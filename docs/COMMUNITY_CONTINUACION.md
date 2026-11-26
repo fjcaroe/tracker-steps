@@ -1,5 +1,49 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+## U35 · Procedencia contable de lotes SyS
+
+El recibo de admisión revalidó la candidata U33 contra las 25 proyecciones,
+298 claves foráneas y 111 correlativos originales. En PostgreSQL, con el
+bloqueo compartido, se clasificaron los 81 lotes por el diario de los
+asientos vinculados, su estado y la compañía. La estructura vigente de
+Nómina se examinó por separado, con la clave de la empresa en el JSONB
+de Odoo y sin aplicar valores por defecto.
+
+| Evidencia contable | Lotes |
+| --- | ---: |
+| Un diario de la misma compañía, con asientos en borrador | 56 |
+| Sin asiento vinculado | 23 |
+| Asientos de otra compañía | 2 |
+
+Ningún lote tiene asiento directo. Los asientos encontrados provienen de
+liquidaciones y están en borrador. La consulta independiente detectó cuatro
+asientos de otra compañía en los dos lotes observados. El diario pertenece
+a la compañía del asiento, ajena a la jerarquía de la compañía del lote,
+y difiere del diario configurado hoy en la estructura. Los vínculos y los
+asientos permanecen intactos. Entre los lotes sin asiento hay 15 cerrados.
+77 de los 81 lotes tienen una configuración de estructura vigente uniforme.
+La configuración actual solo acredita ese contexto y no fecha el diario
+de un lote cerrado.
+
+Para admitir SyS, probar un contrato que mantenga el diario histórico
+desconocido sin completarlo con el de la estructura. Preservar los cuatro
+asientos y su pertenencia original sin ampliar acceso entre compañías.
+Acreditar selección de diario para altas y validación contable bajo el rol
+original en una copia. Quedan los demás campos nuevos de U34, la custodia
+del filestore, el upgrade aislado y el cotejo de Previred v98. La sonda se
+ejecutó en la pareja SQL existente y no autorizó el upgrade.
+
+Recibo privado U35 SHA-256
+`81eb6a8e5098407fea8712126ca36cfb2c1db333a519bb03d13dd642dc5e1681`,
+en el directorio de evidencias U33 del servidor y en
+`~/.codex/local-artifacts/community-resume-20261125/U30`. El inventario
+completo U35 mantuvo la huella de U34. La consulta de clasificación también
+pasó siete casos en PostgreSQL local (PGlite) con el campo de estructura
+como JSONB y como entero. Pasaron 309 regresiones Community compatibles
+con Windows. La candidata conserva el motor nativo.
+
+## U34 · Almacenamiento histórico SyS
+
 U34 revalidó la candidata de SyS de U33 contra el recibo de restauración.
 Coincidieron las 25 proyecciones, 298 claves foráneas y 111 correlativos.
 El inventario renovado de los tres productos tiene el mismo SHA-256 de U33.

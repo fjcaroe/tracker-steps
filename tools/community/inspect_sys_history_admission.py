@@ -14,7 +14,6 @@ from pathlib import Path
 
 from capture_sys_previred_stage import record_stage
 from preflight_original_history_storage import require, sha
-from restore_sys_previred_pair import save
 from sys_previred_preservation import identifier, metadata_query
 
 
@@ -29,6 +28,69 @@ CHILD_PARENT = {
     'hr_payslip_worked_days': 'payslip_id',
     'hr_payslip_input': 'payslip_id',
 }
+
+
+def inspect_batch_journals(cursor):
+    """Distinguish stored accounting evidence from current configuration."""
+    cursor.execute("""
+        WITH links AS (
+            SELECT b.id AS batch_id, b.company_id AS expected_company,
+                   b.move_id, true AS direct, false AS slip_company_conflict
+            FROM public.hr_payslip_run b WHERE b.move_id IS NOT NULL
+            UNION ALL
+            SELECT b.id, b.company_id, p.move_id, false,
+                   p.company_id IS DISTINCT FROM b.company_id
+            FROM public.hr_payslip_run b
+            JOIN public.hr_payslip p ON p.payslip_run_id = b.id
+            WHERE p.move_id IS NOT NULL
+        ), ledger AS (
+            SELECT l.batch_id, bool_or(l.direct) AS has_direct_move,
+                   bool_or(NOT l.direct) AS has_slip_move,
+                   count(DISTINCT m.journal_id) AS journal_count,
+                   bool_or(m.state = 'posted') AS has_posted_move,
+                   bool_or(m.id IS NULL OR j.id IS NULL OR l.slip_company_conflict
+                           OR m.company_id IS DISTINCT FROM l.expected_company
+                           OR j.company_id IS DISTINCT FROM l.expected_company) AS needs_company_review
+            FROM links l
+            LEFT JOIN public.account_move m ON m.id = l.move_id
+            LEFT JOIN public.account_journal j ON j.id = m.journal_id
+            GROUP BY l.batch_id
+        ), configuration AS (
+            SELECT p.payslip_run_id AS batch_id, count(DISTINCT j.id) AS journal_count,
+                   bool_and((j.company_id = b.company_id
+                             AND p.company_id = b.company_id) IS TRUE) AS complete
+            FROM public.hr_payslip p
+            JOIN public.hr_payslip_run b ON b.id = p.payslip_run_id
+            LEFT JOIN public.hr_payroll_structure s ON s.id = p.struct_id
+            -- Company-dependent Odoo fields store explicit values by company.
+            -- Defaults are not evidence about the current structure itself.
+            LEFT JOIN public.account_journal j ON to_jsonb(j.id) =
+                CASE WHEN jsonb_typeof(to_jsonb(s.journal_id)) = 'object'
+                     THEN to_jsonb(s.journal_id) -> b.company_id::text
+                     ELSE to_jsonb(s.journal_id)
+                END
+            GROUP BY p.payslip_run_id
+        ), classified AS (
+            SELECT b.state, coalesce(l.has_direct_move, false) AS has_direct_move,
+                   coalesce(l.has_slip_move, false) AS has_slip_move,
+                   coalesce(c.complete AND c.journal_count = 1, false) AS uniform_current_configuration,
+                   CASE WHEN l.batch_id IS NULL THEN 'no_linked_move'
+                        WHEN l.needs_company_review THEN 'journal_or_company_review'
+                        WHEN l.journal_count <> 1 THEN 'conflicting_move_journals'
+                        WHEN l.has_posted_move IS NOT TRUE THEN 'only_unposted_moves'
+                        ELSE 'one_posted_journal'
+                   END AS accounting_evidence
+            FROM public.hr_payslip_run b
+            LEFT JOIN ledger l ON l.batch_id = b.id
+            LEFT JOIN configuration c ON c.batch_id = b.id
+        )
+        SELECT state, accounting_evidence, has_direct_move, has_slip_move,
+               uniform_current_configuration, count(*)
+        FROM classified GROUP BY 1,2,3,4,5 ORDER BY 1,2,3,4,5
+    """)
+    keys = ('state', 'accounting_evidence', 'has_direct_move', 'has_slip_move',
+            'uniform_current_configuration', 'batches')
+    return [dict(zip(keys, row)) for row in cursor.fetchall()]
 
 
 def inspect_history(cursor, columns):
@@ -113,14 +175,17 @@ def inspect(source, target, database, witness, backup_sha, baseline, restored):
 
     history, paths = inspect_history(source, original)
     return {
-        'schema': 1, 'database': database, 'witness': witness, 'backup_sha256': backup_sha,
+        'schema': 2, 'database': database, 'witness': witness, 'backup_sha256': backup_sha,
         'restored_receipt_sha256': sha(restored), 'restoration_matched': True,
         'differences': differences, 'history': history, 'existing_link_coverage': paths,
+        'batch_journal_evidence': inspect_batch_journals(source),
         'upgrade_authorized': False,
     }
 
 
 def main():
+    from restore_sys_previred_pair import save
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--database', required=True)
     parser.add_argument('--witness', required=True)
