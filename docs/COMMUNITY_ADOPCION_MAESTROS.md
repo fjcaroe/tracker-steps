@@ -1,5 +1,53 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
+## U28 · PDF de la acción original 462 y preservación de recursos
+
+El operador 7 generó e inspeccionó una página PDF de la estructura 2 en cada
+motor mediante la acción 462, su XML ID original y el binding 600. Community
+oficial/OCA ejecutó el renderer de datos almacenados con 144 módulos y cero
+Enterprise. La referencia ejecutó el renderer original con 414 módulos y 140
+Enterprise. Los dos PDF mostraron sueldo base de CLP 360.000 y líquido de
+CLP 363.087. Los recursos HTTP de cada copia se sirvieron por loopback
+dentro de su espacio de red aislado. Las 10 solicitudes por motor, incluidas
+las dos hojas de estilo, devolvieron 200. Queda pendiente el recorrido desde
+el navegador. La revisión visual encontró conceptos duplicados y el líquido
+final sin etiqueta en Community. Queda abierta la presentación del documento.
+
+El rollback preservó la acción, sus vínculos, importes, estados y asientos.
+Los recuentos confirmaron cero liquidaciones, contratos y entradas de ensayo
+persistidos. La revisión de preservación de Community detectó dos filas
+originales de caché CSS sustituidas por dos nuevas al generar los bundles de
+impresión. Los adjuntos de negocio conservaron sus filas originales.
+El candidato a icono de U27 volvió a aparecer. La renovación de cachés
+bloquea la preservación literal y deja el candidato fuera de la canónica.
+
+Siguieron verdes 197 contadores, 60.686 XML IDs, 999 de 1.000 proyecciones,
+118/2 accesos, cinco formularios, cuatro menús, 71 vínculos y cero al repetir.
+Se conservaron Calendar, vencimientos y los cuatro contratos de
+almacenamiento. Persisten 32 FK nuevas vacías y 27 diferencias físicas de
+proveedores inactivos. Pasaron 304 pruebas locales compatibles con Windows,
+además de las regresiones de nómina de la pareja privada. El inventario de
+los tres productos es idéntico a U27.
+
+El candidato `f336b91a` quedó publicado en
+`codex/community-original-pdf-u28`. Paquete
+`5d88fcdaa92624b73954d960faef6b648bb7dfb67cb2d5f06e33d8610b36f3c3`,
+respaldo compartido
+`1e69feb4adb24ef542eb41713da88c896e78c855710397521fcd534f852f378a`,
+y revisión de adjuntos
+`20dd93e38c16454105b05c912bbeaac7175ff5f440b7e21ba98dce967620e389`.
+Evidencia privada en `~/.codex/local-artifacts/community-resume-20261125/U28`
+y `/opt/steps-validation/community-original-handover-20261126U28`.
+La pareja se restauró bajo el bloqueo compartido. Producción y QA-Cerro
+quedaron fuera de la prueba.
+
+Siguiente bloque. Mantener el replay v98 de SyS en Community con los maestros
+originales como prioridad de Nómina. Para repetir el PDF, aislar la
+generación de recursos en una copia de ensayo separada de la pareja usada
+para medir preservación y verificar que el renderer conserva los mismos
+importes. Revalidar la reserva de artefactos antes de restaurar. Siguen las
+puertas de aceptación integral de [COMMUNITY_AUTONOMIA.md](COMMUNITY_AUTONOMIA.md).
+
 ## U27 · Previred normalizado en SyS y acción original de impresión en Cerro
 
 El gerente existente de Nómina validó y generó el TXT consolidado en una copia

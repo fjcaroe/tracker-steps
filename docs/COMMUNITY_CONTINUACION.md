@@ -1,5 +1,13 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+U28 probó el PDF de la acción 462 en una pareja fresca. Los dos motores
+imprimieron sueldo base de CLP 360.000 y líquido de CLP 363.087. El ensayo
+quedó fuera de la canónica por la sustitución de dos filas de caché CSS.
+Persisten diferencias visuales y queda pendiente el recorrido del navegador.
+La siguiente prueba de PDF debe aislar la generación de recursos. Sigue
+pendiente reproducir el v98 de octubre con los maestros originales de SyS en
+Community.
+
 U27 produjo el TXT normalizado v98 de octubre en una copia privada nativa de
 SyS. Las cinco liquidaciones elegibles emitieron cinco filas de 105 campos y
 las cinco cotizaciones AFP coincidieron con sus importes guardados. El v84 de
