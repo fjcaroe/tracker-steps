@@ -142,4 +142,3 @@ def run(env):
     return {'both_writers_blocked_on_actual_caf': True, 'after_first_commit': committed,
             'after_first_rollback': rolled_back, 'rejected_fresh_duplicate': True, 'matching_teds_only': True,
             'original_cafs_and_sequence_preserved': True}
-
