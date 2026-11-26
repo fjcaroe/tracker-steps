@@ -84,10 +84,13 @@ class StoredPayslipReport(models.AbstractModel):
             WHERE l.id=ANY(%s) ORDER BY l.slip_id,l.sequence,l.id""", [children['hr.payslip.line'].ids])
         lines = {row[0]: dict(zip(('id', 'slip_id', 'salary_rule_id', 'code', 'visible',
             'amount', 'quantity', 'rate', 'total', 'category'), row)) for row in self.env.cr.fetchall()}
-        self.env.cr.execute('SELECT id,payslip_id,code,number_of_days,number_of_hours '
+        worked_days = children['hr.payslip.worked_days']
+        codes = {day.id: day.code for day in worked_days}
+        self.env.cr.execute('SELECT id,payslip_id,number_of_days,number_of_hours '
                             'FROM hr_payslip_worked_days WHERE id=ANY(%s) ORDER BY id',
-                            [children['hr.payslip.worked_days'].ids])
-        days = {row[0]: dict(zip(('id', 'slip_id', 'code', 'days', 'hours'), row)) for row in self.env.cr.fetchall()}
+                            [worked_days.ids])
+        days = {ident: {'id': ident, 'slip_id': slip_id, 'code': codes[ident], 'days': number, 'hours': hours}
+                for ident, slip_id, number, hours in self.env.cr.fetchall()}
 
         # These presentation-only properties belong to the structure of an
         # already authorized slip. Employees do not gain payroll configuration

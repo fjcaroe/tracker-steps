@@ -18,7 +18,18 @@ class HistoricalFieldsMixin:
         return rows
 
     def write(self, values):
-        if any(name in values and not values[name] for name in self._sys_history_fields):
+        for name, (parent, attribute) in self._sys_related_fields.items():
+            if name not in values:
+                continue
+            for row in self:
+                target = (self.env[self._fields[parent].comodel_name].browse(values[parent])
+                          if parent in values else row[parent])
+                expected = target[attribute] if target else False
+                if self._fields[name].type == "many2one" and expected:
+                    expected = expected.id
+                if values[name] != expected:
+                    raise ValidationError(_("A related payroll field must match its original linked record."))
+        if self and any(name in values and not values[name] for name in self._sys_history_fields):
             raise ValidationError(_("A payroll code or calculation setting cannot be cleared."))
         return super().write(values)
 
@@ -26,24 +37,32 @@ class HistoricalFieldsMixin:
 class PayslipInput(HistoricalFieldsMixin, models.Model):
     _inherit = "hr.payslip.input"
     _sys_history_fields = ("code",)
+    _sys_related_fields = {"code": ("input_type_id", "code"), "contract_id": ("payslip_id", "contract_id")}
 
-    code = fields.Char(required=False)
+    code = fields.Char(related="input_type_id.code", store=False, required=True, readonly=True, copy=False)
+    contract_id = fields.Many2one(related="payslip_id.contract_id", store=False, required=True,
+                                  readonly=True, copy=False)
 
 
 class PayslipWorkedDays(HistoricalFieldsMixin, models.Model):
     _inherit = "hr.payslip.worked_days"
     _sys_history_fields = ("code",)
+    _sys_related_fields = {"code": ("work_entry_type_id", "code"), "contract_id": ("payslip_id", "contract_id")}
 
-    code = fields.Char(required=False)
+    code = fields.Char(related="work_entry_type_id.code", store=False, required=False, readonly=True, copy=False)
+    contract_id = fields.Many2one(related="payslip_id.contract_id", store=False, required=False,
+                                  readonly=True, copy=False)
 
 
 class PayslipLine(HistoricalFieldsMixin, models.Model):
     _inherit = "hr.payslip.line"
-    _sys_history_fields = ("amount_select", "condition_select", "condition_python")
+    _sys_history_fields = ("condition_select", "condition_python")
+    _sys_related_fields = {"amount_select": ("salary_rule_id", "amount_select")}
 
     # A field default is also used by Odoo when it initializes a new column.
     # Apply the OCA create defaults only to new rows through default_get.
-    amount_select = fields.Selection(required=False, default=None)
+    amount_select = fields.Selection(related="salary_rule_id.amount_select", store=False,
+                                     required=False, readonly=True, copy=False, default=None, index=False)
     condition_select = fields.Selection(required=False, default=None)
     condition_python = fields.Text(required=False, default=None)
 

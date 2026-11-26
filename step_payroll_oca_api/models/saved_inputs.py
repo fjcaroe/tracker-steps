@@ -108,8 +108,14 @@ class Payslip(models.Model):
             normal.env.cr.execute("SELECT id FROM hr_payslip_input WHERE payslip_id=%s ORDER BY id", (slip.id,))
             identifiers = [row[0] for row in normal.env.cr.fetchall()]
             saved = _existing(inputs.browse(identifiers), identifiers)
-            normal.env.cr.execute("SELECT id,payslip_id,contract_id,input_type_id,code,amount FROM hr_payslip_input WHERE id=ANY(%s) ORDER BY id", (identifiers,))
-            rows = normal.env.cr.fetchall()
+            # A native SyS child exposes its contract and code through its
+            # parent and input type. Only amount needs a literal SQL value to
+            # distinguish a saved zero from NULL in the Odoo Float cache.
+            saved.invalidate_recordset(["contract_id", "code"])
+            references = {row.id: (row.contract_id.id, row.code) for row in saved}
+            normal.env.cr.execute("SELECT id,payslip_id,input_type_id,amount FROM hr_payslip_input WHERE id=ANY(%s) ORDER BY id", (identifiers,))
+            rows = [(ident, parent, references[ident][0], kind, references[ident][1], amount)
+                    for ident, parent, kind, amount in normal.env.cr.fetchall()]
             if {row[0] for row in rows} != set(identifiers):
                 raise UserError(_("Original saved payroll input rows changed during admission."))
             if any(not row[3] for row in rows):

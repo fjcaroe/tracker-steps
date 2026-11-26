@@ -1,4 +1,4 @@
-"""Compose the SyS first-initialization declarations with a reviewed free OCA overlay."""
+"""Preserve SyS nonstored master links and unknown conditions from the first OCA init."""
 
 import argparse
 import ast
@@ -39,7 +39,8 @@ EDITS = {
     "models/hr_payslip_worked_days.py": (CODE, CODE.replace(b"True", b"False")),
     "models/hr_payslip_line.py": (ORDER, ORDER + b'''
     condition_select = fields.Selection(required=False, default=None)
-    amount_select = fields.Selection(required=False, default=None)
+    amount_select = fields.Selection(related="salary_rule_id.amount_select", store=False,
+                                     required=False, readonly=True, copy=False, default=None, index=False)
     condition_python = fields.Text(required=False, default=None)
 '''),
     "models/hr_payslip_run.py": (JOURNAL, b'''        required=False,
@@ -62,6 +63,26 @@ def plan(modules):
         require(sha(body) in pins, "Unreviewed OCA field source: " + path)
         before, after = EDITS[path]
         require(body.count(before) == 1, "Missing unique OCA declaration: " + path)
+        if path in ("models/hr_payslip_input.py", "models/hr_payslip_worked_days.py"):
+            # The master relations are registered by the payroll API extension.
+            # Resolve them only at read time until the complete profile sets
+            # the native related paths. Never materialize a transient column.
+            is_input = path == "models/hr_payslip_input.py"
+            kind = "input_type_id" if is_input else "work_entry_type_id"
+            after = (b'    code = fields.Char(\n        compute="_compute_sys_master_code", '
+                     + f"store=False, readonly=True, copy=False, required={is_input},".encode())
+            body += f'''
+    def _compute_sys_master_code(self):
+        if "{kind}" not in self._fields:
+            from odoo.exceptions import UserError
+            raise UserError("The original payroll type provider must be installed to read its code.")
+        for row in self:
+            row.code = row.{kind}.code
+'''.encode()
+            contract = b'        string="Contract",\n        required=True,'
+            require(body.count(contract) == 1, "Unique OCA child contract required")
+            body = body.replace(contract, b'        string="Contract",\n        related="payslip_id.contract_id",\n'
+                                + f'        store=False, readonly=True, copy=False, required={is_input},'.encode())
         result[module][path] = body.replace(before, after)
         ast.parse(result[module][path])
     return result
