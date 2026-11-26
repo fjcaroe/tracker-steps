@@ -18,7 +18,7 @@ import psycopg2
 
 from capture_sys_previred_stage import record_stage
 from preflight_original_history_storage import require
-from rehearse_sys_child_contracts import CHILDREN, UNKNOWN_FIELDS, rehearse, rehearse_unknown_fields
+from rehearse_sys_child_contracts import rehearse_unknown_fields
 from restore_sys_previred_pair import GIB, LOCK, SOCKET, pg, query
 from sys_previred_preservation import capture, differences, identifier
 
@@ -31,37 +31,46 @@ def file_digest(path):
     return digest.hexdigest()
 
 
+ABSENT_FIELDS = {'hr_payslip_line': {'condition_select': 'character varying', 'condition_python': 'text'},
+                 'hr_payslip_run': {'journal_id': 'integer'}}
+RELATED = {
+    ('hr.payslip.input', 'code'): ('char', True, 'input_type_id.code'),
+    ('hr.payslip.input', 'contract_id'): ('many2one', True, 'payslip_id.contract_id'),
+    ('hr.payslip.worked_days', 'code'): ('char', False, 'work_entry_type_id.code'),
+    ('hr.payslip.worked_days', 'contract_id'): ('many2one', False, 'payslip_id.contract_id'),
+    ('hr.payslip.line', 'amount_select'): ('selection', False, 'salary_rule_id.amount_select'),
+}
+
+
+def related_identity(cursor):
+    found = {}
+    for (model, field), expected in RELATED.items():
+        cursor.execute("SELECT id,ttype,required,related,store FROM public.ir_model_fields "
+                       "WHERE model=%s AND name=%s", (model, field))
+        rows = cursor.fetchall()
+        require(len(rows) == 1 and rows[0][1:] == (*expected, False), 'sys-admission-native-related-drift')
+        found[model + '.' + field] = rows[0][0]
+    return found
+
+
 def verify_bridge(cursor, original, current):
     require(not any(differences(original, current).values()), 'sys-admission-original-drift')
     expected = {t: {f: [typ, False] for f, typ in fields.items()}
-                for t, fields in UNKNOWN_FIELDS.items()}
-    for table in CHILDREN:
-        expected[table]['contract_id'] = ['integer', True]
+                for t, fields in ABSENT_FIELDS.items()}
+    for model, field in RELATED:
+        require(field not in current['columns'][model.replace('.', '_')], 'sys-admission-related-materialized')
     for table, columns in current['columns'].items():
         extra = {name: columns[name] for name in columns.keys() - original['columns'][table].keys()}
         require(extra == expected.get(table, {}), 'sys-admission-new-columns:' + table)
-    fks = {table + '.' + table + '_contract_id_fkey':
-           ['FOREIGN KEY (contract_id) REFERENCES hr_contract(id) ON DELETE RESTRICT', True]
-           for table in CHILDREN}
-    fks['hr_payslip_run.hr_payslip_run_journal_id_fkey'] = [
-        'FOREIGN KEY (journal_id) REFERENCES account_journal(id) ON DELETE RESTRICT', True]
+    fks = {'hr_payslip_run.hr_payslip_run_journal_id_fkey': [
+        'FOREIGN KEY (journal_id) REFERENCES account_journal(id) ON DELETE RESTRICT', True]}
     actual = {k: v for k, v in current['foreign_keys'].items() if k not in original['foreign_keys']}
     require(actual == fks and current['counters'] == original['counters'],
             'sys-admission-additional-fk-or-counter-drift')
-    for table, fields in UNKNOWN_FIELDS.items():
+    for table, fields in ABSENT_FIELDS.items():
         populated = ' OR '.join(identifier(field) + ' IS NOT NULL' for field in fields)
         cursor.execute(f'SELECT count(*) FROM public.{identifier(table)} WHERE {populated}')
         require(cursor.fetchone()[0] == 0, 'sys-admission-unknown-history-overwritten:' + table)
-    for table in CHILDREN:
-        cursor.execute(f"""
-            SELECT count(*) FROM public.{identifier(table)} child
-            JOIN public.hr_payslip slip ON slip.id = child.payslip_id
-            JOIN public.hr_contract contract ON contract.id = child.contract_id
-            WHERE contract.id = slip.contract_id AND contract.employee_id = slip.employee_id
-              AND contract.company_id = slip.company_id
-        """)
-        require(cursor.fetchone()[0] == original['projections'][table]['rows'],
-                'sys-admission-invalid-contract-link:' + table)
     cursor.execute("SELECT count(*) FROM public.ir_module_module WHERE state LIKE 'to %%'")
     require(cursor.fetchone()[0] == 0, 'sys-admission-pending-module-changes')
     cursor.execute("SELECT name FROM public.ir_module_module WHERE state='installed' AND name IN "
@@ -72,7 +81,7 @@ def verify_bridge(cursor, original, current):
 
 
 def run(args):
-    require(re.fullmatch(r'COMMUNITY_SYS_PREVIRED_ADMISSION_[A-Z0-9_]{1,30}', args.database),
+    require(re.fullmatch(r'COMMUNITY_SYS_PREVIRED_(?:ADMISSION|COHORT)_[A-Z0-9_]{1,30}', args.database),
             'sys-admission-private-derivative-required')
     backup = json.loads((args.source / 'backup.json').read_bytes())
     dump = args.source / 'sys.dump'
@@ -104,20 +113,25 @@ def run(args):
             with db.cursor() as cr:
                 before = record_stage(cr, args.database, 'candidate-restored', backup['sha256'], baseline)
                 require(before['preserved'], 'sys-admission-derivative-differs-from-backup')
+                related_ids = related_identity(cr)
             db.rollback()
             db.set_session(readonly=False, isolation_level='REPEATABLE READ')
             with db:
                 with db.cursor() as cr:
-                    summary['links'] = rehearse(cr, before['snapshot'])
-                    summary['unknown_history'] = rehearse_unknown_fields(cr, before['snapshot'])
+                    cr.execute("SET LOCAL search_path = pg_catalog, public")
+                    cr.execute("SET LOCAL lock_timeout='5s'")
+                    summary['unknown_history'] = rehearse_unknown_fields(cr, before['snapshot'], ABSENT_FIELDS)
         db.set_session(readonly=True, isolation_level='REPEATABLE READ')
         with db.cursor() as cr:
             current = capture(cr, args.database, original)
             verify_bridge(cr, original, current)
+            summary['original_related_ids'] = related_identity(cr)
+            if not args.verify_only:
+                require(summary['original_related_ids'] == related_ids, 'sys-admission-related-id-drift')
         db.rollback()
     return dict(schema=1, database=args.database, source=native, backup_sha256=backup['sha256'],
                 projections=len(original['projections']), original_fks=len(original['foreign_keys']),
-                original_counters=len(original['counters']), new_columns=8, new_fks=3,
+                original_counters=len(original['counters']), new_columns=3, new_fks=1,
                 mode='verify' if args.verify_only else 'restore-and-admit', odoo_started=False,
                 filestore_restored=False, **summary)
 

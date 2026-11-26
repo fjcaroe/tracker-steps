@@ -118,7 +118,7 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--verify-only', action='store_true')
     args = p.parse_args()
-    require(re.fullmatch(r'COMMUNITY_SYS_PREVIRED_ADMISSION_[A-Z0-9_]{1,30}', args.database),
+    require(re.fullmatch(r'COMMUNITY_SYS_PREVIRED_(?:ADMISSION|COHORT)_[A-Z0-9_]{1,30}', args.database),
             'sys-guard-private-derivative-required')
     baseline = json.loads(args.baseline.read_bytes())
     admission_raw = args.admission.read_bytes()
