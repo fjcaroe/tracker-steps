@@ -70,7 +70,7 @@ async function main() {
             const person = data.workers.find(row => row.id === worker);
             await page.locator('tr').filter({ hasText: person.nip }).getByRole('button', { name: 'Deshabilitado' }).click();
             await nav.getByRole('button', { name: /^Registrar(?:\s|$)/ }).click();
-            await page.getByLabel('Trabajador', { exact: true }).selectOption(String(worker));
+            await page.locator('form.capture-card select').selectOption(String(worker));
             await page.getByLabel('Hilera', { exact: true }).fill('QA-T242');
             await page.getByRole('button', { name: 'Guardar entrega' }).click();
             await page.getByText(new RegExp(`${expected(2)} kg ·`)).waitFor();
@@ -97,7 +97,7 @@ async function main() {
             assert.equal(await page.getByRole('button', { name: /^(Abrir|Cerrar) tarja$/ }).count(), 0);
             assert.equal(await page.getByLabel('Tarja', { exact: true }).count(), 0);
             if (mode === 'copy') {
-                await page.getByLabel('Trabajador', { exact: true }).selectOption(String(worker));
+                await page.locator('form.capture-card select').selectOption(String(worker));
                 await page.getByLabel('Hilera', { exact: true }).fill('QA-T243');
                 await page.locator('.quantity-row input[type=number]').fill('9.27');
                 await page.getByRole('button', { name: 'Guardar entrega' }).click();
@@ -107,7 +107,7 @@ async function main() {
         }
         fs.writeFileSync(output, JSON.stringify({ packaging_selector: true, standard_weight_readonly: true,
             manual_weight_hundredths: true, mobile_layout: true, local_weight_preserved: mode === 'copy',
-            native_context: true, version, server_writes: false, ...withoutTarja }, null, 2));
+            native_context: true, crew_native_type_contractor: true, version, server_writes: false, ...withoutTarja }, null, 2));
     } finally {
         await browser.close();
     }
