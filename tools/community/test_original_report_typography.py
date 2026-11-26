@@ -23,6 +23,20 @@ def fixture():
 
 
 class CorporateTypographyCase(unittest.TestCase):
+    def test_standard_body_with_company_preserves_official_empty_wrapper(self):
+        empty = '<html><body><div id="minimal_layout_report_headers"></div></body></html>'
+        body = ('<main><div class="article o_report_layout_standard o_company_8_layout">'
+                '<span>Empresa de prueba</span><div id="payslip_lines_table"/></div></main>')
+        companies = {8: 'Empresa de prueba'}
+        self.assertEqual(module.stabilize_corporate_typography(empty, body, companies), empty)
+        for invalid in (body.replace('o_company_8_layout', 'o_company_9_layout'),
+                        body.replace('Empresa de prueba', 'Empresa ajena'),
+                        body.replace('payslip_lines_table', 'other'), body.replace('<main>', '<main><div class="header"/>')):
+            with self.assertRaises(ValueError):
+                module.stabilize_corporate_typography(empty, invalid, companies)
+        with self.assertRaises(ValueError):
+            module.stabilize_corporate_typography(empty.replace('</div>', '<span/></div>'), body, companies)
+
     def test_semantic_attributes_text_and_logo_are_exact(self):
         before = html.fromstring(fixture())
         after = html.fromstring(module.stabilize_corporate_typography(fixture()))
