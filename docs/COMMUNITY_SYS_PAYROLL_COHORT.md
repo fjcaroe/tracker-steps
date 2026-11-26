@@ -94,3 +94,54 @@ se verificaron individualmente todos los 53.659 de la referencia anterior.
    El Libro y el cálculo de borradores tienen comprobaciones independientes en
    `replay_sys_payroll_cohort.py`. Ningún cálculo se aplica sobre liquidaciones
    originales y no se transmiten documentos a entidades externas.
+
+## SyS, recálculo y cierre en Community el 26 de noviembre
+
+Se probó la restauración de SyS con el usuario de Nómina y el contexto de
+cada empresa. El respaldo nativo es la referencia para los cálculos
+actuales. Las liquidaciones cerradas y sus asientos se protegieron contra
+escrituras durante cada prueba.
+
+| Prueba | Resultado observado |
+|---|---|
+| Último mes completo por empresa | 133 liquidaciones en 12 empresas. Los dos motores calcularon 130 con el mismo código de regla, importe, cantidad, tasa y total en 2.098 líneas. Los otros tres contratos conservaron la revisión pendiente y el mismo rechazo del módulo original. |
+| Comparación con las liquidaciones cerradas | 97 de los 130 recálculos reprodujeron también los valores históricos. Los otros 33 coincidieron entre los motores actuales y difieren del histórico. Se conservan los importes cerrados. |
+| Cierre individual | Cada uno de los 130 borradores creó un asiento de diario en borrador, sin apuntes. En 127 casos se pudo comparar directamente la cabecera original. Tres referencias contables históricas están fuera de la empresa del operador. |
+| Reglas con códigos repetidos | Cinco liquidaciones de octubre reprodujeron sus 86 líneas originales. Un sexto ensayo activó el movimiento 7. Se observó la ejecución de ambas reglas elegibles y la identidad retenida por ambos motores. |
+| Exportaciones de referencia | Previred de octubre coincidió byte a byte en 5 filas de 105 campos y el Libro en 5 filas de 147 campos. |
+| Impresión | La acción original 1431 generó cinco PDF con las cinco cifras líquidas originales y 61 líneas visibles. Se comprobaron las ocho versiones archivadas. |
+| Alcance de acceso | Se instalaron 16 reglas y se verificaron sus 12 vínculos a grupos. Dos empleados de ensayo pudieron imprimir su propio documento. Las dos impresiones cruzadas fueron denegadas. |
+| Formularios de personal | Los tres campos originales y las dos vistas de SyS conservaron sus identidades, datos y permisos después de la instalación. |
+
+La restauración U40I instaló 190 módulos en el entorno Community oficial
+sin módulos activos de licencia Enterprise. El paquete privado de siete módulos
+tiene huella `1dfb442394cd732f17ccd119181ecc8f813bc0c0e2cf686bbd402438293b144f`.
+El control de conservación devolvió cero diferencias en las 25 proyecciones
+originales, 53.659 identificadores XML, 298 claves foráneas y 111 contadores.
+El verificador contrasta íntegramente las reglas y vinculaciones originales
+y comprueba individualmente cada nueva regla, dominio, permiso y grupo.
+El comprobante privado de esta verificación tiene huella
+`b5344158b8eb5bbcb9597502a07a28886a1496e21de9a000f040a69397a9759b`.
+
+El cierre de las 130 liquidaciones y la prioridad del aviso de revisión
+de contratos se comprobaron en una revisión posterior de U40I. Se conservó
+el módulo de transición de SyS del release `1d099f7a` con su código y grupos
+originales. La dependencia declarada en la edición libre establece el orden
+en que se aplican su revisión contractual y los controles de configuración.
+El cálculo sin entradas de trabajo admite los días de un cierre original
+cuando coinciden empleado, contrato, empresa, período, tipo, días y horas
+y el operador puede leer todas las líneas.
+
+Las pruebas usan `probe_sys_company_drafts.py` y
+`compare_sys_company_drafts.py --accounting --require-review-policy`.
+Para el control físico de U40I se pasa a `check_sys_payroll_cohort.py` el
+archivo instalado con `--employee-policy`. Es obligatorio conservar también
+los registros y permisos anteriores. Los archivos privados completos de
+esta etapa están en el directorio U40 del ensayo del 25 de noviembre.
+
+El grafo completo de SyS tenía 336 módulos instalados. Esta cohorte excluyó
+156 del grafo original. La conversión completa de SyS, Cerro y Steps y la
+publicación en producción siguen pendientes. El plan de retención retiró
+cuatro bases transitorias de Cerro de los ensayos U17, U17B, U18 y U18B,
+con 727.346.256 bytes. Los controles U17D y U18C, los respaldos y los
+comprobantes permanecen disponibles.
