@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from build_numeric_input_engine import hashes, require, seal
+from build_numeric_input_engine import hashes, require, seal, sha
 from derive_sys_history_fields import build as build_history
 from derive_sys_structure_accounting import build as build_structure
 from original_history_engine_contract import _snapshot
@@ -80,17 +80,23 @@ def build(source, repository, output):
             files = _snapshot(repository / module)
             manifest = ast.literal_eval(files['__manifest__.py'].decode())
             require(manifest['license'] == 'LGPL-3', 'SyS requires free compatibility providers')
-            # The original security policies already belong to the original roles.
-            # Installing the OCA policy seeds would add memberships or new rights.
-            kept = [name for name in manifest['data'] if name != 'security.xml' and not name.startswith('security/')]
-            require(len(kept) < len(manifest['data']), 'SyS policy seed manifest drift')
-            manifest['data'] = kept
             old = seal(hashes(files))
-            files['__manifest__.py'] = (repr(manifest) + '\n').encode()
             if module == 'step_payroll_oca_api':
+                # Do not grant seed memberships over the original SyS roles.
+                kept = [name for name in manifest['data'] if not name.startswith('security/')]
+                require(len(kept) < len(manifest['data']), 'SyS policy seed manifest drift')
+                manifest['data'] = kept
+                files['__manifest__.py'] = (repr(manifest) + '\n').encode()
                 require('models/step_sys_required.py' not in files, 'SyS required overlay already present')
                 files['models/step_sys_required.py'] = REQUIRED_MODELS
                 files['models/__init__.py'] += b'\nfrom . import step_sys_required\n'
+            else:
+                # Sixteen record rules limit access to payslips and their children.
+                # This file only refers to existing groups and grants no memberships.
+                require(manifest['data'] == ['security.xml'] and
+                        sha(files['security.xml'].replace(b'\r\n', b'\n')) ==
+                        '9ba0d55473ba0c108c11c07e90396f72deab72e463ea588b5721527517d2a0b1',
+                        'Unreviewed SyS payroll employee scope')
             target = top / 'own-profile' / module
             for name, body in files.items():
                 path = target / name
