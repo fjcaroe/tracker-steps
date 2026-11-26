@@ -1,5 +1,25 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+U30 prepara el preflight de SyS para el v98 de octubre. Antes de iniciar Odoo,
+el perfil `sys-previred` comprueba en una copia privada que existen ambas
+tablas de historial, con filas y con las columnas físicas originales de
+compañía y nombre de línea. Se ejercitó el SQL en PostgreSQL local mediante
+PGlite con historial poblado, histórico vacío y pérdida del NOT NULL. El
+preflight cubre esas columnas. La preservación completa requiere proyectar
+IDs, maestros, históricos, ACL, referencias, saldos y secuencias del respaldo
+y repetir la comparación después del upgrade y del asistente.
+
+El observador de Previred admite el rol real de Nómina en ambos motores. En
+Community busca la cohorte cerrada de cinco liquidaciones de octubre, exige
+cero módulos Enterprise instalados y coteja las cinco AFP con los totales
+guardados. Para aceptar el resultado, enfrentar la compañía, el operador,
+los recuentos, el hash del TXT y los recibos de preservación con la pareja del
+mismo respaldo. U27 aporta la referencia nativa de cinco filas y el hash de
+comparación. Sigue pendiente ejecutar el candidato en Odoo real e integrar
+el bloque. El acceso SSH a odoo-new falló tanto directamente como por IAP,
+y Desarrollo agotó el tiempo de respuesta. Se revisó el inventario sellado
+de U29L. Queda pendiente refrescarlo al recuperar acceso.
+
 U29 verificó el PDF de la acción 462 con recursos HTTP en derivadas de la
 pareja fresca de Cerro. Ambos motores imprimieron los mismos importes guardados
 del caso de la estructura 2. La pareja de control conservó sus adjuntos

@@ -1,4 +1,4 @@
-"""Exercise the installed Previred wizard on an isolated SyS reference copy.
+"""Exercise the installed Previred wizard on an isolated SyS copy.
 
 Feed this script to the Odoo shell over a Unix socket with HTTP, cron and
 outbound networking disabled. The receipt contains no TXT or employee data.
@@ -6,6 +6,7 @@ outbound networking disabled. The receipt contains no TXT or employee data.
 from base64 import b64decode
 from calendar import monthrange
 from collections import Counter
+from datetime import date
 import hashlib
 import json
 import re
@@ -15,12 +16,15 @@ from odoo.exceptions import UserError
 from odoo.http import Response, _request_stack
 
 from odoo.addons.step_hr_previred.tools import previred
+from odoo.addons.step_payroll_contracts.access import has_payroll_role
 
 
-PRIVATE_DB = re.compile(r'MANAGEMENT_QA_SYS_PREVIRED_[A-Za-z0-9_]+')
+PRIVATE_DB = re.compile(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_)[A-Za-z0-9_]+')
+OCTOBER = date(2026, 10, 1)
 WIZARD_TABLES = {'step_previred_batch', 'step_previred_export_wizard'}
 BUSINESS_TABLES = ('hr_payslip', 'hr_payslip_line', 'hr_contract',
-                   'hr_payslip_worked_days', 'account_move',
+                   'hr_payslip_worked_days', 'hr_payslip_input', 'hr_payslip_run',
+                   'account_move', 'account_move_line',
                    'ir_sequence', 'ir_sequence_date_range')
 
 
@@ -39,7 +43,7 @@ def authorized_wizard(env, users, company):
         wizard = env['step.previred.export.wizard'].with_user(user).with_context(
             allowed_company_ids=[company.id])
         if (wizard.env.user.has_group('step_hr_previred.group_previred_generate')
-                and wizard.env.user.has_group('hr_payroll.group_hr_payroll_manager')):
+                and has_payroll_role(wizard.env, 'manager')):
             return wizard
     return None
 
@@ -53,6 +57,7 @@ def check_txt(wizard, dataset, period):
     assert all(len(row) == previred.FIELD_COUNT for row in rows)
     assert all(row[8:10] == [period.strftime('%m%Y')] * 2 for row in rows)
     assert len(dataset.records) == dataset.eligible_payslip_count
+    assert len({record.payslip_id for record in dataset.records}) == len(dataset.records)
     afp = previred.F_AFP_CONTRIBUTION - 1
     principals = [row for row in rows if previred.normalize_line_type(
         row[previred.F_LINE_TYPE - 1]) == previred.LINE_PRINCIPAL]
@@ -105,6 +110,11 @@ def probe_cohort(wizard_model, start, count):
 
 def run(env):
     assert PRIVATE_DB.fullmatch(env.cr.dbname)
+    community = env.cr.dbname.startswith('COMMUNITY_SYS_PREVIRED_')
+    installed = env['ir.module.module'].search([('state', '=', 'installed')])
+    enterprise_count = sum(module.license == 'OEEL-1' for module in installed)
+    if community:
+        assert enterprise_count == 0 and 'payroll' in installed.mapped('name')
     env['ir.http'].routing_map()
     before = snapshots(env)
     env.cr.execute("""
@@ -126,8 +136,11 @@ def run(env):
     users = env['res.users'].search([('active', '=', True), ('share', '=', False), ('id', '!=', 1)])
     diagnostics = []
     generated = {}
+    october_candidates = []
     try:
         for company_id, start, count in cohorts:
+            if community and (start != OCTOBER or count != 5):
+                continue
             wizard = authorized_wizard(env, users, env['res.company'].browse(company_id))
             if wizard is None:
                 continue
@@ -140,16 +153,27 @@ def run(env):
                 proof = None
             diagnostics.append(diagnostic)
             if proof:
-                generated.setdefault(diagnostic['spec'], {**diagnostic, **proof})
-            if '98' in generated:
+                receipt = {**diagnostic, **proof, 'company_id': company_id}
+                if community:
+                    if (diagnostic['spec'] == '98' and diagnostic['eligible'] == 5
+                            and not diagnostic['dropped'] and proof['rows'] == 5
+                            and not proof['annexes'] and proof['with_positive_afp'] == 5):
+                        october_candidates.append(receipt)
+                else:
+                    generated.setdefault(diagnostic['spec'], receipt)
+            if not community and '98' in generated:
                 break
         after = snapshots(env)
         assert all(after[table] == before[table] for table in BUSINESS_TABLES)
     finally:
         env.cr.rollback()
     assert snapshots(env) == before
+    if len(october_candidates) == 1:
+        generated['98'] = october_candidates[0]
     return dict(versions={m.name: m.latest_version for m in modules}, cohorts=len(cohorts),
                 attempted=len(diagnostics), diagnostics=diagnostics, generated=generated,
+                october_candidates=len(october_candidates),
+                community=community, enterprise_count=enterprise_count,
                 preserved=True, rolled_back=True)
 
 
