@@ -1,5 +1,36 @@
 # Fuente histórica Steps Transport localizada
 
+## Ensayo nativo en copia privada del 26 de noviembre
+
+U40T arrancó la fuente histórica mediante un enlace exclusivo de la derivada
+de Steps, con HTTP y cron deshabilitados y la red aislada. Se verificaron los
+ocho archivos antes y después. La versión instalada 18.0.1.5 corresponde al
+manifiesto 1.5. Coincidieron los 41 XML IDs de octubre y los 21 campos
+declarados, incluidos tipo, almacenamiento, obligatoriedad, edición,
+relaciones y campo inverso. El control U40Q conservó sus rutas de addons.
+
+El usuario interno 7, sin administración del sistema, abrió el formulario
+generado de once campos y creó una ruta con el correlativo original. Seleccionó
+un empleado existente, registró subida y bajada, cambió la operación de
+entrada a salida y comprobó el borrado en cascada de la línea. La fuente
+contiene cero rutas, líneas y vehículos de negocio y carece de vistas,
+acciones y menús de transporte propios. La prueba se revirtió. En la
+derivada, los tres contadores que avanzaron durante el ensayo recuperaron
+su valor y estado previos. Se compararon los 804 contadores de la base,
+las filas de negocio, las dos ACL, los campos y los XML IDs.
+
+El recibo privado `u40t-transport-proof.json` tiene SHA-256
+`70162ddf0b28bfd60781bf5301f117ec1bcc1e6a9ba2322128b15f1d614fb8f9`.
+La firma de los archivos originales es
+`cb56a2012adffbed0f99a5bb9613ac955f8cad1b06888e7c97e417278a83be64`.
+El registro de precios requiere `product.pricelist`. La clausura de los tres
+módulos declarados por el manifiesto comprende 17 módulos de Community
+oficial y carece del proveedor `product`. Steps ya tiene ese proveedor
+instalado. Debe probarse la selección de una tarifa y su relación en el
+producto convertido. Sigue pendiente acreditar la procedencia y licencia
+para redistribución y certificar los consumidores HTTP. El ensayo nativo
+usó la fuente privada en su ubicación original.
+
 Auditoría de solo lectura durante el bloque Community del 29-10-2026.
 No se habilita ni se publica este módulo; no se crean modelos sustitutos.
 
