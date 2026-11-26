@@ -129,7 +129,7 @@ def verify(env, before):
         names = FIELDS[records._name]
         for name, related in RELATED[records._name].items():
             field = records._fields[name]
-            assert tuple(field.related) == related and not field.store and field.readonly and not field.copy
+            assert field.related == ".".join(related) and not field.store and field.readonly and not field.copy
             for row in records:
                 assert row[name] == row[related[0]][related[1]]
         for name in set(names) - RELATED[records._name].keys():
