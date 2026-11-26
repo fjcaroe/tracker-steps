@@ -16,6 +16,8 @@ def main():
     for name in ('runtime', 'source-tools', 'data-dir', 'capsule', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--addons-path', required=True)
+    parser.add_argument('--employee-scope', choices=('verify', 'admit'),
+                        help='Verify the original Steps rules and real actors, optionally installing missing rules')
     args = parser.parse_args()
     output = args.output.resolve()
     paths = [args.runtime, args.source_tools, args.data_dir, args.capsule, *map(Path, args.addons_path.split(','))]
@@ -40,8 +42,18 @@ def main():
     script = ('import json,sys\n'
               f'sys.path[:0]=[{str(source)!r},{str(args.source_tools.resolve())!r}]\n'
               'from probe_sys_stored_payslip_report import run\n'
-              f'with open({str(args.capsule.resolve())!r}) as stream: reference=json.load(stream)\n'
-              f'print("SYS_REPORT_PROOF="+json.dumps(run(env,reference,{str(pdfs)!r},1431)))\n')
+              f'with open({str(args.capsule.resolve())!r}) as stream: reference=json.load(stream)\n')
+    if args.employee_scope:
+        script += 'from adopt_sys_employee_scope import run as employee_rules, verify_real_actors\n'
+        apply_scope = args.employee_scope == 'admit'
+        script += f'scope=employee_rules(env, apply={apply_scope!r})\n'
+        script += 'scope["actors"]=verify_real_actors(env,reference["company"])\n'
+        if apply_scope:
+            script += 'env.cr.commit()\n'
+    script += f'proof=run(env,reference,{str(pdfs)!r},1431)\n'
+    if args.employee_scope:
+        script += 'proof["employee_scope"]=scope\n'
+    script += 'print("SYS_REPORT_PROOF="+json.dumps(proof))\n'
     log = output / 'render.log'
     with os.fdopen(os.open(log, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600), 'wb') as fp:
         result = subprocess.run(command, input=script.encode(), stdout=fp, stderr=subprocess.STDOUT)
