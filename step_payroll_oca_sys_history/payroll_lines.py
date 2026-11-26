@@ -1,9 +1,10 @@
 from odoo import _, api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 
 class HistoricalFieldsMixin:
-    """Existing rows can carry unknown values. New OCA rows need all of them."""
+    # Odoo replaces class bases during registry setup. Keep the recordset layout.
+    __slots__ = ()
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -54,3 +55,16 @@ class PayslipLine(HistoricalFieldsMixin, models.Model):
             if name in fields_list and name not in values and rule_fields[name].default:
                 values[name] = rule_fields[name].default(self)
         return values
+
+
+class Payslip(models.Model):
+    _inherit = "hr.payslip"
+
+    def compute_sheet(self):
+        for slip in self.filtered(lambda s: s.state in ("draft", "verify")):
+            # OCA indexes these rows by code and replaces calculated lines.
+            # Stop before either operation could discard an unknown value.
+            for rows in (slip.worked_days_line_ids, slip.input_line_ids, slip.line_ids):
+                if any(not row[name] for row in rows for name in rows._sys_history_fields):
+                    raise UserError(_("Review the missing historical payroll codes and settings before recalculating."))
+        return super().compute_sheet()

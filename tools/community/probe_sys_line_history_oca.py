@@ -18,6 +18,7 @@ FIELDS = {
 }
 MODULE = "step_payroll_oca_sys_history"
 MARKER = "SYS_LINE_HISTORY_REHEARSAL"
+STORAGE_FIELDS = {**FIELDS, "hr.payslip.run": ("journal_id",)}
 
 
 def require_private(env):
@@ -29,16 +30,16 @@ def require_private(env):
 
 def snapshot(env):
     result = {}
-    for model in ("hr.payslip", "hr.contract", "hr.salary.rule", *FIELDS):
+    for model in ("hr.payslip", "hr.contract", "hr.salary.rule", *STORAGE_FIELDS):
         query = sql.SQL("SELECT to_jsonb(t) - %s::text[] FROM {} t ORDER BY id").format(
             sql.Identifier(env[model]._table))
-        env.cr.execute(query, (list(FIELDS.get(model, ())),))
+        env.cr.execute(query, (list(STORAGE_FIELDS.get(model, ())),))
         encoded = json.dumps(env.cr.fetchall(), sort_keys=True).encode()
         result[model] = hashlib.sha256(encoded).hexdigest()
     env.cr.execute("""
         SELECT to_jsonb(a) FROM ir_model_access a JOIN ir_model m ON m.id=a.model_id
         WHERE m.model=ANY(%s) ORDER BY a.id
-    """, (list(FIELDS),))
+    """, (list(STORAGE_FIELDS),))
     result["model_access"] = hashlib.sha256(json.dumps(env.cr.fetchall(), sort_keys=True).encode()).hexdigest()
     return result
 
@@ -46,21 +47,44 @@ def snapshot(env):
 def prepare(env):
     require_private(env)
     assert not env["ir.module.module"].search_count([("name", "=", MODULE), ("state", "=", "installed")])
-    for model in ("hr.payslip", *FIELDS):
+    for model in ("hr.payslip", *STORAGE_FIELDS):
         env.cr.execute(sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(env[model]._table)))
         assert env.cr.fetchone() == (0,), "Only a fresh, empty Cerro payroll derivative can receive this fixture"
     slip = run_case(env, CASES[1], True, {}, MARKER)
     assert slip.line_ids and slip.input_line_ids and slip.worked_days_line_ids
-    slip.write({"state": "done"})
+    journal = slip.env["account.journal"].search([("company_id", "=", slip.company_id.id),
+                                                 ("type", "=", "general")], limit=1)
+    assert journal
+    batch = slip.env["hr.payslip.run"].create({"name": MARKER, "journal_id": journal.id})
+    slip.write({"payslip_run_id": batch.id, "state": "done"})
     env.flush_all()
     before = snapshot(env)
     # Reproduce the SyS source layout. These columns only contain the new
     # fixture. Their absence is part of what the installation must handle.
-    for model, names in FIELDS.items():
+    for model, names in STORAGE_FIELDS.items():
         changes = sql.SQL(", ").join(sql.SQL("DROP COLUMN {}").format(sql.Identifier(name)) for name in names)
         env.cr.execute(sql.SQL("ALTER TABLE {} {}").format(sql.Identifier(env[model]._table), changes))
     env.cr.commit()
     return before
+
+
+def initialize_provider(env, before):
+    require_private(env)
+    assert not env["ir.module.module"].search_count([("name", "=", MODULE), ("state", "=", "installed")])
+    for model, names in STORAGE_FIELDS.items():
+        env.cr.execute("SELECT attname FROM pg_attribute WHERE attrelid=%s::regclass "
+                       "AND attname=ANY(%s) AND NOT attisdropped", (env[model]._table, list(names)))
+        assert not env.cr.fetchall()
+        assert all(not env[model]._fields[name].required and not env[model]._fields[name].default for name in names)
+    env.registry.init_models(env.cr, list(STORAGE_FIELDS), {})
+    for model, names in STORAGE_FIELDS.items():
+        env.cr.execute(sql.SQL("SELECT count(*), count(*) FILTER (WHERE {}) FROM {}").format(
+            sql.SQL(" AND ").join(sql.SQL("{} IS NULL").format(sql.Identifier(name)) for name in names),
+            sql.Identifier(env[model]._table)))
+        total, unknown = env.cr.fetchone()
+        assert total > 0 and total == unknown
+    assert snapshot(env) == before
+    env.cr.commit()
 
 
 def rejected(operation, exception, expected):
@@ -80,6 +104,7 @@ def verify(env, before):
     history = scope.search([("name", "=", MARKER)])
     history.ensure_one()
     assert history.state == "done" and snapshot(env) == before
+    assert history.payslip_run_id.name == MARKER and not history.payslip_run_id.journal_id
     rows = (history.line_ids, history.input_line_ids, history.worked_days_line_ids)
     counts = {}
     for records in rows:
@@ -104,6 +129,18 @@ def verify(env, before):
     for records in (calculated, slip.input_line_ids, slip.worked_days_line_ids):
         for name in FIELDS[records._name]:
             rejected(lambda: records.write({name: False}), ValidationError, "cannot be cleared")
+    # An old draft may already have stored amounts and no codes or formula
+    # snapshot. Refuse to replace those original lines on a recalculation.
+    for records in (slip.worked_days_line_ids, slip.input_line_ids, calculated):
+        field = FIELDS[records._name][0]
+        with env.cr.savepoint() as trial:
+            env.cr.execute(sql.SQL("UPDATE {} SET {}=NULL WHERE id=%s").format(
+                sql.Identifier(records._table), sql.Identifier(field)), (records[0].id,))
+            records.invalidate_recordset([field])
+            original = snapshot(env)
+            rejected(slip.compute_sheet, UserError, "missing historical payroll codes")
+            assert snapshot(env) == original
+            trial.rollback()
     rule = calculated[0].salary_rule_id
     values = {"slip_id": slip.id, "contract_id": slip.contract_id.id, "employee_id": slip.employee_id.id,
               "name": MARKER, "code": rule.code, "salary_rule_id": rule.id, "category_id": rule.category_id.id}
@@ -121,5 +158,5 @@ def verify(env, before):
     env.cr.rollback()
     assert snapshot(env) == before and not scope.search_count([("name", "=", MARKER + "_NEW")])
     return {"uid": scope.env.uid, "legacy_rows_checked": counts, "fields": sum(map(len, FIELDS.values())),
-            "computed_draft_lines": len(calculated.ids), "six_original_table_projections_and_acl_preserved": True,
+            "computed_draft_lines": len(calculated.ids), "seven_original_table_projections_and_acl_preserved": True,
             "closed_rows_preserved": True, "atomic_mixed_create": True, "rehearsal_rolled_back": True}
