@@ -2,9 +2,11 @@
 import re
 
 
-SUPPORTED_VERSIONS = ('0.0.3', '0.0.4', '0.0.5', '0.0.6', '0.0.7', '0.0.8', '0.0.9')
-OPERATIONS_VERSIONS = ('0.0.8', '0.0.9')
+SUPPORTED_VERSIONS = ('0.0.3', '0.0.4', '0.0.5', '0.0.6', '0.0.7', '0.0.8', '0.0.9', '0.0.10')
+REVISED_OPERATIONS_VERSIONS = ('0.0.9', '0.0.10')
+OPERATIONS_VERSIONS = ('0.0.8', *REVISED_OPERATIONS_VERSIONS)
 V9_REVIEWED_MESSAGES = {236: 10650, 237: 10648}
+STANDARD_WEIGHT_REVIEW_CHECKS = ('packaging_selector', 'standard_weight_readonly', 'manual_weight_hundredths')
 STATIC_FEATURES = {
     '0.0.4': ('harvestcompany', 'harvest-company-selector'),
     '0.0.7': ('harvestandroid', 'harvest-android-pilot'),
@@ -75,7 +77,8 @@ def validate_operations_copy(frontend, environment, stage_name, proof):
     assert re.fullmatch('[a-f0-9]{40}', frontend['commit'])
     assert re.fullmatch('[a-f0-9]{40}', proof['commit'])
     assert re.fullmatch('[a-f0-9]{64}', proof['release_sha256'])
-    run_id = 't236237_' + proof['commit'][:8]
+    prefix = 't242_' if frontend['version'] == '0.0.10' else 't236237_'
+    run_id = prefix + proof['commit'][:8]
     assert stage_name == 'management_' + environment + '_' + run_id
     assert proof['database'] == 'MANAGEMENT_QA_' + environment.upper() + '_' + run_id
     assert proof['feature'] == 'harvest-app' and proof['environment'] == environment
@@ -83,15 +86,18 @@ def validate_operations_copy(frontend, environment, stage_name, proof):
     assert not proof.get('readonly_copy'), 'Operations require a freshly upgraded native copy'
     if frontend['version'] == '0.0.9':
         assert proof['backend_versions']['step_harvest_launcher'] == '18.0.1.4.1', 'Harvest .9 requires its revised native lifecycle backend'
+    if frontend['version'] == '0.0.10':
+        assert proof['backend_versions']['step_harvest_launcher'] == '18.0.1.5.0', 'Harvest .10 requires native standard weights'
 
 
 def validate_reviewed_messages(frontend, reviewed):
-    if frontend['version'] == '0.0.9':
-        assert {int(key): value for key, value in reviewed.items()} == V9_REVIEWED_MESSAGES, 'Review the latest human responses before this delivery'
+    if frontend['version'] in REVISED_OPERATIONS_VERSIONS:
+        expected = {**V9_REVIEWED_MESSAGES, 242: 10673} if frontend['version'] == '0.0.10' else V9_REVIEWED_MESSAGES
+        assert {int(key): value for key, value in reviewed.items()} == expected, 'Review the latest human responses before this delivery'
 
 
 def require_operations_publication(frontend):
-    assert frontend['version'] == '0.0.9', 'T236 message 10650 requires Harvest .9 before publication'
+    assert frontend['version'] in REVISED_OPERATIONS_VERSIONS, 'T236 message 10650 requires Harvest .9 or later before publication'
 
 
 def validate_operations_review(frontend, environment, stage_name, proof, review):
@@ -101,9 +107,11 @@ def validate_operations_review(frontend, environment, stage_name, proof, review)
     assert review['backend_commit'] == proof['commit']
     assert review['backend_sha256'] == proof['release_sha256']
     assert review['database'] == proof['database']
-    checks = OPERATIONS_V9_REVIEW_CHECKS if frontend['version'] == '0.0.9' else OPERATIONS_REVIEW_CHECKS
+    checks = OPERATIONS_V9_REVIEW_CHECKS if frontend['version'] in REVISED_OPERATIONS_VERSIONS else OPERATIONS_REVIEW_CHECKS
+    if frontend['version'] == '0.0.10':
+        checks += STANDARD_WEIGHT_REVIEW_CHECKS
     assert all(review[key] is True for key in checks), 'Incomplete crew/lifecycle review'
-    if frontend['version'] == '0.0.9':
+    if frontend['version'] in REVISED_OPERATIONS_VERSIONS:
         validate_reviewed_messages(frontend, review['reviewed_messages'])
 
 
@@ -119,7 +127,7 @@ def validate_operations_smokes(frontend, proof, operations, crew):
     assert all(operations[key] is True for key in (
         'native_copy_sync', 'sync_idempotency', 'ot_close', 'ot_review',
         'ot_send_confirmation', 'unconfirmed_delivery_blocks_close'))
-    if frontend['version'] == '0.0.9':
+    if frontend['version'] in REVISED_OPERATIONS_VERSIONS:
         assert all(operations[key] is True for key in (
             'order_approver_selection', 'native_approval', 'erp_state_approved',
             'ot_reopen_before_send', 'sent_ot_cannot_reopen', 'send_flushes_pending_deliveries',
@@ -130,8 +138,10 @@ def validate_operations_smokes(frontend, proof, operations, crew):
         'worker_enrollment', 'crew_attendance', 'attendance_home_total',
         'native_members_preserved', 'enrollment_idempotency', 'attendance_idempotency',
         'changed_hours_rejected', 'wrong_date_rejected'))
-    if frontend['version'] == '0.0.9':
+    if frontend['version'] in REVISED_OPERATIONS_VERSIONS:
         assert crew['harvest_attendance_cosecha_only'] is True
+    if frontend['version'] == '0.0.10':
+        assert operations['native_standard_weight'] is True and operations['native_manual_hundredths'] is True
 
 
 def require_copy_sync_certificate(frontend, environment, stage_name, proof):

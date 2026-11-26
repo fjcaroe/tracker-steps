@@ -12,6 +12,7 @@ import re
 import uuid
 from zoneinfo import ZoneInfo
 
+from harvest_web_policy import OPERATIONS_VERSIONS, REVISED_OPERATIONS_VERSIONS, validate_operations_copy
 from smoke_harvest_android_sync import ReviewClient, positive_id, require_success, review_origin
 
 
@@ -27,16 +28,16 @@ def validate_crew_policy(origin, stage_name, proof, policy):
     assert environment in ('development', 'cerro', 'qa-cerro')
     assert proof['environment'] == environment
     frontend = policy['harvest_web']
-    assert frontend['repository'] == 'stepconsulting/step_harvest' and frontend['version'] in ('0.0.8', '0.0.9')
-    if frontend['version'] == '0.0.9':
-        from harvest_web_policy import validate_operations_copy
+    assert frontend['repository'] == 'stepconsulting/step_harvest' and frontend['version'] in OPERATIONS_VERSIONS
+    if frontend['version'] in REVISED_OPERATIONS_VERSIONS:
         validate_operations_copy(frontend, environment, stage_name, proof)
+    else:
+        run_id = 't236237_' + proof['commit'][:8]
+        assert stage_name == 'management_' + environment + '_' + run_id
+        assert proof['database'] == 'MANAGEMENT_QA_' + environment.upper() + '_' + run_id
     assert re.fullmatch('[a-f0-9]{40}', frontend['commit'])
     assert re.fullmatch('[a-f0-9]{40}', proof['commit'])
     assert re.fullmatch('[a-f0-9]{64}', proof['release_sha256'])
-    run_id = 't236237_' + proof['commit'][:8]
-    assert stage_name == 'management_' + environment + '_' + run_id
-    assert proof['database'] == 'MANAGEMENT_QA_' + environment.upper() + '_' + run_id
     assert proof['feature'] == 'harvest-app' and proof['business_preserved'] is True
     assert not proof.get('readonly_copy')
     assert policy['database'] == proof['database']
@@ -126,7 +127,7 @@ def exercise_crew(client, policy, timezone_name, run_uuid=None):
     assert previous_members.issubset(set(native_crew['worker_ids'])) and worker_id in native_crew['worker_ids']
     summary = next(row for row in refreshed['crew_attendance'] if row['crew_id'] == crew['id'] and row['date'] == date.isoformat())
     assert worker_id in summary['worker_ids']
-    cosecha_only = policy.get('harvest_web', {}).get('version') == '0.0.9'
+    cosecha_only = policy.get('harvest_web', {}).get('version') in REVISED_OPERATIONS_VERSIONS
     if cosecha_only:
         assert refreshed['crew_attendance_scope'] == 'cosecha'
         for extra_context, expected in (({}, 0), ({'harvest_attendance_scope': 'cosecha'}, 1)):

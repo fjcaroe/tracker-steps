@@ -7,12 +7,13 @@ The original customer databases are never reachable through this client.
 """
 import argparse
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 import json
 from pathlib import Path
 import re
 import uuid
 
-from harvest_web_policy import require_copy_sync_certificate
+from harvest_web_policy import OPERATIONS_VERSIONS, REVISED_OPERATIONS_VERSIONS, require_copy_sync_certificate
 from smoke_harvest_android_sync import ReviewClient, positive_id, require_success, review_origin
 
 
@@ -24,12 +25,12 @@ class OperationsClient(ReviewClient):
                         ('POST', MANIFEST_READ_PATH))
 
 
-def read_native_manifest(client, order_id):
+def read_native_manifest(client, order_id, fields=()):
     status, response = client.request('POST', MANIFEST_READ_PATH, {
         'jsonrpc': '2.0', 'method': 'call', 'id': 1,
         'params': {'model': 'step.cosecha.tarja.registry.line', 'method': 'search_read',
                    'args': [[['registry_id', '=', order_id], ['mobile_uid', '!=', False]]],
-                   'kwargs': {'fields': ['id', 'mobile_uid', 'registry_id'], 'order': 'id'}}})
+                   'kwargs': {'fields': ['id', 'mobile_uid', 'registry_id', *fields], 'order': 'id'}}})
     assert status == 200 and not response.get('error') and isinstance(response.get('result'), list), \
         'The private copy could not read the native delivery manifest'
     rows = response['result']
@@ -45,11 +46,13 @@ def validate_operations_policy(origin, stage_name, proof, policy):
     frontend = policy['harvest_web']
     environment = policy['environment']
     assert environment in ('development', 'cerro', 'qa-cerro')
-    assert frontend['version'] in ('0.0.8', '0.0.9')
+    assert frontend['version'] in OPERATIONS_VERSIONS
     assert re.fullmatch('[a-f0-9]{40}', proof['commit'])
     assert re.fullmatch('[a-f0-9]{64}', proof['release_sha256'])
-    assert stage_name == 'management_' + environment + '_t236237_' + proof['commit'][:8]
-    assert proof['database'] == 'MANAGEMENT_QA_' + environment.upper() + '_t236237_' + proof['commit'][:8]
+    prefix = 't242_' if frontend['version'] == '0.0.10' else 't236237_'
+    run_id = prefix + proof['commit'][:8]
+    assert stage_name == 'management_' + environment + '_' + run_id
+    assert proof['database'] == 'MANAGEMENT_QA_' + environment.upper() + '_' + run_id
     assert proof['feature'] == 'harvest-app' and proof['business_preserved'] is True
     require_copy_sync_certificate(frontend, environment, stage_name, proof)
     assert policy['database'] == proof['database']
@@ -198,6 +201,12 @@ def exercise_revised_operations(client, policy, run_uuid=None):
              'tarja': 'QA-OPS-' + run_uuid[-12:], 'row': 'QA-OPERATIONS', 'boxes': 1, 'kilos': 1,
              'event_datetime': datetime.now(timezone.utc).isoformat()}
     pending = dict(first, client_uuid=run_uuid + '-PENDING', tarja=first['tarja'] + '-PENDING')
+    weights = policy.get('harvest_web', {}).get('version') == '0.0.10'
+    if weights:
+        packaging = next((row for row in bootstrap['harvest_packagings'] if row['kg_per_box'] >= 0.01), None)
+        assert packaging, 'Select an existing company with a Cosecha packaging and kilos per box'
+        work_order.update(standard_weight=True, packaging_id=packaging['id'], kg_per_box=packaging['kg_per_box'])
+        first['boxes'] = pending['boxes'] = 3
     altered = ('f' if scope[0] != 'f' else 'e') + scope[1:]
     status, rejected = client.request('POST', '/api/harvest/sync', {'scope': altered, 'records': [first]})
     assert status == 409 and rejected.get('ok') is False
@@ -276,6 +285,24 @@ def exercise_revised_operations(client, policy, run_uuid=None):
     assert {row['mobile_uid'] for row in manifest} == set(full_manifest) and len(manifest) == 2
     confirmed = current()
     assert confirmed['status'] == 'Enviada' and confirmed['erp_state'] == 'apro' and confirmed['can_reopen'] is False
+    weight_evidence = {}
+    if weights:
+        assert confirmed['standard_weight'] and confirmed['packaging_id'] == packaging['id']
+        assert confirmed['kg_per_box'] == packaging['kg_per_box']
+        fields = ('qty_caja', 'qty_kg', 'quantity')
+        expected = float((3 * Decimal(str(packaging['kg_per_box']))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+        for row in read_native_manifest(client, order_id, fields):
+            assert (row['qty_caja'], row['qty_kg'], row['quantity']) == (3, expected, 3)
+        manual_order = {key: work_order[key] for key in ('crew_id', 'farm_id', 'variety_id', 'cost_id', 'approver_id')}
+        manual_order['id'] = manual_order['client_uuid'] = run_uuid + '-MANUAL-OT'
+        manual = dict(first, client_uuid=run_uuid + '-MANUAL', work_order=manual_order, boxes=2, kilos=9.27)
+        status, saved = client.request('POST', '/api/harvest/sync', {'scope': scope, 'records': [manual]})
+        require_success(status, saved, 'Manual hundredths')
+        result, = saved['results']
+        assert result['ok'] is True and result['duplicate'] is False
+        row, = read_native_manifest(client, result['work_order_id'], fields)
+        assert (row['qty_caja'], row['qty_kg'], row['quantity']) == (2, 9.27, 9.27)
+        weight_evidence = {'native_standard_weight': True, 'native_manual_hundredths': True}
     return {'run_uuid': run_uuid, 'native_order_id': order_id, 'native_line_id': first_id,
             'native_line_ids': [first_id, ack['id']], 'native_worker_id': worker_id, 'native_crew_id': crew['id'],
             'native_approver_id': policy['user_id'], 'new_lines': 2, 'native_context': True,
@@ -286,7 +313,7 @@ def exercise_revised_operations(client, policy, run_uuid=None):
             'send_flushes_pending_deliveries': True, 'pending_send_atomic': True, 'send_retry_idempotency': True,
             'send_received_manifest': True,
             'close_retry_idempotency': True, 'new_delivery_rejected_after_close': True,
-            'existing_relations_only': True, 'credentials_or_session_ids_supplied': False}
+            'existing_relations_only': True, 'credentials_or_session_ids_supplied': False, **weight_evidence}
 
 
 def main():
@@ -304,7 +331,7 @@ def main():
     output = args.output
     assert output.is_absolute() and output.resolve() == output and not output.exists()
     assert not any((parent/'.git').exists() for parent in output.parents), 'Keep evidence outside checkouts'
-    exercise = exercise_revised_operations if policy['harvest_web']['version'] == '0.0.9' else exercise_operations
+    exercise = exercise_revised_operations if policy['harvest_web']['version'] in REVISED_OPERATIONS_VERSIONS else exercise_operations
     evidence = exercise(OperationsClient(origin), policy)
     evidence.update({'feature': proof['feature'], 'stage': stage.name, 'database': proof['database'],
         'web_commit': policy['harvest_web']['commit'], 'backend_commit': proof['commit'],
