@@ -10,6 +10,7 @@ import shutil
 import tarfile
 import tempfile
 
+from converted_cohort_profile import converted_profile
 from custody_sys_previred_filestore import attachments, digest, object_catalog
 from restore_native_product_backup import query
 from restore_sys_previred_pair import LOCK, require
@@ -38,7 +39,7 @@ def complete(folder, source_store):
     proof = json.loads((folder / "restore-proof.json").read_text())
     source, restored = proof["source"], proof["target"]
     require(proof["full_post_boot_match"] and proof["checked_boots"] == 2 and
-            re.fullmatch(r"COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]+", source) and
+            converted_profile(source, restored) and
             source_store.resolve() == source_store and source_store.name == source and
             source_store.is_relative_to("/opt/steps-validation") and source_store.parent.name == "filestore",
             "isolated-converted-source-required")
@@ -46,7 +47,7 @@ def complete(folder, source_store):
     catalog = object_catalog(rows.pop("references"))
     require(rows == proof["attachments"], "sealed-attachment-rows-differ")
     dest = folder / "data/filestore" / restored
-    require(restored.startswith("COMMUNITY_SYS_PREVIRED_RECOVERY_") and dest.resolve() == dest, "private-target-required")
+    require(dest.resolve() == dest, "private-target-required")
     original = inventory(source_store, catalog)
     extra = {k: original[k] for k in sorted(original.keys() - catalog.keys())}
     work = folder / "sealed"

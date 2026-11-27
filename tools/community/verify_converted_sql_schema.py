@@ -5,9 +5,9 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import re
 import subprocess
 
+from converted_cohort_profile import converted_profile
 from custody_sys_previred_filestore import digest
 from restore_native_product_backup import pg, query
 from restore_sys_previred_pair import LOCK, require
@@ -22,8 +22,7 @@ def schema(data):
 def verify(folder):
     proof = json.loads((folder / "restore-proof.json").read_text())
     base, restored = proof["source"], proof["target"]
-    require(re.fullmatch(r"COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]+", base) and
-            re.fullmatch(r"COMMUNITY_SYS_PREVIRED_RECOVERY_[A-Z0-9_]+", restored), "admitted-private-pair-required")
+    converted_profile(base, restored)
     dump = folder / "sealed/source.dump"
     require(proof["full_post_boot_match"] and digest(dump) == proof["sql_sha256"], "sealed-sql-required")
     with dump.open("rb") as original:

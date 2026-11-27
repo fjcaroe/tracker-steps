@@ -63,8 +63,9 @@ def snapshot(database):
             cr.execute("""SELECT sequencename,data_type::text,start_value,min_value,max_value,increment_by,cycle,cache_size
                           FROM pg_sequences WHERE schemaname='public' ORDER BY sequencename""")
             settings = {r[0]: list(r[1:]) for r in cr.fetchall()}
-    require('hr_payslip' in rows and rows['hr_payslip'][0] and rows['ir_attachment'][0] and sequences,
-            'expected-full-sys-data')
+    anchor = 'purchase_order' if database.startswith(('COMMUNITY_PAYROLL_CERRO_REVIEW_',
+                                                        'COMMUNITY_CERRO_PAYROLL_RECOVERY_')) else 'hr_payslip'
+    require(anchor in rows and rows[anchor][0] and rows['ir_attachment'][0] and sequences, 'expected-full-business-data')
     return {'public_tables':rows,'sequence_values':sequences,'sequence_definitions':settings,
             'relation_owner_and_acl':definitions,'columns':columns,'constraints':constraints}
 
