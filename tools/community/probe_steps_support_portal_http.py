@@ -34,7 +34,7 @@ def listed(client, **params):
     assert response.status_code == 200, ("ticket-list", response.status_code)
     order = []
     for anchor in html.fromstring(response.data).xpath("//a[@href]"):
-        match = re.fullmatch(r"/my/ticket/(\d+)(?:/[^/]*)?", urlsplit(anchor.get("href")).path)
+        match = re.fullmatch(r"(?:/[a-z]{2}(?:[-_][A-Za-z]{2})?)?/(?:my|helpdesk)/ticket/(\d+)(?:/[^/]*)?/?", urlsplit(anchor.get("href")).path)
         if match and int(match[1]) not in order:
             order.append(int(match[1]))
     return order
@@ -75,15 +75,41 @@ def run(env):
         granted = env(user=people[0][0].id, su=False, context={"allowed_company_ids": [operator.company_id.id]})[MODEL].search([], order="id")
         assert granted.ids == visible.ids, ("fixture-visibility", len(granted))
         ids = listed(recipient)
-        if not ids:
-            response = get(recipient, "/my/tickets")
-            dom = html.fromstring(response.data)
-            attrs = sorted({a for node in dom.iter() for a in node.attrib if "ticket" in a})
-            raise AssertionError(("ticket-lists", len(ids), len(dom.xpath("//a[@href]")), sum(t.name in response.text for t in tickets), str(attrs)))
         assert len(ids) == 5 and set(ids) == set(tickets.ids) and not listed(other), ("ticket-lists", len(ids))
-        sorts = {order: listed(recipient, sortby=order) for order in ("create_date asc", "create_date desc", "name", "id desc")}
+        sorts = {order: listed(recipient, sortby=order) for order in ("create_date asc", "create_date desc", "name", "id desc", "priority desc, write_date desc",
+                                                                      "stage_id", "user_id", "write_date desc")}
         filters = {key: listed(recipient, filterby=key) for key in ("all", "open", "closed", "assigned", "unassigned")}
         assert set(sorts["name"]) == set(ids) and set(filters["open"]) | set(filters["closed"]) == set(ids)
+        sample = tickets[0]
+        groups = {key: listed(recipient, groupby=key) for key in ("none", "stage_id", "team_id", "user_id", "partner_id", "kanban_state")}
+        search = {"name": listed(recipient, search_in="name", search=sample.name)}
+        assert sample.id in search["name"] and all(set(order) == set(ids) for order in groups.values())
+        form = html.fromstring(get(recipient, "/my/tickets").data)
+        options = {"priority", "stage", "date_begin", "date_end", "steps_priority", "steps_stage", "steps_date_begin", "steps_date_end"}
+        parameter_names = sorted({element.get("name") for element in form.xpath("//form//*[self::input or self::select][@name]")
+                                  if element.get("name") in options})
+        extra = {}
+        for field in parameter_names:
+            name = field.removeprefix("steps_")
+            input_value = {"priority": sample.priority, "stage": str(sample.stage_id.id), "date_begin": "2100-01-01", "date_end": "1900-01-01"}[name]
+            extra[field] = listed(recipient, **{field: input_value})
+        aliases = []
+        for ticket in tickets:
+            alias = "/helpdesk/ticket/%s" % ticket.id
+            response = get(recipient, alias)
+            location = urlsplit(response.headers.get("Location", "")).path
+            canonical = re.fullmatch(r"(?:/[a-z]{2}(?:[-_][A-Za-z]{2})?)?/my/ticket/(\d+)/?", location)
+            if response.status_code == 200:
+                dom = html.fromstring(response.data)
+                ready = ticket.name in " ".join(dom.itertext())
+                aliases.append(["direct", ready])
+            elif canonical and int(canonical[1]) == ticket.id and response.status_code in (301, 302, 303, 307, 308):
+                aliases.append(["canonical-redirect", True])
+            else:
+                safe = [s if s in ("my", "ticket", "tickets", "helpdesk", "odoo", "web", "login", "es", "en") else "<part>"
+                        for s in location.split("/") if s]
+                raise AssertionError(("ticket-link", response.status_code, "/" + "/".join(safe)))
+        assert all(case[1] for case in aliases), ("ticket-link", aliases)
         results = []
         attachments = {}
         for ticket in tickets:
@@ -111,8 +137,9 @@ def run(env):
         fixture.write({"access_token": False})
         ordinary.flush_all()
         assert not shown(public, path + token, fixture)
-        return {"authenticated_sessions": 2, "visible_order": ids, "sorts": sorts, "filters": filters,
-                "recipient_details": len(ids), "other_details_denied": len(ids), "anonymous_details_denied": len(ids),
+        return {"authenticated_sessions": 2, "visible_order": ids, "sorts": sorts, "filters": filters, "groups": groups, "search": search,
+                "extended_form_parameters": extra,
+                "linked_ticket_pages": aliases, "recipient_details": len(ids), "other_details_denied": len(ids), "anonymous_details_denied": len(ids),
                 "messages": results, "files": attachments, "temporary_link_accepted": True,
                 "invalid_link_denied": True, "expired_link_denied": True}
     finally:

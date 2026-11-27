@@ -55,7 +55,7 @@ class StepsSupportPortal(CustomerPortal):
             parts.append([(search_in, "ilike", search)])
         if priority in ("0", "1", "2", "3"):
             parts.append([("priority", "=", priority)])
-        if str(stage or "").isdigit() and int(stage) in stages.ids:
+        if str(stage or "") in {str(value) for value in stages.ids}:
             parts.append([("stage_id", "=", int(stage))])
         for value, op, days in ((date_begin, ">=", 0), (date_end, "<", 1)):
             if value:
@@ -80,7 +80,8 @@ class StepsSupportPortal(CustomerPortal):
                       filters=filters, sortings=sortings, stages=stages, pager=pager, page_name="steps_tickets")
         return request.render("step_helpdesk_tickets_portal.ticket_list", values)
 
-    @http.route(["/my/ticket/<int:ticket_id>", "/my/ticket/<int:ticket_id>/<access_token>"],
+    @http.route(["/my/ticket/<int:ticket_id>", "/my/ticket/<int:ticket_id>/<access_token>",
+                 "/helpdesk/ticket/<int:ticket_id>", "/helpdesk/ticket/<int:ticket_id>/<access_token>"],
                 type="http", auth="public", website=True, methods=["GET"])
     def ticket(self, ticket_id, access_token=None, **kwargs):
         try:

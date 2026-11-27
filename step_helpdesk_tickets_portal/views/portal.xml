@@ -70,8 +70,8 @@
                 <tbody t-foreach="grouped_tickets" t-as="section">
                     <tr t-if="groupby != 'none'"><th colspan="4" t-out="(section[0].display_name if section[0] and groupby != 'kanban_state' else section[0]) or 'Sin asignar'"/></tr>
                     <tr t-foreach="section[1]" t-as="ticket">
-                        <td><a t-att-href="ticket.access_url" t-field="ticket.ticket_ref"/></td>
-                        <td><a t-att-href="ticket.access_url" t-field="ticket.name"/></td>
+                        <td><a t-attf-href="/helpdesk/ticket/#{ticket.id}" t-field="ticket.ticket_ref"/></td>
+                        <td><a t-attf-href="/helpdesk/ticket/#{ticket.id}" t-field="ticket.name"/></td>
                         <td><span t-field="ticket.create_date" t-options="{'widget': 'date'}"/></td>
                         <td><span t-field="ticket.stage_id"/></td>
                     </tr>

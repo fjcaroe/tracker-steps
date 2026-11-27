@@ -183,11 +183,13 @@ def admit(sql_sha, receipt_sha, portal_sha, repeat):
     expected = check_modules(SOURCE)
     require(len(expected) == 160 and SUPPORT not in expected and PORTAL not in expected, "unexpected-combined-steps-source")
     receipt = []
-    for name, version in ((SUPPORT, "18.0.1.0.1"), (PORTAL, "18.0.1.0.0")):
+    for name, version in ((SUPPORT, "18.0.1.0.1"), (PORTAL, "18.0.1.0.1")):
         installed = check_modules(TARGET)
         if name not in installed:
             switch = "-i"
         elif name == PORTAL and repeat:
+            require(installed[PORTAL] in (["18.0.1.0.0", "LGPL-3"], [version, "LGPL-3"]),
+                    "unsupported-or-newer-portal-version")
             switch = "-u"
         else:
             require(installed[name] == [version, "LGPL-3"], "different-installed-provider")
@@ -197,13 +199,16 @@ def admit(sql_sha, receipt_sha, portal_sha, repeat):
         with (WORK / (name + "-" + switch[1] + ".log")).open("ab") as log:
             subprocess.run(guarded_command(direct, WORK, frozen), stdout=log, stderr=log, check=True)
         require(check_modules(TARGET)[name] == [version, "LGPL-3"], "new-provider-version-drift")
-        receipt.append({"module": name, "operation": switch, **compare_original(frozen, schemas)})
+        receipt.append({"module": name, "operation": switch, "from": installed.get(name), "to": version,
+                        **compare_original(frozen, schemas)})
     installed = check_modules(TARGET)
-    require(installed == {**expected, SUPPORT: ["18.0.1.0.1", "LGPL-3"], PORTAL: ["18.0.1.0.0", "LGPL-3"]},
+    require(installed == {**expected, SUPPORT: ["18.0.1.0.1", "LGPL-3"], PORTAL: ["18.0.1.0.1", "LGPL-3"]},
             "unexpected-steps-registry")
     result = {"database": TARGET, "source": SOURCE, "sql": sql_sha, "support": SUPPORT_SHA, "portal": portal_sha,
               "installed": len(installed), "loads": receipt, "final": compare_original(frozen, schemas)}
-    save(WORK / ("admission-" + portal_sha[:12] + ("-repeat" if repeat else "") + ".json"), result)
+    from_version = next((row["from"][0] for row in receipt if row["module"] == PORTAL and row["from"]), None)
+    suffix = "-from-" + from_version if from_version else ""
+    save(WORK / ("admission-" + portal_sha[:12] + suffix + ".json"), result)
     print(json.dumps(result))
 
 
