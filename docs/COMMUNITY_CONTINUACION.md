@@ -22,6 +22,11 @@ paquete de recuperación de esa revisión conserva 78 archivos y se contrastaron
 de nuevo los 133 casos de doce empresas.
 [Alta de liquidaciones](COMMUNITY_SYS_ALTA_LIQUIDACION.md) · [Arrastre de netos](COMMUNITY_SYS_ARRASTRE_NETOS.md).
 
+La copia de SyS con 194 módulos completó la descarga desde el botón de la
+ficha con diez liquidaciones históricas y dos nuevas, todas de una página.
+Se conservaron las líneas e importes originales y los ocho PDF archivados.
+[Descarga de liquidaciones](COMMUNITY_SYS_DESCARGA_LIQUIDACION.md).
+
 **Cerro El Plomo.** La copia de 192 módulos recibió los 612 kg y preparó la
 devolución de 180 envases desde el formulario original. Coincidieron los 900
 permisos de la operación. Con 193 módulos se recuperó en dos copias el

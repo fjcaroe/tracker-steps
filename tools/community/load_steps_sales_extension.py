@@ -13,6 +13,7 @@ PAYROLL_UPDATES = ('COMMUNITY_SYS_PREVIRED_COHORT_20261127U48C', 'COMMUNITY_SYS_
                    'COMMUNITY_SYS_PREVIRED_COHORT_20261127U49F')
 PROFILES = {
     **dict.fromkeys(PAYROLL_UPDATES, 'step_payroll_oca_sys_history'),
+    'COMMUNITY_SYS_PREVIRED_COHORT_20261127U49E': ('step_payroll_oca_sys_history', 'step_sys_payslip_print'),
     'COMMUNITY_STEPS_CRM_PAYMENTS_TEST_20261127U46D': 'step_cl_credit_note_draft',
     'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H': 'step_helpdesk_tickets',
     'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2': 'step_helpdesk_tickets',
@@ -49,15 +50,17 @@ def main():
     switches = [arg for arg in args if arg in ('-i','-u')]
     allowed = PROFILES.get(db, ())
     allowed = (allowed,) if isinstance(allowed, str) else allowed
+    module = args[args.index(switches[0])+1] if switches else None
+    print_install = db == 'COMMUNITY_SYS_PREVIRED_COHORT_20261127U49E' and module == 'step_sys_payslip_print'
     require(db in PROFILES and '--db-filter=^'+db+'$' in args and '--no-http' in args
             and '--stop-after-init' in args and '--max-cron-threads=0' in args
-            and (switches == ['-i'] and db not in PAYROLL_UPDATES or switches == ['-u'] and db in (
+            and (switches == ['-i'] and (db not in PAYROLL_UPDATES or print_install) or switches == ['-u'] and db in (
                 *PAYROLL_UPDATES,
                 'COMMUNITY_STEPS_CRM_PAYMENTS_TEST_20261127U46D',
                 'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2', 'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3',
                 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F', 'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A',
                 'COMMUNITY_STEPS_EXPENSE_20261127U50E'))
-            and args[args.index(switches[0])+1] in allowed, 'private-install-required')
+            and module in allowed, 'private-install-required')
     payload = Path(plan).read_bytes()
     require(hashlib.sha256(payload).hexdigest() == checksum, 'required-columns-plan-changed')
     columns = json.loads(payload)
