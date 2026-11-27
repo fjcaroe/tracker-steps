@@ -3,11 +3,14 @@ import fcntl
 import json
 import subprocess
 
-from check_cerro_studio_strict import ROOT, addon_roots, run
+from check_cerro_studio_strict import ROOT, addon_roots, run, tree_sha
 from restore_cerro_bom_before_guard import DEST, PROFILE, TARGET, all_guards
 from restore_cerro_studio_strict import module_census, sql
 
-MODULES = ('step_agriculture_core', 'step_agriculture_farm_directory', 'step_agriculture_shared_farms',
+HISTORY = ROOT / 'preserve-studio-previous-f32de54d3d4c'
+HISTORY_TREE = 'dffd6ea696475194ec1ecfd89f3989782085a1a6e9229a8fd67664f1836a9bef'
+
+MODULES = ('step_cerro_studio_adoption', 'step_agriculture_core', 'step_agriculture_farm_directory', 'step_agriculture_shared_farms',
            'step_cerro_studio_farms', 'step_packing_process_catalog', 'step_packing_process_category',
            'step_cerro_studio_process_types', 'step_agriculture_species_pallet', 'step_species_tariff',
            'step_cerro_studio_species', 'step_cerro_product_account_views', 'step_cerro_studio_companies',
@@ -29,7 +32,7 @@ print('COMBINED_STUDIO',json.dumps(dict(farms=farms(env),rights=farm_rights(env)
     routes=routes(env),aliases=aliases(env)),sort_keys=True))
 env.cr.rollback()
 """
-    run(label, [], body, database=TARGET, directory=DEST, roots=[PROFILE, *addon_roots(TARGET)])
+    run(label, [], body, database=TARGET, directory=DEST, roots=[HISTORY, PROFILE, *addon_roots(TARGET)])
     text = (DEST / (label + '.log')).read_text()
     result, = [json.loads(l.split(' ',1)[1]) for l in text.splitlines() if l.startswith('COMBINED_STUDIO ')]
     return result
@@ -44,6 +47,11 @@ def main():
     with open('/run/lock/steps-environments.lock','rb') as gate:
         fcntl.flock(gate,fcntl.LOCK_EX)
         assert (DEST / 'qualified-bom.json').is_file()
+        assert tree_sha(HISTORY / 'step_cerro_studio_adoption') == HISTORY_TREE
+        history = subprocess.check_output(['runuser','-u','postgres','--','/usr/bin/python3.10',
+                    str(ROOT/'tools/restore_cerro_view_history.py')], text=True)
+        assert json.loads(history)['same_whole_rows'] == 23
+        (DEST/'view-history-restore.json').write_text(history)
         baseline_census = module_census(TARGET)
         assert not any(baseline_census[k] for k in ('enterprise','non_free','pending'))
         original_guards = all_guards(TARGET)
@@ -53,7 +61,7 @@ def main():
         assert int(sql(TARGET, "SELECT count(*) FROM ir_module_module WHERE state='installed' AND name IN (" + sql_names + ')')) == len(MODULES)
         updated = False
         try:
-            run('update-studio-owners', ['-u',','.join(MODULES)], database=TARGET, directory=DEST, roots=[PROFILE,*addon_roots(TARGET)])
+            run('update-studio-owners', ['-u',','.join(MODULES)], database=TARGET, directory=DEST, roots=[HISTORY, PROFILE, *addon_roots(TARGET)])
             updated = True
         finally:
             assert armed == guard('verify')
