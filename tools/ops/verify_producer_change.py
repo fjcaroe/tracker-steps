@@ -33,7 +33,8 @@ try:
                  'test_legacy_native_receipt_without_new_origin_field',
                  'test_owned_fruit_uses_native_valuation_without_extra_inventory_restriction',
                  'test_pending_transfer_keeps_corrected_owner_on_completion',
-                 'test_pending_mixed_transfer_preserves_other_receipts_owner'):
+                 'test_pending_mixed_transfer_preserves_other_receipts_owner',
+                 'test_pending_mixed_transfer_preserves_unowned_company_stock'):
         with env.cr.savepoint():
             getattr(receipt_case, name)()
     if '/steps-validation/' in ROOT:

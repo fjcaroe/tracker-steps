@@ -237,13 +237,13 @@ class ProducerChange(models.TransientModel):
             for line, quantity, picked in saved:
                 line.write({'owner_id': producer.id, 'quantity': quantity, 'picked': picked})
             for move in pending.move_id.filtered(lambda m: m.restrict_partner_id == self.previous_producer_id):
-                owners = move.move_line_ids.filtered(lambda line: line.quantity > 0 and line.state != 'cancel').owner_id
-                move.restrict_partner_id = producer if owners == producer else False
+                lines = move.move_line_ids.filtered(lambda line: line.quantity > 0 and line.state != 'cancel')
+                move.restrict_partner_id = producer if lines and all(line.owner_id == producer for line in lines) else False
             for picking in pending.picking_id.filtered(lambda p: p.owner_id == self.previous_producer_id):
                 lines = picking.move_line_ids.filtered(lambda line: line.quantity > 0 and line.state != 'cancel')
                 # A native picking's Assign Owner overrides every detail when
                 # completed. Preserve mixed owners through the individual lines.
-                picking.owner_id = producer if lines.owner_id == producer else False
+                picking.owner_id = producer if lines and all(line.owner_id == producer for line in lines) else False
             if set(changes.mapped('state')) != {'done'} or changes.picking_id:
                 raise ValidationError(_('El cambio debe completar sus movimientos sin modificar las operaciones originales de recepción.'))
             for tag in tags:

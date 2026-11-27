@@ -2,7 +2,7 @@
 
 T246 autoriza cambiar el productor recibido de fruta a proceso mientras todas
 las tarjas C de la recepción conserven su stock en inventario, sin despacho
-ni proceso. Publicar `step_packing_producer_change` 18.0.1.1.1 en Desarrollo,
+ni proceso. Publicar `step_packing_producer_change` 18.0.1.1.2 en Desarrollo,
 Cerro y QA-Cerro con copias frescas y el mismo paquete probado; conservar
 datos y aislamiento de QA-Cerro. La instalación no corrige registros reales.
 Ver `T246_PRODUCTOR_RECEPCION.md`.
@@ -280,7 +280,7 @@ ni multiplicar su total por cuartel. Indicar datos o tasas faltantes. Probar
 sumas, filtros, conversiones y aislamiento en copias frescas, revisar el panel
 en navegador y publicar el mismo paquete con respaldo, bloqueo y paridad.
 
-T227 amplía `step_management_estimation_entry` a 18.0.1.1.1 dentro de
+T227 amplía `step_management_estimation_entry` a 18.0.1.1.2 dentro de
 `budget-design`, en Desarrollo, Cerro y QA-Cerro. Calcular detalle genera
 una línea por cuartel nativo con sus hectáreas y plantas, conservando los
 rendimientos editados por cuartel. Los borradores previos se despliegan al

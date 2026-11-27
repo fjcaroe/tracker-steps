@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
 (async () => {
     const proof = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
     const output = process.argv[3];
-    assert.equal(proof.version, '18.0.1.1.1');
+    assert.equal(proof.version, '18.0.1.1.2');
     assert.match(proof.backend_commit, /^[a-f0-9]{40}$/);
     const url = new URL(proof.url);
     assert.ok(['https://desarrollo.stepsapp.cl', 'https://cerroelplomo.stepsapp.cl',

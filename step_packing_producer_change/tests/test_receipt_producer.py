@@ -86,10 +86,14 @@ class ReceiptProducerCase(SimpleReceptionCase):
         self.assertEqual(tag.location_id, location)
         self.assertEqual(tag.owner_id, self.other)
 
-    def _pending_owner_transfer(self, mixed=False):
+    def _pending_owner_transfer(self, mixed=False, unowned=False):
         self.prepare()
         tags = self.tags[:1]
-        if mixed:
+        if unowned:
+            extra = self.env['stock.quant.package'].create({'name': 'QA246 stock propio sin propietario asignado'})
+            self.env['stock.quant']._update_available_quantity(self.product, self.wh.lot_stock_id, 160, package_id=extra)
+            tags |= extra
+        elif mixed:
             other = self.receipt((160,), demand=160)
             other.button_validate()
             tags |= other.fruit_tag_line_ids.package_id
@@ -106,19 +110,19 @@ class ReceiptProducerCase(SimpleReceptionCase):
         picking.do_unreserve()
         for tag in tags:
             picking.move_ids._update_reserved_quantity(160, self.wh.lot_stock_id,
-                package_id=tag, owner_id=self.producer, strict=True)
+                package_id=tag, owner_id=tag.quant_ids.owner_id, strict=True)
         for line in picking.move_line_ids:
             line.result_package_id = line.package_id
         self.wizard().action_apply()
-        self.assertEqual(picking.owner_id, self.env['res.partner'] if mixed else self.other)
-        self.assertEqual(picking.move_ids.restrict_partner_id, self.env['res.partner'] if mixed else self.other)
+        self.assertEqual(picking.owner_id, self.env['res.partner'] if mixed or unowned else self.other)
+        self.assertEqual(picking.move_ids.restrict_partner_id, self.env['res.partner'] if mixed or unowned else self.other)
         picking.move_line_ids.write({'picked': True})
         picking._action_done()
         self.assertEqual(picking.state, 'done')
         self.assertEqual(self.tags[:1].quant_ids.owner_id, self.other)
         self.assertEqual(self.tags[:1].quant_ids.quantity, 160)
-        if mixed:
-            self.assertEqual((tags - self.tags).quant_ids.owner_id, self.producer)
+        if mixed or unowned:
+            self.assertEqual((tags - self.tags).quant_ids.owner_id, self.env['res.partner'] if unowned else self.producer)
             self.assertEqual((tags - self.tags).quant_ids.quantity, 160)
         self.assertFalse(tags.quant_ids.filtered(lambda quant: quant.quantity < 0))
 
@@ -127,6 +131,9 @@ class ReceiptProducerCase(SimpleReceptionCase):
 
     def test_pending_mixed_transfer_preserves_other_receipts_owner(self):
         self._pending_owner_transfer(mixed=True)
+
+    def test_pending_mixed_transfer_preserves_unowned_company_stock(self):
+        self._pending_owner_transfer(unowned=True)
 
     def test_processed_dispatched_partial_and_missing_stock_rejected(self):
         self.prepare()

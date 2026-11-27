@@ -4,7 +4,7 @@ El ticket 246 del 27-11-2026 autoriza esta funcionalidad en Desarrollo,
 Cerro El Plomo y QA-Cerro El Plomo. No requiere modificar ninguna recepción
 real durante la instalación.
 
-`step_packing_producer_change` 18.0.1.1.1 agrega **Cambiar productor** a la
+`step_packing_producer_change` 18.0.1.1.2 agrega **Cambiar productor** a la
 recepción de fruta a proceso realizada y a sus tarjas C. El asistente muestra
 la recepción, el productor actual y todas las tarjas afectadas. Corrige
 `stock.picking.partner_id`, el productor del paquete y su detalle, y el
