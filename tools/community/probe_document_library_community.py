@@ -104,7 +104,7 @@ def probe(env, baseline, original_bookmarks):
         WHERE d.type='binary' AND d.access_internal='none' AND a.mimetype='text/plain' ORDER BY d.id
     """)
     candidates = [row[0] for row in env.cr.fetchall()]
-    menu_id = "step_document_library.library_root"
+    menu_id = "documents.dashboard"
     for user in originals:
         scope = env(user=user.id, su=False, context={"allowed_company_ids": user.company_ids.filtered("active").ids})
         library = scope["documents.document"]
@@ -139,6 +139,7 @@ def probe(env, baseline, original_bookmarks):
         assert current in library.search(parent.action_open()["domain"])
         current = parent
     root_action = scope.ref(menu_id).action
+    assert root_action == scope.ref("step_document_library.action_library")
     assert current in library.search(ast.literal_eval(root_action.domain))
     bookmark = original_bookmarks[str(document.id)]
     check_original_bookmark(scope, document, bookmark, True)

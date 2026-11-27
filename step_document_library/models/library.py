@@ -38,6 +38,16 @@ class Document(models.Model):
                                ON documents_document (step_original_url_hash) WHERE step_original_url_hash IS NOT NULL""")
 
     @api.model
+    def _adopt_dashboard(self):
+        menu = self.env.ref("documents.dashboard")
+        target = self.env.ref("step_document_library.action_library")
+        if menu.action == target:
+            return
+        if menu.action._name != "ir.actions.act_window" or menu.action.res_model != self._name:
+            raise ValidationError(_("La acción del menú original no abre la biblioteca documental."))
+        menu.write({"action": "ir.actions.act_window,%d" % target.id})
+
+    @api.model
     def _permissions(self):
         """Read original grants in the current company context. No document payload enters this query."""
         # Odoo expands record-rule domains on a sudo recordset. Validate the caller's

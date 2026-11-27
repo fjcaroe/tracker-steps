@@ -65,5 +65,5 @@
         <field name="sequence">2</field><field name="view_mode">form</field>
         <field name="view_id" ref="library_form"/><field name="act_window_id" ref="action_library"/>
     </record>
-    <menuitem id="library_root" name="Biblioteca documental" action="action_library" groups="base.group_user" sequence="55"/>
+    <function model="documents.document" name="_adopt_dashboard"/>
 </odoo>
