@@ -1,6 +1,8 @@
 from hashlib import sha256
+from urllib.parse import quote
 
-from odoo import api, models
+from odoo import _, api, models
+from odoo.exceptions import AccessError, ValidationError
 
 
 class Document(models.Model):
@@ -8,7 +10,11 @@ class Document(models.Model):
 
     def init(self):
         super().init()
-        self.env.cr.execute("ALTER TABLE documents_document ADD COLUMN IF NOT EXISTS step_portal_reference_hash char(64)")
+        self.env.cr.execute("""
+            ALTER TABLE documents_document ADD COLUMN IF NOT EXISTS step_portal_reference_hash char(64),
+                       ADD COLUMN IF NOT EXISTS step_portal_reference_prefix text,
+                       ADD COLUMN IF NOT EXISTS step_portal_reference_suffix text
+        """)
         self.env.cr.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS step_document_portal_reference_hash_idx
             ON documents_document(step_portal_reference_hash) WHERE step_portal_reference_hash IS NOT NULL
@@ -40,3 +46,29 @@ class Document(models.Model):
             # Only this exact native reference and its checked permission authorize reading the linked attachment.
             return record.sudo()
         return self.browse()
+
+
+    def _original_external_reference(self):
+        self.ensure_one()
+        self.env.cr.execute("""
+            SELECT step_portal_reference_prefix || document_token || step_portal_reference_suffix,
+                   step_portal_reference_hash FROM documents_document WHERE id=%s
+        """, [self.id])
+        row = self.env.cr.fetchone()
+        if not row or not row[0] or sha256(row[0].encode()).hexdigest() != row[1]:
+            raise ValidationError(_("Falta verificar el enlace de este elemento con su referencia original."))
+        return row[0]
+
+    def _editor_external_url(self):
+        self.ensure_one()
+        self.check_access("write")
+        if self.user_permission != "edit" or self.type not in ("binary", "folder"):
+            raise AccessError(_("Necesita permiso de edición para copiar este enlace."))
+        return self.get_base_url().rstrip("/") + "/odoo/documents/" + quote(self._original_external_reference(), safe="")
+
+    def action_copy_external_url(self):
+        self.ensure_one()
+        self._editor_external_url()
+        return {"type": "ir.actions.act_window", "name": _("Copiar enlace"),
+                "res_model": "step.document.library.reference", "view_mode": "form", "target": "new",
+                "context": {"default_document_id": self.id}}

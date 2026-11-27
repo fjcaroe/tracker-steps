@@ -5,6 +5,8 @@
         <field name="inherit_id" ref="step_document_library.library_form"/>
         <field name="arch" type="xml">
             <button name="action_manage_access" position="after">
+                <button name="action_copy_external_url" type="object" string="Copiar enlace"
+                        invisible="user_permission != 'edit' or type not in ('binary','folder')"/>
                 <button name="action_external_link_permission" type="object" string="Acceso mediante enlace"
                         invisible="not may_manage_access"/>
             </button>
@@ -20,6 +22,16 @@
                     <button name="action_apply" type="object" string="Aplicar" class="btn-primary"/>
                     <button string="Cancelar" special="cancel"/>
                 </footer>
+            </form>
+        </field>
+    </record>
+    <record id="reference_form" model="ir.ui.view">
+        <field name="name">Copiar enlace original</field>
+        <field name="model">step.document.library.reference</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0">
+                <group><field name="document_id"/><field name="url" widget="CopyClipboardChar"/></group>
+                <footer><button string="Cerrar" special="cancel"/></footer>
             </form>
         </field>
     </record>
