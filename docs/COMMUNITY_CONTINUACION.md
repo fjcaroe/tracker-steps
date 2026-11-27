@@ -1,5 +1,46 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+## U44 · Copias integradas por producto, 27 de noviembre de 2026
+
+**SyS.** La copia FG integra Nómina Chile, Finanzas, Biblioteca y Portal con
+192 proveedores libres. Conservó las 12.010 columnas, 5.816 restricciones,
+2.484 índices y 26 vistas de su respaldo de origen durante las cuatro
+actualizaciones y las dos instalaciones documentales, incluidas sus repeticiones.
+Los operadores reprodujeron los 24 archivos de Previred y Libro, los textos
+de doce comprobantes fiscales y los permisos del PDF de liquidación compartido.
+Cuatro impresiones fiscales conservan el contenido y la geometría, con dos
+tonos de gris diferentes. Se verificaron fuera del servidor las 22 piezas
+del respaldo, incluidos 22.258 archivos de ejecución y 2.702 del almacén.
+Los resultados de las 133 liquidaciones y las
+33 diferencias históricas se detallan a continuación.
+[Recorrido integrado de SyS](COMMUNITY_SYS_MODULE_UPGRADES.md)
+
+**Steps.** En la copia de ventas, el vendedor abrió la oportunidad, guardó
+el presupuesto, confirmó el pedido y volvió a abrir la factura en borrador.
+Las cuatro impresiones históricas de venta coincidieron píxel a píxel con
+el original en la copia con el módulo de colores. La copia U44P reunió
+ventas, ese módulo y los 98 elementos de Documentos con 160 proveedores.
+Coincidieron las 686 decisiones de permiso, cuatro descargas y dos
+denegaciones. También coincidieron las respuestas de los 81 enlaces originales
+para el visitante y la cuenta externa. Cada uno pudo descargar nueve archivos
+con los mismos bytes y recibió 72 denegaciones. En Mesa de Ayuda, la referencia original conserva 243 tickets,
+1.795 mensajes y 418 adjuntos vinculados. [Ventas e impresión](COMMUNITY_STEPS_CRM.md) ·
+[Documentos](COMMUNITY_DOCUMENTOS_STEPS.md) · [Mesa de Ayuda](COMMUNITY_STEPS_SOPORTE.md)
+
+**Cerro El Plomo.** La copia de 187 módulos abrió las pantallas de presupuesto,
+fletes y contactos de exportación. El examen contra el original encontró
+que tres empresas perdían acceso a categorías de fruta y una a seis clases.
+También cambiaron tres políticas de borrado y la representación del peso.
+La versión corregida en U44M recuperó las relaciones y restricciones del original.
+Coincidieron las 36 consultas de permisos por empresa y las pruebas de
+instalación y actualización en esa copia. Nómina sigue
+requiriendo una definición para Cerro sobre su bruto en cero frente al caso
+real de SyS. [Contratos de datos y permisos de Cerro](COMMUNITY_CERRO_CONTRATOS_POSTGRES.md)
+
+La puesta en producción de los tres productos sigue pendiente de la conversión
+y aceptación integral de cada uno. Las bases anteriores permanecen como
+referencias de sus respectivas pruebas.
+
 ## U42 · Nómina real de SyS, recuperación y biblioteca interna
 
 La referencia de Nómina Chile es SyS, confirmada por el usuario. En dos
