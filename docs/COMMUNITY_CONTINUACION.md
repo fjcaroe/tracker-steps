@@ -11,6 +11,8 @@ de doce comprobantes fiscales y los permisos del PDF de liquidación compartido.
 Cuatro impresiones fiscales conservan el contenido y la geometría, con dos
 tonos de gris diferentes. Se verificaron fuera del servidor las 22 piezas
 del respaldo, incluidos 22.258 archivos de ejecución y 2.702 del almacén.
+Una segunda base se recuperó desde esas piezas. En sus dos arranques coincidieron
+609.133 filas, 1.141 tablas, 861 contadores y el esquema original del respaldo FG.
 Los resultados de las 133 liquidaciones y las
 33 diferencias históricas se detallan a continuación.
 [Recorrido integrado de SyS](COMMUNITY_SYS_MODULE_UPGRADES.md)
