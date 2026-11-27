@@ -291,12 +291,33 @@ def upgrade(args, proof):
     print(json.dumps({k: result[k] for k in ("module", "new", "passed", "pg_errors")}), flush=True)
 
 
+def candidate_batch(args, proof):
+    require(args.database.endswith("U41MP") and (args.output / "profile-proof.json").is_file(), "profile-required")
+    require(not (args.output / "final.json").exists(), "finished-candidate")
+    for label in ("forms-before", "forms-after"):
+        if label == "forms-after":
+            for module in MODULES:
+                args.module = module
+                receipt = args.output / ("upgrade-" + module) / "receipt.json"
+                if not receipt.exists():
+                    upgrade(args, proof)
+        args.label = label
+        if not (args.output / (label + ".json")).exists():
+            try:
+                forms(args)
+            except ValueError as exc:
+                if "original-role-form-probe-failed" not in str(exc):
+                    raise
+                print(label, "inspect-private-role-log", flush=True)
+    final_receipt(args, proof)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "candidate-batch", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -311,6 +332,8 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "restore":
             restore(args, proof)
+        elif args.operation == "candidate-batch":
+            candidate_batch(args, proof)
         elif args.operation == "profile":
             identity = json.loads((args.output / "restored.json").read_bytes())
             require(args.database.endswith("U41MP") and identity["database"] == args.database
