@@ -31,9 +31,22 @@ def verify(native, candidate, native_trial, candidate_trial):
             'historical_business_rows_unchanged':True}
 
 
+def verify_vendor(native, candidate, native_trial, candidate_trial):
+    summary=verify(native,candidate,native_trial,candidate_trial)
+    pending,posted=native_trial['default'],native_trial['configured']
+    if (not all(row['supplier'] for row in (pending,posted)) or
+            pending['payable_lines']==posted['payable_lines'] or pending['validated']['ledger'] or
+            pending['validated']['invoice']!='in_payment' or pending['validated']['reconciled']):
+        raise ValueError('Incorrect vendor document, payable entry, payment validation or reconciliation')
+    return {**summary,'original_document':'supplier_bill','bill_and_payable_lines_match':True}
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('native','candidate','native_trial','candidate_trial'):
         parser.add_argument(name,type=Path)
+    parser.add_argument('--vendor',action='store_true')
     args=parser.parse_args()
-    print(json.dumps(verify(*(json.loads(path.read_bytes()) for path in vars(args).values()))))
+    checker=verify_vendor if args.vendor else verify
+    print(json.dumps(checker(*(json.loads(path.read_bytes()) for path in
+                               (args.native,args.candidate,args.native_trial,args.candidate_trial)))))
