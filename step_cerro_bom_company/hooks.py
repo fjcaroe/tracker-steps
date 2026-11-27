@@ -18,9 +18,10 @@ def adopt_company_field(env):
     column = cr.fetchone()
     if not original and not alias and not column:
         return
-    expected = ('manual', 'many2one', 'res.company', True, False, False, True, False,
+    expected = ('many2one', 'res.company', True, False, False, True, False,
                 'set null', '[]', None, None, False, 'Compa\u00f1ia')
-    if not original or original[1:] != expected or alias != ('ir.model.fields', original[0]):
+    if (not original or original[1] not in ('manual', 'base') or original[2:] != expected
+            or alias != ('ir.model.fields', original[0])):
         raise ValidationError('La identidad o la configuraci\u00f3n del campo de empresa de Cerro cambi\u00f3.')
     if not column or column[:3] != ('integer', False, False):
         raise ValidationError('No coincide la columna original de la lista de materiales.')
@@ -32,4 +33,10 @@ def adopt_company_field(env):
     cr.execute("SELECT 1 FROM ir_model_fields_group_rel WHERE field_id=%s LIMIT 1", [original[0]])
     if cr.fetchone():
         raise ValidationError('El campo original de empresa tiene permisos adicionales.')
+    if original[1] == 'base':
+        cr.execute("""SELECT model,res_id FROM ir_model_data WHERE module='step_cerro_bom_company'
+                      AND name='field_mrp_bom__x_studio_compaia'""")
+        if cr.fetchone() != alias:
+            raise ValidationError('La relación declarada en código no tiene su identidad de adopción.')
+        return
     cr.execute("UPDATE ir_model_fields SET state='base' WHERE id=%s AND state='manual'", [original[0]])

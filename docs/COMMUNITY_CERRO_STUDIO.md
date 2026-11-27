@@ -140,3 +140,42 @@ retirar el ID de modelo de Tipos de proceso de su antiguo módulo. El código de
 cada antiguo dueño sigue registrando su modelo al actualizar. Al repetir la
 actualización se conservaron los 60.749 identificadores de la copia nativa y
 se verificaron de nuevo sus 23 vistas y rutas.
+
+## Directorio en una copia con registro íntegramente libre
+
+U41L instaló el núcleo agrícola, el directorio y Fundos compartidos sobre la
+restauración Community de Cerro. Conservó los 53 fundos, 95 vínculos con
+empresas, 19 contactos agrupados, cuatro reglas y quince permisos. La relación
+original del productor con sus fundos conserva los campos 26219 y 26726, el
+inverso `step.fundo.partner_id` y la regla de empresa 543. La consulta de
+contactos de la biblioteca funcionó con los 15 usuarios originales en 65
+contextos bajo este registro.
+
+U42C deriva de U41L y comenzó con 148 módulos instalados, todos registrados
+con licencia libre, y cero transiciones pendientes. La copia física verificó
+677 objetos y 98.447.031 bytes para 1.010 referencias en 1.262 filas de
+adjuntos. U42C utiliza la misma biblioteca 18.0.1.0.4 que recibió de U41L al
+clonarse. El ensayo independiente U42E recibió la biblioteca 18.0.1.0.5,
+publicada después del primer clon.
+
+Un primer ensayo que incluía Packing y Costos intentó cambiar la categoría
+histórica de una línea de recepción al maestro retirado. También retiró la
+restricción de estimación por centro y cuartel. Se restituyó en U41L la
+restricción original de tres columnas. La comparación posterior con U40D
+confirmó las 8.370 restricciones con iguales definiciones y validación, y
+las 14 líneas de estimación con idénticos valores. U41L añadió cuatro
+restricciones para sus nuevos proveedores.
+
+La actualización nativa ampliada del núcleo encontró que la extensión 4637
+de `step_agriculture_catalogs` necesita `step.temporada.company_ids` durante
+la validación del formulario 4159. Esa actualización quedó pendiente. La
+lectura de las 23 pantallas del control nativo sigue comprobada.
+
+En U42C el usuario 6 obtuvo los mismos 53 fundos y los mismos registros al
+abrir cada empresa. También coincidieron el inverso de productores y todas
+las lecturas de contactos en los ocho contextos. La acción original 1254
+permanece accesible por los menús 849, 890, 918, 945, 1082 y 1148. La
+regresión de identificadores conservó el nombre transferido, limpió una
+referencia de prueba obsoleta y rechazó dos nombres que pretendían señalar
+registros distintos. Los menús homónimos de Especies de las dos aplicaciones
+mantienen sus registros independientes.

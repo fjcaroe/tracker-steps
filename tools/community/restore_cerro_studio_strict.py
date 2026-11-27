@@ -57,6 +57,35 @@ def write_once(path, data):
         stream.write('\n')
 
 
+def copy_filestore(originals, root, target, source_objects):
+    data = root / 'data'
+    output = data / 'filestore' / target
+    output.mkdir(mode=0o700, parents=True, exist_ok=True)
+    account = pwd.getpwnam('odoo')
+    for name, (checksum, size) in source_objects.items():
+        source = originals / name
+        if source.is_symlink() or source.parent.is_symlink() or not source.is_file():
+            raise ValueError('Missing physical attachment in the source')
+        dest = output / name
+        dest.parent.mkdir(mode=0o700, exist_ok=True)
+        if dest.is_symlink() or dest.parent.is_symlink():
+            raise ValueError('Unexpected symlink in the private copy')
+        if not dest.exists():
+            staging = dest.with_suffix('.partial')
+            with source.open('rb') as src, staging.open('wb') as tmp:
+                shutil.copyfileobj(src, tmp)
+            if staging.stat().st_size != size or hashlib.sha1(staging.read_bytes()).hexdigest() != checksum:
+                raise ValueError('Attachment verification failed during copy')
+            staging.replace(dest)
+        if dest.stat().st_size != size or hashlib.sha1(dest.read_bytes()).hexdigest() != checksum:
+            raise ValueError('Physical clone differs from the source')
+        os.chown(dest, account.pw_uid, account.pw_gid)
+        dest.chmod(0o600)
+    for folder in [data, data / 'filestore', output, *(p for p in output.iterdir() if p.is_dir())]:
+        os.chown(folder, account.pw_uid, account.pw_gid)
+        folder.chmod(0o700)
+
+
 def clone_and_copy(target=TARGET, root=ROOT):
     if (target, root) not in ((TARGET, ROOT), (ESTIMATE_TARGET, ESTIMATE_ROOT)):
         raise ValueError('Unknown private Cerro trial')
@@ -100,32 +129,7 @@ def clone_and_copy(target=TARGET, root=ROOT):
         pg('createdb', '--owner=dev_odoo18', '--tablespace=' + SPACE, '--template=' + SOURCE, target)
     if module_census(target) != state or references(target) != source_objects:
         raise ValueError('The SQL clone differs from the admitted source')
-    data = root / 'data'
-    output = data / 'filestore' / target
-    output.mkdir(mode=0o700, parents=True, exist_ok=True)
-    account = pwd.getpwnam('odoo')
-    for name, (checksum, size) in source_objects.items():
-        source = FILES / name
-        if source.is_symlink() or source.parent.is_symlink() or not source.is_file():
-            raise ValueError('Missing physical attachment in the source')
-        dest = output / name
-        dest.parent.mkdir(mode=0o700, exist_ok=True)
-        if dest.is_symlink() or dest.parent.is_symlink():
-            raise ValueError('Unexpected symlink in the private copy')
-        if not dest.exists():
-            staging = dest.with_suffix('.partial')
-            with source.open('rb') as src, staging.open('wb') as tmp:
-                shutil.copyfileobj(src, tmp)
-            if staging.stat().st_size != size or hashlib.sha1(staging.read_bytes()).hexdigest() != checksum:
-                raise ValueError('Attachment verification failed during copy')
-            staging.replace(dest)
-        if dest.stat().st_size != size or hashlib.sha1(dest.read_bytes()).hexdigest() != checksum:
-            raise ValueError('Physical clone differs from the source')
-        os.chown(dest, account.pw_uid, account.pw_gid)
-        dest.chmod(0o600)
-    for folder in [data, data / 'filestore', output, *(p for p in output.iterdir() if p.is_dir())]:
-        os.chown(folder, account.pw_uid, account.pw_gid)
-        folder.chmod(0o700)
+    copy_filestore(FILES, root, target, source_objects)
     receipt = dict(expected, state=state, object_count=len(source_objects),
                    object_bytes=sum(size for _, size in source_objects.values()),
                    attachment_rows=int(sql(target, 'SELECT count(*) FROM ir_attachment')),
