@@ -211,7 +211,14 @@ def restore(args):
             stage.mkdir()
             restore_objects(sealed / "filestore.tar", stage, catalog)
             stage.rename(dest)
-    require({p.relative_to(dest).as_posix() for p in dest.glob("*/*") if p.is_file()} == catalog.keys()
+    extras = set()
+    physical = sealed / "filestore-physical.json"
+    if physical.exists():
+        complete = json.loads(physical.read_text())
+        require(complete["sql_sha256"] == proof["sql_sha256"] and complete["restored"] == target,
+                "supplemental-filestore-identity-drift")
+        extras = {name for name in complete["extras"] if not name.startswith("checklist/")}
+    require({p.relative_to(dest).as_posix() for p in dest.glob("*/*") if p.is_file()} == catalog.keys() | extras
             and all((dest / n).stat().st_size == size and digest(dest / n, "sha1") == Path(n).name
                     for n, size in catalog.items()), "restored-filestore-drift")
     for directory in (out, sealed, sealed / "runtime", *(p for p in (sealed / "runtime").rglob("*") if p.is_dir())):
