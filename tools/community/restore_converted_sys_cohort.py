@@ -103,6 +103,7 @@ def open_as_user(out, db, service, boot, hidden_sources):
         "unshare", "--net", "--", "sh", "-ec", 'ip link set dev lo up; exec "$@"', "steps",
         "bwrap", "--die-with-parent", "--ro-bind", "/", "/", "--tmpfs", "/opt/steps-validation",
         "--tmpfs", "/srv/odoo-data/steps-anchor-validation", "--tmpfs", "/opt/odoo18",
+        "--tmpfs", "/opt/steps-managed", "--tmpfs", "/opt/luis_odoo18",
         "--dir", str(out.parent), "--ro-bind", str(out), str(out),
         "--bind", str(out / "data"), str(out / "data"), "--proc", "/proc", "--dev-bind", "/dev", "/dev", "--",
         "sudo", "-n", "-u", service.pw_name, "env", "PYTHONDONTWRITEBYTECODE=1",
@@ -219,7 +220,8 @@ def restore(args):
     for path in (data, *data.rglob("*")):
         require(not path.is_symlink(), "unexpected-restored-filestore-symlink")
         os.chown(path, service.pw_uid, service.pw_gid)
-    hidden_sources = [args.runtime, args.source_data, *args.addons]
+    origins = json.loads((sealed / "effective-providers.json").read_text())
+    hidden_sources = [args.runtime, args.source_data, *args.addons, *(v[0] for v in origins.values())]
     orm = open_as_user(out, target, service, 1, hidden_sources)
     verify_same(frozen, full_snapshot(target))
     require(open_as_user(out, target, service, 2, hidden_sources) == orm, "second-cold-boot-differs")

@@ -40,7 +40,14 @@ print('PROVIDERS=' + json.dumps(out))
 
 def seal(runtime, providers, output):
     runtime = runtime.resolve(strict=True)
-    allowed = [Path("/opt/steps-validation"), Path("/srv/odoo-data/steps-anchor-validation")]
+    # Provider paths come from the official resolver. An overlay can select a licensed
+    # module in a managed release via symlink. Authorize only its exact module root.
+    allowed = [runtime]
+    for name, (origin, version, license_) in providers.items():
+        module = Path(origin).resolve(strict=True)
+        require(module.name == name and (module / "__manifest__.py").is_file() and license_ != "OEEL-1",
+                "unexpected-effective-module-root")
+        allowed.append(module)
     hashes = {}
     provenance = {}
     archive = output / "runtime.tar.gz"
