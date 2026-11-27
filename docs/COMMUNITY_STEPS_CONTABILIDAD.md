@@ -83,3 +83,13 @@ publicado, la factura pagada y el cobro conciliado. Los dos ensayos se hicieron
 en copias aisladas y se revirtieron. Coincidieron los importes, estados y
 relaciones al repetirlos contra el original. La revisión de tres archivos tiene
 la huella `5428545ab11150a070894e1286480597925c2150856c5ba0344499a2b0c97db2`.
+
+También se ensayó el pago de una factura de proveedor pendiente. El operador
+abrió la factura y usó el asistente de pago saliente. Con el diario sin cuenta
+transitoria quedó en proceso y la factura en pago. Validarlo mantuvo la
+factura pendiente de conciliación. Con el diario de los pagos históricos, el
+asiento se publicó, las líneas por pagar se conciliaron y la factura quedó
+pagada. Se repitieron las dos operaciones en el original y en la copia de
+166 módulos. Coincidieron los estados, importes, cuentas y contrapartidas. Los
+ensayos revirtieron los movimientos de prueba. El recibo de comparación tiene
+la huella `bdbdee89b5498bd52334b2330f2a6bd1df8c9447c16c805ade9c2b42c3658c7d`.
