@@ -86,6 +86,13 @@ def combined(env, prepared):
     actors = [(env["res.users"].browse(uid), login, password) for uid, login, password in prepared]
     assert len(actors) == 2 and all(account.share and account.has_group("base.group_portal") and account.login == login
                                     and login.startswith("community-portal-") for account, login, _ in actors)
+    # Opening a specific payslip uses its company. The ordinary recipient selector also
+    # needs the portal accounts' company enabled for this same multi-company manager.
+    eligible_companies = sorted(set([slip.company_id.id, *(a.company_id.id for a, _, _ in actors)]))
+    assert set(eligible_companies) <= set(manager.company_ids.filtered('active').ids)
+    grant_doc = doc.with_context(allowed_company_ids=eligible_companies)
+    assert not grant_doc.env.su and grant_doc.may_manage_access
+    grant_doc.env['res.users'].browse([a.id for a, _, _ in actors]).check_access('read')
     env.registry.enter_test_mode(env.cr)
     try:
         clients = {"recipient": session(env.cr.dbname, actors[0]), "other": session(env.cr.dbname, actors[1]),
@@ -108,14 +115,14 @@ def combined(env, prepared):
                     assert not result.data.startswith(b"%PDF-")
                 results[state][role] = result.status_code
         compare("restricted", set())
-        individual(doc, actors[0][0], "view", False)
+        individual(grant_doc, actors[0][0], "view", False)
         compare("recipient_granted", {"recipient"})
-        individual(doc, actors[0][0], "none", False)
+        individual(grant_doc, actors[0][0], "none", False)
         compare("recipient_revoked", set())
         return {"manager": manager.id, "same_pdf_sha256": sha, "bytes": length, "linked_private_pdfs": eligible,
                 "payroll_form": True, "library_menu_folder_form": True, "original_editor_link": True,
                 "ordinary_payroll_and_attachment": True, "excluded_company_denied": True, "public_attachment_denied": True,
-                "document": doc.id, "attachment": attachment.id, "payslip": slip.id, "http": results}
+                "selected_recipient_companies": eligible_companies, "document": doc.id, "attachment": attachment.id, "payslip": slip.id, "http": results}
     finally:
         env.registry.leave_test_mode()
         env.cr.rollback()
