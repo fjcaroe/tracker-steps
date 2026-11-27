@@ -2,7 +2,6 @@
 from psycopg2 import sql
 
 MASTERS = {
-    'step.fundo': 'step_fundo_company_rel',
     'step.management.fruit.category': 'step_fruit_category_company_rel',
     'step.management.fruit.class': 'step_fruit_class_company_rel',
     'step.management.fruit.quality': 'step_fruit_quality_company_rel',

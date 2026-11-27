@@ -1,10 +1,11 @@
 {
     'name': 'Cerro El Plomo - Maestros agrícolas',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.0.1',
     'license': 'LGPL-3',
     'depends': [
         'step_cerro_studio_adoption',
         'step_hr',
+        'step_agriculture_shared_farms',
         'step_management_costs_agriculture',
     ],
     'pre_init_hook': 'adopt_views',

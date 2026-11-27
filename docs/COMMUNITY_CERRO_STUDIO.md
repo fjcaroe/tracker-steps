@@ -72,3 +72,24 @@ usan dos relaciones con borrado restringido al catálogo de puertos aduaneros
 para el puerto de origen y de destino. El informe de programa de ventas
 abre el Gantt de las semanas del programa. El grafo por vista distingue las
 dos primeras dependencias de los modelos que también necesitan el Gantt.
+
+## Fundos compartidos
+
+El paquete `step_agriculture_shared_farms` contiene la relación de empresas del
+fundo y los grupos de productores usados por las reglas originales. La
+aplicación multiempresa depende de este paquete. En la copia Community y en
+el control original quedaron idénticos 53 fundos, sus 95 asignaciones de
+empresa, los 19 contactos agrupados, cuatro reglas y 15 permisos. La prueba
+verificó seis identificadores históricos del modelo, sus campos y la herencia.
+
+Con las ocho empresas autorizadas, el usuario 6 leyó los mismos 53 fundos en
+los dos runtimes. Al elegir cada empresa por separado leyó 3, 41, 0, 1, 7,
+12, 31 y 0 registros en las empresas 1, 2, 3, 4, 29, 30, 31 y 41. Se
+denegaron la lectura directa de fundos ajenos, la eliminación de la empresa
+propietaria y el ciclo de contacto productor. Las asignaciones y los grupos
+permanecieron iguales después de las escrituras revertidas.
+
+Las 13 vistas adoptadas en Community ya leen los campos de la personalización
+con el usuario 6. Dos vistas adicionales de recepciones de stock conservan la
+lectura de sus campos a través de su definición de origen. Para las 15, los
+valores leídos fueron idénticos a los del mismo registro en el control original.

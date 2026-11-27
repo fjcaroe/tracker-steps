@@ -14,7 +14,7 @@ VIEW_PROVIDERS = {
     'product_template_accounts': ('account',),
     'company_directory': ('base', 'l10n_cl_communes'),
     'analytic_centres': ('step_hr', 'step_management_costs_agriculture'),
-    'farms': ('step_hr',),
+    'farms': ('step_hr', 'step_agriculture_shared_farms'),
     'analytic_centre_form': ('step_hr',),
     'species': ('step_hr', 'step_agriculture_catalogs', 'step_producer_fruit_reports'),
     'agricultural_products': ('product', 'step_hr', 'step_producers'),
