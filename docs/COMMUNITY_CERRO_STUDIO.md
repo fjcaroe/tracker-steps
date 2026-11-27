@@ -93,3 +93,35 @@ Las 13 vistas adoptadas en Community ya leen los campos de la personalización
 con el usuario 6. Dos vistas adicionales de recepciones de stock conservan la
 lectura de sus campos a través de su definición de origen. Para las 15, los
 valores leídos fueron idénticos a los del mismo registro en el control original.
+
+## Especies, tipos de proceso y alcance de las copias
+
+En las dos copias las siete especies conservan sus códigos SAG y las dos
+cantidades históricas de cajas por pallet. Los campos 28723 y 28724 y la
+restricción 6836 mantienen sus identidades. Se rechazó un valor negativo al
+escribir como usuario 6. En Tipos de proceso se conservan las seis filas, el
+campo 28229 y los tres registros de selección 6034–6036. El usuario 6 cambió
+y revirtió una categoría y se rechazó una opción ajena a la selección.
+
+El control de noviembre U40Q tiene 414 módulos instalados, incluidos 140 con
+licencia OEEL-1 y el paquete OPL-1 de Studio. U40B usa exclusivamente fuentes
+libres para iniciar el motor oficial de Community pero conserva declaraciones
+históricas. Tras instalar las primeras vistas y catálogos se observaron 432
+módulos marcados como instalados, 138 OEEL-1 y uno OPL-1. Estos recuentos
+describen el estado de la base en esa etapa. U40D HANDOVER y U41L Biblioteca
+tenían respectivamente 144 y 145 módulos instalados, todos libres, antes de
+incorporar Fundos a la biblioteca.
+
+En el control nativo, cada una de las 23 herencias se aplica al seleccionar
+una acción de menú visible para el usuario 6. Todos los campos de las 23
+pantallas se describen en la respuesta del cliente. En U40B, antes de incorporar
+los proveedores de los campos hermanos de especies y productos agrícolas,
+se alcanzaron 19 herencias por menú, 17 lecturas de los campos añadidos por
+Studio idénticas al control y 12 pantallas con todos sus campos registrados.
+Las recepciones de stock permiten leer el campo original de Studio y todavía
+requieren campos de sus proveedores de recepción, DTE y Calidad para abrir el
+formulario completo.
+
+La actualización de las vistas de U40B Community mantuvo iguales 61.896
+identificadores que existían en esa copia antes de actualizar. La guarda
+verificó la fila, el módulo, el nombre, el modelo y el registro de destino.
