@@ -58,6 +58,14 @@ valores completos en diez. El paquete de 24 fuentes se reconstruyó desde
 la rama canónica con el mismo contenido probado.
 [Aceptación conjunta de Cerro](COMMUNITY_CERRO_COMBINADO_172.md).
 
+En la siguiente restauración se añadieron Presupuestos y Fletes. El mismo
+usuario alcanzó 20 de los 23 menús originales con 186 módulos libres.
+En 18 recorridos coincidieron los valores de Studio y en 15 la fila web
+completa. Se preservaron las siete opciones originales de flete y su
+relación con ocho empresas, los permisos y los 62.030 identificadores
+protegidos. Véanse [Presupuestos](COMMUNITY_CERRO_PRESUPUESTOS.md) y
+[Fletes](COMMUNITY_CERRO_FLETES.md).
+
 La configuración de Nómina Chile requiere una comparación separada en Cerro.
 En su plantilla nativa y en la copia Community coinciden las firmas de las
 47 reglas directas activas. Se cotejaron códigos, secuencia, categoría directa,
