@@ -40,7 +40,8 @@ def run(args):
                   "COMMUNITY_SYS_PREVIRED_COHORT_20261127U48D": "sys-u48-payslip-final",
                   "COMMUNITY_SYS_PREVIRED_COHORT_20261127U49D": "sys-negative-net-u49d",
                   "COMMUNITY_SYS_PREVIRED_COHORT_20261127U49E": "sys-negative-net-u49e",
-                  "COMMUNITY_SYS_PREVIRED_COHORT_20261127U49F": "sys-negative-net-u49f"}
+                  "COMMUNITY_SYS_PREVIRED_COHORT_20261127U49F": "sys-negative-net-u49f",
+                  "COMMUNITY_SYS_FINAL_PRINT_RECOVERY_20261127U51S": "sys-negative-net-u49e"}
         db, = (name for name in trials if name in args.command)
         module = "step_payroll_oca_sys_history"
         private = Path("/dev/shm") / trials[db] / "overlay" / module
@@ -48,6 +49,8 @@ def run(args):
         if (args.user != "odoo" or db not in args.command or "--db-filter=^" + db + "$" not in args.command
                 or private.resolve() != private or target.resolve() != target or not (private / "payslip_form.py").is_file()):
             raise ValueError("Expected only the isolated SyS form trial")
+        if db == "COMMUNITY_SYS_FINAL_PRINT_RECOVERY_20261127U51S" and not args.steps_expense_recovery:
+            raise ValueError("Expected the private recovery mount")
         subprocess.run(["mount", "--bind", str(private), str(target)], check=True)
         subprocess.run(["mount", "-o", "remount,bind,ro", str(target)], check=True)
     if args.loopback:
