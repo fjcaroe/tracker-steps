@@ -40,9 +40,25 @@ def verify(receipt, directory):
     return result
 
 
+def compare_native(original, candidate):
+    fields = ("company", "document", "kind", "pages", "references", "reference_permissions",
+              "article_text_sha256", "pdf_text_sha256")
+    def documents(receipt):
+        return {(row["actor"], row["kind"]): {key: row[key] for key in fields} for row in receipt["printed"]}
+
+    native = documents(original)
+    if len(native) != 4 or native != documents(candidate):
+        raise ValueError("The invoice identity, permissions, or complete printed contents differ from the native application")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("receipt", type=Path)
     parser.add_argument("directory", type=Path)
+    parser.add_argument("--native-receipt", type=Path)
     args = parser.parse_args()
-    print(json.dumps(verify(json.loads(args.receipt.read_bytes()), args.directory), sort_keys=True))
+    receipt = json.loads(args.receipt.read_bytes())
+    result = verify(receipt, args.directory)
+    if args.native_receipt:
+        compare_native(json.loads(args.native_receipt.read_bytes()), receipt)
+    print(json.dumps(result, sort_keys=True))
