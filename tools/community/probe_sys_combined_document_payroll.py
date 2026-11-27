@@ -127,3 +127,10 @@ def combined(env, prepared):
     finally:
         env.registry.leave_test_mode()
         env.cr.rollback()
+
+
+def compare_fiscal_copy(env, prepared, reference):
+    assert env.cr.dbname == 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD'
+    observed = combined(env, prepared)
+    assert observed == reference, 'Combined document, attachment, actor or portal behavior differs after fiscal admission'
+    return observed
