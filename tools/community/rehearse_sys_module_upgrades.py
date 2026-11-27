@@ -626,6 +626,13 @@ def restore_financial_actions(args, proof):
     final = final_receipt(args, proof, "financial-storage.json")
     require(not any(final["full_sql_delta"][name] for name in ("columns", "constraints", "relation_owner_and_acl",
             "sequence_definitions")) and not final["covered_table_changes"], "original-financial-storage-differs")
+
+
+def check_financial_actions(args):
+    out = args.output
+    final = json.loads((out / "financial-storage.json").read_bytes())
+    require(not final["full_sql_delta"]["constraints"] and not final["covered_table_changes"]
+            and args.database.endswith("U41MW"), "native-financial-storage-not-restored")
     require(query(args.database, "SELECT on_delete FROM ir_model_fields WHERE id=6077") == "cascade",
             "runtime-account-field-policy-differs")
     pairs = query(args.database, """SELECT conname,confdeltype FROM pg_constraint WHERE conname IN
@@ -657,7 +664,8 @@ def finish_financial_release(args, proof):
     require(args.database.endswith("U41MW"), "final-financial-release-required")
     if not (out / "financial-storage.json").is_file():
         restore_financial_actions(args, proof)
-    require((out / "financial-delete-actions.json").is_file(), "original-delete-policies-not-proven")
+    if not (out / "financial-delete-actions.json").is_file():
+        check_financial_actions(args)
     if not (out / "retained-release.json").is_file():
         retained_release(args)
     if not (out / "release-exports.json").is_file():
@@ -721,6 +729,7 @@ if __name__ == "__main__":
             print_chilean_invoices(args, proof)
         elif args.operation == "financial-actions":
             restore_financial_actions(args, proof)
+            check_financial_actions(args)
         elif args.operation == "finish-financial":
             finish_financial_release(args, proof)
         elif args.operation == "restore":
