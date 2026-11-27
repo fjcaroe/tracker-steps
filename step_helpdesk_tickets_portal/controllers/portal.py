@@ -78,6 +78,9 @@ class StepsSupportPortal(CustomerPortal):
         pager = portal_pager(url="/my/tickets", total=tickets.search_count(domain), page=page, step=self._items_per_page,
                              url_args={k: v for k, v in url_args.items() if v})
         order = sortby if groupby == "none" else groupby + ", " + sortby
+        if sortby == "user_id":
+            # Several tickets can share a responsible user across a page boundary.
+            order += ", id desc"
         rows = tickets.search(domain, order=order, limit=self._items_per_page, offset=pager["offset"])
         request.session["steps_ticket_history"] = rows.ids
         if groupby == "none":
