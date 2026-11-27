@@ -9,6 +9,7 @@ import pwd
 import re
 import shutil
 import subprocess
+import tarfile
 
 from audit_sys_upgrade_policy import audit
 from custody_sys_previred_filestore import attachments, digest, object_catalog, restore_objects
@@ -173,6 +174,53 @@ def forms(args):
     save(out / (args.label + ".json"), json.loads(lines[0]))
 
 
+def final_receipt(args, proof):
+    out, db = args.output, args.database
+    restored = json.loads((out / "restored.json").read_bytes())
+    require(restored["database"] == db and restored["sealed"] == str(args.sealed), "wrong-target")
+    jobs = {}
+    for name in MODULES:
+        jobs[name] = json.loads((out / ("upgrade-" + name) / "receipt.json").read_bytes())
+    original = json.loads(gzip.decompress((args.sealed / "source-snapshot.json.gz").read_bytes()))
+    current = snapshot(db)
+    delta = differences(original, current)
+    source = proof["source"]
+    require(re.fullmatch(r"COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9]+", source), "unexpected-source")
+    max_alias = int(query(source, "SELECT max(id) FROM ir_model_data"))
+    aliases = original_aliases(source, max_alias)
+    require(aliases == original_aliases(db, max_alias), "original-xmlid-drift")
+    require(guards(db) == restored["guards"], "original-guards-drift")
+    store = out / "data" / "filestore" / db
+    with tarfile.open(args.sealed / "filestore.tar", "r|") as archive:
+        original_files = {}
+        for member in archive:
+            require(member.isfile() and re.fullmatch(r"[0-9a-f]{2}/[0-9a-f]{40}", member.name),
+                    "unexpected-archive-object")
+            original_files[member.name] = member.size
+            obj = store / member.name
+            require(obj.is_file() and obj.stat().st_size == member.size and digest(obj, "sha1") == obj.name,
+                    "original-attachment-bytes-changed")
+    attachment_sql = """SELECT json_build_array(count(*), md5(string_agg(md5(to_jsonb(a)::text),'' ORDER BY id)))
+                        FROM ir_attachment a WHERE res_model='hr.payslip' AND mimetype='application/pdf'"""
+    pdfs = json.loads(query(source, attachment_sql))
+    require(pdfs == json.loads(query(db, attachment_sql)), "archived-payroll-documents-changed")
+    proof_tables = ("account_move", "account_move_line", "account_journal", "account_analytic_line",
+                    "project_project", "project_task", "sms_sms", "hr_employee", "hr_contract",
+                    "hr_payslip", "hr_payslip_line", "hr_payslip_input", "hr_payslip_worked_days", "hr_payslip_run",
+                    "hr_payroll_structure", "hr_salary_rule", "resource_calendar", "resource_calendar_attendance",
+                    "res_groups", "ir_rule", "ir_model_access", "res_groups_users_rel", "res_groups_implied_rel", "rule_group_rel")
+    require(all(name in original["public_tables"] for name in proof_tables), "missing-covered-table")
+    versions = module_versions(db)
+    result = {"official_results": {m: jobs[m]["passed"] for m in MODULES},
+              "versions": {m: versions[m] for m in (*MODULES, "step_payroll_oca_sys_history")},
+              "sealed_runtime": proof["runtime"]["archive_sha256"], "original_aliases": aliases,
+              "guard_count": len(restored["guards"]), "original_files": len(original_files),
+              "archived_payroll_pdfs": pdfs[0], "full_sql_delta": delta,
+              "covered_table_changes": sorted(set(proof_tables).intersection(delta["public_tables"])),
+              "after_free": check_space(0)}
+    save(out / "final.json", result)
+
+
 def upgrade(args, proof):
     db, out, module = args.database, args.output, args.module
     restored = json.loads((out / "restored.json").read_bytes())
@@ -218,7 +266,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after"))
     args = parser.parse_args()
@@ -233,6 +281,8 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "restore":
             restore(args, proof)
+        elif args.operation == "final":
+            final_receipt(args, proof)
         elif args.operation == "policy":
             identity = json.loads((args.output / "restored.json").read_bytes())
             require(identity["database"] == args.database and identity["sealed"] == str(args.sealed), "wrong-target")
