@@ -6,15 +6,24 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import tarfile
 
 from restore_cerro_studio_strict import ROOT, TARGET, module_census, sql
 
 RUNTIME = Path('/opt/steps-validation/community-foundation-final-20261027/community-runtime')
 ANCHOR = Path('/srv/odoo-data/steps-anchor-validation/community-original-handover-20261126U40D')
-LIBRARY = Path('/opt/steps-validation/community-historical-library-20261126U41L')
+LIBRARY = Path('/opt/steps-validation/community-historical-library-20261126U41L/proof-fd485cda0d27')
+LIBRARY_ARCHIVE = '0c5131e2cbdfab81bc161ec234822ebee89d34f6c79c7203ebc39880bb0f4426'
+PROCESS_PROFILE = 'process-catalog-e05c4b617a37'
+PROCESS_HASHES = {
+    'step_packing_process_catalog': '2cde86f902761b8dd9a19696b8f5d18b7cad68c540536c0162b03041e93282be',
+    'step_packing_process_category': '0905d010a276a64f681fc992cea56697c9a415028e3ce5d64ed18fb5842e26a5',
+    'step_cerro_studio_process_types': '6cba83b41e23dc13f0f377531a02e7a446a6d08324390627984ac003c0c7113b',
+}
 MODULES = ('step_cerro_studio_farms', 'step_cerro_product_account_views', 'step_cerro_studio_agriculture', 'step_cerro_studio_companies',
            'step_cerro_studio_budgets', 'step_cerro_studio_producers', 'step_cerro_studio_species',
-           'step_cerro_studio_process_types', 'step_cerro_studio_transfers')
+           'step_cerro_studio_process_types', 'step_cerro_studio_transfers', 'step_cerro_studio_packing',
+           'step_cerro_studio_exports', 'step_cerro_bom_company')
 FREE = {'AGPL-3', 'LGPL-3', 'GPL-3', 'GPL-2', 'GPL-3 or any later version', 'GPL-2 or any later version'}
 
 
@@ -29,10 +38,24 @@ def tree_sha(module):
     return digest.hexdigest()
 
 
-def validate_modules(roots):
+def validate_modules(roots, database=TARGET):
     seal = json.loads((ROOT / 'module-content-v4.json').read_text())
+    library_archive = LIBRARY / 'package.tar'
+    if hashlib.sha256(library_archive.read_bytes()).hexdigest() != LIBRARY_ARCHIVE:
+        raise ValueError('The admitted document library package changed')
+    library_module = LIBRARY / 'addons/step_document_library'
+    with tarfile.open(library_archive) as archive:
+        members = {m.name: m for m in archive.getmembers() if m.isfile() and m.name.startswith('addons/step_document_library/')}
+        files = {f.relative_to(LIBRARY).as_posix(): f for f in library_module.rglob('*')
+                 if f.is_file() and '__pycache__' not in f.parts and f.suffix != '.pyc'}
+        if files.keys() != members.keys() or any(path.read_bytes() != archive.extractfile(members[name]).read()
+                                                 for name, path in files.items()):
+            raise ValueError('The document library sources do not match the admitted package')
+    process = ROOT / PROCESS_PROFILE
+    if {p.name: tree_sha(p) for p in process.iterdir() if p.is_dir()} != PROCESS_HASHES:
+        raise ValueError('The packing process catalogue package changed')
     consumed = set()
-    recorded = json.loads(sql(TARGET, """SELECT coalesce(json_object_agg(name,latest_version),'{}')
+    recorded = json.loads(sql(database, """SELECT coalesce(json_object_agg(name,latest_version),'{}')
                                          FROM ir_module_module WHERE state='installed'"""))
     for root in roots[:-2]:
         for module in root.iterdir():
@@ -41,7 +64,14 @@ def validate_modules(roots):
                 continue
             consumed.add(module.name)
             spec = ast.literal_eval(manifest.read_text())
-            if spec.get('license') not in FREE:
+            license_name = spec.get('license')
+            if license_name is None and module.name == 'l10n_cl_communes':
+                # The pinned source omits the key. Odoo assigns LGPL-3 in its manifest
+                # loader and the original Cerro catalogue records exactly this value.
+                license_name = sql(database, "SELECT license FROM ir_module_module WHERE name='l10n_cl_communes'")
+                if license_name != 'LGPL-3':
+                    raise ValueError('The recorded license for Comunas differs from its Odoo manifest default')
+            if license_name not in FREE:
                 raise ValueError('Private non-free source: ' + module.name)
             if module.name in recorded and recorded[module.name]:
                 v = spec.get('version', '1.0')
@@ -53,7 +83,7 @@ def validate_modules(roots):
 
 
 def addon_roots():
-    return [ROOT / 'directory-views', ROOT / 'directory-d20e40fe40f8', ROOT / 'view-alias-add2d259eb',
+    return [ROOT / PROCESS_PROFILE, ROOT / 'directory-views', ROOT / 'directory-d20e40fe40f8', ROOT / 'view-alias-add2d259eb',
             ROOT / 'alias-8223860c89e8', ROOT / 'owners', ROOT / 'operators', LIBRARY / 'addons',
             ANCHOR / 'runtime-addons', ANCHOR / 'engine-addons', RUNTIME / 'addons', RUNTIME / 'odoo/addons']
 
@@ -87,27 +117,27 @@ def incompatible_contracts(module):
                     WHERE conrelid='step_management_estimation_line'::regclass
                     AND conname='step_management_estimation_line_estimation_line_center_unique'""")
         if unique == 'UNIQUE (estimation_id, center_id, cuartel_id)':
-            out.append('step_management_costs exige unicidad por estimación/centro antes de cargar los cuarteles')
+            out.append('step_management_costs exige unicidad por estimaciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n/centro antes de cargar los cuarteles')
     if 'step_packing' in wanted:
         master = sql(TARGET, """SELECT c.confrelid::regclass::text FROM pg_constraint c
                     JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=ANY(c.conkey)
                     WHERE c.contype='f' AND c.conrelid='step_packing_picking_tag_line'::regclass
                     AND a.attname='category_id'""")
         if master == 'step_management_fruit_category':
-            out.append('step_packing declara la categoría retirada antes de cargar el catálogo unificado')
+            out.append('step_packing declara la categorÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­a retirada antes de cargar el catÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡logo unificado')
     return out
 
 
-def run(phase, extra, payload=None):
-    roots = addon_roots()
-    validate_modules(roots)
+def run(phase, extra, payload=None, *, database=TARGET, directory=ROOT, roots=None):
+    roots = roots or addon_roots()
+    validate_modules(roots, database)
     pre = ['unshare', '--net', '--', 'runuser', '-u', 'odoo', '--', 'env', 'PYTHONDONTWRITEBYTECODE=1',
            '/usr/bin/python3.10', str(RUNTIME / 'odoo-bin')]
-    args = ['-c', '/etc/dev_odoo18.conf', '-d', TARGET, '--db-filter=^' + TARGET + '$',
+    args = ['-c', '/etc/dev_odoo18.conf', '-d', database, '--db-filter=^' + database + '$',
             '--db_host=/var/run/postgresql', '--addons-path=' + ','.join(map(str, roots)),
-            '--data-dir=' + str(ROOT / 'data'), '--logfile=' + str(ROOT / 'data/strict-odoo.log'),
+            '--data-dir=' + str(directory / 'data'), '--logfile=' + str(directory / 'data/strict-odoo.log'),
             '--no-http', '--workers=0', '--max-cron-threads=0', '--load=base,web', '--stop-after-init', '--without-demo=all']
-    logfile = ROOT / (phase + '.log')
+    logfile = directory / (phase + '.log')
     with logfile.open('wb') as out:
         subprocess.run(pre + (['shell'] if payload else []) + args + extra, check=True,
                        input=payload.encode() if payload else None, stdout=out, stderr=subprocess.STDOUT)
@@ -156,7 +186,9 @@ print('CERRO_STRICT_FARMS', json.dumps(dict(farm=capture(env),rights=exercise(en
 from probe_cerro_studio_navigation import capture as routes
 from probe_cerro_studio_screen import inspect
 from probe_cerro_studio_fullread import capture as fullread
-print('CERRO_STRICT_VIEWS',json.dumps(dict(views=capture(env),routes=routes(env),screens=inspect(env),fullread=fullread(env)),sort_keys=True))'''
+from probe_cerro_process_category import capture as processes
+process = processes(env, test=True) if env.ref('step_cerro_studio_process_types.process_types', raise_if_not_found=False) else None
+print('CERRO_STRICT_VIEWS',json.dumps(dict(views=capture(env),routes=routes(env),screens=inspect(env),fullread=fullread(env),process=process),sort_keys=True))'''
         payload = 'import json,sys\nsys.path.insert(0,' + repr(str(ROOT / 'tools')) + ')\n' + body + '\nenv.cr.rollback()\n'
         run(phase, [], payload)
         after = module_census(TARGET)

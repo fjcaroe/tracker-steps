@@ -18,12 +18,14 @@ def result(path, prefix):
 
 def compare():
     native = result(NATIVE / 'upgrade-final-v2/native-postflight.log', 'CERRO_FULL')
+    native_directory = result(NATIVE / 'native-directory-reference/result.log', 'CERRO_DIRECTORY')
     full_native = result(NATIVE / 'fullread/native.log', 'CERRO_FULL_READ')
     farm = result(ROOT / 'fundos.log', 'CERRO_STRICT_FARMS')
     views = result(ROOT / 'views.log', 'CERRO_STRICT_VIEWS')
     assert len(full_native) == len(views['fullread']) == 23
     assert farm['farm'] == native['farm']
     assert farm['rights'] == native['rights']
+    assert farm['directory'] == native_directory['directory']
     assert farm['view']['read_existing_record'] and farm['view']['visible_menu_actions']
     assert farm['aliases']['same_target_preserved'] and farm['aliases']['conflict_rejected']
     assert farm['aliases']['stale_source_removed']

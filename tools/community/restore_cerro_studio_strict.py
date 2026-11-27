@@ -13,6 +13,8 @@ SOURCE = 'COMMUNITY_LIBRARY_CERRO_20261126U41L'
 TARGET = 'COMMUNITY_CERRO_BOM_STRICT_20261126U42C'
 SPACE = 'steps_community_storage_20261028_cerro'
 ROOT = Path('/opt/steps-validation/community-cerro-studio-strict-20261126U42C')
+ESTIMATE_TARGET = 'COMMUNITY_CERRO_BOM_ESTIMATE_20261126U42E'
+ESTIMATE_ROOT = Path('/opt/steps-validation/community-cerro-estimation-20261126U42E')
 FILES = Path('/opt/steps-validation/community-historical-library-20261126U41L/cerro/data/filestore') / SOURCE
 GIB = 1024 ** 3
 
@@ -55,11 +57,13 @@ def write_once(path, data):
         stream.write('\n')
 
 
-def clone_and_copy():
-    ROOT.mkdir(mode=0o751, parents=True, exist_ok=True)
-    working = ROOT / 'clone-started.json'
-    ready = ROOT / 'clone-receipt.json'
-    expected = {'source': SOURCE, 'target': TARGET, 'tablespace': SPACE}
+def clone_and_copy(target=TARGET, root=ROOT):
+    if (target, root) not in ((TARGET, ROOT), (ESTIMATE_TARGET, ESTIMATE_ROOT)):
+        raise ValueError('Unknown private Cerro trial')
+    root.mkdir(mode=0o751, parents=True, exist_ok=True)
+    working = root / 'clone-started.json'
+    ready = root / 'clone-receipt.json'
+    expected = {'source': SOURCE, 'target': target, 'tablespace': SPACE}
     if ready.exists():
         receipt = json.loads(ready.read_text())
         if any(receipt.get(key) != value for key, value in expected.items()):
@@ -85,7 +89,7 @@ def clone_and_copy():
               AND relnamespace NOT IN ('pg_catalog'::regnamespace,'information_schema'::regnamespace)""")):
         raise ValueError('The source has objects in an additional tablespace')
     source_objects = references(SOURCE)
-    exists = sql('postgres', f"SELECT count(*) FROM pg_database WHERE datname='{TARGET}'") == '1'
+    exists = sql('postgres', f"SELECT count(*) FROM pg_database WHERE datname='{target}'") == '1'
     if exists and not working.exists():
         raise ValueError('A different trial already owns this database name')
     if not working.exists():
@@ -93,11 +97,11 @@ def clone_and_copy():
     elif json.loads(working.read_text()) != expected:
         raise ValueError('The partial trial belongs to a different source')
     if not exists:
-        pg('createdb', '--owner=dev_odoo18', '--tablespace=' + SPACE, '--template=' + SOURCE, TARGET)
-    if module_census(TARGET) != state or references(TARGET) != source_objects:
+        pg('createdb', '--owner=dev_odoo18', '--tablespace=' + SPACE, '--template=' + SOURCE, target)
+    if module_census(target) != state or references(target) != source_objects:
         raise ValueError('The SQL clone differs from the admitted source')
-    data = ROOT / 'data'
-    output = data / 'filestore' / TARGET
+    data = root / 'data'
+    output = data / 'filestore' / target
     output.mkdir(mode=0o700, parents=True, exist_ok=True)
     account = pwd.getpwnam('odoo')
     for name, (checksum, size) in source_objects.items():
@@ -124,8 +128,8 @@ def clone_and_copy():
         folder.chmod(0o700)
     receipt = dict(expected, state=state, object_count=len(source_objects),
                    object_bytes=sum(size for _, size in source_objects.values()),
-                   attachment_rows=int(sql(TARGET, 'SELECT count(*) FROM ir_attachment')),
-                   file_references=int(sql(TARGET, 'SELECT count(store_fname) FROM ir_attachment')))
+                   attachment_rows=int(sql(target, 'SELECT count(*) FROM ir_attachment')),
+                   file_references=int(sql(target, 'SELECT count(store_fname) FROM ir_attachment')))
     write_once(ready, receipt)
     return receipt
 
