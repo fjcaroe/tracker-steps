@@ -59,3 +59,22 @@ U41MP repitió las seis operaciones con el cargador protegido de la instalación
 El instalador LATAM intentó volver a aplicar el localizador `//img/../..` sobre la plantilla estándar personalizada de SyS. La vista 204 de SyS tiene un encabezado sin imagen y la herencia 1215 ya se ajusta a él. Sus arquitecturas, padres y referencias externas coincidieron en el original nativo y en U40J. El bloque estándar distribuido por Odoo coincide en 1.0 y 1.1, con SHA-256 XML canónico `3d70253f3d94a0bd6ab09c0e3ba14fa910e7efc902bb17dbea9e49a1c48c4a39`. El cambio de la distribución 1.1 afecta al pie del diseño de ondas.
 
 El script fiscal original se ejecutó en el proceso de Odoo sobre la copia y sobre 18 combinaciones en una tabla temporal. Afectó cero diarios en la copia y solo al caso sintético de compra con documentos y bloqueo activado. Ambas transacciones se revirtieron.
+
+## Comparación de maestros y carga de código
+
+U41MQ arrancó desde la misma restauración con las dos versiones públicas 1.0 y 41 declaraciones de datos cotejadas contra los registros de SyS. Completó las tres actualizaciones de nómina. El actualizador fiscal ejecutó su migración y alcanzó 1.1. Una dependencia posterior, `step_account_monthly_books`, intentó reimportar dos permisos originales y el paso completo terminó con error. Los dos actores abrieron los seis formularios tanto antes como después del ensayo.
+
+El cotejo por identidad y por columna detectó 206 filas originales modificadas por la recarga de datos chilenos. En 204 filas solo cambió la fecha de escritura. Otras dos etiquetas de impuestos recibieron además un texto `es_CL` que el origen no tenía. Los demás valores y vínculos originales coincidieron. El perfil de conservación se obtuvo de las declaraciones de datos ya distribuidas por Odoo. Cada registro tiene una referencia externa original y la misma identidad. El catálogo del perfil excluye las dos traducciones adicionales de esas etiquetas.
+
+| Maestro fiscal | Filas cotejadas |
+| --- | ---: |
+| Etiquetas de cuenta | 47 |
+| Informe fiscal y columna | 2 |
+| Líneas y expresiones de informe | 64 |
+| Tipos de documentos | 58 |
+| Tipos de identificación | 3 |
+| Bancos | 32 |
+
+Veinte de las 47 etiquetas se declaran en `l10n_cl_chart_data.xml`. Las otras 27 pertenecen a `account_tax_tags_data.xml`. El perfil exige que las declaraciones de los seis archivos cubran exactamente las 206 identidades. Las filas completas de las ocho tablas se comparan con la fuente restaurada, incluidas las no mencionadas por el proveedor. [Verificación de los maestros fiscales](../tools/community/preserve_sys_original_fiscal_masters.py).
+
+El ejecutable `odoo-bin` del respaldo incorpora su carpeta `runtime/addons` antes de procesar las rutas configuradas. Los módulos seleccionados se montan además en esa ruta dentro del entorno privado para que el instalador y el arranque normal usen el mismo código probado. La prueba en frío compara el archivo importado, los manifiestos de los módulos y las fuentes de los 190 proveedores activos. [Ejecutor](../tools/community/rehearse_sys_module_upgrades.py) y [comprobación desde Odoo](../tools/community/probe_sys_retained_provider_release.py).
