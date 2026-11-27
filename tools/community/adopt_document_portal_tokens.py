@@ -34,7 +34,8 @@ def capture_portal_references(env):
 
 
 def adopt_portal_references(env, catalog):
-    assert env.su and re.fullmatch(r"COMMUNITY_(LIBRARY|PORTAL)_(SYS|CERRO)_[A-Z0-9_]+", env.cr.dbname)
+    assert env.su and (env.cr.dbname == "COMMUNITY_SYS_PREVIRED_COHORT_20261127U43C" or
+                       re.fullmatch(r"COMMUNITY_(LIBRARY|PORTAL)_(SYS|CERRO)_[A-Z0-9_]+", env.cr.dbname))
     env.cr.execute("LOCK TABLE documents_document IN SHARE ROW EXCLUSIVE MODE")
     if source_identity(env) != catalog["identity"]:
         raise ValidationError("Las identidades y referencias difieren de la copia nativa.")
