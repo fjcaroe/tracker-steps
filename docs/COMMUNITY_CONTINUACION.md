@@ -29,8 +29,11 @@ ventas, ese módulo y los 98 elementos de Documentos con 160 proveedores.
 Coincidieron las 686 decisiones de permiso, cuatro descargas y dos
 denegaciones. También coincidieron las respuestas de los 81 enlaces originales
 para el visitante y la cuenta externa. Cada uno pudo descargar nueve archivos
-con los mismos bytes y recibió 72 denegaciones. En Mesa de Ayuda, la referencia original conserva 243 tickets,
-1.795 mensajes y 418 adjuntos vinculados. [Ventas e impresión](COMMUNITY_STEPS_CRM.md) ·
+con los mismos bytes y recibió 72 denegaciones. El respaldo conjunto U44R
+recuperó 163.303 filas y 1.748 archivos. El vendedor y el empleado repitieron
+sus recorridos en dos arranques. En Mesa de Ayuda se recuperó la atención
+de los 243 tickets, con alta, cambio de etapa y reapertura desde el menú.
+La referencia conserva 1.795 mensajes y 418 adjuntos. [Ventas e impresión](COMMUNITY_STEPS_CRM.md) ·
 [Documentos](COMMUNITY_DOCUMENTOS_STEPS.md) · [Mesa de Ayuda](COMMUNITY_STEPS_SOPORTE.md)
 
 **Cerro El Plomo.** La copia de 187 módulos abrió las pantallas de presupuesto,
@@ -41,7 +44,10 @@ La versión corregida en U44M recuperó las relaciones y restricciones del origi
 Coincidieron las 36 consultas de permisos por empresa y las pruebas de
 instalación y actualización en esa copia de 188 módulos. De 23 pantallas
 históricas, el operador alcanzó 20 por menú y reprodujo el contenido completo
-de 15. Nómina sigue
+de 15. La siguiente copia de 189 módulos recuperó los seis conceptos de pago
+de exportación y sus productos. Llegó a 21 rutas, 20 lecturas de Studio y
+16 fichas completas. [Conceptos de pago](COMMUNITY_CERRO_CONCEPTOS_PAGO.md).
+Nómina sigue
 requiriendo una definición para Cerro sobre su bruto en cero frente al caso
 real de SyS. [Contratos de datos y permisos de Cerro](COMMUNITY_CERRO_CONTRATOS_POSTGRES.md)
 
