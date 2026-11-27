@@ -6,7 +6,8 @@ from pathlib import Path
 import shutil
 import subprocess
 
-PAIRS = [('development', '6fe12676'), ('development', '4455becc'), ('development', '230e6593')]
+PAIRS = [('development', '6fe12676'), ('development', '4455becc'), ('development', '230e6593'),
+         ('development', '21656059'), ('qa-cerro', '21656059'), ('cerro', '21656059')]
 ROOT = Path('/opt/steps-validation')
 
 
@@ -18,10 +19,11 @@ def sql(statement):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply', action='store_true')
+    parser.add_argument('--wait-for-lease', action='store_true')
     args = parser.parse_args()
     if args.apply:
         with open('/run/lock/steps-environments.lock', 'a') as lease:
-            fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(lease, fcntl.LOCK_EX | (0 if args.wait_for_lease else fcntl.LOCK_NB))
             cleanup(True)
     else:
         cleanup(False)
