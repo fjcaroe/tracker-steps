@@ -77,7 +77,7 @@ completo. Se comprobaron y extrajeron los 1.744 archivos de datos y los
 20.688 archivos de código. En dos arranques, el vendedor original abrió
 CRM, sus nueve oportunidades, doce adjuntos y el formulario de presupuesto
 con el cliente correcto. También se comprobaron los permisos del público y
-la lectura de los cuatro documentos comerciales históricos. El ensayo cerró
+que el vendedor viera los cuatro documentos comerciales históricos. El ensayo cerró
 el servidor privado y verificó su parada.
 
 El programa es `tools/community/restore_independent_steps_crm.py`. Recibe
