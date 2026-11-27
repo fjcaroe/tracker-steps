@@ -283,7 +283,10 @@ def odoo(args, mode, options, log, stdin=None, comparison_key=None, loopback=Fal
         argv[position:position] = ["--ro-bind", str(Path(__file__).resolve().parent), str(tooling)]
         position = argv.index("sudo")
         require(argv[position:position + 4] == ["sudo", "-n", "-u", "odoo"], "unexpected-odoo-report-user")
-        argv[position:position + 4] = ["/usr/bin/python3.10", str(tooling / "original_report_loopback.py"), "sudo", "-u", "odoo"]
+        require(argv[position + 4:position + 7] == ["env", "PYTHONDONTWRITEBYTECODE=1", "TMPDIR=" + str(temporary)],
+                "private-report-environment-required")
+        # Run the supervisor and the asset process as the same user, so wait() observes Odoo's exit.
+        argv[position + 4:position + 4] = ["/usr/bin/python3.10", str(tooling / "original_report_loopback.py")]
         argv[3:3] = ["bash", "-c", 'set -e; ip link set lo up; exec "$@"', "bash"]
     with log.open("xb") as handle:
         return subprocess.run(argv, input=stdin, stdout=handle, stderr=handle).returncode
