@@ -141,7 +141,7 @@ def cluster():
           == str(PORT) + "/" + str(database), "wrong-private-server")
 
 
-def snapshot(database=RESTORED):
+def snapshot(database=RESTORED, *, socket_dir=SOCKET, port_number=PORT, tools_root=None, execute=call):
     code = """
 import json, sys, psycopg2
 sys.path.insert(0, tools)
@@ -157,8 +157,9 @@ with psycopg2.connect(dbname=db, host=sock, port=port, user="postgres") as conn:
         ddl = objects(db, read_query)
 print(json.dumps([snapshot(db, ('helpdesk_ticket','crm_lead'), socket_dir=sock, port=port), ddl]))
 """
-    values = f"db={database!r}\nsock={SOCKET!r}\nport={PORT!r}\ntools={str(MEM / 'tools')!r}\n"
-    return json.loads(call("postgres", ["python3.10", "-c", values + code], capture_output=True).stdout)
+    module_dir = tools_root or MEM / "tools"
+    values = f"db={database!r}\nsock={str(socket_dir)!r}\nport={port_number!r}\ntools={str(module_dir)!r}\n"
+    return json.loads(execute("postgres", ["python3.10", "-c", values + code], capture_output=True).stdout)
 
 
 def schema_sha(database=RESTORED):

@@ -1,0 +1,29 @@
+<odoo>
+    <template id="sys_payroll_print" inherit_id="step_simpledigital_oca_base.report_payslip" priority="90">
+        <xpath expr="//div[hasclass('page')]" position="attributes">
+            <attribute name="class" add="step-sys-payslip" separator=" "/>
+        </xpath>
+        <xpath expr="//div[hasclass('page')]/h2" position="before">
+            <style>
+                .step-sys-payslip h2 { font-size: 19pt; margin: 0 0 5pt; }
+                .step-sys-payslip p { margin-bottom: 5pt; }
+                .step-sys-payslip table { margin-bottom: 7pt; }
+                .step-sys-payslip .table th, .step-sys-payslip .table td {
+                    padding: 2pt 4pt; line-height: 1.15;
+                }
+                .step-sys-payslip #step_other_stored_lines h3 {
+                    font-size: 12pt; margin: 3pt 0;
+                }
+                .step-sys-payslip #signature_section { margin-top: 16pt !important; }
+            </style>
+        </xpath>
+        <xpath expr="//div[@id='payslip_lines_table']" position="before">
+            <t t-set="sys_contract_wage" t-value="o._sys_print_contract_wage()"/>
+            <p id="sys_linked_contract_wage" t-if="sys_contract_wage is not None">
+                <strong>Salario del contrato</strong>
+                <span t-out="sys_contract_wage"
+                      t-options='{"widget":"monetary","display_currency":o.company_id.currency_id}'/>
+            </p>
+        </xpath>
+    </template>
+</odoo>

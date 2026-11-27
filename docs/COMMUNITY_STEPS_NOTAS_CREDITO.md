@@ -21,3 +21,22 @@ U50E partió de los 166 módulos recuperados, la corrección de la vista de Rend
 El operador y el usuario de consulta reprodujeron los 60 resultados del sistema original. Los 41 borradores se revirtieron y las 1.115 tablas mantuvieron su contenido. Avanzaron cinco contadores de prueba. Los recibos de instalación, actualización y prueba tienen las huellas `bf597de671ea26b0a21be3e4d4df4cdf29cc534fc1f7c29caa0c03908c3fd000`, `ce6864dcbc36790693d51f6cab75b50671349932febef6c711d85ac4675a1f92` y `faccf32d19f335636b04811c059152f85445d0a0d144ecbc0b2be75815060222`.
 
 Los dos operadores consultaron también los 243 tickets y sus 418 adjuntos en U50E. El invitado volvió a ver cinco tickets, tres mensajes y dos descargas. Se mantuvieron las denegaciones del portal, los enlaces vigentes y revocados, y los límites de las páginas de dos tickets. El control original tiene la huella `b70f02af8ef320ae106f27fb74c4fa26db878733de21a7e673eb79250b2884c8` y el de U50E `6129bb233dc0de833f6cc665df42e6d506de456eaa128a6df5cb8439917a6f92`.
+## Recuperación del respaldo integrado
+
+La copia de 168 módulos se congeló después de repetir los circuitos de venta,
+facturación, cobros, pagos a proveedores, Documentos, Mesa de Ayuda y rendiciones.
+Su índice tiene SHA-256 `288ff5e72369c9179736ca24179d66e29339745076115299b2fd069b41615a44`
+y reúne 50 recibos. El respaldo depende de la cadena R, H3, 165 y 166 y del
+suplemento de timbres incluido con la entrega 165.
+
+La recuperación independiente en PostgreSQL 12 comprobó las 163.624 filas,
+1.115 tablas, 807 contadores y 1.748 archivos. En cada uno de dos arranques
+volvieron a abrir 42 facturas, 418 archivos internos de soporte, dos descargas
+del invitado, los gastos y las rendiciones. El asistente entregó los cuatro
+campos necesarios para preparar la nota de crédito. El recibo de recuperación
+tiene SHA-256 `db8477f643a8f2e24eaceedb07d20ff8c52ba270d4940e68fc507ecb11d6472c`.
+
+El verificador `tools/community/verify_steps_expense_credit_backup.py`
+comprueba el respaldo y sus antecesores. La restauración en la estación de QA
+usa `tools/community/restore_local_steps_expense_credit.py` con las mismas
+cinco carpetas y la huella del índice.

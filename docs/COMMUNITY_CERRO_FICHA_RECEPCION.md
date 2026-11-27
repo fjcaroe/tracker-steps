@@ -1,0 +1,11 @@
+# Formulario de recepción de Cerro Community
+
+El paquete `step_cerro_receipt_form` registra los campos y relaciones originales de Calidad, guías de despacho, traslados interplanta, envases y correcciones que usa la ficha de recepción. Proyecta cinco tablas históricas sobre sus modelos de Odoo y conserva las relaciones a los maestros. Protege las columnas obligatorias de esas tablas durante la instalación y las actualizaciones. Se corrigió la codificación del nombre de la guía de despacho que había fallado en el primer cotejo.
+
+La derivada U46E partió de la copia de 193 módulos ya comprobada. La instalación inicial y la actualización a 194 conservaron 17.731 columnas, 8.375 restricciones, 3.318 índices, 1.247 contadores y 677 archivos. El auditor comprobó también las identidades y los permisos originales. Los recibos del catálogo coincidieron después de instalar, actualizar y revertir las pruebas.
+
+Coincidieron las 23 rutas, los 23 conjuntos de valores Studio y las 23 lecturas completas frente al original. El formulario 5245 entregó sus 211 definiciones y se comprobó la lectura de las recepciones en 64 contextos. Se cotejaron las dos guías históricas, el traslado interplanta, las devoluciones, las correcciones registradas y 30 variantes de lectura de inspecciones y alertas de Calidad por usuario y empresa.
+
+El formulario tiene 21 acciones cuyo método está presente en el registro. Quedan 13 acciones pendientes de recuperar, entre ellas operar las inspecciones, corregir o revertir una recepción y emitir o consultar guías ante el SII. Esta entrega califica la lectura completa de la ficha. El circuito de recepción manual y preparación de la devolución consta en el acta anterior. [Recepción operativa](COMMUNITY_CERRO_RECEPCION_OPERATIVA.md)
+
+El archivo reproducible de cuatro piezas tiene SHA-256 `120f6c137023604d673fa635e0c1bafb92e85e66f789d27df50bc9aa41e966cc`. Se reconstruye con `build_cerro_verified_172.py --profile receipt_form`. `run_cerro_receipt_form.py` instaló y actualizó ese archivo en la derivada, con las referencias privadas del ensayo nativo. El recibo final tiene SHA-256 `c5efbd5fd72d2a9954dc56ccc9cf1245d99a2e16812be0af03c5fec21b1047e9`.
