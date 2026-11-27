@@ -24,9 +24,13 @@ class Payslip(models.Model):
         self.check_field_access_rights('read', ['company_id', 'state', 'payslip_run_id'])
         if any(s.company_id != self.env.company or s.state != previous for s in self):
             raise UserError(_('Select payslips in the current company and expected payment state.'))
-        if target == 'done' and any(s.payslip_run_id.state == 'paid' for s in self):
-            raise UserError(_('Reopen payment on the paid batch before changing an individual payslip.'))
-        self.write({'state': target})
+        with self.env.cr.savepoint():
+            batches = self.mapped('payslip_run_id').filtered(lambda b: target == 'done' and b.state == 'paid')
+            for batch in batches.sorted('id'):
+                batch._step_sys_batch_members()
+            self.write({'state': target})
+            if batches:
+                batches.write({'state': 'close'})
 
     def action_payslip_paid(self):
         self._step_sys_payment_state('done', 'paid')
