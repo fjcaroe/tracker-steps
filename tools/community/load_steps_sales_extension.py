@@ -9,6 +9,8 @@ from preflight_original_history_storage import require
 
 
 PROFILES = {
+    'COMMUNITY_SYS_PREVIRED_COHORT_20261127U48C': 'step_payroll_oca_sys_history',
+    'COMMUNITY_SYS_PREVIRED_COHORT_20261127U48D': 'step_payroll_oca_sys_history',
     'COMMUNITY_SYS_FISCAL_PRINT_20261127U45P': 'step_report_print_colors',
     'COMMUNITY_STEPS_CRM_DOC_20261127U43X': 'step_document_library,step_document_library_portal',
     'COMMUNITY_STEPS_CRM_DOC_20261127U44P': 'step_document_library,step_document_library_portal,step_report_print_colors',
@@ -34,9 +36,11 @@ def guarded_command(command, work, frozen):
 def main():
     binary, plan, checksum, *args = sys.argv[1:]
     db = args[args.index('-d')+1]
+    option = '-u' if PROFILES.get(db) == 'step_payroll_oca_sys_history' else '-i'
     require(db in PROFILES and '--db-filter=^'+db+'$' in args and '--no-http' in args
             and '--stop-after-init' in args and '--max-cron-threads=0' in args
-            and args[args.index('-i')+1] == PROFILES[db], 'private-install-required')
+            and ('-i' if option == '-u' else '-u') not in args
+            and args[args.index(option)+1] == PROFILES[db], 'private-install-required')
     payload = Path(plan).read_bytes()
     require(hashlib.sha256(payload).hexdigest() == checksum, 'required-columns-plan-changed')
     columns = json.loads(payload)
