@@ -387,11 +387,13 @@ def final_receipt(args, proof, filename="final.json"):
                     "hr_payroll_structure", "hr_salary_rule", "resource_calendar", "resource_calendar_attendance",
                     "res_groups", "ir_rule", "ir_model_access", "res_groups_users_rel", "res_groups_implied_rel", "rule_group_rel")
     require(all(name in original["public_tables"] for name in proof_tables), "missing-covered-table")
+    if db.endswith("U41MW"):
+        require("l10n_cl_account_invoice_reference" in original["public_tables"], "original-invoice-references-required")
     checks = set(proof_tables) | (set(original["public_tables"]) & {
         "hr_causal_contract_end", "hr_employee_movement_type", "hr_contract_type", "hr_work_entry_type",
         "hr_leave_type", "res_city", "res_country_state", "res_company", "ir_sequence", "ir_sequence_date_range",
         "res_bank", "account_account_tag", "account_report", "account_report_column", "account_report_expression",
-        "account_report_line", "l10n_latam_document_type", "l10n_latam_identification_type"})
+        "account_report_line", "l10n_latam_document_type", "l10n_latam_identification_type", "l10n_cl_account_invoice_reference"})
     lost_required = [key for key, definition in original["columns"].items() if definition[1] and
                      (key not in current["columns"] or not current["columns"][key][1])]
     versions = module_versions(db)
