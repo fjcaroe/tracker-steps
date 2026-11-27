@@ -1,5 +1,6 @@
 """Render real posted Chilean invoices through the original report action on the isolated final cohort."""
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -11,6 +12,7 @@ from unittest.mock import patch
 
 from lxml import html
 from odoo.tools import config
+from PyPDF2 import PdfFileReader
 
 
 def run(shell):
@@ -32,6 +34,7 @@ def run(shell):
     actors = shell["res.users"].search([("active", "=", True), ("share", "=", False), ("id", ">", 1)])
     assert len(actors) == 2
     result = []
+    extractor = Path(shutil.which("gs")).resolve(strict=True)
     renderer = type(service)._run_wkhtmltopdf
     calls = []
 
@@ -67,12 +70,13 @@ def run(shell):
                     count_before = len(calls)
                     pdf, kind = report._render_qweb_pdf("account.account_invoices", res_ids=move.ids)
                     assert kind == "pdf" and pdf.startswith(b"%PDF-") and len(calls) == count_before + 1
-                    text = subprocess.run(["pdftotext", "-layout", "-enc", "UTF-8", "-", "-"],
+                    text = subprocess.run([str(extractor), "-q", "-dSAFER", "-dBATCH", "-dNOPAUSE", "-sDEVICE=txtwrite",
+                                           "-dTextFormat=3", "-sOutputFile=-", "-"],
                                           input=pdf, check=True, capture_output=True).stdout.decode()
                     printed_words = set(re.findall(r"\w+", text.casefold()))
                     assert len(article_words) > 15 and len(article_words & printed_words) >= 0.8 * len(article_words)
                     assert all(ref.origin_doc_number in text for ref in move.l10n_cl_reference_ids)
-                    pages = sum(bool(page.strip()) for page in text.split("\f"))
+                    pages = PdfFileReader(io.BytesIO(pdf)).getNumPages()
                     assert pages > 0
                     output = directory / ("%s-%s.pdf" % (actor.id, move_type))
                     with output.open("xb") as handle:
@@ -89,4 +93,5 @@ def run(shell):
     binary = Path(shutil.which("wkhtmltopdf")).resolve()
     shell.cr.rollback()
     return {"original_report": "account.account_invoices", "authenticated_operator_count": len(actors),
-            "renderer_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "printed": result}
+            "renderer_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+            "text_extractor_sha256": hashlib.sha256(extractor.read_bytes()).hexdigest(), "printed": result}
