@@ -410,6 +410,18 @@ def journal_migration(args):
     return json.loads(result[0])
 
 
+def attachment_changes(source, database):
+    sql = """SELECT json_object_agg(id,json_build_array(md5(to_jsonb(a)::text),coalesce(type='binary' AND
+        mimetype='text/css' AND url LIKE '/web/assets/%',false))) FROM ir_attachment a"""
+    before, after = (json.loads(query(name, sql)) for name in (source, database))
+    removed, added = before.keys() - after.keys(), after.keys() - before.keys()
+    kept = before.keys() & after.keys()
+    require(all(before[k] == after[k] for k in kept) and all(before[k][1] for k in removed)
+            and all(after[k][1] for k in added), "original-attachment-metadata-drift")
+    return {"original": len(before), "byte_identical_sql_rows": len(kept),
+            "removed_compiled_stylesheets": len(removed), "added_compiled_stylesheets": len(added)}
+
+
 def final_receipt(args, proof, filename="final.json"):
     out, db = args.output, args.database
     restored = json.loads((out / "restored.json").read_bytes())
@@ -480,6 +492,8 @@ def final_receipt(args, proof, filename="final.json"):
                                "covered_tables": sorted(documents), "linked_attachments": attached}
         require(all(states[m] == ["installed", expected] for m, expected in DOCUMENT_MODULES.items()),
                 "document-version-drift")
+    if filename in ("postflight-pdf.json", "combined-workflows-storage.json"):
+        result["attachment_metadata"] = attachment_changes(source, db)
     if db in COMBINED_SOURCES:
         source_tree = json.loads((args.sealed / "filestore-physical.json").read_bytes())
         physical = inventory(store, original_files)
