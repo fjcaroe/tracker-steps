@@ -52,6 +52,13 @@ def compare_native(original, candidate):
 
 
 def compare_printed_pages(receipt, original_directory, migrated_directory):
+    def text_runs(page):
+        return [span for block in page.get_text("dict")["blocks"] if "lines" in block
+                for line in block["lines"] for span in line["spans"] if span["text"].strip()]
+
+    def geometry(page):
+        return [{k: v for k, v in path.items() if k not in ("color", "fill")} for path in page.get_drawings()]
+
     result = []
     for row in receipt["printed"]:
         name = "%s-%s.pdf" % (row["actor"], row["kind"])
@@ -63,9 +70,19 @@ def compare_printed_pages(receipt, original_directory, migrated_directory):
                 b = target.get_pixmap(colorspace=pymupdf.csGRAY, alpha=False)
                 if (a.width, a.height) != (b.width, b.height):
                     raise ValueError("The physical dimensions of the printed page differ")
+                before, after = text_runs(source), text_runs(target)
+                for field in ("text", "font", "size", "origin", "bbox", "flags"):
+                    if [span[field] for span in before] != [span[field] for span in after]:
+                        raise ValueError("The text geometry or typography differs from the original page")
+                shapes = geometry(source)
+                if shapes != geometry(target):
+                    raise ValueError("The drawing geometry differs from the original page")
+                colors = sorted({(format(old["color"], "06x"), format(new["color"], "06x"))
+                                 for old, new in zip(before, after) if old["color"] != new["color"]})
                 pixels = sum(x != y for x, y in zip(a.samples, b.samples))
                 result.append({"actor": row["actor"], "kind": row["kind"], "page": number,
-                               "pixels": a.width * a.height, "different_pixels": pixels})
+                               "pixels": a.width * a.height, "different_pixels": pixels, "text_runs": len(before),
+                               "drawing_paths": len(shapes), "different_text_colors": colors})
     return result
 
 
