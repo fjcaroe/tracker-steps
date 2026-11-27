@@ -1,5 +1,12 @@
 # Operación y publicación de Odoo
 
+T246 autoriza cambiar el productor recibido de fruta a proceso mientras todas
+las tarjas C de la recepción conserven su stock en inventario, sin despacho
+ni proceso. Publicar `step_packing_producer_change` 18.0.1.1.0 en Desarrollo,
+Cerro y QA-Cerro con copias frescas y el mismo paquete probado; conservar
+datos y aislamiento de QA-Cerro. La instalación no corrige registros reales.
+Ver `T246_PRODUCTOR_RECEPCION.md`.
+
 La revisión del reclamo de versiones Harvest del 26-11-2026 mantiene el paquete
 certificado 0.0.11 en Desarrollo, Cerro y QA-Cerro y corrige únicamente su caché
 HTTP. Las entregas reproducibles comparten fecha y tamaño del HTML: el ETag de

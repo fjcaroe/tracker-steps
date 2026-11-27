@@ -1,0 +1,70 @@
+<odoo>
+  <record id="access_receipt_producer_change" model="ir.model.access">
+    <field name="name">Cambiar productor recibido</field>
+    <field name="model_id" ref="model_step_receipt_producer_change"/>
+    <field name="group_id" ref="stock.group_stock_manager"/>
+    <field name="perm_read" eval="True"/><field name="perm_write" eval="True"/>
+    <field name="perm_create" eval="True"/><field name="perm_unlink" eval="True"/>
+  </record>
+  <record id="receipt_producer_change_form" model="ir.ui.view">
+    <field name="name">step.receipt.producer.change.form</field>
+    <field name="model">step.receipt.producer.change</field>
+    <field name="arch" type="xml">
+      <form string="Cambiar productor recibido">
+        <group>
+          <field name="picking_id"/><field name="previous_producer_id"/>
+          <field name="tag_ids" widget="many2many_tags" readonly="1" options="{'no_open': True}"/>
+          <field name="producer_id" options="{'no_create': True}"/>
+          <field name="reason"/>
+        </group>
+        <p>Se actualizarán Recibido de, el productor y el propietario del stock de todas las tarjas C de esta recepción. Deben conservar toda su fruta en inventario, sin despacho ni proceso. Los kilos, cajas, lotes y movimientos originales se conservan.</p>
+        <footer>
+          <button name="action_apply" type="object" string="Cambiar productor" class="btn-primary"/>
+          <button string="Cancelar" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+  <record id="receipt_producer_moves" model="ir.ui.view">
+    <field name="name">stock.move.receipt.producer.change.list</field>
+    <field name="model">stock.move</field>
+    <field name="arch" type="xml">
+      <list create="0" edit="0" delete="0">
+        <field name="date"/><field name="step_producer_tag_id" string="Tarja"/>
+        <field name="step_producer_change_direction" string="Cambio"/>
+        <field name="restrict_partner_id" string="Productor"/><field name="product_id"/>
+        <field name="quantity"/><field name="product_uom"/>
+        <field name="step_producer_change_reason"/><field name="create_uid"/>
+      </list>
+    </field>
+  </record>
+  <record id="process_receipt_producer_form" model="ir.ui.view">
+    <field name="name">stock.picking.received.producer.form</field>
+    <field name="model">stock.picking</field>
+    <field name="inherit_id" ref="step_packing_reception_revision.view_process_reception_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//header" position="inside">
+        <button name="action_step_change_received_producer" type="object" string="Cambiar productor"
+                groups="stock.group_stock_manager" invisible="state != 'done' or step_fruit_reception_kind != 'process'"/>
+      </xpath>
+      <xpath expr="//div[@name='button_box']" position="inside">
+        <button name="action_step_view_producer_changes" type="object" class="oe_stat_button"
+                icon="fa-exchange" invisible="not step_producer_change_count">
+          <field name="step_producer_change_count" widget="statinfo" string="Cambios de productor"/>
+        </button>
+      </xpath>
+    </field>
+  </record>
+  <record id="c_tag_received_producer_form" model="ir.ui.view">
+    <field name="name">stock.quant.package.received.producer.form</field>
+    <field name="model">stock.quant.package</field>
+    <field name="inherit_id" ref="step_inventory_packing.view_quant_package_form_steps_fruit"/>
+    <field name="arch" type="xml">
+      <xpath expr="//header" position="inside">
+        <field name="step_process_reception_id" invisible="1"/>
+        <button name="action_step_change_received_producer" type="object" string="Cambiar productor"
+                groups="stock.group_stock_manager" invisible="step_tag_kind != 'C' or not step_process_reception_id"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>
