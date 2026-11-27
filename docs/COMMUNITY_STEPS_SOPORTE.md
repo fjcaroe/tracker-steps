@@ -11,7 +11,7 @@ referencia no se encuentra entre los 243. Se mantienen en el respaldo.
 Se probaron siete combinaciones de usuario y compañía. Los dos operadores
 internos habituales abrieron la lista y el formulario de 50 campos, leyeron
 17 valores y relaciones por ticket y tuvieron acceso de escritura a los 243.
-Cada operador descargó cuatro adjuntos. Una cuenta externa consultó cinco
+Cada operador leyó el contenido de cuatro adjuntos con su cuenta. Una cuenta externa consultó cinco
 tickets y tuvo denegada la búsqueda directa de adjuntos. El usuario público
 tenía denegado el acceso al modelo. Una compañía del administrador tenía la
 lista vacía. La referencia conserva las huellas de los valores, registros,
