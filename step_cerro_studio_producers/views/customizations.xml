@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="agricultural_products" model="ir.ui.view">
+        <field name="name">Odoo Studio: product.template.product.list customization</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="priority">160</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='default_code']" position="after">
+                    <xpath expr="//field[@name='uom_id']" position="move"/>
+                    <field name="cod_labor" optional="show"/>
+                    <field name="grupo_labor" optional="show"/>
+                    <field name="actividad_id" optional="show"/>
+                    <field name="uom_trato" optional="show"/>
+                    <field name="step_export_species_id" optional="show"/>
+                    <field name="es_trabajador" optional="show"/>
+                    <field name="es_maquina" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="export_estimates" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.export.estimate.list customization</field>
+        <field name="model">step.export.estimate</field>
+        <field name="inherit_id" ref="step_producers.view_step_export_estimate_list"/>
+        <field name="priority">160</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='producer_id']" position="after">
+                    <field name="user_id" optional="show"/>
+                    <field name="packing_partner_id" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>

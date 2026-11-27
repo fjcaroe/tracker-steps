@@ -51,7 +51,6 @@ def adopt_legacy_records(env):
     for record in env['ir.model.data'].search([('module', '=', LEGACY)]):
         if _owned(record):
             _alias(record, CORE)
-            record.noupdate = True
 
 
 def preserve_legacy_xmlids(env):
