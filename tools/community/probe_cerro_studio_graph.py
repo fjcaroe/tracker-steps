@@ -16,7 +16,7 @@ VIEW_PROVIDERS = {
     'analytic_centres': ('step_hr', 'step_management_costs_agriculture'),
     'farms': ('step_hr', 'step_agriculture_shared_farms'),
     'analytic_centre_form': ('step_hr',),
-    'species': ('step_hr', 'step_agriculture_catalogs', 'step_producer_fruit_reports'),
+    'species': ('step_hr', 'step_agriculture_catalogs', 'step_agriculture_species_pallet'),
     'agricultural_products': ('product', 'step_hr', 'step_producers'),
     'export_estimates': ('step_producers',),
     'payment_rates': ('step_export',),
