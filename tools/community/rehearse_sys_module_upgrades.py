@@ -48,6 +48,13 @@ def module_versions(db):
                                 "FROM ir_module_module WHERE state<>'uninstalled'"))
 
 
+def guards(db):
+    return json.loads(query(db, """SELECT json_object_agg(c.relname||'.'||t.tgname,
+        json_build_array(t.tgenabled, md5(pg_get_triggerdef(t.oid)), md5(pg_get_functiondef(t.tgfoid))))
+        FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid
+        WHERE NOT t.tgisinternal AND c.relnamespace='public'::regnamespace"""))
+
+
 def check_space(size):
     data = Path(query("postgres", "SHOW data_directory"))
     target = Path(query("postgres", f"SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname='{SPACE}'"))
@@ -105,12 +112,14 @@ def restore(args, proof):
     for path in (data, *data.rglob("*")):
         require(not path.is_symlink(), "private-filestore-symlink")
         os.chown(path, service.pw_uid, service.pw_gid)
+    original_guards = guards(source)
+    require(len(original_guards) >= 40 and guards(db) == original_guards, "original-trigger-drift")
     versions = module_versions(db)
     require(all(versions[name] == ["installed", old] for name, (old, new) in MODULES.items()), "original-version-drift")
     (out / "runtime").mkdir(mode=0o755)
     save(out / "restored.json", {"database": db, "sealed": str(sealed), "dump": proof["sql_sha256"],
                                  "runtime": proof["runtime"]["archive_sha256"], "free": free,
-                                 "rows": proof["rows"], "objects": len(catalog), "tablespace": SPACE})
+                                 "rows": proof["rows"], "objects": len(catalog), "tablespace": SPACE, "guards": original_guards})
 
 
 def odoo(args, mode, options, log, stdin=None):
@@ -164,6 +173,7 @@ def upgrade(args, proof):
     run = out / ("upgrade-" + module)
     run.mkdir(mode=0o700)
     before = snapshot(db)
+    require(guards(db) == restored["guards"], "original-guards-changed-before-upgrade")
     initial = module_versions(db)
     journals = journal_domain(db)
     require(initial[module] == ["installed", old], "module-no-longer-at-original-version")
@@ -172,6 +182,7 @@ def upgrade(args, proof):
     after = snapshot(db)
     log = out / "data" / (module + "-odoo.log")
     raw = log.read_text() if log.is_file() else ""
+    require(guards(db) == restored["guards"], "original-guards-changed-after-upgrade")
     delta = differences(before, after)
     result = {"module": module, "old": initial[module], "new": final[module], "expected": expected,
               "journal_domain": [journals, journal_domain(db)], "odoo_exit": code, "manifest": providers[module][1], "loaded": "Modules loaded." in raw,
