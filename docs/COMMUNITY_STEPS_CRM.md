@@ -114,3 +114,24 @@ en la pareja privada. Los recibos `U43SI-steps-sale-reports-native.json` y
 `U43SI-steps-sale-reports-quote.json` conservan las huellas de los importes
 y las relaciones. La contabilización y la emisión tributaria quedan pendientes
 para este perfil de Steps.
+
+### Impresión de los cuatro documentos de venta
+
+El vendedor imprimió un presupuesto y tres pedidos con la acción original de
+ventas. En la primera copia Community, el contenido, la posición de los
+textos, las fuentes y las figuras coincidían. El texto y algunas líneas
+usaban dos tonos de gris distintos de los originales.
+
+La extensión libre `step_report_print_colors` usa los dos colores medidos en
+los PDF y los aplica al conjunto de estilos de impresión de Community.
+En una restauración nueva del respaldo de ventas, el vendedor volvió a
+imprimir los mismos cuatro documentos. Las cuatro páginas coincidieron en texto
+y píxeles en dos comparadores independientes. Uno comprobó a 96 ppp las
+imágenes completas. El otro comprobó 500.990 píxeles por página, 140 tramos de
+texto y 63 figuras. Las dos comparaciones devolvieron cero píxeles distintos.
+
+El paquete de tres archivos se reproduce con
+`python tools/community/package_steps_print_colors.py`. Su SHA-256 es
+`db1f4c20809563d81e759b2d03c76b1ed57f547d02e4b320eca7901f4cc19dc9`.
+Los PDF y las comparaciones U43SG y U43SH se conservan en la custodia privada
+de Steps.
