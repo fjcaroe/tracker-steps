@@ -126,6 +126,25 @@ def restore(args, proof):
                                  "rows": proof["rows"], "objects": len(catalog), "tablespace": SPACE, "guards": original_guards})
 
 
+def guarded_plan(args):
+    template = PRIVATE / "community-sys-cohort-20261126U40J/receipts/cohort-plan.json"
+    require(digest(template) == "4b42c4c1789196f72b32f96a6f14e39bb18a822b8958907057337fbe34ec8573",
+            "original-protection-plan-drift")
+    plan = json.loads(template.read_bytes())
+    require(plan["database"] == "COMMUNITY_SYS_PREVIRED_COHORT_20261126U40J"
+            and len(plan["mandatory_columns"]) == 18 and len(plan["retained_supplier_aliases"]) == 2,
+            "unexpected-original-protections")
+    plan["database"] = args.database
+    output = args.output / "cohort-guards.json"
+    if output.exists():
+        require(json.loads(output.read_bytes()) == plan, "candidate-guard-plan-drift")
+    else:
+        save(output, plan)
+        os.chown(output, 0, pwd.getpwnam("odoo").pw_gid)
+        output.chmod(0o440)
+    return output
+
+
 def odoo(args, mode, options, log, stdin=None, comparison_key=None):
     out, db = args.output, args.database
     core = out / "runtime"
@@ -154,6 +173,19 @@ def odoo(args, mode, options, log, stdin=None, comparison_key=None):
         require(args.database.endswith("U41MP") and fingerprint(out / "profile") == (expected["files"], expected["sha256"]),
                 "profile-checksum-drift")
         addons.insert(0, out / "profile")
+    if not mode and (out / "profile").is_dir():
+        require(options == ["-u", args.module], "unexpected-candidate-operation")
+        tooling = out / "validator"
+        tooling.mkdir(mode=0o755, exist_ok=True)
+        mount_at = argv.index("--proc")
+        argv[mount_at:mount_at] = ["--ro-bind", str(Path(__file__).resolve().parent), str(tooling)]
+        argv[-1] = str(tooling / "load_sys_payroll_cohort.py")
+        argv.extend(["--database", db, "--runtime", str(core), "--plan", str(guarded_plan(args)),
+                     "--config", "/etc/odoo18-sys.conf", "--data-dir", str(out / "data"),
+                     "--addons-path", ",".join(map(str, addons)), "--upgrade-module", args.module,
+                     "--logfile", str(out / "data" / (log.stem + "-odoo.log"))])
+        with log.open("xb") as handle:
+            return subprocess.run(argv, stdout=handle, stderr=handle).returncode
     argv.extend(["-c", "/etc/odoo18-sys.conf", "-d", db, "--db-filter=^" + db + "$", "--db_host=/var/run/postgresql",
                  "--data-dir=" + str(out / "data"), "--addons-path=" + ",".join(map(str, addons)),
                  "--no-http", "--workers=0", "--max-cron-threads=0", "--stop-after-init", "--without-demo=all", "--load=base,web",
@@ -294,6 +326,12 @@ def upgrade(args, proof):
               "all_module_state_changes": {k: [initial.get(k), final.get(k)] for k in initial.keys() | final.keys()
                                            if initial.get(k) != final.get(k)}, "delta": delta,
               "pg_errors": sorted(set(re.findall(r"psycopg2\.errors\.([A-Za-z_]+)", raw)))}
+    if (out / "profile").is_dir():
+        original_contracts = json.loads((out / "cohort-guards.json").read_bytes())["mandatory_columns"]
+        result["original_required_columns"] = {key: after["columns"][key][1] for key in original_contracts}
+        require(all(result["original_required_columns"].values()), "candidate-dropped-an-original-not-null")
+        result["official_cleanup_with_supplier_protection"] = "SYS_OFFICIAL_CLEANUP" in (run / (module + ".log")).read_text()
+        result["passed"] = result["passed"] and result["official_cleanup_with_supplier_protection"]
     save(run / "receipt.json", result)
     print(json.dumps({k: result[k] for k in ("module", "new", "passed", "pg_errors")}), flush=True)
 

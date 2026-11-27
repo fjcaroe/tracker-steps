@@ -32,9 +32,13 @@ def main():
     p.add_argument('--addons-path', required=True)
     p.add_argument('--data-dir', required=True)
     p.add_argument('--logfile', required=True)
+    p.add_argument('--upgrade-module', choices=('l10n_cl_simpledigital_payroll', 'step_hr_previred',
+                    'step_hr_previred_simpledigital', 'hr_timesheet', 'project_sms', 'l10n_latam_invoice_document'))
     args = p.parse_args()
     database = args.database
-    require(re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', database),
+    valid_database = (database == 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MP' if args.upgrade_module
+                      else re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', database))
+    require(valid_database,
             'sys-cohort-private-loader-required')
     plan = json.loads(args.plan.read_bytes())
     require(plan['database'] == database and plan['integral_conversion'] is False,
@@ -103,7 +107,7 @@ def main():
                     '--data-dir=' + args.data_dir, '--addons-path=' + args.addons_path,
                     '--load=base,web', '--workers=0', '--max-cron-threads=0', '--no-http',
                     '--stop-after-init', '--without-demo=all', '--logfile=' + args.logfile,
-                    '-u', ','.join(ROOTS)]
+                    '-u', args.upgrade_module or ','.join(ROOTS)]
         try:
             cli.main()
         except SystemExit as exc:
