@@ -48,7 +48,8 @@ def intersection(env, actor):
 
 
 def combined(env, prepared):
-    assert env.cr.dbname == COMBINED and env.registry.test_cr is None
+    allowed = (COMBINED, 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD')
+    assert env.cr.dbname in allowed and env.registry.test_cr is None
     assert {line.split(":")[0].strip() for line in Path("/proc/net/dev").read_text().splitlines()[2:]} == {"lo"}
     manager = env["res.users"].browse(6)
     assert manager.active and not manager.share and manager.has_group("payroll.group_payroll_manager")

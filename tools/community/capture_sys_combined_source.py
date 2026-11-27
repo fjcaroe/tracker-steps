@@ -50,8 +50,8 @@ def settings():
                            allow_forward_sequences_on_source=False)
 
 
-def physical_bundle(sealed, frozen, catalog, sql_sha):
-    original = ORIGIN / "data/filestore" / SOURCE
+def physical_bundle(sealed, frozen, catalog, sql_sha, original, restored):
+    source = original.name
     extras = {name: frozen[name] for name in sorted(frozen.keys() - catalog.keys())}
     archive = sealed / "filestore-extra.tar"
     if not archive.exists():
@@ -72,7 +72,7 @@ def physical_bundle(sealed, frozen, catalog, sql_sha):
         require(not remaining, "missing-extra-member")
     require(inventory(original, catalog) == frozen, "physical-source-changed")
     tree_hash = hashlib.sha256(json.dumps(frozen, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    result = {"source": SOURCE, "restored": TARGET, "sql_sha256": sql_sha,
+    result = {"source": source, "restored": restored, "sql_sha256": sql_sha,
               "referenced_objects": len(catalog), "unreferenced_objects": sum(not n.startswith("checklist/") for n in extras),
               "checklist_markers": sum(n.startswith("checklist/") for n in extras),
               "supplemental_bytes": sum(v[0] for v in extras.values()), "all_files": len(frozen),
@@ -94,7 +94,8 @@ def capture_source():
     original = inventory(args.source_data / "filestore" / SOURCE, catalog)
     frozen, proof, _, _ = package(args, ROOT, SOURCE, modules)
     verify_same(frozen, full_snapshot(SOURCE))
-    physical = physical_bundle(ROOT / "sealed", original, catalog, proof["sql_sha256"])
+    physical = physical_bundle(ROOT / "sealed", original, catalog, proof["sql_sha256"],
+                               args.source_data / "filestore" / SOURCE, TARGET)
     save(ROOT / "source-checkpoint.json", {"source": SOURCE, "target": TARGET, "sql": proof["sql_sha256"],
          "filestore": proof["archive_sha256"], "engine": proof["runtime"], "physical": physical,
          "payroll_release": PAYROLL_SHA, "source_frozen": True})
