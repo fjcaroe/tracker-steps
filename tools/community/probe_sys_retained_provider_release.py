@@ -71,7 +71,8 @@ def run(shell, root, original):
         assert mod.latest_version == "18.0.1.0" and manifest["version"] == "1.0" and manifest["license"] == "LGPL-3"
         versions[name] = mod.latest_version
     installed = shell["ir.module.module"].search([("state", "=", "installed")])
-    assert len(installed) == 190 and not installed.filtered(lambda item: item.license == "OEEL-1")
+    expected_modules = 192 if shell.cr.dbname == "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD" else 190
+    assert len(installed) == expected_modules and not installed.filtered(lambda item: item.license == "OEEL-1")
     differences = {item.name: [item.latest_version, adapt_version(get_manifest(item.name)["version"])]
                    for item in installed if item.latest_version != adapt_version(get_manifest(item.name)["version"])}
     assert not differences and all(Path(get_module_path(item.name)).resolve().is_relative_to(root) for item in installed)
