@@ -62,9 +62,9 @@ def runtime_files():
     return target
 
 
-def release(name, source, expected):
+def release(name, source, expected, work=WORK):
     require(digest(source) == expected, "support-package-sha256")
-    dest = WORK / "releases" / expected
+    dest = work / "releases" / expected
     dest.mkdir(parents=True, exist_ok=True)
     members = {}
     with tarfile.open(source) as archive:

@@ -57,7 +57,7 @@ def read_filed_documents(env):
                                                        'COMMUNITY_STEPS_CRM_DOC_20261127U44P',
                                                        'COMMUNITY_STEPS_CRM_RECOVERY_20261127U44R',
                                                        'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3',
-            'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A'))
+            'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A', 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F'))
     assert {line.split(':')[0].strip() for line in Path('/proc/net/dev').read_text().splitlines()[2:]} == {'lo'}
     env.cr.rollback()
     env.cr.execute('SET TRANSACTION READ ONLY')
