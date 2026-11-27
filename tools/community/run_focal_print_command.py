@@ -24,6 +24,16 @@ def run(args):
         subprocess.run(["mount", "--bind", "/dev/" + name, str(dev / name)], check=True)
     (dev / "shm").mkdir(mode=0o1777)
     subprocess.run(["mount", "--bind", "/dev/shm", str(dev / "shm")], check=True)
+    if args.steps_expense_recovery:
+        source = Path("/tmp/steps-expense-recovery-u50")
+        target = dev / "shm/steps-expense-recovery-u50"
+        fs = subprocess.check_output(["findmnt", "-n", "-o", "FSTYPE", "--target", str(source)], text=True).strip()
+        if fs != "tmpfs" or source.resolve(strict=True) != source or source.stat().st_uid:
+            raise ValueError("Expected the private Steps memory volume")
+        target.mkdir(mode=0o711, exist_ok=True)
+        if target.resolve(strict=True) != target or target.stat().st_uid:
+            raise ValueError("Unexpected Steps recovery mount")
+        subprocess.run(["mount", "--bind", str(source), str(target)], check=True)
     (dev / "fd").symlink_to("/proc/self/fd")
     if args.sys_payslip_form:
         trials = {"COMMUNITY_SYS_PREVIRED_COHORT_20261127U48C": "sys-u48-payslip",
@@ -58,6 +68,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inside", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--sys-payslip-form", action="store_true")
+    parser.add_argument("--steps-expense-recovery", action="store_true")
     parser.add_argument("--loopback", action="store_true")
     parser.add_argument("--user", choices=UIDS, required=True)
     parser.add_argument("command", nargs=argparse.REMAINDER)
