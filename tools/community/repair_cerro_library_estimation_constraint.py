@@ -1,4 +1,5 @@
 """Restore the validated three-column estimate constraint in the private Cerro library."""
+import argparse
 import fcntl
 import hashlib
 import json
@@ -7,6 +8,7 @@ import psycopg2
 
 SOURCE = 'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_20261126U40D'
 TARGET = 'COMMUNITY_LIBRARY_CERRO_20261126U41L'
+ESTIMATE_TARGET = 'COMMUNITY_CERRO_BOM_ESTIMATE_20261126U42E'
 NAME = 'step_management_estimation_line_estimation_line_center_unique'
 DEFINITION = 'UNIQUE (estimation_id, center_id, cuartel_id)'
 
@@ -33,15 +35,17 @@ def constraints(cr):
     return set(cr.fetchall())
 
 
-def repair():
+def repair(database=TARGET):
+    if database not in (TARGET, ESTIMATE_TARGET):
+        raise ValueError('Unknown private Cerro copy')
     with psycopg2.connect(dbname=SOURCE, host='/var/run/postgresql') as source, source.cursor() as cr:
         cr.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
         original = evidence(cr)
         original_constraints = constraints(cr)
         assert original['constraint'] == (DEFINITION, True)
-    with psycopg2.connect(dbname=TARGET, host='/var/run/postgresql') as target, target.cursor() as cr:
+    with psycopg2.connect(dbname=database, host='/var/run/postgresql') as target, target.cursor() as cr:
         cr.execute("SELECT current_database(),current_user")
-        assert cr.fetchone() == (TARGET, 'postgres')
+        assert cr.fetchone() == (database, 'postgres')
         cr.execute('LOCK TABLE step_management_estimation_line IN ACCESS EXCLUSIVE MODE')
         before = evidence(cr)
         assert {k: v for k, v in before.items() if k != 'constraint'} == {
@@ -60,12 +64,15 @@ def repair():
         missing = original_constraints - current_constraints
         if missing:
             raise ValueError('Original Cerro constraints differ: ' + repr(sorted((r[0], r[1]) for r in missing)))
-    return {'source': SOURCE, 'target': TARGET, 'constraint': DEFINITION,
+    return {'source': SOURCE, 'target': database, 'constraint': DEFINITION,
             'original_constraints': len(original_constraints), 'additional_constraints': len(current_constraints - original_constraints),
             'restored': before['constraint'] is None, 'rows': original['count'], 'rows_sha256': original['rows_sha256']}
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--database', choices=(TARGET, ESTIMATE_TARGET), default=TARGET)
+    args = parser.parse_args()
     with open('/run/lock/steps-environments.lock', 'rb') as gate:
         fcntl.flock(gate, fcntl.LOCK_EX)
-        print(json.dumps(repair(), sort_keys=True))
+        print(json.dumps(repair(args.database), sort_keys=True))

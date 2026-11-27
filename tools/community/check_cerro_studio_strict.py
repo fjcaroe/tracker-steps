@@ -17,13 +17,18 @@ LIBRARY_PACKAGES = {
     '18.0.1.0.4': ('proof-fd485cda0d27', '0c5131e2cbdfab81bc161ec234822ebee89d34f6c79c7203ebc39880bb0f4426'),
     '18.0.1.0.5': ('proof-f8ffbc336c51', 'a5da5d753c098a23ffda43c7344c01c08419f26fd6193d0975d8a65e41148db4'),
 }
+PARENT_PROFILE = 'agriculture-parents-b08f02345e59'
+PARENT_HASHES = {
+    'step_cerro_studio_species': 'e0ebfd91c02e3d08430ed8da4cab2dcf5a2a79359d984cc5fd5ef1326a95a07b',
+    'step_cerro_studio_agriculture': '521a2f809b821c9c0750b5aa39a364a39b055990055e828eebf886b0a086a2fe',
+}
 CORE_SCOPE = 'core-scope-2aacc0a97940'
 CORE_SHA = 'c033b2fa4a1c45072abeb1707eba9cd672167d300707bd0d02981654870258db'
-PROCESS_PROFILE = 'process-catalog-e05c4b617a37'
+PROCESS_PROFILE = 'process-catalog-4f7fbac81c90'
 PROCESS_HASHES = {
     'step_packing_process_catalog': '2cde86f902761b8dd9a19696b8f5d18b7cad68c540536c0162b03041e93282be',
     'step_packing_process_category': '0905d010a276a64f681fc992cea56697c9a415028e3ce5d64ed18fb5842e26a5',
-    'step_cerro_studio_process_types': '6cba83b41e23dc13f0f377531a02e7a446a6d08324390627984ac003c0c7113b',
+    'step_cerro_studio_process_types': 'bdc304f35307ffe4d1c598875972259da97f0cc947497e55d2dbedd7308f4ef8',
 }
 MODULES = ('step_cerro_studio_farms', 'step_cerro_product_account_views', 'step_cerro_studio_agriculture', 'step_cerro_studio_companies',
            'step_cerro_studio_budgets', 'step_cerro_studio_producers', 'step_cerro_studio_species',
@@ -65,12 +70,16 @@ def validate_modules(roots, database=TARGET):
         if files.keys() != members.keys() or any(path.read_bytes() != archive.extractfile(members[name]).read()
                                                  for name, path in files.items()):
             raise ValueError('The document library sources do not match the admitted package')
+    parent = ROOT / PARENT_PROFILE
+    if {p.name: tree_sha(p) for p in parent.iterdir() if p.is_dir()} != PARENT_HASHES:
+        raise ValueError('The agricultural view providers changed')
     if tree_sha(ROOT / CORE_SCOPE / 'step_agriculture_core') != CORE_SHA:
         raise ValueError('The admitted core identity set changed')
     process = ROOT / PROCESS_PROFILE
     if {p.name: tree_sha(p) for p in process.iterdir() if p.is_dir()} != PROCESS_HASHES:
         raise ValueError('The packing process catalogue package changed')
     consumed = set()
+    private_sources = {}
     recorded = json.loads(sql(database, """SELECT coalesce(json_object_agg(name,latest_version),'{}')
                                          FROM ir_module_module WHERE state='installed'"""))
     for root in roots[:-2]:
@@ -94,13 +103,26 @@ def validate_modules(roots, database=TARGET):
                 v = v if v.startswith('18.0.') else '18.0.' + v
                 if tuple(map(int, v.split('.'))) < tuple(map(int, recorded[module.name].split('.'))):
                     raise ValueError('Private provider version downgrade: ' + module.name)
-            if root.name in seal and tree_sha(module) != seal[root.name][module.name]:
+            digest = tree_sha(module)
+            if root.name in seal and digest != seal[root.name][module.name]:
                 raise ValueError('Private provider source changed: ' + module.name)
+            private_sources[str(module)] = digest
+    verify = '''import json,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from check_cerro_studio_strict import tree_sha
+for name, expected in json.load(sys.stdin).items():
+    module = Path(name)
+    if not (module / '__manifest__.py').is_file() or tree_sha(module) != expected:
+        raise ValueError("Odoo cannot read every admitted source file in " + str(module))
+'''
+    subprocess.run(['runuser', '-u', 'odoo', '--', '/usr/bin/python3.10', '-c', verify,
+                    str(ROOT / 'tools')], input=json.dumps(private_sources), text=True, check=True)
 
 
 def addon_roots(database=TARGET):
     library, _ = document_library(database)
-    return [ROOT / CORE_SCOPE, ROOT / PROCESS_PROFILE, ROOT / 'directory-views', ROOT / 'directory-d20e40fe40f8', ROOT / 'view-alias-add2d259eb',
+    return [ROOT / CORE_SCOPE, ROOT / PROCESS_PROFILE, ROOT / PARENT_PROFILE, ROOT / 'directory-views', ROOT / 'directory-d20e40fe40f8', ROOT / 'view-alias-add2d259eb',
             ROOT / 'alias-8223860c89e8', ROOT / 'owners', ROOT / 'operators', library / 'addons',
             ANCHOR / 'runtime-addons', ANCHOR / 'engine-addons', RUNTIME / 'addons', RUNTIME / 'odoo/addons']
 
@@ -135,14 +157,14 @@ def incompatible_contracts(module):
                     WHERE conrelid='step_management_estimation_line'::regclass
                     AND conname='step_management_estimation_line_estimation_line_center_unique'""")
         if unique == 'UNIQUE (estimation_id, center_id, cuartel_id)':
-            out.append('step_management_costs exige unicidad por estimaciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n/centro antes de cargar los cuarteles')
+            out.append('step_management_costs exige unicidad por estimación/centro antes de cargar los cuarteles')
     if 'step_packing' in wanted:
         master = sql(TARGET, """SELECT c.confrelid::regclass::text FROM pg_constraint c
                     JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=ANY(c.conkey)
                     WHERE c.contype='f' AND c.conrelid='step_packing_picking_tag_line'::regclass
                     AND a.attname='category_id'""")
         if master == 'step_management_fruit_category':
-            out.append('step_packing declara la categorÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­a retirada antes de cargar el catÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡logo unificado')
+            out.append('step_packing declara la categoría retirada antes de cargar el catálogo unificado')
     return out
 
 
@@ -161,7 +183,9 @@ def run(phase, extra, payload=None, *, database=TARGET, directory=ROOT, roots=No
                        input=payload.encode() if payload else None, stdout=out, stderr=subprocess.STDOUT)
 
 
-def main(phase):
+def main(phase, selected=None):
+    if selected and (phase != 'install' or selected not in MODULES):
+        raise ValueError('Choose a declared view provider to install')
     with open('/run/lock/steps-environments.lock', 'rb') as gate:
         fcntl.flock(gate, fcntl.LOCK_EX)
         receipt = json.loads((ROOT / 'clone-receipt.json').read_text())
@@ -184,7 +208,7 @@ print('CERRO_STRICT_FARMS', json.dumps(evidence,sort_keys=True))'''
             # transaction cannot conceal a valid result for another group.
             failures = []
             blocked = {}
-            for module in MODULES:
+            for module in ((selected,) if selected else MODULES):
                 state = sql(TARGET, "SELECT state FROM ir_module_module WHERE name='" + module + "'")
                 if state == 'installed':
                     continue
@@ -208,8 +232,22 @@ from probe_cerro_studio_navigation import capture as routes
 from probe_cerro_studio_screen import inspect
 from probe_cerro_studio_fullread import capture as fullread
 from probe_cerro_process_category import capture as processes
-process = processes(env, test=True) if env.ref('step_cerro_studio_process_types.process_types', raise_if_not_found=False) else None
-print('CERRO_STRICT_VIEWS',json.dumps(dict(views=capture(env),routes=routes(env),screens=inspect(env),fullread=fullread(env),process=process),sort_keys=True))'''
+from probe_cerro_species_pallet import capture as species_rows
+species = None
+if env.ref('step_cerro_studio_species.species', raise_if_not_found=False):
+    try:
+        with env.cr.savepoint():
+            species = species_rows(env, test=True)
+    except Exception as error:
+        species = {'error': type(error).__name__, 'detail': str(error)[:240]}
+process = None
+if env.ref('step_cerro_studio_process_types.process_types', raise_if_not_found=False):
+    try:
+        with env.cr.savepoint():
+            process = processes(env, test=True)
+    except Exception as error:
+        process = {'error': type(error).__name__, 'detail': str(error)[:240]}
+print('CERRO_STRICT_VIEWS',json.dumps(dict(views=capture(env),routes=routes(env),screens=inspect(env),fullread=fullread(env),process=process,species=species),sort_keys=True))'''
         payload = 'import json,sys\nsys.path.insert(0,' + repr(str(ROOT / 'tools')) + ')\n' + body + '\nenv.cr.rollback()\n'
         run(phase, [], payload)
         after = module_census(TARGET)
@@ -224,4 +262,6 @@ print('CERRO_STRICT_VIEWS',json.dumps(dict(views=capture(env),routes=routes(env)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--phase', choices=('fundos', 'install', 'views'), required=True)
-    main(parser.parse_args().phase)
+    parser.add_argument('--module', choices=MODULES)
+    args = parser.parse_args()
+    main(args.phase, args.module)

@@ -3,6 +3,7 @@ import argparse
 import ast
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 
@@ -54,6 +55,13 @@ def derive(costs_source, plots_source, output):
     output.mkdir(parents=True)
     for module, root in source.items():
         shutil.copytree(root, output / module, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+    # copytree retains modes but gives root ownership to files it creates.
+    # Preserve the source groups so the Odoo service reads this exact profile.
+    if hasattr(os, 'chown') and os.geteuid() == 0:
+        for module, root in source.items():
+            for copied in [output / module, *(output / module).rglob('*')]:
+                original_file = root / copied.relative_to(output / module)
+                os.chown(copied, -1, original_file.stat().st_gid)
     (output / COSTS / 'models/estimation.py').write_text(revised, encoding='utf-8', newline='\n')
     (output / COSTS / '__manifest__.py').write_text(manifest, encoding='utf-8', newline='\n')
     return {'costs_sha256': hashlib.sha256(revised.encode()).hexdigest(),

@@ -6,6 +6,7 @@ from check_cerro_studio_strict import addon_roots, run, tree_sha
 from restore_cerro_studio_strict import ESTIMATE_ROOT, ESTIMATE_TARGET, ROOT, SOURCE, clone_and_copy, module_census, sql
 
 PROFILE = ROOT / 'estimate-profile-v1'
+BRIDGE = ROOT / 'cost-center-bindings-134f13d7cf8a'
 HASHES = {
     'step_management_estimation_entry': '6906abea2e17b180cea8b79167e311e30f7ec417b6218040452cfd8ad935bc0e',
     'step_management_costs': 'be3a491c9c7dbb66dcf000266ec10bc304ac979cf252700b83bce7da288e18e9',
@@ -26,10 +27,17 @@ def snapshot(database):
                  FROM step_management_estimation_line t""")
     indexes = sql(database, """SELECT indexdef FROM pg_indexes WHERE schemaname='public'
                   AND indexname='estimation_center_without_plot_uniq'""")
-    return {'unique': unique, 'plot_field': fields, 'lines': values, 'partial_index': indexes}
+    bindings = sql(database, """SELECT id,act_window_id,view_mode,view_id,sequence FROM ir_act_window_view
+                  WHERE act_window_id=(SELECT res_id FROM ir_model_data WHERE module='step_management_costs'
+                         AND name='action_cost_center') ORDER BY id""")
+    if bindings.splitlines() != ['836|1082|list|4174|', '837|1082|form|4173|']:
+        raise ValueError('The native accounting center action bindings changed')
+    return {'cost_center_bindings': bindings, 'unique': unique, 'plot_field': fields, 'lines': values, 'partial_index': indexes}
 
 
 def main():
+    if tree_sha(BRIDGE / 'step_management_costs_agriculture') != '121121bf61a768cd379b63ac6d603ea06c20e888624093956ecf63613f125ccb':
+        raise ValueError('The cost center action bridge changed')
     if {p.name: tree_sha(p) for p in PROFILE.iterdir() if p.is_dir()} != HASHES:
         raise ValueError('The admitted estimate profile changed')
     with open('/run/lock/steps-environments.lock', 'rb') as gate:
@@ -40,7 +48,7 @@ def main():
         before = module_census(ESTIMATE_TARGET)
         assert not any(before[k] for k in ('enterprise', 'non_free', 'pending'))
         result = {}
-        parameters = dict(database=ESTIMATE_TARGET, directory=ESTIMATE_ROOT, roots=[PROFILE, *addon_roots(ESTIMATE_TARGET)])
+        parameters = dict(database=ESTIMATE_TARGET, directory=ESTIMATE_ROOT, roots=[PROFILE, BRIDGE, *addon_roots(ESTIMATE_TARGET)])
         try:
             run('install-estimator', ['-i', 'step_management_estimation_entry'], **parameters)
             state = sql(ESTIMATE_TARGET, """SELECT state FROM ir_module_module
