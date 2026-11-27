@@ -847,7 +847,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("combine-financial", "restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "exercise-final", "invoice-pdf", "financial-actions", "finish-financial", "final"))
+    parser.add_argument("operation", choices=("combine-financial", "verify-combined-storage", "restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "exercise-final", "invoice-pdf", "financial-actions", "finish-financial", "final"))
     parser.add_argument("--source-backup-sha256")
     parser.add_argument("--source-physical-sha256")
     parser.add_argument("--module", choices=MODULES)
@@ -868,6 +868,17 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "combine-financial":
             exercise_combined(args, proof)
+        elif args.operation == "verify-combined-storage":
+            require(args.database in COMBINED_SOURCES and (args.output / "postflight-pdf.json").is_file(),
+                    "completed-combined-print-rehearsal-required")
+            target = args.output / "combined-workflows-storage.json"
+            if not target.is_file():
+                final_receipt(args, proof, target.name)
+            final = json.loads(target.read_bytes())
+            require(all(final["official_results"].values()) and not final["covered_table_changes"] and
+                    not final["relaxed_original_required_columns"] and final["physical_filestore"]["original_files"] > 0 and
+                    not any(final["full_sql_delta"][key] for key in ("columns", "constraints", "relation_owner_and_acl",
+                                                                     "sequence_definitions")), "post-workflow-source-drift")
         elif args.operation == "exercise-final":
             exercise_final(args, proof)
         elif args.operation == "invoice-pdf":
