@@ -35,7 +35,8 @@ def audit(db, core, modules):
             if path.name == "ir.model.access.csv":
                 with path.open(encoding="utf-8-sig", newline="") as raw:
                     for acl in csv.DictReader(raw):
-                        model, pk, noupdate = info(acl.pop("id"))
+                        declared = acl.pop("id")
+                        model, pk, noupdate = info(declared)
                         assert model == "ir.model.access"
                         expected = {}
                         for key, new_value in acl.items():
@@ -47,7 +48,8 @@ def audit(db, core, modules):
                             else:
                                 expected[key] = new_value
                         mismatch = [key for key, val in expected.items() if access[str(pk)][key] != val]
-                        records[model + "/" + str(pk)] = {"differences": mismatch, "noupdate": noupdate}
+                        records[model + "/" + str(pk)] = {"differences": mismatch, "noupdate": noupdate,
+                                                          "declared_id": declared}
             elif path.suffix == ".xml":
                 xml = etree.parse(str(path))
                 for rec in xml.xpath('//record[@model="res.groups" or @model="ir.rule"]'):
@@ -78,6 +80,7 @@ def audit(db, core, modules):
                             old = old.strip() if isinstance(old, str) else old
                         if old != expected:
                             mismatch.append(name)
-                    records[model + "/" + str(pk)] = {"differences": mismatch, "noupdate": noupdate}
+                    records[model + "/" + str(pk)] = {"differences": mismatch, "noupdate": noupdate,
+                                                      "declared_id": rec.get("id")}
         result[module] = records
     return result

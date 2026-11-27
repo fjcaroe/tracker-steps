@@ -12,6 +12,7 @@ import subprocess
 import tarfile
 
 from audit_sys_upgrade_policy import audit
+from build_sys_upgrade_policy_profile import build, fingerprint
 from custody_sys_previred_filestore import attachments, digest, object_catalog, restore_objects
 from restore_native_product_backup import pg, query
 from restore_sys_previred_pair import GIB, LOCK, require
@@ -140,8 +141,14 @@ def odoo(args, mode, options, log, stdin=None):
             "/usr/bin/python3.10", str(core / "odoo-bin")]
     if mode:
         argv.append(mode)
+    addons = [core / "addons", core / "odoo/addons"]
+    if (out / "profile").exists():
+        expected = json.loads((out / "profile-proof.json").read_bytes())
+        require(args.database.endswith("U41MP") and fingerprint(out / "profile") == (expected["files"], expected["sha256"]),
+                "profile-checksum-drift")
+        addons.insert(0, out / "profile")
     argv.extend(["-c", "/etc/odoo18-sys.conf", "-d", db, "--db-filter=^" + db + "$", "--db_host=/var/run/postgresql",
-                 "--data-dir=" + str(out / "data"), "--addons-path=" + str(core / "addons") + "," + str(core / "odoo/addons"),
+                 "--data-dir=" + str(out / "data"), "--addons-path=" + ",".join(map(str, addons)),
                  "--no-http", "--workers=0", "--max-cron-threads=0", "--stop-after-init", "--without-demo=all", "--load=base,web",
                  "--logfile=" + str(out / "data" / (log.stem + "-odoo.log")), *options])
     with log.open("xb") as handle:
@@ -289,7 +296,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -304,6 +311,13 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "restore":
             restore(args, proof)
+        elif args.operation == "profile":
+            identity = json.loads((args.output / "restored.json").read_bytes())
+            require(args.database.endswith("U41MP") and identity["database"] == args.database
+                    and identity["sealed"] == str(args.sealed), "separate-policy-profile-copy-required")
+            versions = module_versions(args.database)
+            require(all(versions[k] == ["installed", v[0]] for k, v in MODULES.items()), "profile-requires-original-versions")
+            save(args.output / "profile-proof.json", build(args.database, args.sealed, args.output / "profile", MODULES))
         elif args.operation == "final":
             final_receipt(args, proof)
         elif args.operation == "policy":
