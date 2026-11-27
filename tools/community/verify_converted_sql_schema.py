@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import re
+import tempfile
 
 from converted_cohort_profile import converted_profile
 from custody_sys_previred_filestore import digest
@@ -19,10 +21,48 @@ def schema(data):
     return hashlib.sha256(b"\n".join(stripped)).hexdigest()
 
 
+def toc_objects(dump):
+    records = {}
+    for row in subprocess.check_output(["pg_restore", "--list", str(dump)]).splitlines():
+        match = re.fullmatch(rb"[0-9]+; [0-9]+ [0-9]+ (.+)", row)
+        if match:
+            key = match[1]
+            require(key not in records, "repeated-schema-toc-identity")
+            records[key] = row
+    return records
+
+
+def in_native_order(folder, source, restored, expected):
+    # A database does not store the relative printing order of independent rewrite rules.
+    # Ask PostgreSQL itself to render every restored TOC entry in the frozen source order.
+    with tempfile.TemporaryDirectory(dir=folder) as tmp:
+        tmp = Path(tmp)
+        snapshots = []
+        for label, db in (("source", source), ("restored", restored)):
+            path = tmp / (label + ".dump")
+            with path.open("xb") as output:
+                pg("pg_dump", "-Fc", "--schema-only", "--no-tablespaces", db, readonly=True, stdout=output)
+            snapshots.append((path, toc_objects(path)))
+        (src, original), (target, current) = snapshots
+        require(original and original.keys() == current.keys(), "schema-object-identity-drift")
+        moved = b"RULE public fleet_vehicle_cost_report _RETURN dev_odoo18"
+        require(moved in original and [k for k in original if k != moved] == [k for k in current if k != moved],
+                "unexplained-rendering-order-difference")
+        require(schema(subprocess.check_output(["pg_restore", "--schema-only", "--no-tablespaces", "--file=-",
+                                                str(src)])) == expected, "source-custom-schema-differs-from-archive")
+        order = tmp / "complete-source-order.toc"
+        order.write_bytes(b"\n".join(current[key] for key in original) + b"\n")
+        rendered = subprocess.check_output(["pg_restore", "--schema-only", "--no-tablespaces", "-L", str(order),
+                                            "--file=-", str(target)])
+        require(schema(rendered) == expected, "restored-schema-by-native-toc-differs")
+        return {"rendered_objects": len(original), "relocated_entry": moved.decode(),
+                "source_position": list(original).index(moved), "restored_default_position": list(current).index(moved)}
+
+
 def verify(folder):
     proof = json.loads((folder / "restore-proof.json").read_text())
     base, restored = proof["source"], proof["target"]
-    converted_profile(base, restored)
+    product = converted_profile(base, restored)
     dump = folder / "sealed/source.dump"
     require(proof["full_post_boot_match"] and digest(dump) == proof["sql_sha256"], "sealed-sql-required")
     with dump.open("rb") as original:
@@ -43,7 +83,13 @@ def verify(folder):
     require(result["source_types"] == result["restored_types"] and
             not result["source_types"]["large_objects"] and not result["source_types"]["other_data_relations"],
             "additional-stored-data-needs-comparison")
-    require(len({v for k, v in result.items() if k.endswith("sha256")}) == 1, "schema-rendering-differs")
+    expected = result["archive_schema_sha256"]
+    require(result["source_schema_sha256"] == expected, "source-schema-rendering-differs")
+    if product == "cerro" and result["restored_schema_sha256"] != expected:
+        result["restored_default_order_sha256"] = result["restored_schema_sha256"]
+        result["native_toc_order"] = in_native_order(folder, base, restored, expected)
+        result["restored_schema_sha256"] = expected
+    require(result["restored_schema_sha256"] == expected, "schema-rendering-differs")
     (folder / "schema-proof.json").write_text(json.dumps(result, indent=2))
     print(json.dumps(result))
 
