@@ -52,6 +52,7 @@ def derive(source,output):
                             (self.id,self.company_ids.ids))
         return self.env.cr.fetchone()[0]
 """
+    directory+="\n    def _load_records_write(self, values):\n        owner=self.env.context.get('install_module')\n        name=self.env.context.get('install_xmlid','').split('.')[-1]\n        seeds={'freight_dispatch_type_retira_cliente','freight_dispatch_type_despacho_cliente',\n               'freight_dispatch_type_despacho_tercero'}\n        if owner=='step_operations_ui' and name in seeds and values.keys()=={'name','paga_flete'}:\n            frozen=self.env['ir.model.data'].search_count([('module','=',owner),('name','=',name),\n                ('model','=',self._name),('res_id','=',self.id),('noupdate','=',True)],limit=1)\n            if frozen:\n                return\n        return super()._load_records_write(values)\n"
     recipient=fragment(data['step_packing_interplant/dispatch.py'],'DispatchType')
     text='from odoo import _,api,fields,models\nfrom odoo.exceptions import AccessError,ValidationError\n\n\n'
     text+=directory+'\n\n\n'+recipient+'\n'
@@ -60,9 +61,13 @@ def derive(source,output):
     (output/'models/step_cerro_directory.py').write_text(text,encoding='utf8',newline='\n')
     init=data['step_operations_ui/models/__init__.py'].rstrip()+'\nfrom . import step_cerro_directory\n'
     (output/'models/__init__.py').write_text(init,encoding='utf8',newline='\n')
-    manifest=data['step_operations_ui/__manifest__.py'].replace('18.0.2.7.3','18.0.2.7.4')
+    manifest=data['step_operations_ui/__manifest__.py'].replace('18.0.2.7.3','18.0.2.7.5')
     manifest=manifest.replace('"LGPL-3"','"AGPL-3"')
-    assert ast.literal_eval(manifest)['version']=='18.0.2.7.4' and ast.literal_eval(manifest)['license']=='AGPL-3'
+    # The free canonical fleet and machinery providers now own the former agricultural fields.
+    # Tracker has separate payroll wizards and supplies no API or menu used by this application.
+    manifest=manifest.replace('"step_hr",','"step_agriculture_core", "step_operations_core",')
+    assert 'step_hr' not in ast.literal_eval(manifest)['depends'] and {'step_machinery','step_mobilization'}<=set(ast.literal_eval(manifest)['depends'])
+    assert ast.literal_eval(manifest)['version']=='18.0.2.7.5' and ast.literal_eval(manifest)['license']=='AGPL-3'
     (output/'__manifest__.py').write_text(manifest,encoding='utf8',newline='\n')
 
 
