@@ -1,5 +1,6 @@
 """Verify the converted SQL, complete filestore and Community code archive without Odoo or PostgreSQL."""
 import argparse
+import gzip
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -112,6 +113,34 @@ def verify(folder, receipt_hash, manifest_hash=None):
             "all_filestore_files": len(tree), "receipt_sha256": receipt_hash}
 
 
+def compare_checkpoints(previous, current):
+    def files(folder):
+        return folder / "sealed" if (folder / "sealed").is_dir() else folder
+
+    old, new = files(previous), files(current)
+    baseline = json.loads(gzip.decompress((old / "source-snapshot.json.gz").read_bytes()))
+    snapshot = json.loads(gzip.decompress((new / "source-snapshot.json.gz").read_bytes()))
+    held = baseline.pop("sequence_values")
+    now = snapshot.pop("sequence_values")
+    check(baseline == snapshot and now.keys() == held.keys(), "checkpoint-data-or-schema-drift")
+    advances = []
+    for name, (value, called) in now.items():
+        if [value, called] == held[name]:
+            continue
+        definition = baseline["sequence_definitions"][name]
+        check(definition[4] > 0 and not definition[5] and called and value >= held[name][0],
+              "checkpoint-counter-regressed")
+        advances.append(name)
+    first, second = read_json(old / "backup.json"), read_json(new / "backup.json")
+    check(second["parent_sql_sha256"] == first["sql_sha256"] and first["runtime"] == second["runtime"] and
+          first["archive_sha256"] == second["archive_sha256"], "checkpoint-archive-lineage")
+    check(second["simultaneous_physical_tree_sha256"] == read_json(new / "filestore-physical.json")["tree_sha256"],
+          "checkpoint-store-capture-time")
+    return {"frozen_sequences": len(held), "unchanged_sections": sorted(baseline),
+            "later_sequence_advances": len(advances)}
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("folder", type=Path)
@@ -120,6 +149,7 @@ if __name__ == "__main__":
     mode.add_argument("--write-manifest", action="store_true",
                       help="Seal the 13 custody files after SQL, role, physical store and schema verification")
     parser.add_argument("--manifest-sha256", help="Independently supplied digest of the complete custody manifest")
+    parser.add_argument("--previous-package", type=Path, help="Compare sealed business data and counters across two checkpoints")
     args = parser.parse_args()
     if args.write_manifest:
         contents = package_manifest(args.folder)
@@ -132,4 +162,7 @@ if __name__ == "__main__":
                 json.dump(contents, handle, indent=2, sort_keys=True)
         print(hash_file(destination))
     else:
-        print(json.dumps(verify(args.folder, args.receipt_sha256, args.manifest_sha256), indent=2))
+        result = verify(args.folder, args.receipt_sha256, args.manifest_sha256)
+        if args.previous_package:
+            result["checkpoint_lineage"] = compare_checkpoints(args.previous_package, args.folder)
+        print(json.dumps(result, indent=2))
