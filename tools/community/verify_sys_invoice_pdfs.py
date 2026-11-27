@@ -51,14 +51,39 @@ def compare_native(original, candidate):
         raise ValueError("The invoice identity, permissions, or complete printed contents differ from the native application")
 
 
+def compare_printed_pages(receipt, original_directory, migrated_directory):
+    result = []
+    for row in receipt["printed"]:
+        name = "%s-%s.pdf" % (row["actor"], row["kind"])
+        with pymupdf.open(original_directory / name) as original, pymupdf.open(migrated_directory / name) as migrated:
+            if original.page_count != migrated.page_count:
+                raise ValueError("The original and migrated invoice page counts differ")
+            for number, (source, target) in enumerate(zip(original, migrated), start=1):
+                a = source.get_pixmap(colorspace=pymupdf.csGRAY, alpha=False)
+                b = target.get_pixmap(colorspace=pymupdf.csGRAY, alpha=False)
+                if (a.width, a.height) != (b.width, b.height):
+                    raise ValueError("The physical dimensions of the printed page differ")
+                pixels = sum(x != y for x, y in zip(a.samples, b.samples))
+                result.append({"actor": row["actor"], "kind": row["kind"], "page": number,
+                               "pixels": a.width * a.height, "different_pixels": pixels})
+    return result
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("receipt", type=Path)
     parser.add_argument("directory", type=Path)
     parser.add_argument("--native-receipt", type=Path)
+    parser.add_argument("--native-directory", type=Path)
     args = parser.parse_args()
     receipt = json.loads(args.receipt.read_bytes())
     result = verify(receipt, args.directory)
     if args.native_receipt:
-        compare_native(json.loads(args.native_receipt.read_bytes()), receipt)
+        native = json.loads(args.native_receipt.read_bytes())
+        compare_native(native, receipt)
+        if args.native_directory:
+            verify(native, args.native_directory)
+            result = {"rasterization": result, "native_pages": compare_printed_pages(receipt, args.native_directory, args.directory)}
+    elif args.native_directory:
+        parser.error("--native-directory requires a native receipt")
     print(json.dumps(result, sort_keys=True))
