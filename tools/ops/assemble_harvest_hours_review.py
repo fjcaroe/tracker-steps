@@ -46,6 +46,9 @@ def main():
         flow = read(a.flow)
         for key, value in (('environment', a.environment), ('database', qa['database']), ('web_commit', manifest['commit'])):
             assert flow[key] == value
+        if a.environment in ('cerro', 'qa-cerro'):
+            assert flow['company_id'] == 1, 'Review Agrícola Cerro El Plomo, the operational company requested by the customer'
+        result['operation_company_id'] = flow['company_id']
         assert all(flow[key] is True for key in ('client_close_with_hours', 'client_approval_send',
             'client_native_fields', 'client_reload_preserved', 'native_cost_hours'))
         operations = read(stage / 'harvest-operations-smoke.json')
@@ -61,6 +64,8 @@ def main():
         validate_operations_review(manifest, a.environment, stage.name, qa, result)
         output = stage / 'harvest-browser-proof.json'
     else:
+        if a.environment in ('cerro', 'qa-cerro'):
+            assert browser['company_id'] == 1
         web = read(stage / 'harvest-web-deployed.json')
         assert web['web_commit'] == manifest['commit'] and web['served'] == manifest['files']
         assert 'MANAGEMENT_VERIFY_OK' in text and web['backend_commit'] == qa['commit']

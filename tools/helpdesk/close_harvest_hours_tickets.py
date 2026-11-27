@@ -23,6 +23,8 @@ def verify_evidence(root):
         assert web['web_commit'] == copy['web_commit'] == live['web_commit'] == operations['web_commit']
         assert web['backup'] and copy['reviewed'] is True and live['reviewed'] is True
         assert live['version'] == '0.0.12' and live['server_writes'] is False
+        if target in ('cerro', 'qa-cerro'):
+            assert live['company_id'] == copy['operation_company_id'] == 1
         for key in ('ot_native_fields', 'pass_required', 'ot_work_hours', 'day_allocation'):
             assert operations[key] is True and copy[key] is True and live[key] is True
         assert operations['native_cost_hours'] is True and copy['native_cost_hours'] is True

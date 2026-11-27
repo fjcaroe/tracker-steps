@@ -145,6 +145,7 @@ async function main() {
         fs.writeFileSync(output, JSON.stringify({ packaging_selector: true, standard_weight_readonly: true,
             manual_weight_hundredths: true, mobile_layout: true, local_weight_preserved: mode === 'copy',
             native_context: true, native_weight_form: true, harvest_launcher: true,
+            company_id: data.company.id, user_id: data.user.id,
             crew_native_type_contractor: true, version, server_writes: false, ...withoutTarja, ...hours }, null, 2));
     } finally {
         await browser.close();
