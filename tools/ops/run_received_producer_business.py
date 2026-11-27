@@ -1,9 +1,13 @@
 """Run the existing-editor acceptance only inside the certified private T246 copy."""
 import argparse
 import configparser
+from contextlib import nullcontext
+import fcntl
 import json
 from pathlib import Path
 import subprocess
+from manage_management import query
+from customer_qa_clone_access import clone_database_access
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('environment', choices=('development', 'cerro', 'qa-cerro'))
@@ -21,11 +25,15 @@ config = configparser.ConfigParser(interpolation=None)
 config.read(entry['config'])
 assert config['options']['db_name'] == entry['database'] and database != entry['database']
 user = subprocess.check_output(['systemctl', 'show', '--value', '--property=User', entry['service']], text=True).strip()
-result = subprocess.run(['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin', 'shell',
-    '-c', entry['config'], '-d', database, '--db-filter=^' + database + '$',
-    '--addons-path=' + str(stage / 'addons') + ',' + config['options']['addons_path'],
-    '--data-dir=' + str(stage / 'data'), '--no-http', '--workers=0', '--max-cron-threads=0', '--log-level=critical'],
-    input=(root / 'verify_received_producer_business.py').read_text(), text=True, capture_output=True)
+with open('/run/lock/steps-environments.lock', 'a') as lease:
+    fcntl.flock(lease, fcntl.LOCK_EX)
+    access = clone_database_access(query, database, stage, existing=True) if args.environment == 'qa-cerro' else nullcontext()
+    with access:
+        result = subprocess.run(['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin', 'shell',
+            '-c', entry['config'], '-d', database, '--db-filter=^' + database + '$',
+            '--addons-path=' + str(stage / 'addons') + ',' + config['options']['addons_path'],
+            '--data-dir=' + str(stage / 'data'), '--no-http', '--workers=0', '--max-cron-threads=0', '--log-level=critical'],
+            input=(root / 'verify_received_producer_business.py').read_text(), text=True, capture_output=True)
 (stage / 'existing-business-flow.log').write_text(result.stdout + result.stderr)
 assert result.returncode == 0 and 'T246_EXISTING_BUSINESS_FLOW_OK' in result.stdout, result.stderr[-2400:]
 print('\n'.join(line for line in result.stdout.splitlines() if line.startswith('T246_EXISTING_BUSINESS_FLOW_OK')))
