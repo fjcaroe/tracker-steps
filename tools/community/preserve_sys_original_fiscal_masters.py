@@ -14,7 +14,8 @@ from restore_sys_previred_pair import require
 MODELS = {"account.account.tag": 47, "account.report": 1, "account.report.column": 1,
           "account.report.expression": 32, "account.report.line": 32, "l10n_latam.document.type": 58,
           "l10n_latam.identification.type": 3, "res.bank": 32}
-XML = ("account_tax_report_data.xml", "account_tax_tags_data.xml", "l10n_latam_identification_type_data.xml")
+XML = ("l10n_cl_chart_data.xml", "account_tax_report_data.xml", "account_tax_tags_data.xml",
+       "l10n_latam_identification_type_data.xml")
 CSVS = {"l10n_latam.document.type.csv": "l10n_latam.document.type", "res.bank.csv": "res.bank"}
 TAG_REFS = {"tag_cl_purchase_mnt_iec", "tag_cl_specific_fuel_tax"}
 SOURCE = "COMMUNITY_SYS_PREVIRED_COHORT_20261126U40J"
@@ -97,7 +98,7 @@ def preserve(original, output, db, schema):
         xml.write(str(output / target), encoding="UTF-8", xml_declaration=True, pretty_print=True)
         mf = mf.replace(source, target)
         output_files[target] = digest(output / target)
-    require(len(declared) == 186, "wrong-declared-fiscal-master-count")
+    require(Counter(declared.values()) == MODELS, "wrong-declared-fiscal-master-count")
     aliases = json.loads(query(db, """SELECT json_object_agg(name,json_build_array(model,res_id,noupdate)) FROM ir_model_data
         WHERE module='l10n_cl'"""))
     for name, model in declared.items():
