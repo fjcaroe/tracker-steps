@@ -37,6 +37,15 @@ los permisos de dos cuentas de portal y un visitante anónimo.
 [CRM de Steps](COMMUNITY_STEPS_CRM.md) y
 [portal de carpetas de SyS](COMMUNITY_BIBLIOTECA_INTERNA.md).
 
+El paquete de Cerro reúne en la misma copia 172 módulos libres, incluidos
+listas de materiales, fundos y Packing. La instalación fría y la actualización
+conservaron todas las columnas de las 23 vistas de Studio y 62.030
+identificadores externos. De las 23 pantallas, el usuario original recorrió
+17 desde sus menús, leyó los campos de Studio de 14 y obtuvo los mismos
+valores completos en diez. El paquete de 24 fuentes se reconstruyó desde
+la rama canónica con el mismo contenido probado.
+[Aceptación conjunta de Cerro](COMMUNITY_CERRO_COMBINADO_172.md).
+
 La configuración de Nómina Chile requiere una comparación separada en Cerro.
 En su plantilla nativa y en la copia Community coinciden las firmas de las
 47 reglas directas activas. Se cotejaron códigos, secuencia, categoría directa,
