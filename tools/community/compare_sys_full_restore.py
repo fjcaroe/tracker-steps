@@ -14,8 +14,8 @@ from custody_sys_previred_filestore import digest
 from restore_sys_previred_pair import LOCK, require
 
 
-def snapshot(database, required_nonempty=None):
-    with closing(psycopg2.connect(dbname=database, user='postgres', host='/var/run/postgresql')) as conn:
+def snapshot(database, required_nonempty=None, *, socket_dir='/var/run/postgresql', port=None):
+    with closing(psycopg2.connect(dbname=database, user='postgres', host=socket_dir, port=port)) as conn:
         conn.set_session(readonly=True, isolation_level='REPEATABLE READ')
         with conn.cursor() as cr:
             cr.execute("SET LOCAL search_path=pg_catalog,public")
