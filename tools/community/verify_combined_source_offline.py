@@ -28,10 +28,26 @@ def verify_final_product(folder, manifest, members, proof):
           doc["document"]["http"]["recipient_granted"]["recipient"] == 200 and
           exports["matches"] and exports["pairs"] == 24 and exports["originals_preserved"] and
           len(read_json(folder / "invoices.json")["printed"]) == 4, "fiscal-payroll-document-integration-evidence")
+    code_versions = read_json(folder / "effective-providers.json")
+    licenses = {}
+    for _, _, license_ in code_versions.values():
+        licenses[license_] = licenses.get(license_, 0) + 1
+    check(set(licenses) <= {"AGPL-3", "LGPL-3", "GPL-3"} and len(code_versions) == 192 and
+          licenses == proof["effective_licenses"] == proof["database_licenses"] == accepted["effective_licenses"],
+          "effective-licenses-in-final-registry")
+    private_file = doc["document"]
+    cold = accepted["cold_boot"]
+    cold_file = cold["original_library_payslip"]
+    check(cold_file["same_document_and_payslip"] and cold_file["ordinary_manager"] == private_file["manager"]
+          and cold_file["sha256"] == private_file["same_pdf_sha256"] and cold_file["bytes"] == private_file["bytes"]
+          and cold["payroll_pdf"]["different_company_denied"] and cold["payroll_pdf"]["public_denied"],
+          "restored-ordinary-file-and-denials")
+    sections = {"columns", "constraints", "indexes", "invoice_layouts", "relation_owner_and_acl",
+                "sequence_definitions", "sequence_owned_by", "views"}
     for name in ("original-schema.json", "final-schema.json"):
         schema = read_json(folder / name)
         check(len(schema["required"]) == 21 and all(schema["required"].values()) and
-              all(not s["missing"] and not s["changed"] for s in schema["sections"].values()), "original-fiscal-schema-drift")
+              schema["sections"].keys() == sections and all(not s["missing"] and not s["changed"] for s in schema["sections"].values()), "original-fiscal-schema-drift")
     for filename, (count, module_count) in FISCAL_PACKAGES.items():
         check(accepted["original_release_archives"][filename] == manifest[filename]["sha256"], "supplier-archive-checksum")
         archived = {}
