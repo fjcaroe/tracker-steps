@@ -27,8 +27,16 @@ COLUMNS = {
 }
 
 
-def read_original(cr, table, name):
-    expected, owner = COLUMNS[table, name]
+DOCUMENTS = {
+    ('documents_document', 'alias_id'): ('integer', 'documents'),
+    ('documents_document', 'document_token'): ('character varying', 'documents'),
+}
+DOCUMENT_FIELD_IDS = {'documents_document.alias_id': 15368, 'documents_document.document_token': 15435}
+DOCUMENT_COPY = 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG'
+
+
+def read_original(cr, table, name, declarations=COLUMNS):
+    expected, owner = declarations[table, name]
     cr.execute("""SELECT f.id,format_type(a.atttypid,a.atttypmod),a.attnotnull,d.module
         FROM pg_attribute a JOIN ir_model_fields f ON f.model=%s AND f.name=a.attname
         JOIN ir_model_data d ON d.model='ir.model.fields' AND d.res_id=f.id AND d.module=%s
@@ -50,8 +58,14 @@ def guard(original, database, ids):
     require(set(ids) in (expected, expected - {calendar_field}),
             'SyS native mandatory column inventory missing')
 
+    declarations = COLUMNS
+    preserved_ids = dict(ids)
+    if database == DOCUMENT_COPY:
+        declarations = {**COLUMNS, **DOCUMENTS}
+        preserved_ids.update(DOCUMENT_FIELD_IDS)
+
     def drop_not_null(cr, table, column):
-        if (table, column) not in COLUMNS or cr.dbname != database:
+        if (table, column) not in declarations or cr.dbname != database:
             return original(cr, table, column)
         # The official loader relaxes all unregistered columns when their
         # owning addon is outside the scoped graph. Preserve the original SQL
@@ -59,8 +73,15 @@ def guard(original, database, ids):
         key = table + '.' + column
         # The first sealed plans predate the calendar bridge. On those exact
         # inventories verify the native SyS field by its original identity too.
-        expected_id = ids[key] if key in ids else 28900
-        require(read_original(cr, table, column) == expected_id,
+        expected_id = preserved_ids[key] if key in preserved_ids else 28900
+        require(read_original(cr, table, column, declarations) == expected_id,
                 'SyS mandatory field identity changed')
 
     return drop_not_null
+
+
+def check_document_fields(cr):
+    require(cr.dbname == DOCUMENT_COPY, 'SyS document column validation requires the private restored product')
+    for (table, name) in DOCUMENTS:
+        require(read_original(cr, table, name, DOCUMENTS) == DOCUMENT_FIELD_IDS[table + '.' + name],
+                'SyS original document field identity changed')
