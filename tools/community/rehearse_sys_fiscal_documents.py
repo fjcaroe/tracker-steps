@@ -13,7 +13,7 @@ from build_sys_upgrade_policy_profile import fingerprint
 from guard_sys_original_catalogue import checkpoint, ROOT, SEALED, SOURCE, TARGET
 from rehearse_sys_module_upgrades import (
     DOCUMENT_MODULES, FINANCE_ARCHIVE, FORWARD, MODULES, PRIVATE, SPACE, candidate_batch, check_financial_actions,
-    check_space, compare_operator_exports, digest, differences, final_receipt, guards, module_versions, package_profile,
+    check_space, compare_operator_exports, digest, differences, final_receipt, forms, guards, module_versions, package_profile,
     payroll_exports, pin_original_providers, prepare_profile, print_chilean_invoices, query, require,
     restore_combined_filestore, retained_release, save, snapshot,
 )
@@ -110,6 +110,12 @@ def final(args, proof, receipt, sha):
         write_snapshot(baseline, snapshot(TARGET))
         save(ROOT / "document-admission.json", {"proof": receipt.name, "sha256": sha})
     require(json.loads((ROOT / "document-admission.json").read_bytes())["sha256"] == sha, "different-document-acceptance")
+    if not (ROOT / "combined-forms.json").is_file():
+        args.label = "combined-forms"
+        forms(args)
+    operators = json.loads((ROOT / "combined-forms.json").read_bytes())
+    finance_only = json.loads((ROOT / "forms-after.json").read_bytes())
+    require(operators == finance_only, "combined-directory-or-business-action-scope-changed")
     if not (ROOT / "retained-release.json").is_file():
         retained_release(args)
     if not (ROOT / "release-exports.json").is_file():
