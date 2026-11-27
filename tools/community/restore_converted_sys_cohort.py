@@ -73,11 +73,12 @@ def package(args, out, source_db, modules):
         # Some source manifests have an unapplied forward revision. Do not run an upgrade.
         changed = {k: {"database": v[0], "manifest": providers[k][1]} for k, v in modules.items()
                    if providers[k][1] != v[0]}
-        for entry in changed.values():
+        for name, entry in changed.items():
             require(all(re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", value) for value in entry.values()),
                     "unrecognized-provider-version")
             require(tuple(map(int, entry["manifest"].split("."))) >= tuple(map(int, entry["database"].split("."))),
                     "provider-is-older-than-converted-database")
+            entry["provider"] = "official Community" if Path(providers[name][0]).is_relative_to(args.runtime.resolve()) else "cohort addon"
         runtime = seal(args.runtime, providers, temporary)
         shutil.copyfile(args.release, temporary / "original-release.tar")
         require(digest(temporary / "original-release.tar") == args.release_sha256, "private-release-drift")
@@ -96,7 +97,7 @@ def package(args, out, source_db, modules):
             shutil.rmtree(temporary)
 
 
-def open_as_user(out, db, service):
+def open_as_user(out, db, service, boot):
     core = out / "sealed/runtime"
     args = [
         "unshare", "--net", "--", "sh", "-ec", 'ip link set dev lo up; exec "$@"', "steps",
@@ -134,14 +135,15 @@ for obj in attachments:
     assert len(raw)==obj.file_size and hashlib.sha1(raw).hexdigest()==obj.checksum
 print('CONVERTED_RESTORE='+json.dumps({'active':len(installed),'enterprise':0,'internal_uid':actor.id,
     'attachments_read':len(attachments),'models':sorted(set(attachments.mapped('res_model'))),
-    'all_providers_inside_restored_capsule':True,'read_only':True}))
+    'all_providers_inside_restored_capsule':True,'read_only':True,'payroll_pdf':restricted_attachment(env,actor)}))
 env.cr.rollback()
 """
-    code = f"expected_db={db!r}\nexpected_core={str(core)!r}\n" + probe
-    with (out / "orm.log").open("wb") as handle:
+    role_probe = (Path(__file__).with_name("probe_converted_cohort_attachment.py")).read_text()
+    code = role_probe + "\n" + f"expected_db={db!r}\nexpected_core={str(core)!r}\n" + probe
+    with (out / f"orm-{boot}.log").open("wb") as handle:
         run = subprocess.run(args, input=code.encode(), stdout=handle, stderr=handle)
     require(run.returncode == 0, "restored-official-orm-probe-failed")
-    return json.loads(next(l.split("=", 1)[1] for l in (out / "orm.log").read_text().splitlines()
+    return json.loads(next(l.split("=", 1)[1] for l in (out / f"orm-{boot}.log").read_text().splitlines()
                            if l.startswith("CONVERTED_RESTORE=")))
 
 
@@ -212,12 +214,14 @@ def restore(args):
     for path in (data, *data.rglob("*")):
         require(not path.is_symlink(), "unexpected-restored-filestore-symlink")
         os.chown(path, service.pw_uid, service.pw_gid)
-    orm = open_as_user(out, target, service)
+    orm = open_as_user(out, target, service, 1)
+    verify_same(frozen, full_snapshot(target))
+    require(open_as_user(out, target, service, 2) == orm, "second-cold-boot-differs")
     require(orm["active"] == len(modules) and check_modules(target) == modules, "restored-registry-drift")
     verify_same(frozen, full_snapshot(target))
     verify_same(frozen, full_snapshot(source))
     result = {**proof, "target": target, "tablespace": space, "full_post_boot_match": True,
-              "source_unchanged": True, "role_probe": orm, "restored_filestore_objects": len(catalog)}
+              "source_unchanged": True, "checked_boots": 2, "role_probe": orm, "restored_filestore_objects": len(catalog)}
     save(out / "restore-proof.json", result)
     print(json.dumps(result, sort_keys=True))
 
