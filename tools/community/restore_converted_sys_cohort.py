@@ -30,6 +30,26 @@ def verify_same(before, after):
     require(not any(diff.values()), "full-restoration-drift: " + repr({k: v[:3] for k, v in diff.items() if v}))
 
 
+def source_sequence_advances(stored, current, allowed):
+    if not allowed:
+        verify_same(stored, current)
+        return {}
+    historical = stored["sequence_values"]
+    observed = current["sequence_values"]
+    require(historical.keys() == observed.keys(), "live-sequence-inventory-drift")
+    verify_same(stored, {**current, "sequence_values": historical})
+    changes = {}
+    for name, before in historical.items():
+        after = observed[name]
+        if before == after:
+            continue
+        definition = stored["sequence_definitions"][name]
+        require(definition[4] > 0 and not definition[5] and after[1] and after[0] >= before[0],
+                "nonmonotonic-live-control-sequence")
+        changes[name] = {"frozen": before, "live": after}
+    return changes
+
+
 def save(path, data):
     tmp = path.with_suffix(path.suffix + ".new")
     tmp.write_text(json.dumps(data, sort_keys=True, indent=2))
@@ -53,11 +73,11 @@ def package(args, out, source_db, modules):
         proof = json.loads((final / "backup.json").read_text())
         require(proof["source"] == source_db and proof["release_sha256"] == args.release_sha256, "backup-source-drift")
         original = json.loads(gzip.decompress((final / "source-snapshot.json.gz").read_bytes()))
-        verify_same(original, frozen)
+        changes = source_sequence_advances(original, frozen, args.allow_forward_sequences_on_source)
         for name, key in (("source.dump", "sql_sha256"), ("filestore.tar", "archive_sha256")):
             require(digest(final / name) == proof[key], "sealed-backup-checksum")
         require(digest(final / "runtime.tar.gz") == proof["runtime"]["archive_sha256"], "sealed-engine-checksum")
-        return frozen, proof
+        return original, proof, frozen, changes
     temporary = Path(tempfile.mkdtemp(prefix="capture-", dir=out))
     try:
         stored = attachments(source_db, query)
@@ -91,7 +111,7 @@ def package(args, out, source_db, modules):
             json.dump(frozen, handle, separators=(",", ":"), sort_keys=True)
         save(temporary / "backup.json", proof)
         temporary.rename(final)
-        return frozen, proof
+        return frozen, proof, frozen, {}
     finally:
         if temporary.exists():
             shutil.rmtree(temporary)
@@ -187,7 +207,7 @@ def restore(args):
         save(out / "identity.json", {"source": source, "target": target})
     require(not out.is_symlink() and json.loads((out / "identity.json").read_text()) == {"source": source, "target": target},
             "unrecognized-recovery-directory")
-    frozen, proof = package(args, out, source, modules)
+    frozen, proof, source_at_start, advances = package(args, out, source, modules)
     sealed = out / "sealed"
     if not (out / "restore-start.json").is_file():
         require(query("postgres", f"SELECT count(*) FROM pg_database WHERE datname='{target}'") == "0", "target-already-exists")
@@ -238,9 +258,10 @@ def restore(args):
     require(open_as_user(out, target, service, 2, hidden_sources) == orm, "second-cold-boot-differs")
     require(orm["active"] == len(modules) and check_modules(target) == modules, "restored-registry-drift")
     verify_same(frozen, full_snapshot(target))
-    verify_same(frozen, full_snapshot(source))
+    verify_same(source_at_start, full_snapshot(source))
     result = {**proof, "target": target, "tablespace": space, "full_post_boot_match": True,
-              "source_unchanged": True, "checked_boots": 2, "role_probe": orm, "restored_filestore_objects": len(catalog)}
+              "source_unchanged": True, "source_unchanged_during_recovery": True,
+              "source_sequence_advances_since_seal": advances, "checked_boots": 2, "role_probe": orm, "restored_filestore_objects": len(catalog)}
     save(out / "restore-proof.json", result)
     print(json.dumps(result, sort_keys=True))
 
@@ -253,6 +274,8 @@ if __name__ == "__main__":
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--addons", type=Path, nargs="+", required=True)
     parser.add_argument("--expected-active", type=int, required=True)
+    parser.add_argument("--allow-forward-sequences-on-source", action="store_true",
+                        help="Allow recorded sequence consumption on the live QA source since an existing seal")
     parsed = parser.parse_args()
     os.umask(0o077)
     with open(LOCK, "rb") as lock:
