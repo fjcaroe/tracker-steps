@@ -3,6 +3,7 @@ import argparse
 import ast
 import fcntl
 import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -15,6 +16,7 @@ import tempfile
 
 from audit_sys_upgrade_policy import audit
 from build_sys_upgrade_policy_profile import build, fingerprint, seal_profile
+from complete_converted_filestore import inventory, restore_supplement
 from compare_sys_payroll_exports_all import changes, index
 from custody_sys_previred_filestore import attachments, digest, object_catalog, restore_objects
 from package_sys_original_policy_providers import COMMIT, TREES
@@ -33,7 +35,7 @@ MODULES = {
 PINNED_ARCHIVE = "e1ab99abe55ac7693afe6c48f3ee51aa4ac27208b483472a6e8ae20f0be6233b"
 FORWARD = tuple(module for module in MODULES if module not in TREES)
 COMBINED_DB = "COMMUNITY_SYS_PREVIRED_MODULES_20261127U43MF"
-FINANCE_ARCHIVE = "716e338839142e3bfe02b038333fb742b09ca5fd6f4bd91753739a7a0bf1b61c"
+FINANCE_ARCHIVE = "ca9180cdd5d3be9b5e69073d83171760cef34b22b07ae0a7cb38940cbd63ce37"
 PRIVATE = Path("/opt/steps-validation")
 SPACE = "steps_community_storage_20261028_community"
 
@@ -73,6 +75,27 @@ def check_space(size):
     free = {"postgres": shutil.disk_usage(data).free, "private": shutil.disk_usage(target).free}
     require(free["postgres"] >= 5 * GIB and free["private"] >= 5 * GIB + 3 * size, "reserve-required")
     return free
+
+
+def restore_combined_filestore(args):
+    native = json.loads((args.sealed / "filestore-physical.json").read_bytes())
+    archive = args.sealed / "filestore-extra.tar"
+    require(native["source"] == "COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L" and native["sql_sha256"] ==
+            "0c4e970e29579c6de38d71397a987682e97ff9a90027baad8c9e9b77f84bf606" and digest(archive) ==
+            native["extra_archive_sha256"] and native["tree_sha256"] ==
+            "71c9add47cf4265ee31555f42c02c8a819b8683154e53858490b22c6c11f8d1c", "combined-source-tree-drift")
+    destination = args.output / "data/filestore" / args.database
+    require(args.database == COMBINED_DB and destination.is_dir() and destination.resolve() == destination,
+            "combined-copy-filestore-required")
+    restore_supplement(archive, native["extras"], destination)
+    catalog = object_catalog(attachments(args.database, query)["references"])
+    physical = inventory(destination, catalog)
+    value = hashlib.sha256(json.dumps(physical, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    require(value == native["tree_sha256"] and len(physical) == 2698 and len(catalog) == 2679 and
+            native["unreferenced_objects"] == 9 and native["checklist_markers"] == 10, "combined-filestore-restore-differs")
+    save(args.output / "combined-source-files.json", {"database": args.database, "tree_sha256": value,
+         "files": len(physical), "source_sql": native["sql_sha256"], "referenced": len(catalog),
+         "unreferenced": native["unreferenced_objects"], "checklist_markers": native["checklist_markers"]})
 
 
 def restore(args, proof):
@@ -762,6 +785,8 @@ if __name__ == "__main__":
             require(args.database == COMBINED_DB, "combined-financial-scope")
             if not (args.output / "restored.json").is_file():
                 restore(args, proof)
+            if not (args.output / "combined-source-files.json").is_file():
+                restore_combined_filestore(args)
             if not (args.output / "pinned-providers.json").is_file():
                 pin_original_providers(args)
             if not (args.output / "profile-proof.json").is_file():
