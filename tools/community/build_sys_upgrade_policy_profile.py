@@ -67,6 +67,7 @@ def fingerprint(profile):
 def build(db, sealed, target, modules):
     require(not target.exists(), "profile-output-exists")
     core = sealed / "runtime"
+    schema = etree.RelaxNG(etree.parse(str(core / "odoo/import_xml.rng")))
     policies = audit(db, core, modules)
     total = sum(len(records) for records in policies.values())
     require(total == 40 and all(not p["differences"] for records in policies.values() for p in records.values()),
@@ -94,14 +95,20 @@ def build(db, sealed, target, modules):
                     alternate = file.with_name("sys_preserved_access.xml")
                     require(not alternate.exists(), "seed-file-exists")
                     processed.update(render_access(file, alternate, names))
+                    schema.assertValid(etree.parse(str(alternate)))
                     manifest_text = manifest_text.replace(name, alternate.relative_to(output).as_posix())
                     updated[name] = digest(alternate)
                 elif file.suffix == ".xml":
                     ids = wrap_rules(file, names)
                     if ids:
+                        schema.assertValid(etree.parse(str(file)))
                         processed.update(ids)
                         updated[name] = digest(file)
             require(processed == names, "not-every-original-policy-seed-accounted-for")
+            revised = ast.literal_eval(manifest_text)
+            expected = dict(manifest, data=[str(Path(n).with_name("sys_preserved_access.xml"))
+                                            if Path(n).name == "ir.model.access.csv" else n for n in manifest["data"]])
+            require(revised == expected, "unexpected-manifest-change")
             manifest_file.write_text(manifest_text)
             changes[module] = {"records": records, "files": updated, "manifest": digest(manifest_file)}
         files, sha = fingerprint(profile)
