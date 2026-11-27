@@ -1,0 +1,13 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0\n"
+"Language: es\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. module: step_cl_credit_note_draft
+#. odoo-python
+#: code:addons/step_cl_credit_note_draft/reversal.py:0
+#, python-format
+msgid "Where it says: %(original)s should say: %(corrected)s"
+msgstr "Donde dice: %(original)s debería decir: %(corrected)s"
