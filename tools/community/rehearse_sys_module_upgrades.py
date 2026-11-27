@@ -463,9 +463,6 @@ def payroll_exports(args):
                               "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MQ",
                               "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MV"), "unapproved-export-rehearsal")
     out = args.output
-    first = PRIVATE / "community-sys-payroll-exports-20261126U41X2/community/receipt.json"
-    require(digest(first) == "fb7f44d3ac8e2ba4e40e627a987dbfce34082d0ff771744652f5d83e64592f52",
-            "unexpected-community-export-receipt")
     key = PRIVATE / "community-sys-payroll-exports-20261126U41X3/audit.key"
     code = Path(__file__).with_name("probe_sys_payroll_exports_all.py").read_text()
     code += "\nfrom pathlib import Path\nassert env.cr.dbname == " + repr(args.database)
@@ -477,15 +474,33 @@ def payroll_exports(args):
     require(status == 0 and len(lines) == 1, "operator-export-probe-failed")
     observed = json.loads(lines[0])
     save(out / "exports.json", observed)
+
+
+def compare_operator_exports(args):
+    out = args.output
+    observed = json.loads((out / "exports.json").read_bytes())
+    require(observed["database"] == args.database and not observed["enterprise"], "unexpected-export-origin")
+    first = PRIVATE / "community-sys-payroll-exports-20261126U41X2/community/receipt.json"
+    screen = PRIVATE / "community-sys-payroll-exports-20261126U41X3/community/receipt.json"
+    require(digest(first) == "fb7f44d3ac8e2ba4e40e627a987dbfce34082d0ff771744652f5d83e64592f52"
+            and digest(screen) == "7239988bd7c8c4339e1454545567d4d6e755464f087b75f8030f43c240bdcf1f",
+            "unexpected-community-export-receipt")
     original = json.loads(first.read_bytes())
     companies, actors = index(original)
+    screen_companies, screen_actors = index(json.loads(screen.read_bytes()))
     new_companies, new_actors = index(observed)
-    require(len(companies) == 12 and companies.keys() == new_companies.keys() and len(actors) == 24
-            and actors.keys() == new_actors.keys(), "original-export-coverage-differs")
-    scope_changes = [k for k in companies if any(companies[k][field] != new_companies[k][field]
+    require(len(companies) == 12 and companies.keys() == new_companies.keys() == screen_companies.keys()
+            and len(actors) == 24 and actors.keys() == new_actors.keys() == screen_actors.keys(), "original-export-coverage-differs")
+    scope_changes = [k for k in companies if any(not companies[k][field] == new_companies[k][field] == screen_companies[k][field]
                     for field in ("period", "closed", "closed_ids"))]
+    # X2 contains the 1.5.0 TXT payloads and diagnostics. The next recorded run added the two screen signatures.
+    for key, entry in actors.items():
+        for field in ("validation_screen", "generation_screen"):
+            require(field not in entry["previred"] and field in screen_actors[key]["previred"], "unexpected-screen-baseline")
+            entry["previred"][field] = screen_actors[key]["previred"][field]
     mismatch = {str(k): changes(actors[k], new_actors[k]) for k in actors if actors[k] != new_actors[k]}
-    save(out / "export-comparison.json", {"reference": digest(first), "companies": len(companies), "pairs": len(actors),
+    save(out / "complete-export-comparison.json", {"reference": digest(first), "screen_reference": digest(screen),
+        "companies": len(companies), "pairs": len(actors),
         "scope_differences": scope_changes, "full_result_differences": mismatch,
         "matches": not scope_changes and not mismatch, "originals_preserved": observed["originals_preserved"]})
 
@@ -555,9 +570,11 @@ def exercise_final(args, proof):
             and not first["covered_table_changes"], "primary-official-upgrade-checks-did-not-pass")
     if not (out / "retained-release.json").is_file():
         retained_release(args)
-    if not (out / "export-comparison.json").is_file():
+    if not (out / "exports.json").is_file():
         payroll_exports(args)
-    exports = json.loads((out / "export-comparison.json").read_bytes())
+    if not (out / "complete-export-comparison.json").is_file():
+        compare_operator_exports(args)
+    exports = json.loads((out / "complete-export-comparison.json").read_bytes())
     require(exports["matches"] and exports["originals_preserved"], "operator-payroll-export-regression")
     final = final_receipt(args, proof, "postflight.json")
     require(not final["relaxed_original_required_columns"] and not final["covered_table_changes"],
@@ -596,7 +613,9 @@ if __name__ == "__main__":
             require(args.database.endswith(("U41MP", "U41MQ", "U41MV")), "separate-policy-profile-copy-required")
             package_profile(args, proof)
         elif args.operation == "exports":
-            payroll_exports(args)
+            if not (args.output / "exports.json").is_file():
+                payroll_exports(args)
+            compare_operator_exports(args)
         elif args.operation == "candidate-batch":
             candidate_batch(args, proof)
         elif args.operation == "profile":
