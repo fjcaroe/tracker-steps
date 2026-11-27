@@ -57,3 +57,16 @@ class Document(models.Model):
         return {"type": "ir.actions.act_window", "name": _("Acceso mediante enlace"),
                 "res_model": "step.document.library.link.permission", "view_mode": "form", "target": "new",
                 "context": {"default_document_id": self.id, "default_level": self.access_via_link}}
+
+
+class OriginalReference(models.TransientModel):
+    _name = "step.document.library.reference"
+    _description = "Enlace original del elemento"
+
+    document_id = fields.Many2one("documents.document", string="Elemento", required=True, readonly=True)
+    url = fields.Char(string="Enlace", compute="_compute_url", readonly=True)
+
+    @api.depends("document_id")
+    def _compute_url(self):
+        for wizard in self:
+            wizard.url = wizard.document_id._editor_external_url() if wizard.document_id else False

@@ -11,8 +11,10 @@ from odoo import http
 
 
 def binary_scope(env, native):
-    expected = "MANAGEMENT_QA_SYS_PORTAL_20261126U41P" if native else "COMMUNITY_PORTAL_SYS_20261126U41P"
-    assert env.cr.dbname == expected and {s.split(":")[0].strip() for s in
+    expected = ("MANAGEMENT_QA_SYS_PORTAL_20261126U41P",) if native else (
+        "COMMUNITY_PORTAL_SYS_20261126U41P", "COMMUNITY_PORTAL_SYS_20261126U41PF",
+    )
+    assert env.cr.dbname in expected and {s.split(":")[0].strip() for s in
                                           Path("/proc/net/dev").read_text().splitlines()[2:]} == {"lo"}
     public = env.ref("base.public_user")
     scope = env(user=public.id, su=False, context={"allowed_company_ids": [public.company_id.id]})

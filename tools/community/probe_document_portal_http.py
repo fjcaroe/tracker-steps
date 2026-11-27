@@ -17,6 +17,7 @@ NAME = "community-portal-test.txt"
 NATIVE = "MANAGEMENT_QA_SYS_PORTAL_20261126U41P"
 COMMUNITY = "COMMUNITY_PORTAL_SYS_20261126U41P"
 PREPARED = "COMMUNITY_PORTAL_SYS_20261126U41PA"
+FOLDERS = "COMMUNITY_PORTAL_SYS_20261126U41PF"
 
 
 def new_portal(env, owner):
@@ -137,7 +138,8 @@ def prepare_accounts(env):
 
 def probe(env, native_fixture=None, prepared=None):
     native = native_fixture is None
-    assert env.cr.dbname == (NATIVE if native else PREPARED if prepared else COMMUNITY)
+    allowed_copies = (NATIVE,) if native else (PREPARED, FOLDERS) if prepared else (COMMUNITY,)
+    assert env.cr.dbname in allowed_copies
     assert {line.split(":")[0].strip() for line in Path("/proc/net/dev").read_text().splitlines()[2:]} == {"lo"}
     assert env.registry.test_cr is None
     settings = {"tracking_disable": True, "mail_create_nolog": True, "mail_create_nosubscribe": True,
