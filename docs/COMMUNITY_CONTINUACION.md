@@ -25,10 +25,13 @@ nueva requiere todavía trabajo en el formulario y los días de trabajo. [Recupe
 
 **Cerro El Plomo.** La versión con 190 proveedores recuperó las listas de
 traslados y recepciones. Coincidieron sus 110 registros para los usuarios en
-64 contextos. Con ello se verificaron 18 de las 23 lecturas completas de
-referencia. La operación de Packing, el documento de recepción SII, el
-seguimiento de cobros y la definición del bruto de nómina continúan abiertos.
-[Traslados y recepciones de Cerro](COMMUNITY_CERRO_RECEPCIONES.md).
+64 contextos. El respaldo de 189 se usó para instalar en frío los paquetes
+190 y 191 en ese orden. Con 191 se alcanzaron las 23 rutas y coincidieron
+las lecturas completas de 21 de las 23 pantallas. Se recuperaron 238 tarjas,
+241 detalles y diez órdenes de trabajo con sus entradas y salidas originales.
+La operación de recepción de fruta, el documento SII, el seguimiento de
+cobros y la definición del bruto de nómina continúan abiertos.
+[Traslados y recepciones](COMMUNITY_CERRO_RECEPCIONES.md) · [Tarjas y órdenes de trabajo](COMMUNITY_CERRO_TARJAS_ORDENES.md).
 
 ## U44 · Copias integradas por producto, 27 de noviembre de 2026
 
