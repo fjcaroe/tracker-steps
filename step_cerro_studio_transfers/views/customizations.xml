@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="stock_transfers" model="ir.ui.view">
+        <field name="name">Odoo Studio: stock.picking.list customization</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.vpicktree"/>
+        <field name="priority">160</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="fruit_variety_id" optional="show"/>
+                    <field name="fruit_guide_number" optional="show"/>
+                </xpath>
+                <xpath expr="//field[@name='origin']" position="after">
+                    <field name="fruit_lot" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>

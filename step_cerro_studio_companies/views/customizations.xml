@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="company_directory" model="ir.ui.view">
+        <field name="name">Odoo Studio: res.company.list customization</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_tree"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="vat" optional="show"/>
+                    <field name="city_id" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>

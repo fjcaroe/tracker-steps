@@ -1,11 +1,11 @@
 {
     "name": "Steps - Productores",
     "summary": "Productores, fundos, estimaciones, tarifas y liquidaciones",
-    "version": "18.0.1.9.0",
+    "version": "18.0.1.9.1",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",
-    "depends": ["step_agriculture_core", "hr", "step_management_costs", "step_packing", "step_inventory_fruit_tag", "purchase", "account", "analytic"],
+    "depends": ["step_agriculture_core", "step_agriculture_farm_directory", "hr", "step_management_costs", "step_packing", "step_inventory_fruit_tag", "purchase", "account", "analytic"],
     "data": [
         "security/producer_core_rules.xml",
         "security/producer_rules.xml",

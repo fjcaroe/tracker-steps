@@ -8,7 +8,6 @@ class ResPartner(models.Model):
     step_export_packing_type = fields.Selection([
         ('own', 'Propio'), ('grower', 'Productor'), ('third_party', 'Tercero'),
     ], string='Tipo de packing')
-    step_export_fundo_ids = fields.One2many('step.fundo', 'partner_id', string='Fundos')
 
 
 class ProductTemplate(models.Model):
