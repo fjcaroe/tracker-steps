@@ -45,11 +45,16 @@ def session(db, account=None):
 
 def observation(client, reference):
     section = {}
-    for label, path in (("document", "/documents/" + reference), ("content", "/documents/content/" + reference)):
+    paths = {"document": "/documents/" + reference, "content": "/documents/content/" + reference,
+             "legacy": "/documents/redirect/" + reference, "bookmark": "/odoo/documents/" + reference}
+    for label, path in paths.items():
         response = client.get(path, base_url="http://localhost", environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
                               follow_redirects=False)
         assert response.status_code < 500
+        location = urlsplit(response.headers.get("Location", ""))
+        destination = next((name for name, candidate in paths.items() if location.path == candidate), None)
         section[label] = {
+            "redirect_destination": destination, "redirect_has_query": bool(location.query),
             "status": response.status_code, "mime": response.mimetype, "fixture_bytes": response.data == PAYLOAD,
             "fixture_name_in_html": response.mimetype == "text/html" and NAME.encode() in response.data,
             "login_redirect": urlsplit(response.headers.get("Location", "")).path.startswith("/web/login"),

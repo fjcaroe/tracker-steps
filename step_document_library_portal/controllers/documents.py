@@ -1,10 +1,23 @@
+from urllib.parse import quote
+
 from werkzeug.exceptions import NotFound
 
 from odoo import http
 from odoo.http import request
+from odoo.addons.step_document_library.controllers.library import HistoricalLibrary
 
 
-class SharedDocument(http.Controller):
+class SharedDocument(HistoricalLibrary):
+    @http.route("/documents/redirect/<string:reference>", auth="public", type="http", methods=["GET"], readonly=True)
+    def legacy_reference(self, reference):
+        return request.redirect("/odoo/documents/" + quote(reference, safe=""), code=301)
+
+    @http.route("/odoo/documents/<string:reference>", auth="public", type="http", methods=["GET"], readonly=True)
+    def original_link(self, reference):
+        if request.env.user._is_internal():
+            return super().original_link(reference)
+        return request.redirect("/documents/" + quote(reference, safe=""), code=307)
+
     @http.route("/documents/content/<string:reference>", auth="public", type="http", methods=["GET"], readonly=True)
     def content(self, reference, download=None, **params):
         document = request.env["documents.document"]._external_file(reference)
