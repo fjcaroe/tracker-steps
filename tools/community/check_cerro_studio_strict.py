@@ -12,8 +12,13 @@ from restore_cerro_studio_strict import ROOT, TARGET, module_census, sql
 
 RUNTIME = Path('/opt/steps-validation/community-foundation-final-20261027/community-runtime')
 ANCHOR = Path('/srv/odoo-data/steps-anchor-validation/community-original-handover-20261126U40D')
-LIBRARY = Path('/opt/steps-validation/community-historical-library-20261126U41L/proof-fd485cda0d27')
-LIBRARY_ARCHIVE = '0c5131e2cbdfab81bc161ec234822ebee89d34f6c79c7203ebc39880bb0f4426'
+LIBRARY = Path('/opt/steps-validation/community-historical-library-20261126U41L')
+LIBRARY_PACKAGES = {
+    '18.0.1.0.4': ('proof-fd485cda0d27', '0c5131e2cbdfab81bc161ec234822ebee89d34f6c79c7203ebc39880bb0f4426'),
+    '18.0.1.0.5': ('proof-f8ffbc336c51', 'a5da5d753c098a23ffda43c7344c01c08419f26fd6193d0975d8a65e41148db4'),
+}
+CORE_SCOPE = 'core-scope-2aacc0a97940'
+CORE_SHA = 'c033b2fa4a1c45072abeb1707eba9cd672167d300707bd0d02981654870258db'
 PROCESS_PROFILE = 'process-catalog-e05c4b617a37'
 PROCESS_HASHES = {
     'step_packing_process_catalog': '2cde86f902761b8dd9a19696b8f5d18b7cad68c540536c0162b03041e93282be',
@@ -38,19 +43,30 @@ def tree_sha(module):
     return digest.hexdigest()
 
 
+def document_library(database):
+    version = sql(database, "SELECT latest_version FROM ir_module_module WHERE name='step_document_library' AND state='installed'")
+    if version not in LIBRARY_PACKAGES:
+        raise ValueError('The restored library version has no independently admitted source package')
+    directory, sha = LIBRARY_PACKAGES[version]
+    return LIBRARY / directory, sha
+
+
 def validate_modules(roots, database=TARGET):
     seal = json.loads((ROOT / 'module-content-v4.json').read_text())
-    library_archive = LIBRARY / 'package.tar'
-    if hashlib.sha256(library_archive.read_bytes()).hexdigest() != LIBRARY_ARCHIVE:
+    library, archive_sha = document_library(database)
+    library_archive = library / 'package.tar'
+    if hashlib.sha256(library_archive.read_bytes()).hexdigest() != archive_sha:
         raise ValueError('The admitted document library package changed')
-    library_module = LIBRARY / 'addons/step_document_library'
+    library_module = library / 'addons/step_document_library'
     with tarfile.open(library_archive) as archive:
         members = {m.name: m for m in archive.getmembers() if m.isfile() and m.name.startswith('addons/step_document_library/')}
-        files = {f.relative_to(LIBRARY).as_posix(): f for f in library_module.rglob('*')
+        files = {f.relative_to(library).as_posix(): f for f in library_module.rglob('*')
                  if f.is_file() and '__pycache__' not in f.parts and f.suffix != '.pyc'}
         if files.keys() != members.keys() or any(path.read_bytes() != archive.extractfile(members[name]).read()
                                                  for name, path in files.items()):
             raise ValueError('The document library sources do not match the admitted package')
+    if tree_sha(ROOT / CORE_SCOPE / 'step_agriculture_core') != CORE_SHA:
+        raise ValueError('The admitted core identity set changed')
     process = ROOT / PROCESS_PROFILE
     if {p.name: tree_sha(p) for p in process.iterdir() if p.is_dir()} != PROCESS_HASHES:
         raise ValueError('The packing process catalogue package changed')
@@ -82,14 +98,16 @@ def validate_modules(roots, database=TARGET):
                 raise ValueError('Private provider source changed: ' + module.name)
 
 
-def addon_roots():
-    return [ROOT / PROCESS_PROFILE, ROOT / 'directory-views', ROOT / 'directory-d20e40fe40f8', ROOT / 'view-alias-add2d259eb',
-            ROOT / 'alias-8223860c89e8', ROOT / 'owners', ROOT / 'operators', LIBRARY / 'addons',
+def addon_roots(database=TARGET):
+    library, _ = document_library(database)
+    return [ROOT / CORE_SCOPE, ROOT / PROCESS_PROFILE, ROOT / 'directory-views', ROOT / 'directory-d20e40fe40f8', ROOT / 'view-alias-add2d259eb',
+            ROOT / 'alias-8223860c89e8', ROOT / 'owners', ROOT / 'operators', library / 'addons',
             ANCHOR / 'runtime-addons', ANCHOR / 'engine-addons', RUNTIME / 'addons', RUNTIME / 'odoo/addons']
 
 
 def missing_providers(module):
     installed = set(sql(TARGET, "SELECT name FROM ir_module_module WHERE state='installed'").splitlines())
+    roots = addon_roots()
     remaining = [module]
     wanted = set()
     while remaining:
@@ -97,7 +115,7 @@ def missing_providers(module):
         if name in installed or name in wanted:
             continue
         wanted.add(name)
-        path = next((r / name / '__manifest__.py' for r in addon_roots() if (r / name / '__manifest__.py').is_file()), None)
+        path = next((r / name / '__manifest__.py' for r in roots if (r / name / '__manifest__.py').is_file()), None)
         if not path:
             return wanted, 'Fuente ausente: ' + name
         spec = ast.literal_eval(path.read_text())
@@ -117,19 +135,19 @@ def incompatible_contracts(module):
                     WHERE conrelid='step_management_estimation_line'::regclass
                     AND conname='step_management_estimation_line_estimation_line_center_unique'""")
         if unique == 'UNIQUE (estimation_id, center_id, cuartel_id)':
-            out.append('step_management_costs exige unicidad por estimaciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n/centro antes de cargar los cuarteles')
+            out.append('step_management_costs exige unicidad por estimaciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n/centro antes de cargar los cuarteles')
     if 'step_packing' in wanted:
         master = sql(TARGET, """SELECT c.confrelid::regclass::text FROM pg_constraint c
                     JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=ANY(c.conkey)
                     WHERE c.contype='f' AND c.conrelid='step_packing_picking_tag_line'::regclass
                     AND a.attname='category_id'""")
         if master == 'step_management_fruit_category':
-            out.append('step_packing declara la categorÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­a retirada antes de cargar el catÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡logo unificado')
+            out.append('step_packing declara la categorÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­a retirada antes de cargar el catÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡logo unificado')
     return out
 
 
 def run(phase, extra, payload=None, *, database=TARGET, directory=ROOT, roots=None):
-    roots = roots or addon_roots()
+    roots = roots or addon_roots(database)
     validate_modules(roots, database)
     pre = ['unshare', '--net', '--', 'runuser', '-u', 'odoo', '--', 'env', 'PYTHONDONTWRITEBYTECODE=1',
            '/usr/bin/python3.10', str(RUNTIME / 'odoo-bin')]
@@ -157,7 +175,10 @@ from probe_cerro_legacy_aliases import capture as legacy_aliases
 from probe_cerro_farm_directory import capture as directory
 actor = env['res.users'].browse(6)
 row = next(row for row in inventory(env).values() if row['model']=='step.fundo')
-print('CERRO_STRICT_FARMS', json.dumps(dict(farm=capture(env),rights=exercise(env),directory=directory(env),view=render(env,actor,row),aliases=legacy_aliases(env)),sort_keys=True))'''
+evidence = dict(farm=capture(env),rights=exercise(env),directory=directory(env),view=render(env,actor,row))
+print('CERRO_STRICT_FARMS_USER', json.dumps(evidence, sort_keys=True), flush=True)
+evidence['aliases'] = legacy_aliases(env)
+print('CERRO_STRICT_FARMS', json.dumps(evidence,sort_keys=True))'''
         elif phase == 'install':
             # Each group has independent application data. The first failed
             # transaction cannot conceal a valid result for another group.

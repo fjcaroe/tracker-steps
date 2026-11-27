@@ -2,6 +2,7 @@
 import hashlib
 import json
 import re
+from unittest.mock import patch
 
 from odoo.exceptions import ValidationError
 
@@ -32,8 +33,15 @@ def capture(env):
     def alias(module, name, record):
         return data.create({'module': module, 'name': name, 'model': record._name, 'res_id': record.id,
                             'noupdate': False})
+    declared = ('step_hr', 'step_agriculture_core', ('steps_qa_verified_alias', 'steps_qa_conflicting_alias'))
+    def fixture_rules(self):
+        return [*pairs, declared]
+    original_menu = env.ref('step_hr.menu_step_especie', raise_if_not_found=False)
+    standalone_menu = env.ref('step_agriculture_core.menu_step_especie', raise_if_not_found=False)
+    if original_menu and standalone_menu:
+        assert original_menu != standalone_menu
     try:
-        with env.cr.savepoint():
+        with env.cr.savepoint(), patch.object(type(data), '_step_retained_aliases', fixture_rules):
             params = env['ir.config_parameter']
             keep = params.create({'key': 'steps.cerro.alias_probe.keep', 'value': 'keep'})
             stale = params.create({'key': 'steps.cerro.alias_probe.stale', 'value': 'stale'})

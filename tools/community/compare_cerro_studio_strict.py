@@ -35,12 +35,22 @@ def compare():
     assert FARM in exact
     routes = {k for k, v in views['routes']['direct_menu_routes'].items() if v}
     native_routes = native['routes']['direct_menu_routes']
-    shared = {k for k in routes if any(edge in native_routes[k] for edge in views['routes']['direct_menu_routes'][k])}
+    shared = {}
+    for key in routes:
+        current = views['routes']['direct_menu_routes'][key]
+        same = set()
+        for actual in current:
+            for original in native_routes[key]:
+                if (actual['action'], actual['kind']) == (original['action'], original['kind']):
+                    same.update(set(actual['menus']) & set(original['menus']))
+        if same:
+            shared[key] = sorted(same)
+    assert shared.get('4844'), 'The original farm list cannot be opened from an original menu for this user'
     assert len(native_routes) == 23
     return {'farm_access': farm['rights'], 'farm_definitions': farm['farm'],
             'directory': farm['directory'], 'all_native_views': 23,
             'complete_record_equals_native': sorted(exact),
-            'reached_by_original_menu': sorted(shared),
+            'reached_by_original_menu': shared,
             'other_views': {name: views['fullread'][name].get('error', 'different value or layout')
                             for name in sorted(full_native.keys() - exact)}}
 

@@ -40,7 +40,7 @@ def main():
         before = module_census(ESTIMATE_TARGET)
         assert not any(before[k] for k in ('enterprise', 'non_free', 'pending'))
         result = {}
-        parameters = dict(database=ESTIMATE_TARGET, directory=ESTIMATE_ROOT, roots=[PROFILE, *addon_roots()])
+        parameters = dict(database=ESTIMATE_TARGET, directory=ESTIMATE_ROOT, roots=[PROFILE, *addon_roots(ESTIMATE_TARGET)])
         try:
             run('install-estimator', ['-i', 'step_management_estimation_entry'], **parameters)
             state = sql(ESTIMATE_TARGET, """SELECT state FROM ir_module_module
