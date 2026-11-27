@@ -452,6 +452,16 @@ def final_receipt(args, proof, filename="final.json"):
               "archived_payroll_pdfs": pdfs[0], "full_sql_delta": delta,
               "covered_table_changes": sorted(checks.intersection(delta["public_tables"])),
               "after_free": check_space(0)}
+    if db == COMBINED_DB:
+        source_tree = json.loads((args.sealed / "filestore-physical.json").read_bytes())
+        physical = inventory(store, original_files)
+        expected_names = set(original_files) | source_tree["extras"].keys()
+        require(expected_names <= physical.keys(), "combined-original-physical-files-missing")
+        restored = {name: physical[name] for name in expected_names}
+        restored_sha = hashlib.sha256(json.dumps(restored, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        require(restored_sha == source_tree["tree_sha256"], "combined-original-physical-files-changed")
+        result["physical_filestore"] = {"original_files": len(restored), "original_tree_sha256": restored_sha,
+                                        "additional_files": len(physical) - len(restored)}
     if db.endswith(("U41MQ", "U41MV", "U41MW", "U43MF")):
         result["retained_source_providers"] = json.loads((out / "pinned-providers.json").read_bytes())
         require(all(versions[m] == ["installed", "18.0.1.0"] for m in TREES), "original-policy-version-drift")
