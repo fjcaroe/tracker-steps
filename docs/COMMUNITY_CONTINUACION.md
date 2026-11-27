@@ -29,6 +29,14 @@ preservó los 804 contadores de Steps. Estas pruebas corresponden a las
 aplicaciones indicadas en las copias privadas.
 [Biblioteca interna](COMMUNITY_BIBLIOTECA_INTERNA.md).
 
+En Steps, el vendedor abrió el menú original de CRM, leyó las nueve
+oportunidades asignadas con sus 72 propiedades y completó el alta, cambio
+de etapa y cierre como ganada de una oportunidad de ensayo. En SyS también
+coincidieron 42 pantallas del portal de carpetas y 27 descargas al recorrer
+los permisos de dos cuentas de portal y un visitante anónimo.
+[CRM de Steps](COMMUNITY_STEPS_CRM.md) y
+[portal de carpetas de SyS](COMMUNITY_BIBLIOTECA_INTERNA.md).
+
 La configuración de Nómina Chile requiere una comparación separada en Cerro.
 En su plantilla nativa y en la copia Community coinciden las firmas de las
 47 reglas directas activas. Se cotejaron códigos, secuencia, categoría directa,
