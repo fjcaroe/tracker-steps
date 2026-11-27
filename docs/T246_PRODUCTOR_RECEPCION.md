@@ -25,6 +25,9 @@ incompleto. Se comprueban nuevamente stock y estado bajo bloqueo al aplicar.
 Los permisos de modificación de Packing, Inventario y empresa siguen
 vigentes. Las escrituras directas y contextos RPC no eluden la corrección.
 Las compras, anticipos y comprobantes históricos no se reescriben.
+Entre propietarios terceros no se genera valoración. Si el cambio involucra
+fruta propia de la compañía, se conserva el comportamiento nativo de
+valoración de Inventario y sus asientos según la configuración contable.
 
 Antes de publicar: copia fresca de cada destino, pruebas nativas y revisión
 del formulario y flujo con un usuario operativo, paquete inmutable idéntico,

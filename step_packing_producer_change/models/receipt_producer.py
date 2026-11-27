@@ -238,8 +238,8 @@ class ProducerChange(models.TransientModel):
                 if line.move_id.restrict_partner_id == self.previous_producer_id:
                     line.move_id.restrict_partner_id = False
                 line.write({'owner_id': producer.id, 'quantity': quantity, 'picked': picked})
-            if set(changes.mapped('state')) != {'done'} or changes.picking_id or changes.stock_valuation_layer_ids:
-                raise ValidationError(_('El cambio de productor no debe modificar la valoración de la fruta de terceros.'))
+            if set(changes.mapped('state')) != {'done'} or changes.picking_id:
+                raise ValidationError(_('El cambio debe completar sus movimientos sin modificar las operaciones originales de recepción.'))
             for tag in tags:
                 if tag.owner_id != producer or tag.step_producer_id != producer or tag.step_tag_line_ids.producer_id != producer:
                     raise ValidationError(_('No se conservó el productor y propietario de todas las tarjas.'))

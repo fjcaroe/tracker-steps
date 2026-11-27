@@ -30,7 +30,8 @@ try:
                  'test_internal_transfer_is_still_inventory', 'test_processed_dispatched_partial_and_missing_stock_rejected',
                  'test_stale_and_direct_changes_rejected', 'test_foreign_producer_and_read_only_user_rejected',
                  'test_forms_both_entry_points', 'test_inventory_manager_can_apply_without_sudo',
-                 'test_legacy_native_receipt_without_new_origin_field'):
+                 'test_legacy_native_receipt_without_new_origin_field',
+                 'test_owned_fruit_uses_native_valuation_without_extra_inventory_restriction'):
         with env.cr.savepoint():
             getattr(receipt_case, name)()
     if '/steps-validation/' in ROOT:

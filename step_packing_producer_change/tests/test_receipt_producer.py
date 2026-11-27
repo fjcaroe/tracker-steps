@@ -159,3 +159,20 @@ class ReceiptProducerCase(SimpleReceptionCase):
         self.assertEqual(action['context']['default_picking_id'], self.received.id)
         self.wizard().action_apply()
         self.assertEqual(self.tags.owner_id, self.other)
+
+    def test_owned_fruit_uses_native_valuation_without_extra_inventory_restriction(self):
+        self.producer = self.env.company.partner_id
+        self.producer.is_productor = True
+        self.fundo.partner_id = self.producer
+        category = self.env['product.category'].create({'name': 'QA246 valoración propia',
+            'property_cost_method': 'standard', 'property_valuation': 'manual_periodic'})
+        self.product.write({'categ_id': category.id, 'standard_price': 2})
+        self.prepare()
+        original = self.received.move_ids.stock_valuation_layer_ids
+        self.assertEqual(sum(original.mapped('value')), 800)
+        self.wizard().action_apply()
+        self.assertEqual(self.tags.owner_id, self.other)
+        valuation = self.received.step_producer_change_move_ids.stock_valuation_layer_ids
+        self.assertEqual(sum(valuation.mapped('quantity')), -400)
+        self.assertEqual(sum(valuation.mapped('value')), -800)
+        self.assertEqual(self.received.move_ids.stock_valuation_layer_ids, original)
