@@ -1,0 +1,31 @@
+<odoo>
+    <template id="shared_document" name="Archivo compartido">
+        <html lang="es">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="referrer" content="no-referrer"/>
+                <title t-esc="file_name"/>
+            </head>
+            <body>
+                <main>
+                    <h1 t-esc="file_name"/>
+                    <a t-attf-href="/documents/content/#{reference}?download=1" download="download">
+                        Descargar archivo
+                    </a>
+                </main>
+            </body>
+        </html>
+    </template>
+    <template id="unavailable_document" name="Documento sin acceso">
+        <html lang="es">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="referrer" content="no-referrer"/>
+                <title>Archivo sin acceso</title>
+            </head>
+            <body><main><h1>Archivo sin acceso</h1></main></body>
+        </html>
+    </template>
+</odoo>

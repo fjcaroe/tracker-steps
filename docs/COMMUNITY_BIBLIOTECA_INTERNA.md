@@ -68,3 +68,65 @@ permisos y seis identidades originales. La revisión de cierre contrastó las
 8.370 restricciones de la semilla, incluidas las tres columnas de la
 unicidad histórica de estimaciones. El recibo del flujo se guarda en
 `~/.codex/local-artifacts/community-resume-20261125/U30/u41l-cerro-internal-proof.json`.
+
+
+## Referencias externas de archivos en SyS
+
+La copia estricta del portal U41P tiene 188 módulos activos, todos libres.
+Cada uno de los 1.430 registros de la biblioteca conserva la huella de su
+referencia pública calculada por el sistema original. La adopción verifica
+primero la identidad y el token almacenado de cada documento. El segundo
+ensayo de adopción escribió cero filas.
+
+Para los 1.319 archivos binarios de la biblioteca se comparó por ID la decisión
+de acceso mediante referencia válida en el controlador nativo y en Community.
+El acceso público coincidió para los 38 archivos permitidos y los 1.281
+denegados. La comprobación interceptó el flujo de bytes en el controlador
+nativo después de la decisión de acceso y devolvió sólo la identidad. La
+prueba de permisos no abrió contenido histórico. Después de la transacción
+coincidían las filas de documentos y permisos. El recibo privado está en
+`~/.codex/local-artifacts/community-resume-20261125/U30/u41p-historical-public-scope.json`.
+
+La prueba HTTP nativa usa dos cuentas de portal temporales con su propia
+contraseña y un archivo de texto sintético. Solamente el destinatario designado
+pudo descargarlo durante la concesión individual. Al habilitar la lectura
+mediante enlace, el destinatario, la otra cuenta y el usuario anónimo
+obtuvieron los mismos bytes. Al retirar el acceso por enlace volvió la
+denegación al anónimo. Para cuentas autenticadas, la ruta de la ficha puede
+devolver una pantalla con HTTP 200 aunque la descarga del archivo esté
+denegada. La prueba verifica ambas respuestas.
+
+### Aceptación del portal de archivos en SyS, versión 18.0.1.0.2
+
+La derivada Community U41PA completó 72 solicitudes HTTP contra el mismo
+archivo sintético que la referencia nativa. Se abrieron sesiones con contraseña
+para el destinatario y una segunda cuenta temporal de portal. Un tercer cliente
+visitó las mismas rutas como anónimo. Se verificaron seis estados de acceso en
+cuatro rutas por cliente.
+
+| Estado del archivo | Cliente que recibió los bytes exactos |
+| --- | --- |
+| Referencia sin emitir | Ninguno |
+| Archivo restringido | Ninguno |
+| Permiso individual de lectura | Destinatario |
+| Permiso individual revocado | Ninguno |
+| Lectura habilitada mediante enlace | Los tres |
+| Lectura mediante enlace revocada | Ninguno |
+
+La ficha, la descarga y los dos marcadores históricos coincidieron con la
+referencia en las 72 solicitudes. El primer marcador respondió con HTTP 301
+hacia el segundo y éste con HTTP 307 hacia la ficha. En las fichas denegadas de
+las cuentas autenticadas se verificó además que el nombre del archivo quedara
+oculto. La consulta a los 1.319 binarios históricos volvió a dar 38 permitidos
+y 1.281 denegados, con cero diferencias por identidad.
+
+El cotejo con U41P conservó las 1.430 fichas, los 3.955 registros de acceso y
+los permisos originales de sus siete cuentas, junto con 40 protecciones de
+base de datos. El ensayo completó la reversión de los datos temporales y las
+colas de correo conservaron sus cifras. U41PA arrancó con 188 módulos libres.
+
+El archivo instalado en U41P y U41PA tiene SHA-256
+`12fb428e5abd6e7a26e74bd41d1ef2645d604c323aea17a4dea82a6443550cfe`.
+Los recibos privados de las solicitudes y los permisos se guardan en
+`~/.codex/local-artifacts/community-resume-20261125/U30/u41pa-portal-file-final.json`
+y `u41p-historical-public-scope-final.json` en el mismo directorio.

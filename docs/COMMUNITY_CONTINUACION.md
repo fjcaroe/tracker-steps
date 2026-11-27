@@ -37,6 +37,51 @@ firmas con Cerro. Cada una de las 752 liquidaciones cerradas de esa plantilla
 en SyS usó entre cuatro y trece reglas sin la misma firma en Cerro. La
 comparación de importes debe conservar las reglas y los maestros de Cerro.
 
+Se reprodujo una liquidación cerrada de octubre de SyS con comuna, tipo de
+contrato, calendario, línea de días y las 62 entradas reales del período. En
+SyS las 18 líneas coincidieron con el histórico. Su base, bruto y líquido
+son positivos. En Cerro se conservaron las identidades de sus 47 reglas y
+se usaron contratos de ensayo reversibles. La cuenta analítica original de
+SyS carece de un vínculo acreditado con Cerro. El ensayo se repitió con cada
+una de las 17 cuentas que podía seleccionar el operador en Cerro.
+
+Las copias de Cerro contienen cero tablas mensuales de Impuesto de Segunda
+Categoría. El motor original pidió la de octubre en los 17 casos. Al introducir
+en la transacción de ensayo la tabla de octubre realmente registrada en SyS,
+los 17 cálculos nativos de Cerro dieron las mismas líneas entre sí. La base y
+el líquido fueron positivos y el bruto fue exactamente cero. La
+configuración de Cerro difiere del histórico de SyS. Community detuvo el
+cálculo porque el bruto de esa estructura carece de conexión demostrada con el
+sueldo base. Este contraste deja pendiente la definición de Nómina para Cerro.
+El ensayo usó los movimientos de ese período. Cerro carece de contratos y
+liquidaciones anteriores para el historial acumulado del trabajador. La
+transacción revirtió la carga temporal de la tabla fiscal y los borradores.
+
+En U42F, Odoo instaló el proveedor de revisión de contratos de Cerro
+18.0.1.0.0 sobre una copia nueva. El registro quedó en 149 módulos libres.
+Coincidieron con el origen los 24 identificadores del proveedor, sus 13
+campos, las tres vistas, el permiso del modelo, la regla por empresa y los
+indicadores originales de las cuatro estructuras. El formulario original
+aceptó la confirmación de los 17 contratos con parámetros completos y
+rechazó el contrato sin cuenta analítica. Los 18 intentos de borrar la
+revisión directamente fueron rechazados también por el motor original.
+El archivo del proveedor probado en Cerro tiene SHA-256
+`e1bd69fece7a898e7e3da5cbfd4942cb50ff491bd0c9d6278e67ca9577deef5b`.
+El generador `tools/community/derive_sys_contract_review.py` exige la fuente
+propia de Cerro con `--product cerro` y reproduce por separado el paquete
+de SyS 18.0.1.2.0.
+
+La repetición U42PAYK comprobó después de guardar, en ambos motores, todos
+los parámetros trasladados del contrato, las fechas y estados de las entradas
+de trabajo, el calendario y las horas y días de la liquidación. Al ensayar la
+confirmación se marcó primero el contrato como pendiente. La acción autorizada
+levantó la marca en el completo y la mantuvo en el incompleto. Las huellas de
+los recibos privados son
+`e42fd320adaf4c8de39732615d561ebfc4b467b06434e189d145238724fc07d8`
+en el origen y
+`8a19b9feaf1137ed29d5c01226c31f0a9b57bbf6055b79a27503329db4da3e40`
+en Community.
+
 ## U39 · Diario desconocido en lotes históricos de SyS
 
 `step_payroll_oca_sys_history` es un addon optativo para la futura
