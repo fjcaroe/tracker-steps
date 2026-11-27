@@ -33,6 +33,15 @@ def ticket_trial(env):
     assert sample and scope.ref('helpdesk.helpdesk_ticket_menu_all').id in scope['ir.ui.menu']._visible_menu_ids()
     action = scope['ir.actions.actions']._for_xml_id('helpdesk.helpdesk_ticket_action_main_tree')
     form_id = next((pk for pk,kind in action['views'] if kind=='form'),None)
+    env.cr.execute("""SELECT id,padding,number_increment FROM ir_sequence WHERE code='helpdesk.ticket'
+        AND implementation='standard' AND active AND company_id IS NULL AND prefix IS NULL AND suffix IS NULL""")
+    (sequence, padding, increment), = env.cr.fetchall()
+    sequence_name = 'ir_sequence_' + str(sequence).zfill(3)
+    def current_number():
+        env.cr.execute("SELECT last_value FROM pg_sequences WHERE schemaname='public' AND sequencename=%s",
+                       (sequence_name,))
+        return env.cr.fetchone()[0]
+    previous = current_number()
     with env.cr.savepoint() as trial:
         form = Form(tickets,view=form_id)
         form.name = 'Ensayo privado de soporte'
@@ -49,9 +58,11 @@ def ticket_trial(env):
         reopened, = row.web_read({name:{} for name in fields})
         assert row.stage_id==target and reopened['id']==row.id and reopened['name']=='Ensayo privado de soporte'
         assert row.ticket_ref
+        current = current_number()
+        assert current == previous + increment and row.ticket_ref == str(current).zfill(padding)
         result = {'action':action['id'],'user':scope.uid,'selected_existing_master_ids':
                   fingerprint([sample.team_id.id,sample.partner_id.id,first.id,target.id]),
-                  'has_ticket_reference':True,'reference_matches_id':row.ticket_ref==str(row.id),
+                  'has_ticket_reference':True,'original_sequence':sequence,'sequence_advance':increment,
                   'reopened_in_new_stage':True}
         trial.rollback()
     assert tickets.search([],order='id') == original
