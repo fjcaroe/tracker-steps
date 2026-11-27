@@ -33,6 +33,8 @@ def main():
         assert counts and int(counts[-1]) >= 11
         verification = (root / (target + '-live-verification.log')).read_text()
         assert 'MANAGEMENT_REGISTRY_OK' in verification and '"receipt_and_c_tag": true' in verification
+        branch_flow = (root / (target + '-existing-business-flow.log')).read_text()
+        assert 'T246_EXISTING_BUSINESS_FLOW_OK' in branch_flow
         current = (qa['commit'], qa['release_sha256'])
         assert identity is None or current == identity
         identity = current
