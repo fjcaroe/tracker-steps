@@ -30,35 +30,45 @@ def frozen_report():
     return json.loads(audit.read_bytes())
 
 
-def clone():
-    DEST.mkdir(mode=0o751, exist_ok=True)
-    marker = DEST / 'clone.json'
-    start = DEST / 'started.json'
-    identity = {'source': FINAL_TARGET, 'target': DB, 'tablespace': SPACE, 'audit_sha256': AUDIT_SHA}
+def clone(source=FINAL_TARGET,source_dir=FINAL_DEST,target=DB,dest=DEST):
+    concept_root=Path('/opt/steps-validation/community-cerro-concepts-20261127U45P')
+    if (source,source_dir,target,dest)==(FINAL_TARGET,FINAL_DEST,DB,DEST):
+        installed,source_sha=187,AUDIT_SHA
+    elif (source,source_dir,target,dest)==(DB,DEST,'COMMUNITY_CERRO_BOM_CONCEPTS_20261127U45P',concept_root):
+        accepted=source_dir/'accepted-contracts.json'
+        source_sha=hashlib.sha256(accepted.read_bytes()).hexdigest()
+        assert source_sha=='8cf384f8a096ad78dbb547147cd911d72d8ebbca9d9f0d7940fb3cc6a76121de'
+        installed=188
+    else:
+        raise ValueError('Unknown private source and destination for the Cerro catalogue')
+    dest.mkdir(mode=0o751, exist_ok=True)
+    marker = dest / 'clone.json'
+    start = dest / 'started.json'
+    identity = {'source': source, 'target': target, 'tablespace': SPACE, 'audit_sha256': source_sha}
     if marker.exists():
         assert json.loads(marker.read_bytes()) == identity
         return
     pgdir = Path(sql('postgres', 'SHOW data_directory'))
     space = Path(sql('postgres', "SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname='" + SPACE + "'"))
-    size = int(sql('postgres', "SELECT pg_database_size('" + FINAL_TARGET + "')"))
+    size = int(sql('postgres', "SELECT pg_database_size('" + source + "')"))
     memory = int(next(l.split()[1] for l in Path('/proc/meminfo').read_text().splitlines() if l.startswith('MemAvailable:'))) * 1024
     assert space.resolve().is_relative_to('/opt/steps-validation')
     assert shutil.disk_usage(pgdir).free >= 5*GIB and shutil.disk_usage(space).free >= max(8*GIB, 3*size)
     assert memory >= 1536*1024**2
     if not start.exists():
-        assert not sql('postgres', "SELECT 1 FROM pg_database WHERE datname='" + DB + "'")
+        assert not sql('postgres', "SELECT 1 FROM pg_database WHERE datname='" + target + "'")
         start.write_text(json.dumps(identity, sort_keys=True))
     assert json.loads(start.read_bytes()) == identity
-    expected = module_census(FINAL_TARGET)
-    assert expected['installed']==187 and not any(expected[k] for k in ('pending','non_free','enterprise'))
-    if not sql('postgres', "SELECT 1 FROM pg_database WHERE datname='" + DB + "'"):
-        pg('createdb','--owner=dev_odoo18','--tablespace='+SPACE,'--template='+FINAL_TARGET, DB)
-    assert sql('postgres', "SELECT pg_get_userbyid(datdba)||'|'||spcname FROM pg_database JOIN pg_tablespace ON dattablespace=pg_tablespace.oid WHERE datname='"+DB+"'") == 'dev_odoo18|'+SPACE
-    assert module_census(DB)==expected and all_guards(DB)==all_guards(FINAL_TARGET)
-    assert guard('verify',DB)==guard('verify',FINAL_TARGET) and directory(DB)==directory(FINAL_TARGET)
-    objects=references(FINAL_TARGET)
-    assert references(DB)==objects
-    copy_filestore(FINAL_DEST/'data/filestore'/FINAL_TARGET,DEST,DB,objects)
+    expected = module_census(source)
+    assert expected['installed']==installed and not any(expected[k] for k in ('pending','non_free','enterprise'))
+    if not sql('postgres', "SELECT 1 FROM pg_database WHERE datname='" + target + "'"):
+        pg('createdb','--owner=dev_odoo18','--tablespace='+SPACE,'--template='+source, target)
+    assert sql('postgres', "SELECT pg_get_userbyid(datdba)||'|'||spcname FROM pg_database JOIN pg_tablespace ON dattablespace=pg_tablespace.oid WHERE datname='"+target+"'") == 'dev_odoo18|'+SPACE
+    assert module_census(target)==expected and all_guards(target)==all_guards(source)
+    assert guard('verify',target)==guard('verify',source) and directory(target)==directory(source)
+    objects=references(source)
+    assert references(target)==objects
+    copy_filestore(source_dir/'data/filestore'/source,dest,target,objects)
     marker.write_text(json.dumps(identity, sort_keys=True))
 
 

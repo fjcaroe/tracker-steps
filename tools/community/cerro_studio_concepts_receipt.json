@@ -1,0 +1,17 @@
+{
+  "archive_sha256": "cdba41119f13f2d01457b5e92c2d8ad92b7aa10bab9e5544d658822d351b6d1c",
+  "binary_suffixes": [],
+  "files": 5,
+  "lf_source_files": {
+    "step_cerro_export_payment_concepts": [
+      "__init__.py",
+      "__manifest__.py",
+      "hooks.py",
+      "models.py",
+      "views/customizations.xml"
+    ]
+  },
+  "module_trees": {
+    "step_cerro_export_payment_concepts": "abf7405ec810d37b28596121fecc667ef968ebe018b4103da6a5e89302a250d9"
+  }
+}
