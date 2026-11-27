@@ -69,3 +69,18 @@ los dos operadores en las doce empresas. Las 24 comparaciones de Previred y
 las 24 del Libro coincidieron con la copia nativa y los datos originales se
 conservaron. El recibo de esta instalación tiene SHA-256
 `614c3fae66e32ab975ac214fcd229451375f1f534bcbcf9b0204bdc6c4711c3c`.
+
+El control posterior detectó que el primer arranque había dejado opcional en
+PostgreSQL el código de jornada Previred. Los 41 valores seguían coincidiendo
+fila por fila con la copia nativa. En K se repuso la obligatoriedad después
+de comprobar la identidad original del campo y cada valor. La protección
+del cargador ahora incluye ese campo. El control repetido confirmó las
+25 proyecciones, 53.659 identificadores originales, 298 claves foráneas y
+111 contadores, además de las 16 reglas de permisos nuevas y sus 12 vínculos.
+El recibo de conservación tiene SHA-256
+`98c62bda7bc2b0f54175d89bf7865a4947dae13c15cb2e4c0b6aab0ce65abf0f`.
+
+El paquete de la prueba incluye las adaptaciones privadas de configuración
+de nómina y de revisión contractual. Sus generadores y el módulo del
+calendario están versionados. Para reproducir la prueba se usa el archivo
+privado cuya huella consta arriba y las raíces privadas de la restauración.
