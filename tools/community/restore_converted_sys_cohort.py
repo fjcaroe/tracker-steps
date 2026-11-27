@@ -163,7 +163,7 @@ def package(args, out, source_db, modules):
             shutil.rmtree(temporary)
 
 
-def open_as_user(out, db, service, boot, hidden_sources):
+def open_as_user(out, db, service, boot, hidden_sources, *, private_server=False):
     core = out / "sealed/runtime"
     scratch = out / "data/tmp"
     scratch.mkdir(mode=0o700, exist_ok=True)
@@ -171,13 +171,14 @@ def open_as_user(out, db, service, boot, hidden_sources):
     cerro = db.startswith("COMMUNITY_CERRO_PAYROLL_RECOVERY_")
     steps = db.startswith("COMMUNITY_STEPS_CRM_RECOVERY_")
     config = "/etc/odoo18.conf" if steps else "/etc/dev_odoo18.conf" if cerro else "/etc/odoo18-sys.conf"
-    args = [
-        "unshare", "--net", "--", "sh", "-ec", 'ip link set dev lo up; exec "$@"', "steps",
+    mounts = [] if private_server else [
         "bwrap", "--die-with-parent", "--ro-bind", "/", "/", "--tmpfs", "/opt/steps-validation",
         "--tmpfs", "/srv/odoo-data/steps-anchor-validation", "--tmpfs", "/opt/odoo18",
         "--tmpfs", "/opt/steps-managed", "--tmpfs", "/opt/luis_odoo18",
         "--dir", str(out.parent), "--ro-bind", str(out), str(out),
-        "--bind", str(out / "data"), str(out / "data"), "--proc", "/proc", "--dev-bind", "/dev", "/dev", "--",
+        "--bind", str(out / "data"), str(out / "data"), "--proc", "/proc", "--dev-bind", "/dev", "/dev", "--"]
+    args = [
+        "unshare", "--net", "--", "sh", "-ec", 'ip link set dev lo up; exec "$@"', "steps", *mounts,
         "sudo", "-n", "-u", service.pw_name, "env", "PYTHONDONTWRITEBYTECODE=1", "TMPDIR=" + str(scratch),
         "/usr/bin/python3.10", str(core / "odoo-bin"), "shell", "-c", config, "-d", db,
         "--db-filter=^" + db + "$", "--db_host=/var/run/postgresql", "--data-dir=" + str(out / "data"),

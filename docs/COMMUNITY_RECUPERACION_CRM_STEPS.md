@@ -58,3 +58,30 @@ El SHA-256 del SQL de esta versión fue
 La estación comprobó los 13 componentes incluidos en el manifiesto
 `5de21f357e0c270d33cdbb23268c343ba2643a2be5ca44992210831132b22f79`.
 El recibo quedó en `U40/steps-crm-quote-cold/offline-verification.json`.
+
+## Recuperación desde la copia que salió del servidor
+
+Se devolvieron desde la estación de trabajo los trece componentes del
+respaldo y su manifiesto a un directorio privado. La prueba U43E creó un
+servidor PostgreSQL 12 con solo sus tres bases iniciales. Se creó el rol
+local de Odoo con autenticación por identidad del sistema operativo. El
+proceso tenía su propio socket, configuración y directorio de datos.
+La red externa y los directorios del servidor original quedaron fuera de
+su alcance. Se utilizaron los ejecutables de PostgreSQL y Python y las
+bibliotecas del sistema de la misma máquina.
+
+El archivo recuperó las 163.133 filas y los 804 contadores con sus valores
+y estados originales. Coincidieron las 11.939 columnas, 5.650 restricciones,
+1.916 propiedades de titularidad y permisos de las relaciones, y el esquema
+completo. Se comprobaron y extrajeron los 1.744 archivos de datos y los
+20.688 archivos de código. En dos arranques, el vendedor original abrió
+CRM, sus nueve oportunidades, doce adjuntos y el formulario de presupuesto
+con el cliente correcto. También se comprobaron los permisos del público y
+que el vendedor viera los cuatro documentos comerciales históricos. El ensayo cerró
+el servidor privado y verificó su parada.
+
+El programa es `tools/community/restore_independent_steps_crm.py`. Recibe
+un directorio nuevo bajo `/opt/steps-validation` con el respaldo en
+`inbox/` y las herramientas de recuperación en `code/`. El recibo de
+la estación es `U40/U43E-independent-steps-sales-recovery.json`, SHA-256
+`2f330c83861c5458240c79048dadffac381aaf1cf0e188bb31fda16d16b016fe`.
