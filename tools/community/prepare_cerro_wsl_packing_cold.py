@@ -11,10 +11,12 @@ RAM = Path('/dev/shm/steps-cerro-u46')
 SOCKET = str(RAM/'socket')
 SOURCE = 'COMMUNITY_CERRO_BOM_CONCEPTS_20261127U45P'
 TRIAL = 'COMMUNITY_CERRO_BOM_PACKING_20261127U46B'
+FINAL = 'COMMUNITY_CERRO_BOM_PACKING_20261127U46C'
 PG_UID = 61012
 
 
-def prepare(executor):
+def prepare(executor,trial=TRIAL):
+    assert trial in (TRIAL,FINAL)
     if os.getuid() or not os.path.ismount('/dev/shm'):
         raise RuntimeError('Private temporary PostgreSQL requires the local memory filesystem')
     RAM.mkdir(mode=0o751,exist_ok=True)
@@ -47,14 +49,14 @@ def prepare(executor):
     if not seal.exists():
         assert shutil.disk_usage(RAM).free>850*1024**2
         command('pg_dump','-h','/work/cerro-pg/socket','-p','55442','--format=custom','-f',dump,SOURCE)
-        seal.write_text(json.dumps(dict(source=SOURCE,target=TRIAL,sha256=hashlib.sha256(dump.read_bytes()).hexdigest()),sort_keys=True))
+        seal.write_text(json.dumps(dict(source=SOURCE,target=trial,sha256=hashlib.sha256(dump.read_bytes()).hexdigest()),sort_keys=True))
     claim=json.loads(seal.read_bytes())
-    assert claim['source']==SOURCE and claim['target'] in ('COMMUNITY_CERRO_BOM_PACKING_20261127U46A',TRIAL)
+    assert claim['source']==SOURCE and claim['target'] in ('COMMUNITY_CERRO_BOM_PACKING_20261127U46A',TRIAL,FINAL)
     assert claim['sha256']==hashlib.sha256(dump.read_bytes()).hexdigest()
-    if not sql("SELECT 1 FROM pg_database WHERE datname='"+TRIAL+"'"):
-        command('createdb',*dbopts,'--owner=dev_odoo18','--template=template0',TRIAL)
-    if not sql("SELECT to_regclass('public.ir_model')",TRIAL):
-        result=command('pg_restore',*dbopts,'--single-transaction','--exit-on-error','--no-tablespaces','-d',TRIAL,dump,check=False)
+    if not sql("SELECT 1 FROM pg_database WHERE datname='" +trial+"'"):
+        command('createdb',*dbopts,'--owner=dev_odoo18','--template=template0',trial)
+    if not sql("SELECT to_regclass('public.ir_model')",trial):
+        result=command('pg_restore',*dbopts,'--single-transaction','--exit-on-error','--no-tablespaces','-d',trial,dump,check=False)
         if result.returncode:
             raise RuntimeError(result.stderr.decode(errors='replace')[-1200:])
     return claim
