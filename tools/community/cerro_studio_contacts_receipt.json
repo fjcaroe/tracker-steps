@@ -1,0 +1,16 @@
+{
+  "archive_sha256": "576fba5fa799deb6fa6e60c770c00d63ba2e4b1fe39ea591ab89734ec6402240",
+  "binary_suffixes": [],
+  "files": 5,
+  "lf_source_files": {
+    "step_cerro_export_contacts": [
+      "__init__.py",
+      "__manifest__.py",
+      "hooks.py",
+      "models.py"
+    ]
+  },
+  "module_trees": {
+    "step_cerro_export_contacts": "c75f27147836381f32269043e9dd2ee5699a978314273edbca28a30b2585aa33"
+  }
+}
