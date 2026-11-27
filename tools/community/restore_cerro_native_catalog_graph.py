@@ -97,6 +97,11 @@ def main():
         if not destination.exists():
             shutil.copytree(species,destination,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
         assert tree_sha(destination)==digest
+        for module in (destination,native_core):
+            for path in (module,*module.rglob('*')):
+                if '__pycache__' not in path.parts:
+                    path.chmod(0o755 if path.is_dir() else 0o644)
+            subprocess.run(['runuser','-u','cerro_odoo18','--','test','-r',str(module/'__manifest__.py')],check=True)
         restore()
         guard('arm','before.json')
         config=Path('/etc/odoo18-cerroelplomo.conf')

@@ -166,16 +166,26 @@ confirmó las 8.370 restricciones con iguales definiciones y validación, y
 las 14 líneas de estimación con idénticos valores. U41L añadió cuatro
 restricciones para sus nuevos proveedores.
 
-La primera actualización nativa ampliada encontró que la vista 4637 exige
-la relación de empresas al validar el formulario de Temporadas 4159. Al
-cargar juntos el catálogo 18.0.1.1.0 y su núcleo, el registro superó esa
-fase y llegó a las categorías de Packing. La restauración sellada U40Q
-conserva los enlaces de vistas 836 y 837 de la acción de centros de costo
-1082. En el control de actualizaciones sucesivas U40B, la versión anterior
-del proveedor agrícola los recreó como 945 y 946. Por ello la actualización
-completa se vuelve a ensayar desde el respaldo sellado, con el proveedor que
-reutiliza ambas identidades desde la primera carga. Las 23 pantallas
-del control nativo disponen de su lectura anterior al cambio.
+La restauración nativa U42N resolvió la validación de la vista 4637 en el
+formulario de Temporadas 4159. El núcleo agrícola 18.0.1.1.4 extiende los
+18 maestros ya registrados por el proveedor original de personal y el
+catálogo 18.0.1.1.1 se carga después de ambos. La instalación y la
+actualización ordinarias finalizaron en la copia restaurada desde U40Q.
+
+El operador 6 obtuvo las 23 rutas originales y las 23 lecturas completas del
+control. Las filas de las 23 vistas, incluidos los seis historiales sensibles,
+coincidieron en todas sus columnas con el origen. Se protegieron 60.691
+identificadores externos. La acción 1082 conservó las vinculaciones 836 y
+837. Las cuatro relaciones de categoría y las 14 estimaciones conservaron
+sus datos. Para Temporadas se comprobó el campo 27057, las relaciones de
+las tres temporadas y el acceso bajo las ocho empresas. En la regla 553
+cambió la fecha de escritura durante la actualización. El resto de sus
+columnas coincidió con el origen.
+
+El registro **nativo** tenía 433 módulos instalados, 140 Enterprise y
+uno OPL, con cero transiciones pendientes. El recibo privado
+`U42N/verified-histories.json` tiene SHA-256
+`54ef89dba13ea308b8beb55e706f40ef3cde1c79391ec8b9ea55552b42446cd7`.
 
 En U42C el usuario 6 obtuvo los mismos 53 fundos y los mismos registros al
 abrir cada empresa. También coincidieron el inverso de productores y todas

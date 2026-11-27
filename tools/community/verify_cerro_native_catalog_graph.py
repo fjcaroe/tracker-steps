@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from check_cerro_cold_studio import histories
 from check_cerro_estimation_profile import snapshot as estimate_contract
 from check_cerro_packing_categories import categories
 from compare_cerro_studio_strict import NATIVE, result
@@ -41,6 +42,8 @@ def verify(trial, database):
     for view, routes in originals.items():
         assert any(r['action'] == v['action'] and r['kind'] == v['kind'] and set(r['menus']) & set(v['menus'])
                    for r in routes for v in paths[view]), view
+    rows = histories(SOURCE)
+    assert histories(database) == rows
     assert season_contract(SOURCE) == season_contract(database)
     assert categories(SOURCE) == categories(database)
     assert estimate_contract(SOURCE) == estimate_contract(database)
@@ -51,7 +54,8 @@ def verify(trial, database):
                        ORDER BY name""").splitlines()
     assert len(versions) == 3
     rule_write_time_changed = sql(SOURCE,"SELECT write_date FROM ir_rule WHERE id=553") != sql(database,"SELECT write_date FROM ir_rule WHERE id=553")
-    return {'rule_write_time_changed':rule_write_time_changed,'season':season,'views':len(reference),'original_menu_paths':len(paths),
+    return {'identical_rows_sha256':hashlib.sha256(json.dumps(rows,sort_keys=True).encode()).hexdigest(),
+            'rule_write_time_changed':rule_write_time_changed,'season':season,'views':len(reference),'original_menu_paths':len(paths),
                       'field_rule_and_seasons_sha256':hashlib.sha256(season_contract(SOURCE).encode()).hexdigest(),
                       'identity_guard':protected,'census':census,'versions':versions}
 
