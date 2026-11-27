@@ -16,6 +16,9 @@ class OriginalConfigurationCase(TransactionCase):
         company = cls.env["res.company"].create({
             "name": "Private original configuration company", "country_id": cls.env.ref("base.cl").id,
             "currency_id": cls.env.ref("base.CLP").id})
+        # Complete the new company's chart installation before adding a salary
+        # journal that the chart's initialization would otherwise replace.
+        cls.env.cr.flush()
         actor = cls.env["res.users"].with_context(no_reset_password=True).create({
             "name": "Private original configuration manager", "login": "private-original-configuration-manager",
             "company_id": company.id, "company_ids": [Command.set(company.ids)],
@@ -79,6 +82,7 @@ class OriginalConfigurationCase(TransactionCase):
     def _other_company_journal(self):
         company = self.env["res.company"].create({"name": "Private other original posting company",
             "country_id": self.company.country_id.id, "currency_id": self.company.currency_id.id})
+        self.env.cr.flush()
         self.scope.user.with_env(self.env).write({"company_ids": [Command.link(company.id)]})
         scope = self.scope["hr.payroll.structure"].with_context(allowed_company_ids=(self.company | company).ids).with_company(company).env
         journal = scope["account.journal"].create({"name": "Private other original posting journal",

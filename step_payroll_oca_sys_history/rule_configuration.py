@@ -54,6 +54,15 @@ class Payslip(models.Model):
         values['categories'] = SysCategoryMapping(values['categories'].dict)
         return values
 
+    def compute_sheet(self):
+        with self.env.cr.savepoint():
+            batches = self.mapped('payslip_run_id').filtered(lambda b: b.company_id.id == 37)
+            if any(b.state in ('close','paid') for b in batches):
+                raise UserError(_('The original payroll batch is closed.'))
+            result = super().compute_sheet()
+            batches._step_sys_mark_reviewable()
+            return result
+
     def _step_sys_matches_closed_worked_days(self):
         """Recognize an exact, readable original attendance snapshot on a new draft."""
         self.ensure_one()
@@ -89,11 +98,11 @@ class Payslip(models.Model):
         with self.env.cr.savepoint():
             result = super().action_payslip_done()
             for slip in self.filtered(lambda record: record.state == 'done' and not record.move_id):
-                if slip.company_id.id != 37 or slip.struct_id != structure:
+                if slip.company_id.id not in CONFIRMED_COMPANIES or slip.struct_id != structure:
                     continue
                 # SyS retains a draft accounting header even without any rule
                 # accounts. The regular payroll provider handles mapped lines.
-                if slip.payslip_run_id or slip.credit_note:
+                if slip.credit_note or (slip.payslip_run_id and slip.company_id.id != 37):
                     raise UserError(_('The original accounting treatment of this batch or refund needs verification.'))
                 rules = structure._step_effective_rule_scope()['rules']
                 rules.check_access('read')
