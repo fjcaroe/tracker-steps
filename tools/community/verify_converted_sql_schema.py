@@ -54,8 +54,9 @@ def in_native_order(folder, source, restored, expected):
         order.write_bytes(b"\n".join(current[key] for key in original) + b"\n")
         rendered = subprocess.check_output(["pg_restore", "--schema-only", "--no-tablespaces", "-L", str(order),
                                             "--file=-", str(target)])
-        require(schema(rendered) == expected, "restored-schema-by-native-toc-differs")
-        return {"rendered_objects": len(original), "relocated_entry": moved.decode(),
+        actual = schema(rendered)
+        require(actual == expected, "restored-schema-by-native-toc-differs")
+        return {"rendered_sha256": actual, "rendered_objects": len(original), "relocated_entry": moved.decode(),
                 "source_position": list(original).index(moved), "restored_default_position": list(current).index(moved)}
 
 
@@ -88,7 +89,7 @@ def verify(folder):
     if product == "cerro" and result["restored_schema_sha256"] != expected:
         result["restored_default_order_sha256"] = result["restored_schema_sha256"]
         result["native_toc_order"] = in_native_order(folder, base, restored, expected)
-        result["restored_schema_sha256"] = expected
+        result["restored_schema_sha256"] = result["native_toc_order"]["rendered_sha256"]
     require(result["restored_schema_sha256"] == expected, "schema-rendering-differs")
     (folder / "schema-proof.json").write_text(json.dumps(result, indent=2))
     print(json.dumps(result))
