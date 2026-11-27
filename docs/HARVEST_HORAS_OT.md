@@ -30,6 +30,10 @@ Certificar con `manage_management.py --kind harvest-app`, usando un run ID
 `t244245_<commit8>` en copias frescas de los tres destinos. Ejecutar
 `smoke_harvest_operations.py` (incluye `smoke_harvest_work_hours.py`), la prueba
 de cuadrilla y `check_harvest_weight_ui.cjs` sobre el proxy de copia autorizado.
+`check_harvest_hours_flow.cjs` usa el usuario y zona horaria existentes, habilita
+un integrante nativo en el equipo y prueba crear, registrar, cerrar con horas,
+aprobar, enviar y recargar desde la interfaz. Conserva capturas móviles y verifica
+las líneas de costo originales. Las referencias largas deben ajustarse al ancho.
 El publicador requiere además las respuestas 10692 y 10696 y las evidencias
 de campos, pasada obligatoria, cierre, reparto y líneas de costo. Publicar el
 mismo paquete probado primero en Desarrollo, con respaldo, bloqueo compartido,
