@@ -97,6 +97,8 @@ def build_invoice_provider(db, output):
                       FROM ir_attachment a WHERE res_model='res.users' AND res_field='sign_signature'""")
     require(flags == [29, 0, 0] and signers[:2] == [8129,124] and assets[0] == 1, "unexpected-original-signature-census")
     receipt = Path("/opt/steps-validation/community-sys-six-invoice-signing-20261127U41MSR/receipt.json")
+    require(digest(receipt) == "e04cb5c178508dc28b12571e2e4e58f1bf1aceb692589e12f99a3637bc6af42e",
+            "unexpected-native-print-signing-receipt")
     receipt_cases, = json.loads(receipt.read_bytes())
     types = ("out_receipt", "in_receipt")
     expected_cases = list(product((False, True), (False, True), ("no", "blank", "sample"), types, ("draft", "posted", "cancel")))
