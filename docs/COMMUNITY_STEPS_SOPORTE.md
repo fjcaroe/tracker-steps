@@ -19,14 +19,17 @@ archivos leídos y decisiones, sin publicar contenido.
 
 Desde el menú de todos los tickets, un operador creó un ticket de ensayo
 con un equipo y un contacto existentes. Lo cambió a otra etapa del equipo
-y volvió a abrirlo. El original asignó como referencia el número de identidad
-del nuevo ticket. Se revirtió la operación y se comprobaron doce tablas,
+y volvió a abrirlo. Una segunda alta confirmó que el original consumió
+exactamente un número de la secuencia de Mesa de Ayuda y lo usó como
+referencia. En nueve tickets históricos la referencia difiere de su identidad
+interna. Se conservaron las 243 referencias. Se revirtió cada operación y se comprobaron doce tablas,
 incluidos los mensajes, destinatarios, adjuntos y permisos.
 
 La referencia de permisos se reproduce con `run(env)` y el recorrido de
 alta con `ticket_trial(env)` en `tools/community/probe_steps_support_history.py`.
-Los comprobantes privados son `U44SB-steps-support-reference.json` y
-`U44ST-steps-support-reference.json` en el directorio de custodia U40.
+Los comprobantes privados son `U44SB-steps-support-reference.json`,
+`U44ST-steps-support-reference.json` y `U44SU-steps-support-reference.json`
+en el directorio de custodia U40.
 
 ## Compatibilidad de maestros
 
