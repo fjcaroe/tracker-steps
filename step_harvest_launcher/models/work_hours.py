@@ -69,6 +69,8 @@ class HarvestWorkHours(models.Model):
             if (self.mobile_work_start, self.mobile_work_end, self.mobile_work_hours, self.mobile_last_order) != (start, end, hours, last):
                 raise ValidationError(_('Una OT cerrada conserva sus horas. Reábrala antes de corregirlas.'))
             return
+        if self.state != 'in' or self.invoice_id or self.purchase_id:
+            raise ValidationError(_('La OT debe estar en Ingresado y sin documentos de costo para asignar sus horas.'))
         orders, crew = self._harvest_day_orders(day, lock=True)
         if any(orders.mapped('mobile_last_order')):
             raise ValidationError(_('La jornada ya está cuadrada. Reabra primero la última OT del día.'))

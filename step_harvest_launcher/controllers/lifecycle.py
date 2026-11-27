@@ -138,8 +138,8 @@ class LifecycleHarvestApi(ScopedHarvestApi):
         approver = record.mobile_approver_id
         return dict(super()._order(record),
                     order_day=str(fields.Datetime.context_timestamp(record, record.date).date()) if record.date else '',
-                    work_start=fields.Datetime.to_string(record.mobile_work_start) + 'Z' if record.mobile_work_start else False,
-                    work_end=fields.Datetime.to_string(record.mobile_work_end) + 'Z' if record.mobile_work_end else False,
+                    work_start=record.mobile_work_start.isoformat() + 'Z' if record.mobile_work_start else False,
+                    work_end=record.mobile_work_end.isoformat() + 'Z' if record.mobile_work_end else False,
                     work_hours=record.mobile_work_hours, work_day=str(record.mobile_work_day or ''),
                     day_hours=record.mobile_day_hours, last_order=record.mobile_last_order,
                     can_transition=record.has_access('write'),

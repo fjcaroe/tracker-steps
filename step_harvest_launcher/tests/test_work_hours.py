@@ -94,3 +94,41 @@ class HarvestWorkHoursCase(TransactionCase):
         first = self.order()
         with self.assertRaises(AccessError):
             first.with_user(self.env.ref('base.user_admin')).write({'mobile_work_hours': 3})
+
+    def test_costed_historical_order_cannot_gain_or_replace_cost_hours(self):
+        first = self.order()
+        first.state = 'costo'
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self.close(first)
+        self.assertFalse(first.registry_line)
+        self.assertEqual(first.state, 'costo')
+
+    def test_contractor_uses_existing_tarja_cost_lines_without_payroll(self):
+        partner = self.env['res.partner'].create({'name': 'Private hours contractor', 'is_company': True})
+        worker = self.env['hr.employee'].create({'name': 'Private contractor worker', 'company_id': self.company.id,
+            'is_contratista': True, 'contratista_id': partner.id})
+        crew = self.env['hr.salary.custom'].create({'name': 'Private contractor hours',
+            'company_id': self.company.id, 'group_type': 'contratista', 'partner_id': partner.id,
+            'contract_line': [Command.create({'employee_id': worker.id})]})
+        first = self.order()
+        first.write({'salary_id': False, 'salary_id_contrac': crew.id,
+            'type_tarea': 'contratista', 'partner_id': partner.id})
+        self.close(first, end=16, hours=8, last=True)
+        self.assertFalse(first.registry_line)
+        self.assertEqual((first.registry_tarja_line.employee_id, first.registry_tarja_line.hrs), (worker, 8))
+        self.assertFalse(self.env['hr.attendance'].search([('employee_id', '=', worker.id)]))
+        self.assertFalse(self.env['hr.work.entry'].search([('employee_id', '=', worker.id)]))
+
+    def test_own_hours_feed_native_salary_cost(self):
+        calendar = self.env['resource.calendar'].create({'name': 'Private eight hour Friday',
+            'company_id': self.company.id, 'tz': 'UTC', 'attendance_ids': [Command.clear(), Command.create({
+                'name': 'Private Friday', 'dayofweek': '4', 'hour_from': 8, 'hour_to': 16})]})
+        contract = self.env['hr.contract'].create({'name': 'Private cost contract',
+            'employee_id': self.worker.id, 'company_id': self.company.id, 'wage': 480000,
+            'sueldo_base': 480000, 'resource_calendar_id': calendar.id, 'date_start': '2026-01-01'})
+        first = self.order()
+        self.close(first)
+        self.assertEqual(first.registry_line.contract_id, contract)
+        self.assertEqual(first.registry_line.hrs, 4)
+        self.assertGreater(first.registry_line.cost_empresa, 0)
+        self.assertAlmostEqual(first.registry_line.sueldo_base, 8000)

@@ -5,6 +5,8 @@ const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 (async()=>{
     const input=process.argv[2],output=process.argv[3];
+    const expected=process.argv[4] || '0.0.11';
+    assert.ok(['0.0.11','0.0.12'].includes(expected));
     fs.mkdirSync(output,{recursive:true});
     const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
     const result=[];
@@ -25,14 +27,14 @@ const {chromium}=require('playwright');
             });
             const response=await page.goto('https://'+proof.host+'/cosecha/',{waitUntil:'domcontentloaded',timeout:90000});
             assert.equal(response.status(),200);assert.equal(response.headers()['cache-control'],'no-store');
-            await page.locator('.environment-label').filter({hasText:'Harvest 0.0.11'}).waitFor();
+            await page.locator('.environment-label').filter({hasText:'Harvest '+expected}).waitFor();
             await page.getByRole('button',{name:'Configuración',exact:true}).first().click();
             await page.getByRole('heading',{name:'Configuración de cosecha',exact:true}).waitFor();
             await page.getByRole('button',{name:'Sin tarja',exact:true}).waitFor();
             await page.getByRole('button',{name:'Peso estándar',exact:true}).waitFor();
             await page.screenshot({path:path.join(output,environment+'.png'),fullPage:true});
             assert.deepEqual(errors,[]);
-            result.push({environment,host:proof.host,version:'0.0.11',configuration:true,withoutTarja:true,
+            result.push({environment,host:proof.host,version:expected,configuration:true,withoutTarja:true,
                          standardWeight:true,businessWrites:0,errors});
             await context.close();
         }
