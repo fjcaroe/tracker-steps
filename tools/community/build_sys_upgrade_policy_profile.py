@@ -12,6 +12,7 @@ from lxml import etree
 
 from audit_sys_upgrade_policy import audit
 from custody_sys_previred_filestore import digest
+from preserve_sys_original_fiscal_masters import preserve as preserve_fiscal
 from restore_native_product_backup import query
 from restore_sys_previred_pair import require
 
@@ -98,13 +99,13 @@ def original_standard_layout(db, module):
             "wave_source_sha256": wave, "file_sha256": digest(file)}
 
 
-def build(db, sealed, target, modules, *, original_admin_seeds=False):
+def build(db, sealed, target, modules, *, original_admin_seeds=False, original_fiscal=False):
     require(not target.exists(), "profile-output-exists")
     core = sealed / "runtime"
     schema = etree.RelaxNG(etree.parse(str(core / "odoo/import_xml.rng")))
     policies = audit(db, core, modules, original_admin_seeds=original_admin_seeds)
     total = sum(len(records) for records in policies.values())
-    expected_total = 41 if original_admin_seeds else 40
+    expected_total = 43 if original_fiscal else 41 if original_admin_seeds else 40
     require(total == expected_total and all(not p["differences"] for records in policies.values() for p in records.values()),
             "existing-original-acl-group-rule-differs")
     changes = {}
@@ -149,6 +150,11 @@ def build(db, sealed, target, modules, *, original_admin_seeds=False):
                 updated["views/report_templates.xml"] = original_standard_layout(db, output)
                 schema.assertValid(etree.parse(str(output / "views/report_templates.xml")))
             changes[module] = {"records": records, "files": updated, "manifest": digest(manifest_file)}
+        if original_fiscal:
+            origin = core / "addons/l10n_cl"
+            output = profile / "l10n_cl"
+            shutil.copytree(origin, output)
+            changes["l10n_cl"] = preserve_fiscal(origin, output, db, schema)
         files, sha = fingerprint(profile)
         # copytree retains the upstream directory modes. Validation runs under the Odoo service identity.
         for directory in (profile, *(p for p in profile.rglob("*") if p.is_dir())):
