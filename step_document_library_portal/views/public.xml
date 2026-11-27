@@ -28,4 +28,26 @@
             <body><main><h1>Archivo sin acceso</h1></main></body>
         </html>
     </template>
+    <template id="shared_folder" name="Carpeta compartida">
+        <html lang="es">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="referrer" content="no-referrer"/>
+                <title t-esc="folder_name"/>
+            </head>
+            <body>
+                <main>
+                    <h1 t-esc="folder_name"/>
+                    <ul t-if="entries">
+                        <li t-foreach="entries" t-as="entry">
+                            <a t-att-href="entry['href']" t-esc="entry['name']"/>
+                            <span t-if="entry['type'] == 'folder'"> (carpeta)</span>
+                        </li>
+                    </ul>
+                    <p t-else="">No hay elementos disponibles.</p>
+                </main>
+            </body>
+        </html>
+    </template>
 </odoo>
