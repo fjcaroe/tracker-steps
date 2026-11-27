@@ -1,0 +1,80 @@
+"""Render real posted Chilean invoices through the original report action on the isolated final cohort."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import tempfile
+from unittest.mock import patch
+
+from odoo.tools import config
+
+
+def run(shell):
+    assert shell.cr.dbname == "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW"
+    url = os.environ["STEPS_PRIVATE_REPORT_URL"]
+    assert re.fullmatch(r"http://127[.]0[.]0[.]1:[0-9]+", url)
+    shell.cr.rollback()
+    shell.cr.execute("SET TRANSACTION READ ONLY")
+    service = shell["ir.actions.report"]
+    parameters = type(shell["ir.config_parameter"])
+    original_param = parameters.get_param
+
+    def get_param(records, key, default=False):
+        if key in ("report.url", "web.base.url"):
+            return url
+        return original_param(records, key, default)
+
+    directory = Path(tempfile.mkdtemp(prefix="historical-invoice-pdf-", dir=config["data_dir"]))
+    actors = shell["res.users"].search([("active", "=", True), ("share", "=", False), ("id", ">", 1)])
+    assert len(actors) == 2
+    result = []
+    renderer = type(service)._run_wkhtmltopdf
+    calls = []
+
+    def physical(instance, *args, **kwargs):
+        pdf = renderer(instance, *args, **kwargs)
+        calls.append(hashlib.sha256(pdf).hexdigest())
+        return pdf
+
+    with patch.object(parameters, "get_param", get_param), patch.object(type(service), "_run_wkhtmltopdf", physical):
+        for actor in actors:
+            for move_type in ("out_invoice", "out_refund"):
+                found = False
+                for company in actor.company_ids.filtered("active"):
+                    scope = shell(user=actor.id, su=False, context={"allowed_company_ids": [company.id], "lang": "es_CL"})
+                    domain = [("company_id", "=", company.id), ("move_type", "=", move_type), ("state", "=", "posted"),
+                              ("l10n_latam_document_type_id", "!=", False)]
+                    if move_type == "out_refund":
+                        domain.append(("l10n_cl_reference_ids", "!=", False))
+                    move = scope["account.move"].search(domain, order="id", limit=1)
+                    if not move:
+                        continue
+                    move.check_access("read")
+                    report = scope["ir.actions.report"].with_context(force_report_rendering=True, report_pdf_no_attachment=True)
+                    count_before = len(calls)
+                    pdf, kind = report._render_qweb_pdf("account.account_invoices", res_ids=move.ids)
+                    assert kind == "pdf" and pdf.startswith(b"%PDF-") and len(calls) == count_before + 1
+                    text = subprocess.run(["pdftotext", "-layout", "-enc", "UTF-8", "-", "-"],
+                                          input=pdf, check=True, capture_output=True).stdout.decode()
+                    assert any(str(value) in text for value in (move.name, move.l10n_latam_document_number) if value)
+                    assert all(ref.origin_doc_number in text for ref in move.l10n_cl_reference_ids)
+                    pages = sum(bool(page.strip()) for page in text.split("\f"))
+                    assert pages > 0
+                    output = directory / ("%s-%s.pdf" % (actor.id, move_type))
+                    with output.open("xb") as handle:
+                        handle.write(pdf)
+                    output.chmod(0o600)
+                    result.append({"actor": actor.id, "kind": move_type, "pages": pages,
+                                   "references": len(move.l10n_cl_reference_ids), "bytes": len(pdf),
+                                   "sha256": hashlib.sha256(pdf).hexdigest(), "private_file": str(output)})
+                    found = True
+                    break
+                assert found
+    assert len(result) == len(calls) == 4
+    binary = Path(shutil.which("wkhtmltopdf")).resolve()
+    shell.cr.rollback()
+    return {"original_report": "account.account_invoices", "authenticated_operator_count": len(actors),
+            "renderer_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "printed": result}

@@ -202,7 +202,7 @@ def guarded_plan(args):
     return output
 
 
-def odoo(args, mode, options, log, stdin=None, comparison_key=None):
+def odoo(args, mode, options, log, stdin=None, comparison_key=None, loopback=False):
     out, db = args.output, args.database
     core = out / "runtime"
     temporary = out / "data" / "tmp"
@@ -267,6 +267,16 @@ def odoo(args, mode, options, log, stdin=None, comparison_key=None):
                  "--data-dir=" + str(out / "data"), "--addons-path=" + ",".join(map(str, addons)),
                  "--no-http", "--workers=0", "--max-cron-threads=0", "--stop-after-init", "--without-demo=all", "--load=base,web",
                  "--logfile=" + str(out / "data" / (log.stem + "-odoo.log")), *options])
+    if loopback:
+        require(mode == "shell" and db.endswith("U41MW"), "private-fiscal-report-shell-required")
+        tooling = out / "validator"
+        require(tooling.is_dir(), "protected-installer-mount-required")
+        position = argv.index("--proc")
+        argv[position:position] = ["--ro-bind", str(Path(__file__).resolve().parent), str(tooling)]
+        position = argv.index("sudo")
+        require(argv[position:position + 4] == ["sudo", "-n", "-u", "odoo"], "unexpected-odoo-report-user")
+        argv[position:position + 4] = ["/usr/bin/python3.10", str(tooling / "original_report_loopback.py"), "sudo", "-u", "odoo"]
+        argv[3:3] = ["bash", "-c", 'set -e; ip link set lo up; exec "$@"', "bash"]
     with log.open("xb") as handle:
         return subprocess.run(argv, input=stdin, stdout=handle, stderr=handle).returncode
 
@@ -506,6 +516,21 @@ def compare_operator_exports(args):
         "matches": not scope_changes and not mismatch, "originals_preserved": observed["originals_preserved"]})
 
 
+def print_chilean_invoices(args, proof):
+    out = args.output
+    require(args.database.endswith("U41MW") and (out / "retained-release.json").is_file(), "original-invoice-render-required")
+    name = "invoice-pdf-" + str(len(list(out.glob("invoice-pdf-*.log"))))
+    script = Path(__file__).with_name("probe_sys_invoice_pdf.py").read_text()
+    script += "\nprint('ORIGINAL_INVOICE_PDF='+json.dumps(run(env)),flush=True)\n"
+    code = odoo(args, "shell", [], out / (name + ".log"), script.encode(), loopback=True)
+    entries = [json.loads(l.partition("=")[2]) for l in (out / (name + ".log")).read_text().splitlines()
+               if l.startswith("ORIGINAL_INVOICE_PDF=")]
+    require(code == 0 and len(entries) == 1, "original-invoice-pdf-did-not-render")
+    save(out / "invoice-pdf.json", entries[0])
+    final = final_receipt(args, proof, "postflight-pdf.json")
+    require(not final["covered_table_changes"] and not final["relaxed_original_required_columns"], "invoice-pdf-altered-history")
+
+
 def candidate_batch(args, proof):
     require(args.database.endswith(("U41MP", "U41MQ", "U41MV", "U41MW")) and (args.output / "profile-proof.json").is_file(), "profile-required")
     require(not (args.output / "final.json").exists(), "finished-candidate")
@@ -587,7 +612,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "exercise-final", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "exercise-final", "invoice-pdf", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -602,6 +627,8 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "exercise-final":
             exercise_final(args, proof)
+        elif args.operation == "invoice-pdf":
+            print_chilean_invoices(args, proof)
         elif args.operation == "restore":
             restore(args, proof)
         elif args.operation == "accept-retained":
