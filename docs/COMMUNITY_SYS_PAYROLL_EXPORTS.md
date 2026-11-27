@@ -52,7 +52,7 @@ lectura.
 | Libro con cabecera y sin ella | 24 de 24 comparaciones idénticas en cada modalidad |
 | Libro por operador | 133 filas de 147 columnas, 133 identidades cotejadas |
 | Jornadas, contratos y liquidaciones | 41 calendarios y 512 tramos originales, con sus huellas conservadas |
-| Generación y alcance | Los dos operadores generaron ambas salidas en todas las empresas; los registros de ensayo del asistente se revirtieron |
+| Generación y alcance | Los dos operadores generaron ambas salidas en todas las empresas. Los registros de ensayo del asistente se revirtieron |
 
 El paquete del proveedor tiene SHA-256
 `0c9f3cfb38ac5e6d13c61a6af77c637db8d90104e073c9948b6c4ed624b65026`.
