@@ -29,7 +29,24 @@ def read_json(path):
     return json.loads(path.read_bytes())
 
 
-def verify(folder, receipt_hash):
+ARCHIVE_FILES = (
+    "backup.json", "source.dump", "filestore.tar", "runtime.tar.gz", "runtime-members.json",
+    "effective-providers.json", "source-snapshot.json.gz", "original-release.tar",
+    "original-release-files.sha256", "filestore-extra.tar", "filestore-physical.json",
+)
+
+
+def package_manifest(folder):
+    sealed = folder / "sealed" if (folder / "sealed").is_dir() else folder
+    paths = [sealed / name for name in ARCHIVE_FILES] + [folder / "restore-proof.json", folder / "schema-proof.json"]
+    return {item.name: {"bytes": item.stat().st_size, "sha256": hash_file(item)} for item in paths}
+
+
+def verify(folder, receipt_hash, manifest_hash=None):
+    if manifest_hash:
+        manifest = folder / "custody-manifest.json"
+        check(hash_file(manifest) == manifest_hash, "independent-custody-manifest-digest")
+        check(read_json(manifest) == package_manifest(folder), "portable-package-member-drift")
     source = folder / "sealed" if (folder / "sealed").is_dir() else folder
     receipt = folder / "restore-proof.json"
     check(hash_file(receipt) == receipt_hash, "restore-receipt-digest")
@@ -39,7 +56,9 @@ def verify(folder, receipt_hash):
     check(proof["full_post_boot_match"] and proof["source_unchanged"] and proof["checked_boots"] == 2 and
           proof["role_probe"]["source_directories_hidden"], "required-cold-boot-evidence")
     check(backup["sql_sha256"] == proof["sql_sha256"] == physical["sql_sha256"], "sql-backup-identity")
-    check(len({v for k, v in structure.items() if k.endswith("_schema_sha256")}) == 1, "schema-proof-drift")
+    schemas = [structure[label + "_schema_sha256"] for label in ("archive", "source", "restored")]
+    check(len(set(schemas)) == 1 and re.fullmatch("[a-f0-9]{64}", schemas[0]) and
+          structure["source_types"] == structure["restored_types"], "schema-proof-drift")
     for filename, expected in {
         "source.dump": proof["sql_sha256"], "original-release.tar": backup["release_sha256"],
         "filestore.tar": proof["archive_sha256"], "filestore-extra.tar": physical["extra_archive_sha256"],
@@ -96,6 +115,21 @@ def verify(folder, receipt_hash):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("folder", type=Path)
-    parser.add_argument("--receipt-sha256", required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--receipt-sha256")
+    mode.add_argument("--write-manifest", action="store_true",
+                      help="Seal the 13 custody files after SQL, role, physical store and schema verification")
+    parser.add_argument("--manifest-sha256", help="Independently supplied digest of the complete custody manifest")
     args = parser.parse_args()
-    print(json.dumps(verify(args.folder, args.receipt_sha256), indent=2))
+    if args.write_manifest:
+        contents = package_manifest(args.folder)
+        verify(args.folder, contents["restore-proof.json"]["sha256"])
+        destination = args.folder / "custody-manifest.json"
+        if destination.exists():
+            check(read_json(destination) == contents, "previous-custody-manifest-drift")
+        else:
+            with destination.open("x", encoding="utf-8") as handle:
+                json.dump(contents, handle, indent=2, sort_keys=True)
+        print(hash_file(destination))
+    else:
+        print(json.dumps(verify(args.folder, args.receipt_sha256, args.manifest_sha256), indent=2))
