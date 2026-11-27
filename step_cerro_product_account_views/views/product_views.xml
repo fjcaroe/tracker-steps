@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="expense_category_accounts" model="ir.ui.view">
+        <field name="name">Odoo Studio: product.product.expense.categories.list.view customization</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="hr_expense.product_product_expense_categories_tree_view"/>
+        <field name="priority">160</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='description']" position="after">
+                    <field name="property_account_expense_id" optional="show"/>
+                    <field name="categ_id" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="product_template_accounts" model="ir.ui.view">
+        <field name="name">Odoo Studio: product.template.list customization</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="account.product_template_view_tree"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//list[1]/field[@name='name']" position="after">
+                    <field name="categ_id" optional="show"/>
+                    <field name="property_account_expense_id" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>
