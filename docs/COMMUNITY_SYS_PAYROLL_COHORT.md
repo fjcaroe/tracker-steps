@@ -194,3 +194,40 @@ validó, incluso cuando su lote vuelve a borrador. El origen permite recalcular
 después de reabrir. Esta diferencia se registra por separado de los 130 cierres
 iniciales y de los archivos históricos. Las pruebas se ejecutaron con
 transacciones reversibles en las restauraciones privadas de SyS.
+
+## Instalación nueva con el flujo de pago y reapertura de SyS
+
+La restauración U42L partió del SQL nativo de SyS e instaló en Community la
+versión 18.0.1.6.0 de la adaptación de históricos. El calendario conservó de
+origen su campo obligatorio de jornada Previred. Se actualizó el módulo por
+Odoo a 18.0.1.6.1 y se comprobaron las versiones instaladas, los 190 módulos
+activos y los archivos exactos del paquete. El archivo probado tiene SHA-256
+`547c89989b796475cbb46075992f4008c10d23f7a50bbf450f0941192e81fc07`.
+
+En las once empresas de octubre, el operador original creó el lote desde el
+formulario habitual. En julio, el archivo bancario del lote de seis personas
+y el de una liquidación individual coincidieron al byte con los del motor
+nativo. Al generar el lote completo, Community guardó sus seis filas en el
+lote y una fila propia en cada liquidación. El original guardaba las seis
+filas en cada ficha. Se verificó también la generación individual sin lote.
+En ambas versiones, la acción individual de una liquidación vinculada a un
+lote también guarda ese informe individual en la ficha del lote.
+
+Al devolver una liquidación pagada a validada, su lote volvió a cerrado y
+las demás conservaron sus estados. Al reabrir y volver a cerrar el lote de
+octubre, Community mantuvo los importes protegidos y reutilizó sus cinco
+asientos originales. El cotejo de los formularios y botones está en
+`tools/community/verify_sys_batch_actions.py`. El recibo privado de U42L
+tiene SHA-256
+`c881e8892b959212b019352d234093810e2328b50084e80a6213acb764f451dd`.
+
+Las 133 pruebas de cálculo y cierre dieron los mismos resultados que las
+dos copias Community anteriores. Los dos operadores también reprodujeron los
+24 archivos de Previred y los 24 del Libro, todos idénticos al origen. El
+recibo de exportación tiene SHA-256
+`8bc17de0a65c8c2738343da7e299d8a9a8eada7f5af34a9a43b9dd6632f444db`.
+Después de esos recorridos, el control de conservación de U42L volvió a
+verificar las 25 proyecciones, los 53.659 identificadores originales, las 298
+relaciones, los 111 contadores y las reglas de acceso admitidas. El recibo
+tiene SHA-256
+`69838dd5a335f5df4b1c46249ff1f8ccf4e4a38d1f0f461d9d729c989e2f745e`.
