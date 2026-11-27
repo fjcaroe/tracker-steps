@@ -56,6 +56,31 @@ La vista de oportunidad y la lectura de pedidos históricos funcionaron en
 esta misma candidata. Steps tenía una plantilla de cotización, cero hojas
 de venta guardadas y cero plantillas con hoja asignada.
 
+En otra derivada se desactivaron las cuatro vistas y el único menú de esa
+extensión ausente. Se conservaron sus campos, tablas, permisos, identidades,
+texto de las vistas y acción. El procedimiento comprueba el contenido exacto
+de las vistas y se detiene si hay una hoja, una plantilla con hoja asignada
+o un adjunto de ese modelo. La edición de planillas de venta queda pendiente.
+
+El vendedor abrió **Nuevo presupuesto** desde la oportunidad, eligió el
+producto y la cantidad de una venta histórica, guardó el borrador y lo
+reabrió desde la oportunidad. En la referencia y Community coincidieron el
+cliente, vendedor, producto, tarifa, moneda, impuestos e importes. Los otros
+118 campos del formulario siguieron disponibles. Las cuatro ventas históricas,
+sus líneas y los permisos de los adjuntos permanecieron iguales. El ensayo
+revertido consumió cinco contadores en su copia de trabajo.
+
+La misma migración se ejecutó dos veces en otra copia recién restaurada
+antes de usarla. Se conservaron los 804 contadores y todas las filas.
+Las únicas diferencias contra el SQL nativo fueron el estado de los
+proveedores excluidos y la disponibilidad de las cuatro vistas y el menú.
+Para reproducirlo se usa `restore_steps_crm_pair.py` con un sufijo que
+empiece por `QUOTE_` y luego `apply_steps_quote_profile.py` sobre su
+directorio de salida. Las pruebas de negocio y sus comprobaciones SQL
+quedaron en `steps-quote-rehearsal-u42a.json`,
+`steps-quote-postflight-u42a.json` y `steps-quote-profile-u42b.json`
+en el directorio privado de evidencia.
+
 Una segunda instalación de la selección de 157 módulos sobre el SQL
 original conservó las 163.133 filas de 1.112 tablas y los valores de los
 804 contadores antes de abrir Odoo. La comparación de cada fila encontró
