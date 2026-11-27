@@ -39,3 +39,13 @@ y 17 aperturas de formulario. Las etiquetas coincidieron en español e inglés.
 Seis campos del formulario original siguen pendientes. En la primera prueba
 de impresión, los 21 documentos contabilizados fallaron para los dos usuarios
 por faltar el campo que controla la visibilidad de la firma.
+
+La revisión 18.0.1.0.1 conservó las cuatro columnas de auditoría de las
+referencias y recuperó la configuración de firma y de resolución de la empresa.
+Las dos empresas de la muestra tenían la firma desactivada. En la prueba de
+168 configuraciones en memoria, el original falló en ocho casos al activar la
+firma en facturas o notas de crédito contabilizadas; carecía del campo de
+imagen de la firma. La revisión conservó disponible esa área para el caso
+habilitado y permitió imprimirla en blanco. Los 160 casos que el original
+pudo calcular coincidieron. La comparación fiscal de los documentos detectó
+que la plantilla de origen necesitaba también la oficina regional del SII.
