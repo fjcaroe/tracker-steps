@@ -20,6 +20,7 @@ DB = "COMMUNITY_SYS_PREVIRED_COHORT_20261127U48" + ("D" if FINAL else "C")
 WORK = Path("/dev/shm/sys-u48-payslip-final" if FINAL else "/dev/shm/sys-u48-payslip")
 SEALED = MEM / "from-durable-kit"
 MODULE = "step_payroll_oca_sys_history"
+FINAL_PACKAGE = "e1f3d645ce6ca3b1c967114c72efb6db8c33c8e70c391d258caf6eb58ec27642"
 
 
 def restore():
@@ -54,7 +55,8 @@ def restore():
                 os.chown(Path(directory) / name, 61018, 61018)
     if inventory(store) != json.loads(gzip.decompress((SEALED / "filestore.json.gz").read_bytes())):
         raise ValueError("Physical files differ")
-    shutil.copyfile(MEM / "odoo.conf", WORK / "odoo.conf")
+    (WORK / "odoo.conf").write_text("[options]\ndb_user = odoo\nlist_db = False\nlog_level = warn\n"
+                                    "db_host = " + SOCKET + "\ndb_port = " + str(PORT) + "\n")
 
 
 def package():
@@ -86,12 +88,21 @@ def package():
     if output.exists() and output.read_bytes() != payload:
         raise ValueError("The existing accepted candidate package differs")
     output.write_bytes(payload)
+    return extract_package(output, checksum)
+
+
+def extract_package(output, expected=FINAL_PACKAGE):
+    if sha(output) != expected:
+        raise ValueError("The operator payslip package differs from its accepted release")
     with tarfile.open(output) as archive:
         for item in archive:
+            name = Path(item.name)
+            if not item.isfile() or name.parts[0] != MODULE or name.is_absolute() or ".." in name.parts:
+                raise ValueError("Unexpected operator package member")
             path = WORK / "overlay" / item.name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(archive.extractfile(item).read())
-    return checksum
+    return expected
 
 
 def odoo(args, source=None, upgrade=False):
@@ -119,10 +130,12 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--restore", action="store_true")
     group.add_argument("--upgrade", action="store_true")
-    if parser.parse_args().restore:
+    parser.add_argument("--package", type=Path, help="Use the verified release TAR directly for the upgrade")
+    args = parser.parse_args()
+    if args.restore:
         restore()
     else:
-        checksum = package()
+        checksum = extract_package(args.package) if args.package is not None else package()
         try:
             result = odoo(["-u", MODULE], upgrade=True)
         except subprocess.CalledProcessError as exc:
