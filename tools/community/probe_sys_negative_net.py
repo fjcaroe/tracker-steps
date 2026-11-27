@@ -1,5 +1,7 @@
 """Characterize the original negative-net button on the isolated SyS reference using ordinary operators."""
 import json
+import hashlib
+from odoo import fields
 from collections import Counter
 from decimal import Decimal
 
@@ -63,6 +65,14 @@ def domain_snapshot(env, emp):
     return flags, inputs, {k:(p,t) for k,p,t in env.cr.fetchall()}
 
 
+def rule_digest(cr, slip):
+    cr.execute("""SELECT salary_rule_id,code,amount,quantity,rate,total FROM hr_payslip_line
+                  WHERE slip_id=%s ORDER BY salary_rule_id,id""",(slip,))
+    rows = [[rule,code,*[format(Decimal(str(v)).normalize(),"f") if v is not None else None for v in values]]
+            for rule,code,*values in cr.fetchall()]
+    return len(rows),hashlib.sha256(json.dumps(rows,separators=(",",":")).encode()).hexdigest()
+
+
 def original_rows(env):
     tables = ("hr_payslip","hr_payslip_input","hr_payslip_line","hr_payslip_worked_days","hr_leave",
               "account_move","account_move_line","mail_activity","mail_message","res_users","res_groups_users_rel")
@@ -74,8 +84,10 @@ def original_rows(env):
     return result
 
 
-def effects(env):
-    assert env.cr.dbname == "MANAGEMENT_QA_SYS_REPORT_ROLES_20261126U40RP"
+def effects(env, verify_first=False):
+    native = env.cr.dbname == "MANAGEMENT_QA_SYS_REPORT_ROLES_20261126U40RP"
+    assert native or env.cr.dbname in ("COMMUNITY_SYS_PREVIRED_COHORT_20261127U49D", "COMMUNITY_SYS_PREVIRED_COHORT_20261127U49E",
+                                       "COMMUNITY_SYS_PREVIRED_COHORT_20261127U49F")
     env.cr.rollback()
     cr = env.cr
     cr.execute("SELECT id,company_id FROM hr_payslip WHERE has_negative_net_to_report ORDER BY id")
@@ -94,14 +106,45 @@ def effects(env):
                 s = scope["hr.payslip"].browse(original_id)
                 s.check_access("read")
                 day = s.date_to + relativedelta(days=1)
-                p = scope["hr.payslip"].create({"name":"Ensayo local de arrastre de neto","employee_id":s.employee_id.id,
-                                       "company_id":company,"contract_id":s.contract_id.id,"struct_id":s.struct_id.id,
-                                       "date_from":day,"date_to":day+relativedelta(months=1,days=-1)})
+                if native:
+                    p = scope["hr.payslip"].create({"name":"Ensayo local de arrastre de neto","employee_id":s.employee_id.id,
+                                           "company_id":company,"contract_id":s.contract_id.id,"struct_id":s.struct_id.id,
+                                           "date_from":day,"date_to":day+relativedelta(months=1,days=-1)})
+                else:
+                    from odoo.tests import Form
+                    card = Form(scope["hr.payslip"])
+                    card.date_from, card.date_to = day, day+relativedelta(months=1,days=-1)
+                    card.employee_id = s.employee_id
+                    if card.contract_id != s.contract_id:
+                        card.contract_id = s.contract_id
+                    if card.struct_id != s.struct_id:
+                        card.struct_id = s.struct_id
+                    p = card.save()
                 assert not scope.su and p.id != s.id and p.state == "draft" and p.negative_net_to_report_display
+                activity_domain=[("res_model","=","hr.payslip"),("res_id","=",p.id),
+                                 ("activity_type_id","=",scope.ref("hr_payroll.mail_activity_data_hr_payslip_negative_net").id)]
+                activity_model=scope["mail.activity"]
+                pre={}
+                if verify_first:
+                    pre["before_compute"]=activity_model.search_count(activity_domain)
+                    p.compute_sheet()
+                    env.flush_all()
+                    pre["after_compute_before_read"]=activity_model.search_count(activity_domain)
+                    assert p.state=="verify" and p.negative_net_to_report_display
+                    p.invalidate_recordset(["negative_net_to_report_display"])
+                    assert p.negative_net_to_report_display
+                    acts=activity_model.search(activity_domain)
+                    pre["after_two_reads"]=len(acts)
+                    pre["assigned_to_contract_officer"]=all(a.user_id==p.contract_id.hr_responsible_id for a in acts)
+                    pre["has_summary_and_note"]=all(bool(a.summary and a.note) for a in acts)
+                    pre["due_on_today"]=all(a.date_deadline==fields.Date.context_today(p) for a in acts)
                 expected = p.negative_net_to_report_amount
                 assert expected
                 env.flush_all()
                 first = domain_snapshot(env,s.employee_id.id)
+                query_messages="SELECT count(*) FROM mail_message WHERE model='hr.payslip' AND res_id=%s"
+                cr.execute(query_messages,(p.id,))
+                before_messages,=cr.fetchone()
                 cr.execute("SELECT id,to_jsonb(l) FROM hr_leave l WHERE employee_id=%s",(s.employee_id.id,))
                 prior_leaves = dict(cr.fetchall())
                 prior_flags = scope["hr.payslip"].browse([k for k,v in first[0].items() if v])
@@ -112,6 +155,8 @@ def effects(env):
                 last = domain_snapshot(env,s.employee_id.id)
                 final_stats = transaction_counters(env)
                 changes={table:[b-a for a,b in zip(old,final_stats[table])] for table,old in stats.items() if old!=final_stats[table]}
+                cr.execute(query_messages,(p.id,))
+                new_messages=cr.fetchone()[0]-before_messages
                 before_flags, before_inputs, before_activities = first
                 after_flags, after_inputs, after_activities = last
                 affected_flags = [k for k in before_flags if before_flags[k] != after_flags[k]]
@@ -124,7 +169,11 @@ def effects(env):
                         if old[field] != current[field]:
                             values = (old[field], current[field]) if field in ("state", "payslip_state") else ("","")
                             leave_updates[(field,*values)] += 1
-                result.append({"actor":uid,"source":original_id,"changes":changes,"flags":[(bool(before_flags[k]),bool(after_flags[k])) for k in affected_flags],
+                result.append({"actor":uid,"source":original_id,"changes":changes,"before_action":pre,"messages_added_to_slip":new_messages,
+                    "flags":[(bool(before_flags[k]),bool(after_flags[k])) for k in affected_flags],
+                    "rules":rule_digest(cr,p.id),"worked_types":sorted(p.worked_days_line_ids.mapped("work_entry_type_id").ids),
+                    "input_uses_type_name":all(r.name==r.input_type_id.name for r in p.input_line_ids),
+                    "input_name_present":all(bool(r.name) for r in p.input_line_ids),
                     "created_inputs":[{"in_draft":slip==p.id,"code":code,"matches_report_amount":amount==expected,
                                        "positive":amount>0,"matches_abs_report_amount":amount==abs(expected),
                                        "matches_negated_report_amount":amount==-expected} for slip,amount,code in created],
@@ -138,6 +187,11 @@ def effects(env):
                     "activities_created":len(after_activities.keys()-before_activities.keys()),
                     "activities_removed":len(before_activities.keys()-after_activities.keys()),
                     "return":{k:action[k] for k in ("type","res_model","target","view_mode") if k in action} if isinstance(action,dict) else type(action).__name__})
+                if not native:
+                    repeat = domain_snapshot(env,s.employee_id.id)
+                    p.action_report_negative_amount()
+                    env.flush_all()
+                    assert repeat == domain_snapshot(env,s.employee_id.id)
             finally:
                 cr.rollback()
                 env.invalidate_all(flush=False)
