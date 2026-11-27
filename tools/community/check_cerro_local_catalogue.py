@@ -49,7 +49,7 @@ def identities(cr):
 
 def pointers(cr,db,expected=None):
     cr.execute("SELECT current_database(),current_user")
-    assert db in (CANDIDATE,PACKING,COLD,'COMMUNITY_CERRO_BOM_PACKING_20261127U46C') and cr.fetchone()==(db,'postgres')
+    assert db in (CANDIDATE,PACKING,COLD,'COMMUNITY_CERRO_BOM_PACKING_20261127U46C','COMMUNITY_CERRO_BOM_PACKING_20261127U46D') and cr.fetchone()==(db,'postgres')
     cr.execute("SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()")
     assert cr.fetchone()==(0,)
     cr.execute("SELECT schemaname,sequencename FROM pg_sequences WHERE schemaname='public' ORDER BY 1,2")

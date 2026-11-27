@@ -9,6 +9,7 @@ NATIVE = 'MANAGEMENT_QA_CERRO_BOM_20261126U42N'
 CANDIDATE = 'COMMUNITY_CERRO_BOM_PACKING_20261127U46A'
 COLD = 'COMMUNITY_CERRO_BOM_PACKING_20261127U46B'
 FINAL='COMMUNITY_CERRO_BOM_PACKING_20261127U46C'
+RECEIPT='COMMUNITY_CERRO_BOM_PACKING_20261127U46D'
 FISCAL = ['l10n_latam_document_number', 'l10n_cl_dte_status']
 SUMMARY = ['step_external_reception_folio', 'step_reception_container_qty', 'step_reception_net_kg',
            'step_reception_avg_kg', 'step_reception_product_ids', 'step_reception_packaging_ids']
@@ -29,7 +30,7 @@ def user_models(env):
 
 
 def exercise(env):
-    assert env.cr.dbname in (NATIVE, CANDIDATE, COLD, FINAL)
+    assert env.cr.dbname in (NATIVE, CANDIDATE, COLD, FINAL, RECEIPT)
     models = dict(user_models(env))
     outcome = {}
     for (uid, scope), model in models.items():
@@ -92,7 +93,7 @@ def exercise(env):
     return dict(history=outcome, checks=positive)
 
 def search_cases(env):
-    assert env.cr.dbname in (NATIVE,CANDIDATE,COLD,FINAL)
+    assert env.cr.dbname in (NATIVE,CANDIDATE,COLD,FINAL,RECEIPT)
     actor=env['res.users'].browse(6)
     all_companies=actor.company_ids
     model=env['stock.picking'].with_user(actor).with_context(allowed_company_ids=all_companies.ids)

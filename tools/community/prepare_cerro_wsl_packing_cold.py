@@ -16,7 +16,7 @@ PG_UID = 61012
 
 
 def prepare(executor,trial=TRIAL):
-    assert trial in (TRIAL,FINAL)
+    assert trial in (TRIAL,FINAL,'COMMUNITY_CERRO_BOM_PACKING_20261127U46D')
     if os.getuid() or not os.path.ismount('/dev/shm'):
         raise RuntimeError('Private temporary PostgreSQL requires the local memory filesystem')
     RAM.mkdir(mode=0o751,exist_ok=True)
@@ -51,7 +51,7 @@ def prepare(executor,trial=TRIAL):
         command('pg_dump','-h','/work/cerro-pg/socket','-p','55442','--format=custom','-f',dump,SOURCE)
         seal.write_text(json.dumps(dict(source=SOURCE,target=trial,sha256=hashlib.sha256(dump.read_bytes()).hexdigest()),sort_keys=True))
     claim=json.loads(seal.read_bytes())
-    assert claim['source']==SOURCE and claim['target'] in ('COMMUNITY_CERRO_BOM_PACKING_20261127U46A',TRIAL,FINAL)
+    assert claim['source']==SOURCE and claim['target'] in ('COMMUNITY_CERRO_BOM_PACKING_20261127U46A',TRIAL,FINAL,'COMMUNITY_CERRO_BOM_PACKING_20261127U46D')
     assert claim['sha256']==hashlib.sha256(dump.read_bytes()).hexdigest()
     if not sql("SELECT 1 FROM pg_database WHERE datname='" +trial+"'"):
         command('createdb',*dbopts,'--owner=dev_odoo18','--template=template0',trial)

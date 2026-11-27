@@ -35,6 +35,9 @@ def main():
     if '--final' in args:
         args.remove('--final')
         database='COMMUNITY_CERRO_BOM_PACKING_20261127U46C'
+    if '--receipt-d' in args:
+        args.remove('--receipt-d')
+        database='COMMUNITY_CERRO_BOM_PACKING_20261127U46D'
     expected=191
     if '--at190' in args:
         args.remove('--at190')

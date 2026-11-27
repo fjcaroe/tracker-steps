@@ -37,7 +37,7 @@ def capture(env):
     return probes
 
 def controls(env):
-    assert env.cr.dbname in ('MANAGEMENT_QA_CERRO_BOM_20261126U42N','COMMUNITY_CERRO_BOM_PACKING_20261127U46A','COMMUNITY_CERRO_BOM_PACKING_20261127U46C')
+    assert env.cr.dbname in ('MANAGEMENT_QA_CERRO_BOM_20261126U42N','COMMUNITY_CERRO_BOM_PACKING_20261127U46A', 'COMMUNITY_CERRO_BOM_PACKING_20261127U46D','COMMUNITY_CERRO_BOM_PACKING_20261127U46C')
     actor=env['res.users'].browse(6)
     allowed={'allowed_company_ids':actor.company_ids.ids,'lang':'en_US'}
     orders=env['step.packing.production'].with_user(actor).with_context(**allowed)
@@ -84,7 +84,7 @@ def controls(env):
     return dict(performance=performance,missing=missing,weight_difference=weight_delta,locked=locked,ordinary=normal)
 
 def history_scope(env):
-    assert env.cr.dbname in ('COMMUNITY_CERRO_BOM_PACKING_20261127U46A','COMMUNITY_CERRO_BOM_PACKING_20261127U46C')
+    assert env.cr.dbname in ('COMMUNITY_CERRO_BOM_PACKING_20261127U46A', 'COMMUNITY_CERRO_BOM_PACKING_20261127U46D','COMMUNITY_CERRO_BOM_PACKING_20261127U46C')
     actor=env['res.users'].browse(6)
     model=env['step.packing.production'].with_user(actor).with_context(allowed_company_ids=actor.company_ids.ids)
     record=model.search([],limit=1)
