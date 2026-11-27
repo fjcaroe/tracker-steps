@@ -3,7 +3,7 @@ from itertools import product
 
 
 def run(env):
-    assert __debug__ and env.cr.dbname in ('MANAGEMENT_QA_STEPS_CRM_20261126U42C', 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F')
+    assert __debug__ and env.cr.dbname in ('MANAGEMENT_QA_STEPS_CRM_20261126U42C', 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F','COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A')
     env.cr.rollback()
     env.cr.execute('SET TRANSACTION READ ONLY')
     scope = env(user=7, su=False, context={'allowed_company_ids': [1]})

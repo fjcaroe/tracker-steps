@@ -9,13 +9,13 @@ from odoo.exceptions import AccessError
 
 
 TARGETS = {'MANAGEMENT_QA_STEPS_CRM_20261126U42C','COMMUNITY_STEPS_CRM_DOC_20261127U44P',
-           'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3','COMMUNITY_STEPS_CRM_FISCAL_20261127U45F'}
+           'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3','COMMUNITY_STEPS_CRM_FISCAL_20261127U45F','COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A'}
 FIELDS = {
     'account.move': ('name','move_type','state','date','invoice_date','invoice_date_due','journal_id','company_id',
                      'partner_id','commercial_partner_id','currency_id','amount_untaxed','amount_tax','amount_total',
                      'amount_residual','amount_total_signed','payment_state','line_ids','invoice_line_ids',
                      'l10n_latam_document_type_id','l10n_latam_document_number','l10n_cl_dte_status',
-                     'l10n_cl_dte_file','l10n_cl_sii_barcode','l10n_cl_reference_ids'),
+                     'l10n_cl_dte_file','l10n_cl_sii_barcode','l10n_cl_reference_ids','has_documents'),
     'account.move.line': ('move_id','parent_state','journal_id','date','date_maturity','account_id','partner_id',
                           'company_id','currency_id','product_id','quantity','debit','credit','balance','amount_currency',
                           'amount_residual','reconciled','matched_debit_ids','matched_credit_ids','tax_ids','tax_line_id'),
@@ -105,6 +105,29 @@ def linked_dte_files(scope):
             'amount_and_content':fingerprint(bytes_read),'denied_ids':fingerprint(denied)}
 
 
+def linked_document_actions(scope):
+    moves = scope['account.move']
+    if 'has_documents' not in moves._fields:
+        return {'registered': False}
+    try:
+        flagged = moves.search([], order='id').filtered('has_documents')
+    except AccessError:
+        return {'registered': True, 'access': False}
+    observed = []
+    for invoice in flagged:
+        action = invoice.action_view_documents_account_move()
+        expected = [('res_model', '=', 'account.move'), ('res_id', '=', invoice.id)]
+        assert action['type'] == 'ir.actions.act_window' and action['res_model'] == 'documents.document'
+        assert [tuple(clause) for clause in action['domain']] == expected
+        try:
+            docs = scope['documents.document'].search(action['domain'], order='id')
+            ids = [item['id'] for item in docs.web_read({'id':{}})]
+        except AccessError:
+            ids = 'denied'
+        observed.append([invoice.id, ids])
+    return {'registered': True, 'access': True, 'linked_invoices': len(flagged), 'documents': fingerprint(observed)}
+
+
 def run(env):
     assert __debug__ and env.cr.dbname in TARGETS
     assert {row.split(':')[0].strip() for row in Path('/proc/net/dev').read_text().splitlines()[2:]}=={'lo'}
@@ -124,6 +147,7 @@ def run(env):
             assert not scope.su
             cases.append({'actor':user.id,'companies':companies,'administrator':user.has_group('base.group_system'),
                           'models':{model:values_for_actor(scope,model) for model in FIELDS},
-                          'menus':forms_for_actor(scope),'archived_files':linked_dte_files(scope)})
+                          'menus':forms_for_actor(scope),'archived_files':linked_dte_files(scope),
+                          'document_actions':linked_document_actions(scope)})
     env.cr.rollback()
     return {'database':env.cr.dbname,'moves':count,'posted':posted,'lines':lines,'cases':cases}
