@@ -239,7 +239,16 @@ def upgrade(args, proof):
     journals = journal_domain(db)
     max_alias = int(query(db, "SELECT max(id) FROM ir_model_data"))
     aliases = original_aliases(db, max_alias)
-    require(initial[module] == ["installed", old], "module-no-longer-at-original-version")
+    previous_stage = None
+    if initial[module] == ["installed", expected]:
+        for other in sorted(out.glob("upgrade-*/receipt.json")):
+            prior = json.loads(other.read_bytes())
+            if prior["all_module_state_changes"].get(module) == [["installed", old], ["installed", expected]]:
+                previous_stage = prior["module"]
+                break
+        require(previous_stage, "version-advanced-outside-recorded-official-upgrade")
+    else:
+        require(initial[module] == ["installed", old], "unexpected-initial-module-state")
     code = odoo(args, None, ["-u", module], run / (module + ".log"))
     final = module_versions(db)
     after = snapshot(db)
@@ -251,7 +260,7 @@ def upgrade(args, proof):
     changed_tables = {table: [before["public_tables"].get(table), after["public_tables"].get(table)]
                       for table in delta["public_tables"]}
     result = {"module": module, "aliases": [aliases, original_aliases_after], "table_fingerprints": changed_tables, "old": initial[module], "new": final[module], "expected": expected,
-              "journal_domain": [journals, journal_domain(db)], "odoo_exit": code, "manifest": providers[module][1], "loaded": "Modules loaded." in raw,
+              "previous_upgrade_as_dependency": previous_stage, "journal_domain": [journals, journal_domain(db)], "odoo_exit": code, "manifest": providers[module][1], "loaded": "Modules loaded." in raw,
               "log_sha256": digest(log) if log.exists() else None,
               "passed": code == 0 and "Modules loaded." in raw and final[module] == ["installed", expected],
               "all_module_state_changes": {k: [initial.get(k), final.get(k)] for k in initial.keys() | final.keys()
