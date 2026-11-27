@@ -36,3 +36,24 @@ los mismos cuatro archivos por el controlador de descarga en el original, U43X
 y U44P. También se denegaron las dos mismas peticiones. Los recibos privados
 completos son `U43X-steps-combined-library.json` y
 `U44P-steps-combined-library.json`.
+
+Se ejecutó el controlador de enlaces de los 81 archivos originales con el
+visitante público y con la cuenta de portal. Cada identidad recibió nueve
+descargas y 72 respuestas 404 en ambas instalaciones. Coincidieron los bytes
+de cada respuesta autorizada. Se compararon los 162 resultados, con sus
+identificadores y huellas, sin publicar los enlaces privados.
+
+Con los tres módulos instalados en U44P, el vendedor pudo confirmar un
+presupuesto y reabrir la factura en borrador con los importes, impuestos y
+relaciones originales. Los cuatro documentos de venta históricos se imprimieron
+con cero píxeles distintos en sus cuatro páginas. El segundo lector de PDF
+también encontró coincidencia en los 140 fragmentos de texto y los 63 trazados.
+
+El cotejo por fila posterior a esa prueba abarcó las 1.112 tablas del respaldo.
+Las 1.096 tablas sin cambios coincidieron completas. En las otras dieciséis,
+se preservaron todas las filas de negocio, las 492 reglas, los 1.661 permisos
+de modelo y las 98 fichas documentales originales. Dos recursos de impresión
+generados se reemplazaron por sus versiones nuevas. Odoo reflejó propiedades
+de 22 campos en los modelos de documento y acceso. Las diferencias completas
+de metadatos están en el comprobante privado
+`U44P-final-steps-original-business-rows.json`.
