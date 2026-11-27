@@ -97,10 +97,14 @@ def package(args, out, source_db, modules):
             shutil.rmtree(temporary)
 
 
-def open_as_user(out, db, service, boot):
+def open_as_user(out, db, service, boot, hidden_sources):
     core = out / "sealed/runtime"
     args = [
         "unshare", "--net", "--", "sh", "-ec", 'ip link set dev lo up; exec "$@"', "steps",
+        "bwrap", "--die-with-parent", "--ro-bind", "/", "/", "--tmpfs", "/opt/steps-validation",
+        "--tmpfs", "/srv/odoo-data/steps-anchor-validation", "--tmpfs", "/opt/odoo18",
+        "--dir", str(out.parent), "--ro-bind", str(out), str(out),
+        "--bind", str(out / "data"), str(out / "data"), "--proc", "/proc", "--dev-bind", "/dev", "/dev", "--",
         "sudo", "-n", "-u", service.pw_name, "env", "PYTHONDONTWRITEBYTECODE=1",
         "/usr/bin/python3.10", str(core / "odoo-bin"), "shell", "-c", "/etc/odoo18-sys.conf", "-d", db,
         "--db-filter=^" + db + "$", "--db_host=/var/run/postgresql", "--data-dir=" + str(out / "data"),
@@ -118,6 +122,7 @@ assert {l.split(':')[0].strip() for l in Path('/proc/net/dev').read_text().split
 env.cr.rollback()
 env.cr.execute('SET TRANSACTION READ ONLY')
 core=Path(expected_core)
+assert all(not Path(p).exists() for p in expected_hidden)
 assert Path(odoo.__file__).resolve().is_relative_to(core)
 installed=env['ir.module.module'].search([('state','=','installed')])
 assert installed and not installed.filtered(lambda m:m.license=='OEEL-1')
@@ -135,11 +140,11 @@ for obj in attachments:
     assert len(raw)==obj.file_size and hashlib.sha1(raw).hexdigest()==obj.checksum
 print('CONVERTED_RESTORE='+json.dumps({'active':len(installed),'enterprise':0,'internal_uid':actor.id,
     'attachments_read':len(attachments),'models':sorted(set(attachments.mapped('res_model'))),
-    'all_providers_inside_restored_capsule':True,'read_only':True,'payroll_pdf':restricted_attachment(env,actor)}))
+    'all_providers_inside_restored_capsule':True,'source_directories_hidden':True,'read_only':True,'payroll_pdf':restricted_attachment(env,actor)}))
 env.cr.rollback()
 """
     role_probe = (Path(__file__).with_name("probe_converted_cohort_attachment.py")).read_text()
-    code = role_probe + "\n" + f"expected_db={db!r}\nexpected_core={str(core)!r}\n" + probe
+    code = role_probe + "\n" + f"expected_db={db!r}\nexpected_core={str(core)!r}\nexpected_hidden={list(map(str, hidden_sources))!r}\n" + probe
     with (out / f"orm-{boot}.log").open("wb") as handle:
         run = subprocess.run(args, input=code.encode(), stdout=handle, stderr=handle)
     require(run.returncode == 0, "restored-official-orm-probe-failed")
@@ -214,9 +219,10 @@ def restore(args):
     for path in (data, *data.rglob("*")):
         require(not path.is_symlink(), "unexpected-restored-filestore-symlink")
         os.chown(path, service.pw_uid, service.pw_gid)
-    orm = open_as_user(out, target, service, 1)
+    hidden_sources = [args.runtime, args.source_data, *args.addons]
+    orm = open_as_user(out, target, service, 1, hidden_sources)
     verify_same(frozen, full_snapshot(target))
-    require(open_as_user(out, target, service, 2) == orm, "second-cold-boot-differs")
+    require(open_as_user(out, target, service, 2, hidden_sources) == orm, "second-cold-boot-differs")
     require(orm["active"] == len(modules) and check_modules(target) == modules, "restored-registry-drift")
     verify_same(frozen, full_snapshot(target))
     verify_same(frozen, full_snapshot(source))
