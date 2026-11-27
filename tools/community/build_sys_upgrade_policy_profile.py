@@ -156,7 +156,7 @@ def build(db, sealed, target, modules, *, original_admin_seeds=False, original_f
             output = profile / "l10n_cl"
             shutil.copytree(origin, output)
             changes["l10n_cl"] = preserve_fiscal(origin, output, db, schema)
-            if db.endswith(("U41MW", "U43MF")):
+            if db.endswith(("U41MW", "U43MF", "U44FD")):
                 changes["l10n_cl"]["invoice_reference_provider"] = build_invoice_provider(db, output)
         files, sha = fingerprint(profile)
         # copytree retains the upstream directory modes. Validation runs under the Odoo service identity.
