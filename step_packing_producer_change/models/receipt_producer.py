@@ -182,14 +182,14 @@ class ProducerChange(models.TransientModel):
             tags.quant_ids.invalidate_recordset()
             plans = self._plan(tags)
             # Check native contact/company rules before doing any stock work.
-            receipt.with_context(_step_receipt_producer=_CHANGE).write({'partner_id': producer.id})
+            receipt.with_context(_step_receipt_producer=_CHANGE, tracking_disable=True).write({'partner_id': producer.id})
             saved = [(line, line.quantity, line.picked) for line in pending]
             pending.write({'quantity': 0})
             Move = self.env['stock.move'].with_company(self.company_id).with_context(_step_receipt_producer=_CHANGE)
             changes = self.env['stock.move']
             for tag, product, lot, location, quantity, in_date in plans:
                 adjustment = product.with_company(self.company_id).property_stock_inventory
-                if not adjustment or adjustment.usage != 'inventory' or adjustment.scrap_location or adjustment.company_id != self.company_id:
+                if not adjustment or adjustment.usage != 'inventory' or adjustment.scrap_location or adjustment.company_id and adjustment.company_id != self.company_id:
                     raise UserError(_('Configure la ubicación nativa de ajuste de inventario de la compañía.'))
                 for direction, owner, src, dst, source_tag, result_tag in (
                         ('remove', self.previous_producer_id, location, adjustment, tag.id, False),
