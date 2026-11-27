@@ -99,6 +99,9 @@ def package(args, out, source_db, modules):
 
 def open_as_user(out, db, service, boot, hidden_sources):
     core = out / "sealed/runtime"
+    scratch = out / "data/tmp"
+    scratch.mkdir(mode=0o700, exist_ok=True)
+    os.chown(scratch, service.pw_uid, service.pw_gid)
     args = [
         "unshare", "--net", "--", "sh", "-ec", 'ip link set dev lo up; exec "$@"', "steps",
         "bwrap", "--die-with-parent", "--ro-bind", "/", "/", "--tmpfs", "/opt/steps-validation",
@@ -106,7 +109,7 @@ def open_as_user(out, db, service, boot, hidden_sources):
         "--tmpfs", "/opt/steps-managed", "--tmpfs", "/opt/luis_odoo18",
         "--dir", str(out.parent), "--ro-bind", str(out), str(out),
         "--bind", str(out / "data"), str(out / "data"), "--proc", "/proc", "--dev-bind", "/dev", "/dev", "--",
-        "sudo", "-n", "-u", service.pw_name, "env", "PYTHONDONTWRITEBYTECODE=1",
+        "sudo", "-n", "-u", service.pw_name, "env", "PYTHONDONTWRITEBYTECODE=1", "TMPDIR=" + str(scratch),
         "/usr/bin/python3.10", str(core / "odoo-bin"), "shell", "-c", "/etc/odoo18-sys.conf", "-d", db,
         "--db-filter=^" + db + "$", "--db_host=/var/run/postgresql", "--data-dir=" + str(out / "data"),
         "--addons-path=" + str(core / "addons") + "," + str(core / "odoo/addons"), "--no-http",
