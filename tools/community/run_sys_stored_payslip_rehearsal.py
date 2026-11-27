@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 
 
-DATABASE = 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I'
+DATABASES = ('COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I', 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40J')
 PRIVATE = (Path('/opt/steps-validation'), Path('/srv/odoo-data/steps-anchor-validation'))
 
 
@@ -16,6 +16,7 @@ def main():
     for name in ('runtime', 'source-tools', 'data-dir', 'capsule', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--addons-path', required=True)
+    parser.add_argument('--database', choices=DATABASES, default=DATABASES[0])
     parser.add_argument('--employee-scope', choices=('verify', 'admit'),
                         help='Verify the original Steps rules and real actors, optionally installing missing rules')
     args = parser.parse_args()
@@ -33,7 +34,7 @@ def main():
     subprocess.run(['chgrp', 'odoo', str(output)], check=True)
     pdfs = output / 'pdfs'
     subprocess.run(['install', '-d', '-m', '700', '-o', 'odoo', '-g', 'odoo', str(pdfs)], check=True)
-    options = ['-c','/etc/odoo18-sys.conf','-d',DATABASE,'--db-filter=^'+DATABASE+'$',
+    options = ['-c','/etc/odoo18-sys.conf','-d',args.database,'--db-filter=^'+args.database+'$',
                '--db_host=/var/run/postgresql','--addons-path='+args.addons_path,'--data-dir='+str(args.data_dir),
                '--load=base,web','--workers=0','--max-cron-threads=0','--without-demo=all','--no-http','--stop-after-init']
     command = ['unshare', '-n', 'bash', '-c', 'set -e; ip link set lo up; exec "$@"', 'bash',
@@ -53,7 +54,14 @@ def main():
     script += f'proof=run(env,reference,{str(pdfs)!r},1431)\n'
     if args.employee_scope:
         script += 'proof["employee_scope"]=scope\n'
-    script += 'print("SYS_REPORT_PROOF="+json.dumps(proof))\n'
+    script += ('from hashlib import sha256\nfrom pathlib import Path\nimport subprocess\n'
+               'from odoo.addons.base.models.ir_actions_report import _get_wkhtmltopdf_bin\n'
+               'pdf_binary=Path(_get_wkhtmltopdf_bin()).resolve(strict=True)\n'
+               f'odoo_binary=Path({str(args.runtime / "odoo-bin")!r}).resolve(strict=True)\n'
+               'proof["executables"]={"odoo_sha256":sha256(odoo_binary.read_bytes()).hexdigest(),'
+               '"wkhtmltopdf_sha256":sha256(pdf_binary.read_bytes()).hexdigest(),'
+               '"wkhtmltopdf_version":subprocess.check_output([str(pdf_binary),"--version"],text=True).strip()}\n'
+               'print("SYS_REPORT_PROOF="+json.dumps(proof))\n')
     log = output / 'render.log'
     with os.fdopen(os.open(log, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600), 'wb') as fp:
         result = subprocess.run(command, input=script.encode(), stdout=fp, stderr=subprocess.STDOUT)

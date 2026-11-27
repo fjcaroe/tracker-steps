@@ -12,7 +12,7 @@ from psycopg2 import sql
 
 from probe_original_payslip_report import render_pdf
 
-INTEGRATED_COHORT = 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I'
+INTEGRATED_COHORTS = ('COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I', 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40J')
 REPORT_MODULES = {'step_simpledigital_oca_base': '18.0.1.7.3', 'step_payroll_original_report': '18.0.1.0.2'}
 
 
@@ -50,7 +50,7 @@ def archived(env, capsule):
 
 
 def run(shell_env, capsule, directory, action_id):
-    integrated = shell_env.cr.dbname == INTEGRATED_COHORT
+    integrated = shell_env.cr.dbname in INTEGRATED_COHORTS
     if not integrated and not re.fullmatch(r'COMMUNITY_SYS_(?:STORED_REPORT|REPORT_ROLES)_[A-Z0-9_]+', shell_env.cr.dbname):
         raise ValueError('A private restored SyS reporting derivative is required')
     assert capsule['period'] == '2026-10'
