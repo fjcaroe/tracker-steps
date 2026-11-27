@@ -90,7 +90,7 @@ def check_cerro_release(release, origin):
     return hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def package(args, out, source_db, modules):
+def package(args, out, source_db, modules, effective_providers=None):
     frozen = full_snapshot(source_db)
     final = out / "sealed"
     if final.exists():
@@ -112,7 +112,9 @@ def package(args, out, source_db, modules):
         with (temporary / "source.dump").open("xb") as handle:
             pg("pg_dump", "-Fc", "--dbname=" + source_db, readonly=True, stdout=handle)
         filestore = capture(source_store, temporary, catalog)
-        providers = resolve_providers(args.runtime, args.addons, args.source_data, modules)
+        providers = effective_providers if effective_providers is not None else resolve_providers(
+            args.runtime, args.addons, args.source_data, modules)
+        require(providers.keys() == modules.keys(), 'qualified-provider-inventory-drift')
         # A cold restore must reproduce the exact code that boots the converted source.
         # Some source manifests have an unapplied forward revision. Do not run an upgrade.
         changed = {k: {"database": v[0], "manifest": providers[k][1]} for k, v in modules.items()
