@@ -9,7 +9,8 @@ import preflight_original_history_storage as gate
 def database(mode):
     return {'cold-community': 'COMMUNITY_PAYROLL_API_STORAGE_TEST',
         'anchored': 'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_STORAGE_TEST',
-        'native': 'MANAGEMENT_QA_CERRO_PAYROLL_API_NATIVE_STORAGE_TEST'}[mode]
+        'native': 'MANAGEMENT_QA_CERRO_PAYROLL_API_NATIVE_STORAGE_TEST',
+        'sys-previred': 'MANAGEMENT_QA_SYS_PREVIRED_STORAGE_TEST'}[mode]
 
 
 def snapshot(mode, *, absent=False):
@@ -48,7 +49,7 @@ class OriginalHistoryStorageCase(unittest.TestCase):
         self.assertEqual(receipt['snapshot']['null_counts'], {'hr_payslip': None, 'hr_payslip_line': None})
 
     def test_actual_existing_native_and_anchor_contracts_require_original_not_null(self):
-        for mode in ('native', 'anchored'):
+        for mode in ('native', 'anchored', 'sys-previred'):
             callback = Callback(snapshot(mode), rows=10)
             receipt = gate.capture(callback, database(mode), mode)
             self.assertTrue(receipt['actual_readonly'])
@@ -60,6 +61,21 @@ class OriginalHistoryStorageCase(unittest.TestCase):
                     gate.capture(Callback(altered), database(mode), mode)
             altered = snapshot(mode); altered['metadata']['hr_payslip']['columns'][0]['not_null'] = False
             with self.assertRaises(ValueError): gate.capture(Callback(altered), database(mode), mode)
+
+    def test_sys_requires_a_private_copy_with_both_history_tables_populated(self):
+        mode = 'sys-previred'
+        db = 'COMMUNITY_SYS_PREVIRED_STORAGE_TEST'
+        source = snapshot(mode)
+        source['database'] = db
+        receipt = gate.capture(Callback(source, rows=10), db, mode)
+        self.assertTrue(receipt['actual_readonly'])
+        callback = Callback(source, rows=10)
+        callback.final['null_counts']['hr_payslip_line']['rows'] = 0
+        with self.assertRaisesRegex(ValueError, 'sys-previred-history-required:hr_payslip_line'):
+            gate.capture(callback, db, mode)
+        for name in ('SyS', 'DEMO_SYS', database('anchored')):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                gate.authorize(name, mode)
 
     def test_existing_cold_company_can_be_nullable_but_null_rows_always_block_backfill(self):
         mode = 'cold-community'; original = snapshot(mode)

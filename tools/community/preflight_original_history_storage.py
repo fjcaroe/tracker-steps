@@ -10,7 +10,7 @@ import json
 import re
 
 
-MODES = ('cold-community', 'anchored', 'native')
+MODES = ('cold-community', 'anchored', 'native', 'sys-previred')
 TABLES = {'hr_payslip': ('company_id', 'int4', 'integer'),
     'hr_payslip_line': ('name', 'varchar', 'character varying')}
 
@@ -28,7 +28,8 @@ def authorize(database, mode):
     require(mode in MODES and isinstance(database, str), 'explicit-private-mode-required')
     prefix = {'cold-community': r'COMMUNITY_PAYROLL_API_',
         'anchored': r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_',
-        'native': r'MANAGEMENT_QA_CERRO_PAYROLL_API_'}[mode]
+        'native': r'MANAGEMENT_QA_CERRO_PAYROLL_API_',
+        'sys-previred': r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_)'}[mode]
     require(re.fullmatch(prefix + r'[A-Za-z0-9_]+', database)
         and (mode != 'native' or '_ORIGINAL_HANDOVER_' not in database), 'private-database-prefix-required')
 
@@ -119,6 +120,8 @@ def verify(receipt, database, mode):
                 and type(actual['rows']) is int and actual['rows'] >= 0
                 and type(actual['null_rows']) is int and actual['null_rows'] == 0,
                 'existing-company-or-line-name-null-blocks-first-initialization:' + table)
+            if mode == 'sys-previred':
+                require(actual['rows'] > 0, 'sys-previred-history-required:' + table)
     for key in ('actual_readonly', 'atomic_catalog_and_null_counts', 'catalog_discovery_compared', 'before_candidate_initialization_contract'):
         require(receipt.get(key) is True, 'required-first-initialization-boundary-not-proven:' + key)
     for key in ('orm_loaded', 'payroll_values_read', 'salary_amounts_read', 'database_writes',
