@@ -32,6 +32,11 @@ recuperado. La emisión fiscal y el criterio del bruto de nómina de Cerro
 siguen pendientes.
 [Recepción de fruta](COMMUNITY_CERRO_RECEPCION_OPERATIVA.md) · [Seguimiento de cobros](COMMUNITY_CERRO_COBROS_CONTACTOS.md).
 
+La revisión posterior de 194 módulos superó la instalación inicial, la
+actualización y la lectura completa de las 23 fichas. En la 5245 coinciden
+los 211 campos y las lecturas de Calidad por empresa. Quedan 13 acciones
+de esa ficha por recuperar. [Detalle del formulario de recepción](COMMUNITY_CERRO_FICHA_RECEPCION.md).
+
 ### Etapas anteriores
 
 **Steps.** La copia U46A reúne 165 proveedores de ventas, Mesa de Ayuda,

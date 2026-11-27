@@ -1,0 +1,15 @@
+{
+  "archive_sha256": "120f6c137023604d673fa635e0c1bafb92e85e66f789d27df50bc9aa41e966cc",
+  "files": 4,
+  "lf_source_files": {
+    "step_cerro_receipt_form": [
+      "__init__.py",
+      "__manifest__.py",
+      "hooks.py",
+      "models.py"
+    ]
+  },
+  "module_trees": {
+    "step_cerro_receipt_form": "4febe295c9b999ab520cb19117d760a98c6cdc02eff68245f5b2d58ddf6b523e"
+  }
+}

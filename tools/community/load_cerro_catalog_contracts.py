@@ -16,6 +16,7 @@ LOCAL_PLANS = {
     'COMMUNITY_CERRO_BOM_PACKING_20261127U46B': 'packing-b',
     'COMMUNITY_CERRO_BOM_PACKING_20261127U46C': 'packing-c',
     'COMMUNITY_CERRO_BOM_PACKING_20261127U46D': 'packing-receipt',
+    'COMMUNITY_CERRO_BOM_PACKING_20261127U46E': 'receipt-form-final',
 }
 SQL_SHA = '0470f3e4cfa2736ca1b402bad8e5047edb39fc79d68de2ae6f81853318722bff'
 LOOKUP = """SELECT f.id,f.model,format_type(a.atttypid,a.atttypmod),d.module
@@ -35,7 +36,7 @@ def main():
     if '--cerro-local-qa' in args:
         args.remove('--cerro-local-qa')
         cold = '--db_host=/dev/shm/steps-cerro-u46/socket' in args and '--db_port=55443' in args
-        assert (cold and LOCAL_PLANS[database] in ('packing','packing-b','packing-c','packing-receipt')) or ('--db_host=/work/cerro-pg/socket' in args and '--db_port=55442' in args)
+        assert (cold and LOCAL_PLANS[database] in ('packing','packing-b','packing-c','packing-receipt','receipt-form-final')) or ('--db_host=/work/cerro-pg/socket' in args and '--db_port=55442' in args)
         runtime=Path('/work/sys-fg-code')
         path=Path('/dev/shm/steps-cerro-u46' if cold else '/work/cerro-pg')/LOCAL_PLANS[database]/'original-required.json'
     if path.stat().st_uid!=0 or S_IMODE(path.stat().st_mode) & 0o022:
