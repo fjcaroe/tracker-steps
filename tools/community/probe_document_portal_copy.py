@@ -45,9 +45,12 @@ def community_editor_addresses(env, samples):
         assert doc.type == kind and doc.access_via_link == link_role and doc.user_permission == "edit"
         action = doc.action_copy_external_url()
         assert action["res_model"] == wizard_model._name and action["target"] == "new"
-        values = wizard_model.with_context(**action["context"]).default_get(["document_id"])
-        wizard = wizard_model.create(values)
-        address = wizard.read(["url"])[0]["url"]
+        # Odoo opens a new form by requesting onchange with an empty list of changed fields.
+        form_data = wizard_model.with_context(**action["context"]).onchange(
+            {}, [], {"document_id": {"fields": {"display_name": {}}}, "url": {}},
+        )["value"]
+        assert form_data["document_id"]["id"] == row_id
+        address = form_data["url"]
         assert sha256(address.encode()).hexdigest() == expected
         for actor in viewers:
             outsider = env(user=actor.id, su=False)["documents.document"].browse(row_id)
