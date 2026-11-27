@@ -7,7 +7,8 @@ import shutil
 import subprocess
 
 PAIRS = [('development', '6fe12676'), ('development', '4455becc'), ('development', '230e6593'),
-         ('development', '21656059'), ('qa-cerro', '21656059'), ('cerro', '21656059')]
+         ('development', '21656059'), ('qa-cerro', '21656059'), ('cerro', '21656059'),
+         ('development', '819ef258'), ('qa-cerro', '819ef258'), ('cerro', '819ef258')]
 ROOT = Path('/opt/steps-validation')
 
 
