@@ -1,5 +1,35 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+## Recuperación y pruebas del 27 de noviembre
+
+**Steps.** La copia U46A reúne 165 proveedores de ventas, Mesa de Ayuda,
+Documentos y contabilidad chilena. Se recuperó primero el respaldo de H3 con
+sus 162 proveedores, 163.467 filas, 807 contadores y 1.748 archivos físicos.
+Se incorporaron los tres proveedores fiscales ya probados y se repitió la
+actualización. Las 1.115 tablas y el esquema se conservaron. Cambiaron los
+registros de siete tablas de configuración de Odoo. El vendedor confirmó el
+pedido y abrió su factura en borrador. Coincidieron los 86 asientos y las 211
+líneas, el texto de 21 comprobantes para dos operadores, cuatro PDF fiscales
+y cuatro de ventas. Se verificó su impresión en color a 96 y 144 ppp. Los
+98 elementos de la biblioteca conservaron los accesos en siete contextos
+y las respuestas de 162 solicitudes a enlaces originales. El recibo conjunto
+incluye las huellas de 18 comprobaciones. [Histórico contable de Steps](COMMUNITY_STEPS_CONTABILIDAD.md).
+
+**SyS.** La recuperación independiente del respaldo con 193 proveedores
+conservó 609.137 filas, 1.141 tablas, 861 contadores y 2.708 objetos físicos.
+Los motores nativo y Community coincidieron en el recálculo de 130 de las 133
+liquidaciones. Ambos rechazaron los otros tres contratos. Coincidieron también
+24 archivos Previred y 24 libros en doce empresas. Dos aprobaciones de ausencia
+generaron las jornadas esperadas para nómina. El alta por menú de una liquidación
+nueva requiere todavía trabajo en el formulario y los días de trabajo. [Recuperación de SyS](COMMUNITY_SYS_ENTREGA_193.md) · [Ausencias y nómina](COMMUNITY_SYS_AUSENCIAS.md).
+
+**Cerro El Plomo.** La versión con 190 proveedores recuperó las listas de
+traslados y recepciones. Coincidieron sus 110 registros para los usuarios en
+64 contextos. Con ello se verificaron 18 de las 23 lecturas completas de
+referencia. La operación de Packing, el documento de recepción SII, el
+seguimiento de cobros y la definición del bruto de nómina continúan abiertos.
+[Traslados y recepciones de Cerro](COMMUNITY_CERRO_RECEPCIONES.md).
+
 ## U44 · Copias integradas por producto, 27 de noviembre de 2026
 
 **SyS.** La copia FG integra Nómina Chile, Finanzas, Biblioteca y Portal con

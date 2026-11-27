@@ -1,6 +1,6 @@
 {
     "name": "Steps - Historial tributario chileno",
-    "version": "18.0.1.0.2",
+    "version": "18.0.1.0.3",
     "author": "Steps",
     "license": "LGPL-3",
     "depends": ["l10n_cl", "step_document_library"],

@@ -39,7 +39,7 @@ def write_module(tar, root, required_digest, lf_paths, binary_suffixes):
 
 
 def build(source, output, profile='172'):
-    if profile not in ('172', 'budget', 'freight', 'contacts', 'contracts', 'concepts', 'picking'):
+    if profile not in ('172', 'budget', 'freight', 'contacts', 'contracts', 'concepts', 'picking', 'pack_reports'):
         raise ValueError('Unknown Cerro archive profile')
     receipt = Path(__file__).with_name('cerro_studio_' + profile + '_receipt.json')
     expected = json.loads(receipt.read_text(encoding='utf8'))
@@ -72,6 +72,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--profile', choices=('172', 'budget', 'freight', 'contacts', 'contracts', 'concepts', 'picking'), default='172')
+    parser.add_argument('--profile', choices=('172', 'budget', 'freight', 'contacts', 'contracts', 'concepts', 'picking', 'pack_reports'), default='172')
     args = parser.parse_args()
     print(build(args.source, args.output, args.profile))
