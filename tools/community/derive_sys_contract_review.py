@@ -24,7 +24,10 @@ def build(source, output, expected):
             'Unexpected SyS contract-review dependency')
     old = b"'depends': ['hr_payroll']"
     require(manifest.count(old) == 1, 'Ambiguous native payroll dependency')
-    files = {**original, '__manifest__.py': manifest.replace(old, b"'depends': ['payroll']")}
+    # Keep the historical contract-review message ahead of the Community
+    # structural admission. A pending review takes precedence in native SyS.
+    new = b"'depends': ['payroll', 'step_simpledigital_oca_security']"
+    files = {**original, '__manifest__.py': manifest.replace(old, new)}
     output.mkdir(parents=True, exist_ok=False)
     for name, data in files.items():
         path = output / name
