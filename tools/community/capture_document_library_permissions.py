@@ -8,7 +8,7 @@ from odoo.exceptions import AccessError
 
 
 def capture(env):
-    assert re.fullmatch(r"MANAGEMENT_QA_(SYS_LABOR_DOC|CERRO_CUSTODY)_[A-Z0-9_]+", env.cr.dbname)
+    assert re.fullmatch(r"MANAGEMENT_QA_(SYS_LABOR_DOC|CERRO_CUSTODY|STEPS_CRM)_[A-Z0-9_]+", env.cr.dbname)
     assert {row.split(":")[0].strip() for row in Path("/proc/net/dev").read_text().splitlines()[2:]} == {"lo"}
     env.cr.rollback()
     env.cr.execute("SET TRANSACTION READ ONLY")
@@ -34,7 +34,12 @@ def capture(env):
             case = {role: [row["id"] for row in rows if (row["user_permission"] or "none") == role]
                     for role in ("view", "edit", "none")}
             menu = scope.ref("documents.dashboard")
-            info["cases"][key] = dict(case, model_acl=True, menu_visible=menu.id in scope["ir.ui.menu"]._visible_menu_ids())
+            try:
+                visible = menu.id in scope["ir.ui.menu"]._visible_menu_ids()
+            except AccessError:
+                info["cases"][key] = dict(case, model_acl=True, menu_visible=False, menu_acl=False)
+            else:
+                info["cases"][key] = dict(case, model_acl=True, menu_visible=visible)
         result["users"][str(user.id)] = info
     env.cr.rollback()
     return result

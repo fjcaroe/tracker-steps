@@ -30,7 +30,12 @@ def check_matrix(env, baseline):
             else:
                 assert expected["model_acl"]
                 menu = scope.ref("documents.dashboard")
-                assert (menu.id in scope["ir.ui.menu"]._visible_menu_ids()) == expected["menu_visible"]
+                try:
+                    visible = menu.id in scope["ir.ui.menu"]._visible_menu_ids()
+                except AccessError:
+                    assert expected.get("menu_acl", True) is False and not expected["menu_visible"]
+                else:
+                    assert expected.get("menu_acl", True) and visible == expected["menu_visible"]
             for role in ("view", "edit", "none"):
                 actual = {r["id"] for r in rows if r["user_permission"] == role}
                 wanted = set(expected.get(role, []))
