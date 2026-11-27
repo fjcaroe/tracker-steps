@@ -56,7 +56,7 @@ class Payslip(models.Model):
 
     def compute_sheet(self):
         with self.env.cr.savepoint():
-            batches = self.mapped('payslip_run_id').filtered(lambda b: b.company_id.id == 37)
+            batches = self.mapped('payslip_run_id').filtered(lambda b: b.company_id.id in CONFIRMED_COMPANIES)
             if any(b.state in ('close','paid') for b in batches):
                 raise UserError(_('The original payroll batch is closed.'))
             result = super().compute_sheet()
@@ -102,8 +102,8 @@ class Payslip(models.Model):
                     continue
                 # SyS retains a draft accounting header even without any rule
                 # accounts. The regular payroll provider handles mapped lines.
-                if slip.credit_note or (slip.payslip_run_id and slip.company_id.id != 37):
-                    raise UserError(_('The original accounting treatment of this batch or refund needs verification.'))
+                if slip.credit_note:
+                    raise UserError(_('The original accounting treatment of this refund needs verification.'))
                 rules = structure._step_effective_rule_scope()['rules']
                 rules.check_access('read')
                 rules.check_field_access_rights('read', ['account_debit', 'account_credit'])
