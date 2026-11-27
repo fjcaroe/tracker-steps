@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from complete_converted_filestore import complete
 from custody_sys_previred_filestore import digest
 from prepare_steps_crm_cohort import RUNTIME, SOURCE_MANIFESTS
-from restore_converted_sys_cohort import restore
+from restore_converted_sys_cohort import restore, save
 from restore_sys_previred_pair import LOCK, require
 from verify_converted_sql_schema import verify
 
@@ -29,6 +29,13 @@ def recover(root, output, release, checksum, suffix):
             and proof['source_dump_sha256'] == '8247457c4469d314fb3eeb44202604a1c294cfa374d426f30f31c9a16144f7ca',
             'original-admitted-steps-cohort-required')
     target = 'COMMUNITY_STEPS_CRM_RECOVERY_'+suffix
+    quotation_source = original_db.startswith('COMMUNITY_STEPS_CRM_QUOTE_')
+    if quotation_source:
+        forms = json.loads((root/'quotation-forms.json').read_bytes())
+        require(forms['ui']['database'] == original_db and forms['ui']['inactive_views'] == [1443,1444,1445,1446]
+                and forms['ui']['inactive_menu'] == 329 and forms['ui']['original_action_retained'] == 481
+                and forms['sql']['preserved_counters'] and forms['sql']['unexpected_modules'] == [],
+                'qualified-quotation-interface-required')
     args = SimpleNamespace(source=original_db, target=target, tablespace='steps_community_storage_20261028_community',
                            expected_active=157, output=output, release=release, release_sha256=checksum,
                            runtime=RUNTIME, addons=[RUNTIME/'addons',RUNTIME/'odoo/addons'],
@@ -43,6 +50,11 @@ def recover(root, output, release, checksum, suffix):
         require(recovered['simultaneous_physical_tree_sha256'] == physical['tree_sha256']
                 and not recovered['forward_manifests_on_source'] and recovered['counts'] == proof['counts']
                 and recovered['rows'] == proof['rows'], 'frozen-steps-package-drift')
+        if quotation_source:
+            require(recovered['role_probe'].get('sale_quotation') == {
+                'form_initialized':True, 'action':526, 'historical_orders':4}, 'restored-quotation-form-required')
+            recovered['quotation_form_receipt_sha256'] = digest(root/'quotation-forms.json')
+            save(output/'restore-proof.json',recovered)
     print('STEPS_COLD_RESTORE_COMPLETE', flush=True)
 
 

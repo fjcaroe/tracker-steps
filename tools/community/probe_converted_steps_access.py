@@ -48,6 +48,20 @@ def steps_restore_access(env, core):
         except AccessError:
             denied.append(obj.id)
     assert denied == sample.ids
-    return actor, {'crm':{'visible': len(leads), 'own':9, 'fields':72, 'menu':340,
-                          'values':summary['full_form']['values'], 'attachments':12, 'public_denied':12,
-                          'proof_of_loaded_providers':digest(manifests)}}
+    results = {'crm':{'visible': len(leads), 'own':9, 'fields':72, 'menu':340,
+                      'values':summary['full_form']['values'], 'attachments':12, 'public_denied':12,
+                      'proof_of_loaded_providers':digest(manifests)}}
+    if not env['ir.ui.view'].browse(1444).active:
+        from odoo.tests import Form
+        scope = attachments.env
+        leads = scope['crm.lead'].search([('user_id','=',actor.id),('partner_id','!=',False),
+                                         ('order_ids','=',False)], order='id', limit=1)
+        assert leads
+        action = leads.action_sale_quotations_new()
+        model = scope['sale.order'].with_context(**action['context'])
+        form_view = next((ident for ident, kind in action['views'] if kind == 'form'), False)
+        form = Form(model, view=form_view or None)
+        assert form.partner_id == leads.partner_id and form.opportunity_id == leads
+        assert model.search_count([]) == 4
+        results['sale_quotation'] = {'form_initialized':True, 'action':action['id'], 'historical_orders':4}
+    return actor, results
