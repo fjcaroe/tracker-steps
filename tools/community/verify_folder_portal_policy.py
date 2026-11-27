@@ -83,4 +83,3 @@ if __name__ == "__main__":
     with open("/run/lock/steps-environments.lock", "rb") as lock:
         fcntl.flock(lock, fcntl.LOCK_SH)
         print(json.dumps(verify()))
-
