@@ -168,6 +168,9 @@ def forms(args):
     code += "\nimport json\nassert env.cr.dbname == " + repr(args.database)
     code += "\nprint('SIX_FORMS='+json.dumps(run(env)),flush=True)\n"
     log = out / (args.label + ".log")
+    if log.exists():
+        require(not (out / (args.label + ".json")).exists(), "form-already-certified")
+        log = out / (args.label + "-retry-" + str(len(list(out.glob(args.label + "*.log")))) + ".log")
     result = odoo(args, "shell", [], log, code.encode())
     lines = [line.split("=", 1)[1] for line in log.read_text().splitlines() if line.startswith("SIX_FORMS=")]
     require(result == 0 and len(lines) == 1, "original-role-form-probe-failed")
@@ -288,7 +291,7 @@ if __name__ == "__main__":
     parser.add_argument("--sealed", type=Path, required=True)
     parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "final"))
     parser.add_argument("--module", choices=MODULES)
-    parser.add_argument("--label", choices=("forms-before", "forms-after"))
+    parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
     require(re.fullmatch(r"COMMUNITY_SYS_PREVIRED_MODULES_[A-Z0-9]+", args.database)
             and args.output.resolve() == args.output and args.output.parent == PRIVATE

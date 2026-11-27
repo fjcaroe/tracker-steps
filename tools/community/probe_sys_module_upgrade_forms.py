@@ -62,7 +62,7 @@ def run(shell):
     shell.cr.rollback()
     shell.cr.execute("SET TRANSACTION READ ONLY")
     users = shell["res.users"].sudo().search([("active", "=", True), ("share", "=", False)], order="id")
-    users = users.filtered(lambda user: user.id != 1 and not user.has_group("base.group_system") and user.company_ids)
+    users = users.filtered(lambda user: user.id != 1 and user.company_ids)
     assert users
     stats = {}
     for xmlid, menu, kind in ACTIONS:
@@ -85,4 +85,5 @@ def run(shell):
                 first = observed
         stats[kind] = {"operators": dict(outcomes), "form": first}
     shell.cr.rollback()
-    return stats
+    return {"operators": len(users), "original_settings_members": len(users.filtered(
+        lambda user: user.has_group("base.group_system"))), "actions": stats}
