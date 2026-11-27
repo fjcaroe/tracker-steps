@@ -98,3 +98,19 @@ El recibo privado de la pareja U42C y las pruebas de lectura se guardan en
 `~/.codex/local-artifacts/community-resume-20261125/U40/`. La huella SHA-256
 de los manifiestos admitidos es
 `0146e9a78d75ed0b33c943505cc3c1a3026f7fd15d2a5ec0c6198087465cd210`.
+
+### Del presupuesto a la factura en borrador
+
+En U43SI, el vendedor guardó un presupuesto desde una oportunidad, lo confirmó
+y volvió a abrir el pedido desde esa oportunidad. Usó el botón Crear factura,
+guardó el asistente habitual de cantidades entregadas y abrió la factura en
+borrador desde el pedido. Coincidieron con el original el cliente, la compañía,
+el diario, la moneda, el producto, los impuestos, el neto y el total. El ensayo
+se revirtió en cada copia. Se comprobaron las tablas de ventas, facturas,
+existencias, comunicaciones y permisos antes y después.
+
+El cotejo se puede repetir con `quote_trial(env, confirm=True, invoice=True)`
+en la pareja privada. Los recibos `U43SI-steps-sale-reports-native.json` y
+`U43SI-steps-sale-reports-quote.json` conservan las huellas de los importes
+y las relaciones. La contabilización y la emisión tributaria quedan pendientes
+para este perfil de Steps.

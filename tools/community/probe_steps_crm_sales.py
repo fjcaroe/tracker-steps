@@ -17,7 +17,9 @@ def salesperson(env):
     return leads
 
 
-def quote_trial(env):
+def quote_trial(env, *, confirm=False, invoice=False):
+    if invoice and not confirm:
+        raise ValueError('The draft invoice requires a confirmed private order.')
     leads = salesperson(env).with_context(mail_notify_force_send=False)
     scope = leads.env
     orders = scope['sale.order']
@@ -45,12 +47,51 @@ def quote_trial(env):
         result = [lead.id, quote.partner_id.id, quote.user_id.id, quote.pricelist_id.id, quote.currency_id.id,
                   quote.order_line.product_id.id, quote.order_line.product_uom_qty, quote.order_line.price_unit,
                   quote.order_line.tax_id.ids, quote.amount_untaxed, quote.amount_tax, quote.amount_total]
+        confirmation = None
+        if confirm:
+            quote.action_confirm()
+            env.flush_all()
+            quote.invalidate_recordset()
+            assert quote.state == 'sale' and quote.opportunity_id == lead and quote.partner_id == lead.partner_id
+            destination = lead.action_view_sale_order()
+            assert destination['res_model'] == 'sale.order' and destination['res_id'] == quote.id
+            values = [quote.state, quote.invoice_status, quote.order_line.qty_to_invoice,
+                      quote.order_line.qty_delivered, quote.order_line.qty_invoiced, quote.amount_total,
+                      quote.currency_id.id, quote.order_line.product_id.id, quote.order_line.tax_id.ids]
+            confirmation = {'order_action':destination['id'], 'state':quote.state, 'invoice_status':quote.invoice_status,
+                            'quantities_and_amounts':digest(values), 'reopened_confirmed_order':True}
+            if invoice:
+                action_wizard = scope['ir.actions.actions']._for_xml_id('sale.action_view_sale_advance_payment_inv')
+                order_arch = etree.fromstring(quote.get_view(view_type='form')['arch'].encode())
+                buttons = order_arch.xpath('//button[@id="create_invoice" and @type="action"]')
+                assert any(button.get('name') == str(action_wizard['id']) for button in buttons)
+                wizard_model = scope[action_wizard['res_model']].with_context(active_model='sale.order',
+                    active_ids=quote.ids,active_id=quote.id,open_invoices=True)
+                form_id = next((pk for pk,mode in action_wizard['views'] if mode=='form'),False)
+                wizard = Form(wizard_model,view=form_id or None).save()
+                assert wizard.sale_order_ids == quote and wizard.advance_payment_method == 'delivered'
+                wizard.create_invoices()
+                move = quote.invoice_ids
+                move.ensure_one()
+                assert move.state == 'draft' and move.move_type == 'out_invoice' and move.currency_id == quote.currency_id
+                assert move.partner_id == quote.partner_invoice_id and move.invoice_line_ids.sale_line_ids == quote.order_line
+                destination = quote.action_view_invoice()
+                assert destination['res_model'] == 'account.move' and destination['res_id'] == move.id
+                totals = [move.amount_untaxed,move.amount_tax,move.amount_total]
+                assert totals == [quote.amount_untaxed,quote.amount_tax,quote.amount_total]
+                values = [move.journal_id.id,move.partner_id.id,move.currency_id.id,move.company_id.id,
+                          move.invoice_line_ids.product_id.id,move.invoice_line_ids.tax_ids.ids,*totals]
+                confirmation['draft_invoice'] = {'wizard':action_wizard['id'],'state':move.state,
+                    'amounts_and_original_relations':digest(values),'reopened_from_sale':True}
         trial.rollback()
         assert orders.search([], order='id') == historical
     env.cr.rollback()
-    return {'database': env.cr.dbname, 'created_from_action': action['id'], 'reopened_from_action': link['id'],
+    report = {'database': env.cr.dbname, 'created_from_action': action['id'], 'reopened_from_action': link['id'],
             'original_orders': len(historical), 'state': 'draft', 'terms_and_amounts': digest(result),
             'saved_and_reopened': True, 'rolled_back': True}
+    if confirm:
+        report['confirmation'] = confirmation
+    return report
 
 
 def attachment_access(env, opportunity_ids):
