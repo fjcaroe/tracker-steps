@@ -43,3 +43,23 @@ de campos, pasada obligatoria, cierre, reparto y líneas de costo. Publicar el
 mismo paquete probado primero en Desarrollo, con respaldo, bloqueo compartido,
 ausencia de downgrade y conservación del aislamiento de QA-Cerro. Revisar
 versión, menú, formulario y flujo en los tres destinos antes de cerrar tickets.
+
+## Entrega comprobada — 27-11-2026
+
+Publicado el mismo backend `6275030a` (launcher 18.0.1.7.0 y operación 18.0.1.2.0)
+y web `244cb47` (0.0.12) en Desarrollo, QA-Cerro y Cerro. Pasaron 91 pruebas nativas
+en cada copia, 72 pruebas web y los flujos de enrolamiento, entregas, reparto de
+jornada, costo nativo, cierre, aprobación, envío y recarga desde el cliente real.
+Los dominios HTTPS mostraron 0.0.12 y el formulario nuevo. La revisión publicada
+consultó datos y formularios, y conservó los datos de negocio.
+
+Los publicadores conservaron respaldos, bloqueo compartido, ausencia de downgrade,
+validadores de caché corregidos y paridad de archivos entre Cerro y QA-Cerro. La
+verificación final confirmó el aislamiento de QA-Cerro. Se retiraron las sesiones
+y servidores temporales de revisión. Los tickets 244 y 245 quedaron resueltos
+con cambio de estado silencioso, comprobando ausencia de nuevos mensajes,
+notificaciones y correos.
+
+La cuadrilla productiva de Cerro necesita integrantes asignados antes de registrar
+la jornada. Su certificación incluyó enrolamiento en la copia; la publicación
+conservó el maestro operativo existente.
