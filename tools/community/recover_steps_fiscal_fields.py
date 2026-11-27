@@ -31,8 +31,7 @@ CONTRACTS = {
 }
 
 
-def exact_free_providers(active):
-    overlay = WORK/'addons'
+def exact_free_providers(active, overlay=WORK/'addons'):
     overlay.mkdir(mode=0o755,exist_ok=True)
     overlay.chmod(0o755)
     for name,(version,count,checksum) in CONTRACTS.items():

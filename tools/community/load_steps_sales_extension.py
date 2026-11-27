@@ -11,6 +11,7 @@ from preflight_original_history_storage import require
 PROFILES = {
     'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H': 'step_helpdesk_tickets',
     'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2': 'step_helpdesk_tickets',
+    'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A': 'step_cl_invoice_status_history',
     'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F': 'step_cl_invoice_status_history',
     'COMMUNITY_STEPS_CRM_DOC_20261127U43X': 'step_document_library,step_document_library_portal',
     'COMMUNITY_STEPS_CRM_DOC_20261127U44P': 'step_document_library,step_document_library_portal,step_report_print_colors',
@@ -40,7 +41,8 @@ def main():
     require(db in PROFILES and '--db-filter=^'+db+'$' in args and '--no-http' in args
             and '--stop-after-init' in args and '--max-cron-threads=0' in args
             and (switches==['-i'] or (switches==['-u'] and db in ('COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2',
-                                                                   'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F')))
+                                                                   'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F',
+                                                                   'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A')))
             and args[args.index(switches[0])+1] == PROFILES[db], 'private-install-required')
     payload = Path(plan).read_bytes()
     require(hashlib.sha256(payload).hexdigest() == checksum, 'required-columns-plan-changed')
