@@ -102,3 +102,27 @@ sin referencia y 14 marcadores del recolector de Odoo. Los 2.704 archivos de
 ese barrido coincidieron byte por byte en la restaurada y fuera del servidor.
 El recibo privado está en
 `~/.codex/local-artifacts/community-resume-20261125/U41R/converted-cohort/offline-verification.json`.
+
+
+### Captura simultánea y segunda restauración U41R2
+
+Con U40J en reposo, el segundo respaldo tomó el SQL y el inventario físico
+completo bajo la misma adquisición del bloqueo. Una lectura de toda la base y
+de todos los archivos antes y después de la captura verificó que ambos
+seguían idénticos. U41R2 se creó desde el nuevo SQL y los dos archivos de
+filestore, con restauración en un espacio privado separado. Los 190 módulos
+arrancaron dos veces desde el código sellado, con las fuentes de U40J y la
+primera copia recuperada ocultas. La cuenta original volvió a leer el mismo
+PDF y se repitieron las denegaciones por compañía y usuario público.
+
+| Comprobación U41R2 | Resultado |
+| --- | --- |
+| SHA-256 del SQL simultáneo | `97ec4563b21267dd3abd5d17715357d104184a01bde6fa77c58339da937f8f73` |
+| Huella de los 2.704 archivos en origen y restaurada, incluidos los 25 auxiliares | `2d08f8de2c79bbf481d0fee9befc0ad113a19a5cbc9fb919e69d210a9024120c` |
+| SHA-256 del recibo de los dos arranques | `cca8276e0a619105cae177ca51bcd74f15fb38e82743169a85f32daf18421b9f` |
+| Manifiesto de los 13 archivos verificados en la estación de trabajo | `ebc80579e58b707eb7b1b7f763176a57096e102833c0644c14e468abf3f72eb4` |
+
+Los recibos `offline-verification.json` y `checkpoint-lineage.json` se guardan
+en el subdirectorio privado `synchronous-checkpoint` de la custodia U41R.
+El verificador portátil acepta `--previous-package` para comparar todas las
+filas, sus definiciones y los contadores de ambos respaldos.
