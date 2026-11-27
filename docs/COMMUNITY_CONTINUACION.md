@@ -8,8 +8,11 @@
 actualizaciones y las dos instalaciones documentales, incluidas sus repeticiones.
 Los operadores reprodujeron los 24 archivos de Previred y Libro, los textos
 de doce comprobantes fiscales y los permisos del PDF de liquidación compartido.
-Cuatro impresiones fiscales conservan el contenido y la geometría, con dos
-tonos de gris diferentes. Se verificaron fuera del servidor las 22 piezas
+Cuatro impresiones fiscales de FG conservan el contenido y la geometría.
+La restauración local con el proveedor 193 corrigió los dos tonos de gris.
+Los cuatro comprobantes coincidieron píxel por píxel con el original a
+96 y 144 ppp. [Color de los comprobantes de SyS](COMMUNITY_SYS_COLOR_FISCAL.md).
+Se verificaron fuera del servidor las 22 piezas
 del respaldo, incluidos 22.258 archivos de ejecución y 2.702 del almacén.
 Una segunda base se recuperó desde esas piezas. En sus dos arranques coincidieron
 609.133 filas, 1.141 tablas, 861 contadores y el esquema original del respaldo FG.
