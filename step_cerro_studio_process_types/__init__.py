@@ -1,3 +1,4 @@
+from . import ir_model_data
 from odoo.addons.step_cerro_studio_adoption.ownership import adopt
 from odoo.exceptions import ValidationError
 
@@ -16,7 +17,4 @@ def preserve_alias(env):
     if old and old != view:
         raise ValidationError('La vista de tipos de proceso del paquete anterior cambió.')
     data = env['ir.model.data']
-    earlier = data.search([('module', '=', 'step_cerro_studio_packing'), ('name', '=', 'process_types')])
-    if earlier and not earlier.noupdate:
-        earlier.noupdate = True
     data._update_xmlids([{'xml_id': xml_id, 'record': view, 'noupdate': True}])

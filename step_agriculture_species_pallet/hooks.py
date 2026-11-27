@@ -37,5 +37,3 @@ def pre_init_hook(env):
         if collision and collision != record:
             raise ValidationError('El identificador de destino de la especie está ocupado.')
         data._update_xmlids([{'xml_id': CURRENT + '.' + alias.name, 'record': record, 'noupdate': True}])
-        if not alias.noupdate:
-            alias.noupdate = True

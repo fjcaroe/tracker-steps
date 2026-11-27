@@ -1,3 +1,0 @@
-<odoo>
-<record id="step_producers.rule_step_producer_fundo_company" model="ir.rule"><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
-</odoo>

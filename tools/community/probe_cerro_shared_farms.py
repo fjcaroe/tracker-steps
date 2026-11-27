@@ -14,7 +14,8 @@ IDENTITIES = (
 
 
 def capture(env):
-    assert re.fullmatch(r'(?:MANAGEMENT_QA|COMMUNITY)_CERRO_BOM_[A-Z0-9_]+', env.cr.dbname)
+    assert (re.fullmatch(r'(?:MANAGEMENT_QA|COMMUNITY)_CERRO_BOM_[A-Z0-9_]+', env.cr.dbname)
+            or env.cr.dbname == 'COMMUNITY_LIBRARY_CERRO_20261126U41L')
     result = {}
     statements = {
         'farms': 'SELECT id, company_id, partner_id, fundo_code, csg_code, sector_id FROM step_fundo ORDER BY id',

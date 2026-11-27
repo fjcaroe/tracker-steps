@@ -1,5 +1,6 @@
 """Keep the original companies, partner links and external identifiers."""
 from odoo.exceptions import ValidationError
+from odoo.addons.step_agriculture_farm_directory.hooks import OWNER as DIRECTORY, RULE, SHARED, SINGLE, rule_mode
 
 LEGACY = 'step_agriculture_multicompany'
 CURRENT = 'step_agriculture_shared_farms'
@@ -26,10 +27,6 @@ def pre_init_hook(env):
                 raise ValidationError('Identidad agrícola de destino incompatible: ' + name)
         data._update_xmlids([{'xml_id': CURRENT + '.' + name, 'record': env[model].browse(old.res_id),
                               'noupdate': True}])
-        # The old module's next upgrade may clean unused generated XML IDs.
-        # This alias must continue resolving to its original record.
-        if not old.noupdate:
-            old.noupdate = True
 
 
 def post_init_hook(env):
@@ -43,4 +40,13 @@ def post_init_hook(env):
         current = env.ref(CURRENT + '.' + name, raise_if_not_found=False)
         if old and old != current:
             raise ValidationError('La identidad agrícola de origen cambió: ' + name)
+    rule = env.ref(DIRECTORY + '.' + RULE)
+    if rule_mode(rule) == 'single':
+        rule.write({'domain_force': SHARED})
     env.invalidate_all()
+
+
+def uninstall_hook(env):
+    rule = env.ref(DIRECTORY + '.' + RULE, raise_if_not_found=False)
+    if rule and rule_mode(rule) == 'shared':
+        rule.write({'domain_force': SINGLE})

@@ -26,5 +26,3 @@ def pre_init_hook(env):
         if existing and existing != record:
             raise ValidationError('El identificador de la categoría de proceso está ocupado.')
         data._update_xmlids([{'xml_id': xml_id, 'record': record, 'noupdate': True}])
-        if not entry.noupdate:
-            entry.noupdate = True

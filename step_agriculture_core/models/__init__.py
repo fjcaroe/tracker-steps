@@ -18,3 +18,4 @@ from . import step_labor
 from . import step_labor_line
 from . import product_template
 from . import res_partner
+from . import ir_model_data
