@@ -5,8 +5,8 @@
 **Avances posteriores.** Steps dispone de un respaldo privado con 166 módulos que
 incluye el ciclo del cobro manual y las comprobaciones de ventas, facturación,
 Documentos y Mesa de Ayuda. En SyS dos operadores abrieron el formulario de
-liquidación desde su menú, calcularon y confirmaron diez casos cada uno en las
-pruebas. El paquete de recuperación de SyS conserva 52 archivos verificados.
+liquidación desde su menú y calcularon y confirmaron cinco casos cada uno,
+diez en total. El paquete de recuperación de SyS conserva 52 archivos verificados.
 [Cobros en Steps](COMMUNITY_STEPS_CONTABILIDAD.md) · [Alta y confirmación de
 liquidaciones](COMMUNITY_SYS_ALTA_LIQUIDACION.md) · [Recuperación de SyS](COMMUNITY_SYS_RECUPERACION_LIQUIDACIONES.md).
 
