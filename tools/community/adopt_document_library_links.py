@@ -20,8 +20,9 @@ def capture_links(env):
     documents = env["documents.document"].with_context(active_test=False).search([], order="id")
     result = {}
     for row in documents:
-        path = urlsplit(row.access_url).path
-        if not re.fullmatch(r"/odoo/documents/[^/?#]{1,256}", path):
+        url = urlsplit(row.access_url)
+        path = url.path
+        if url.query or url.fragment or not re.fullmatch(r"/odoo/documents/[^/?#]{1,256}", path):
             raise ValidationError("Formato de enlace histórico desconocido.")
         result[str(row.id)] = hashlib.sha256(path.encode()).hexdigest()
     return {"original_identity": original_identity(env), "hashes": result}
