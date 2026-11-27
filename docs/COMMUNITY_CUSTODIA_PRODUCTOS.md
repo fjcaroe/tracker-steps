@@ -87,3 +87,18 @@ leyó un PDF restringido de 27.070 bytes y doce adjuntos de menú en ambos
 arranques. Coincidieron el tamaño y las huellas del PDF. Otro contexto de
 compañía de esa misma cuenta y el usuario público recibieron la denegación
 del mismo adjunto.
+
+El DDL completo del archivo, del origen y de la restaurada produjo el mismo
+SHA-256, `97a572d842a51acc6ba194c46ad3389c18f291973c58e4ed33d53874382dbb10`,
+incluidas 26 vistas y 2.484 índices. La copia de custodia de la estación
+de trabajo verificó individualmente los 13 componentes del paquete y todos
+los archivos de código mediante el manifiesto
+`d4c78ebc528648221c158e9968e63137a530a184fe3e5d8422f317a8fa84c1bd`.
+
+El SQL y los 2.679 objetos referenciados del primer respaldo corresponden al
+mismo instante. Entre esa captura y el barrido físico posterior se ejecutaron
+ensayos con rollback en U40J. El barrido posterior conservó además 11 objetos
+sin referencia y 14 marcadores del recolector de Odoo. Los 2.704 archivos de
+ese barrido coincidieron byte por byte en la restaurada y fuera del servidor.
+El recibo privado está en
+`~/.codex/local-artifacts/community-resume-20261125/U41R/converted-cohort/offline-verification.json`.
