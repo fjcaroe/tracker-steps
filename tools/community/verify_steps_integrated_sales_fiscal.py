@@ -11,9 +11,13 @@ from verify_steps_fiscal_reports import compare as compare_fiscal_reports
 from verify_steps_sale_documents import verify as compare_sale_documents
 
 
-def verify(folder):
+def verify(folder, run_prefix='U46A'):
+    if not run_prefix.isalnum():
+        raise ValueError('Invalid evidence run identifier')
     evidence = {}
     def receipt(stem):
+        if stem.startswith('U46A') and not stem.startswith('U46A-steps-fiscal-integration-'):
+            stem=run_prefix+stem[4:]
         path = folder/(stem+'.json')
         raw = path.read_bytes()
         evidence[path.name]=sha256(raw).hexdigest()
@@ -34,7 +38,7 @@ def verify(folder):
         raise ValueError('Missing original accounting or linked-file permissions')
     fiscal = compare_fiscal_reports(receipt('U45IR-steps-invoice-text-native'),receipt('U46AFiscal-steps-invoice-text-integrated'),
         receipt('U45PFB-steps-invoice-pdfs-native'),receipt('U46AFiscal-steps-invoice-pdfs-integrated'),
-        folder/'U45PFB-steps-fiscal-pages-native',folder/'U46AFiscal-steps-fiscal-pages-integrated')
+        folder/'U45PFB-steps-fiscal-pages-native',folder/(run_prefix+'Fiscal-steps-fiscal-pages-integrated'))
     native_sales=receipt('U43SG-steps-sale-reports-native')
     integrated_sales=receipt('U46ASale-steps-sale-reports-integrated')
     sales = compare_sale_documents(native_sales,integrated_sales,receipt('U43SI-steps-sale-reports-native'),
@@ -43,7 +47,7 @@ def verify(folder):
         for dpi in (96,144):
             printed = []
             for name,row in (('native',original),('integrated',current)):
-                path=folder/'U46ASale-sale-print-comparison'/name/('7-%d.pdf' % row['id'])
+                path=folder/(run_prefix+'Sale-sale-print-comparison')/name/('7-%d.pdf' % row['id'])
                 if sha256(path.read_bytes()).hexdigest()!=row['bytes_sha256']:
                     raise ValueError('The retained sales PDF differs from the report action')
                 with pymupdf.open(path) as pdf:
@@ -69,5 +73,6 @@ def verify(folder):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('folder',type=Path)
+    parser.add_argument('--run-prefix',default='U46A')
     args=parser.parse_args()
-    print(json.dumps(verify(args.folder),sort_keys=True))
+    print(json.dumps(verify(args.folder,args.run_prefix),sort_keys=True))

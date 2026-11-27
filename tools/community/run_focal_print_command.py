@@ -25,6 +25,18 @@ def run(args):
     (dev / "shm").mkdir(mode=0o1777)
     subprocess.run(["mount", "--bind", "/dev/shm", str(dev / "shm")], check=True)
     (dev / "fd").symlink_to("/proc/self/fd")
+    if args.sys_payslip_form:
+        trials = {"COMMUNITY_SYS_PREVIRED_COHORT_20261127U48C": "sys-u48-payslip",
+                  "COMMUNITY_SYS_PREVIRED_COHORT_20261127U48D": "sys-u48-payslip-final"}
+        db, = (name for name in trials if name in args.command)
+        module = "step_payroll_oca_sys_history"
+        private = Path("/dev/shm") / trials[db] / "overlay" / module
+        target = ROOT / "work/sys-fg-code/addons" / module
+        if (args.user != "odoo" or db not in args.command or "--db-filter=^" + db + "$" not in args.command
+                or private.resolve() != private or target.resolve() != target or not (private / "payslip_form.py").is_file()):
+            raise ValueError("Expected only the isolated SyS form trial")
+        subprocess.run(["mount", "--bind", str(private), str(target)], check=True)
+        subprocess.run(["mount", "-o", "remount,bind,ro", str(target)], check=True)
     if args.loopback:
         subprocess.run(["ip", "link", "set", "lo", "up"], check=True)
     uid = UIDS[args.user]
@@ -42,6 +54,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inside", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--sys-payslip-form", action="store_true")
     parser.add_argument("--loopback", action="store_true")
     parser.add_argument("--user", choices=UIDS, required=True)
     parser.add_argument("command", nargs=argparse.REMAINDER)
