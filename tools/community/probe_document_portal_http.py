@@ -16,6 +16,7 @@ PAYLOAD = b"Community portal fixture. No historical records.\n"
 NAME = "community-portal-test.txt"
 NATIVE = "MANAGEMENT_QA_SYS_PORTAL_20261126U41P"
 COMMUNITY = "COMMUNITY_PORTAL_SYS_20261126U41P"
+PREPARED = "COMMUNITY_PORTAL_SYS_20261126U41PA"
 
 
 def new_portal(env, owner):
@@ -115,9 +116,23 @@ def sharing(document, level, native):
     document.env.flush_all()
 
 
-def probe(env, native_fixture=None):
+def prepare_accounts(env):
+    assert env.cr.dbname == PREPARED and env.su
+    owner = env["res.users"].browse(6)
+    setup = env(context={"tracking_disable": True, "mail_create_nolog": True, "mail_create_nosubscribe": True,
+                         "mail_notrack": True, "no_reset_password": True})
+    env.cr.execute("SELECT max(id) FROM res_users")
+    cutoff = env.cr.fetchone()[0]
+    actors = [new_portal(setup, owner) for _ in range(2)]
+    assert all(account.id > cutoff and account.share and account.has_group("base.group_portal")
+               for account, _, _ in actors)
+    env.flush_all()
+    return [(account.id, login, password) for account, login, password in actors]
+
+
+def probe(env, native_fixture=None, prepared=None):
     native = native_fixture is None
-    assert env.cr.dbname == (NATIVE if native else COMMUNITY)
+    assert env.cr.dbname == (NATIVE if native else PREPARED if prepared else COMMUNITY)
     assert {line.split(":")[0].strip() for line in Path("/proc/net/dev").read_text().splitlines()[2:]} == {"lo"}
     assert env.registry.test_cr is None
     settings = {"tracking_disable": True, "mail_create_nolog": True, "mail_create_nosubscribe": True,
@@ -128,7 +143,13 @@ def probe(env, native_fixture=None):
     try:
         setup = env(context=settings)
         setup["ir.config_parameter"].set_param("ir_attachment.location", "db")
-        people = [new_portal(setup, owner) for _ in range(2)]
+        if prepared:
+            people = [(env["res.users"].browse(uid), login, password) for uid, login, password in prepared]
+            assert len(people) == 2 and all(
+                user.login == login and login.startswith("community-portal-") and user.active and user.share
+                and user.has_group("base.group_portal") for user, login, _ in people)
+        else:
+            people = [new_portal(setup, owner) for _ in range(2)]
         doc, fixture = make_document(ordinary, owner, native_fixture)
         setup.flush_all()
         actors = {"anonymous": session(env.cr.dbname), "recipient": session(env.cr.dbname, people[0]),
