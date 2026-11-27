@@ -79,11 +79,14 @@ def main():
         plans.append((ticket, current, domain, messages))
     results = []
     for ticket, before, domain, messages in plans:
+        mail_domain = [('mail_message_id.model', '=', 'helpdesk.ticket'), ('mail_message_id.res_id', '=', ticket)]
+        notifications = {model: set(call(model, 'search', [mail_domain])) for model in ('mail.notification', 'mail.mail')}
         if args.apply and before['stage_id'][0] != 4:
             call('helpdesk.ticket', 'write', [[ticket], {'stage_id': 4}])
         after = call('helpdesk.ticket', 'read', [[ticket]], fields=['stage_id'])[0]
         assert not args.apply or after['stage_id'][0] == 4
         assert messages == call('mail.message', 'search_read', [domain], fields=['id'], order='id')
+        assert all(set(call(model, 'search', [mail_domain])) == ids for model, ids in notifications.items()), 'Unexpected ticket email or notification'
         results.append({'ticket': ticket, 'before': before['stage_id'], 'after': after['stage_id'], 'comment_posted': False})
     proof = {'package': package, 'applied': args.apply, 'results': results,
              'verified_at': datetime.now(timezone.utc).isoformat()}

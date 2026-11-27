@@ -33,6 +33,15 @@ const {chromium}=require('playwright');
             await page.getByRole('button',{name:'Sin tarja',exact:true}).waitFor();
             await page.getByRole('button',{name:'Peso estándar',exact:true}).waitFor();
             await page.screenshot({path:path.join(output,environment+'.png'),fullPage:true});
+            if(expected==='0.0.12'){
+                await page.getByRole('navigation',{name:'Navegación principal',exact:true}).getByRole('button',{name:'Jornadas',exact:true}).click();
+                await page.getByRole('button',{name:'Nueva OT',exact:true}).click();
+                const form=page.getByRole('dialog',{name:'Nueva orden de trabajo',exact:true});
+                for(const field of ['operationLocation','passNumber','harvestType']) assert.equal(await form.locator(`[name=${field}]`).count(),1);
+                assert.equal(await form.locator('[name=passNumber]').evaluate(input=>input.required),true);
+                await page.screenshot({path:path.join(output,environment+'-new-ot.png')});
+                await form.getByRole('button',{name:'Cancelar',exact:true}).click();
+            }
             assert.deepEqual(errors,[]);
             result.push({environment,host:proof.host,version:expected,configuration:true,withoutTarja:true,
                          standardWeight:true,businessWrites:0,errors});
