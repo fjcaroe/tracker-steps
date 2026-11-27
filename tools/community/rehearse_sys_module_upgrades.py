@@ -265,6 +265,19 @@ def forms(args):
     save(out / (args.label + ".json"), json.loads(lines[0]))
 
 
+def policy_impact(args):
+    require(args.database.endswith(("U41M", "U41MP", "U41MQ")), "unexpected-impact-scope")
+    code = Path(__file__).with_name("probe_sys_original_policy_impact.py").read_text()
+    code += "\nimport json\nassert env.cr.dbname==" + repr(args.database)
+    code += "\nprint('POLICY_IMPACT='+json.dumps(run(env,Path(" + repr(str(args.output / "runtime")) + "))),flush=True)"
+    count = len(list(args.output.glob("policy-impact-*.log")))
+    log = args.output / ("policy-impact-" + str(count) + ".log")
+    status = odoo(args, "shell", [], log, code.encode())
+    records = [l.partition("=")[2] for l in log.read_text().splitlines() if l.startswith("POLICY_IMPACT=")]
+    require(status == 0 and len(records) == 1, "original-role-policy-comparison-failed")
+    save(args.output / "policy-impact.json", json.loads(records[0]))
+
+
 def journal_migration(args):
     script = args.sealed / "runtime/addons/l10n_latam_invoice_document/migrations/1.1/post-migration.py"
     require(digest(script) == "9b8db12f8dd82f88133dfa6299cfa432f10ba2aef170298fd2774e20efaeda7a",
@@ -464,7 +477,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "prepare-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -479,6 +492,8 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "restore":
             restore(args, proof)
+        elif args.operation == "policy-impact":
+            policy_impact(args)
         elif args.operation == "pin-providers":
             pin_original_providers(args)
         elif args.operation == "seal-profile":
