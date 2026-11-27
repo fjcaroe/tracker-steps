@@ -12,6 +12,7 @@ from admit_steps_print_profile import RELEASE as PRINT_SHA
 from admit_steps_sales_documents import COMBINED, COMBINED_WORK, DOCUMENT_SHA, PACKAGE
 from complete_converted_filestore import complete
 from custody_sys_previred_filestore import digest
+from prepare_steps_crm_cohort import SOURCE_MANIFESTS, digest as manifest_digest
 from restore_converted_sys_cohort import restore
 from restore_steps_sales_backup import BASE, SEALED, SPACE
 from restore_sys_previred_pair import LOCK, require
@@ -45,6 +46,21 @@ def release_from_installed_files(folder):
                 require(contents==src.read_bytes(),'installed-source-differs-from-tested-steps-release')
                 files[name] = contents
     require(len(files)==23,'complete-steps-extension-release-required')
+    members = json.loads((SEALED/'runtime-members.json').read_bytes())
+    providers = json.loads((SEALED/'effective-providers.json').read_bytes())
+    manifests = {}
+    for name in providers:
+        paths = [prefix+'/'+name+'/__manifest__.py' for prefix in ('addons','odoo/addons')]
+        original, = [members[path] for path in paths if path in members]
+        manifests[name] = original[1]
+    require(len(manifests)==157 and manifest_digest(manifests)==SOURCE_MANIFESTS,'original-steps-manifests')
+    for name, contents in files.items():
+        if name.endswith('/__manifest__.py'):
+            module = Path(name).parent.name
+            require(module not in manifests,'unexpected-replacement-of-a-steps-provider')
+            manifests[module] = sha256(contents).hexdigest()
+    require(len(manifests)==160 and manifest_digest(manifests)=='48dc4c5ad578767ebdf00a92792555848dd149d0921c4921ca0adcd0a5e00b0b',
+            'sealed-original-manifests-and-three-verified-extensions')
     bundle = io.BytesIO()
     with tarfile.open(fileobj=bundle,mode='w') as tar:
         for name, contents in sorted(files.items()):

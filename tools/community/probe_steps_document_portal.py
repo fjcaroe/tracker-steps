@@ -12,7 +12,8 @@ from odoo import http
 
 def run(env):
     native = env.cr.dbname == 'MANAGEMENT_QA_STEPS_CRM_20261126U42C'
-    assert __debug__ and (native or env.cr.dbname=='COMMUNITY_STEPS_CRM_DOC_20261127U44P')
+    assert __debug__ and (native or env.cr.dbname in ('COMMUNITY_STEPS_CRM_DOC_20261127U44P',
+                                                      'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3'))
     assert {r.split(':')[0].strip() for r in Path('/proc/net/dev').read_text().splitlines()[2:]}=={'lo'}
     env.cr.rollback()
     env.cr.execute('SET TRANSACTION READ ONLY')

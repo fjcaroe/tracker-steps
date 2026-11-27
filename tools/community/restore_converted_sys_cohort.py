@@ -131,7 +131,7 @@ def package(args, out, source_db, modules):
             from prepare_steps_crm_cohort import digest as inventory_digest, FREE, SOURCE_MANIFESTS
             integrated = (source_db,args.target) == ('COMMUNITY_STEPS_CRM_DOC_20261127U44P','COMMUNITY_STEPS_CRM_RECOVERY_20261127U44R')
             expected_count = 160 if integrated else 157
-            expected_digest = 'aaf242c83be6f9d1a2efd3da47e4dcb04e250376103334a04388a97c4bf9346f' if integrated else SOURCE_MANIFESTS
+            expected_digest = '48dc4c5ad578767ebdf00a92792555848dd149d0921c4921ca0adcd0a5e00b0b' if integrated else SOURCE_MANIFESTS
             require(not changed and len(modules) == expected_count and set(db_licenses) | set(source_licenses) <= FREE
                     and all(modules[name][1] == provider[2] for name, provider in providers.items()),
                     "unexpected-steps-providers")

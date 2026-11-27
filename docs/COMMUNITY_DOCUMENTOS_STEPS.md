@@ -57,3 +57,26 @@ generados se reemplazaron por sus versiones nuevas. Odoo reflejó propiedades
 de 22 campos en los modelos de documento y acceso. Las diferencias completas
 de metadatos están en el comprobante privado
 `U44P-final-steps-original-business-rows.json`.
+
+## Recuperación completa de ventas y Documentos
+
+U44R se restauró desde el volcado SQL de U44P y arrancó en dos procesos
+nuevos con los directorios de origen ocultos. Se cotejaron 163.303 filas
+en 1.115 tablas, 807 contadores y 20.711 archivos de ejecución. El almacén
+físico conserva 1.744 objetos referenciados, otro objeto histórico y tres
+marcadores de limpieza, 1.748 archivos en total.
+
+En ambos arranques el vendedor recuperó sus nueve oportunidades con las
+72 propiedades y abrió el presupuesto desde la oportunidad. El empleado
+abrió Documentos con la misma acción que carga el navegador. Recuperó los
+cuatro archivos permitidos y recibió las dos denegaciones originales.
+La huella de los 160 manifiestos se reconstruyó desde los archivos del
+respaldo de ventas y los dos paquetes probados, y se comprobó de nuevo en
+los módulos efectivamente cargados.
+
+El volcado SQL tiene SHA-256
+`602069d8a5a8a43ff2af901f994794189a50c20857c40490d14c4bc7aa9c054b`.
+El manifiesto de las trece piezas de recuperación tiene SHA-256
+`d45baa7b5c4894a31739d395b61a88f9c11a71b3edb54ecf414383b29296d3d9`.
+La estación de trabajo volvió a comprobar esas trece piezas, el archivo de
+ejecución y el contenido de cada objeto del almacén contra el mismo manifiesto.

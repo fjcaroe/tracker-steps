@@ -28,7 +28,7 @@ def steps_restore_access(env, core):
         manifests[module.name] = sha256((path/'__manifest__.py').read_bytes()).hexdigest()
     integrated = env.cr.dbname == 'COMMUNITY_STEPS_CRM_RECOVERY_20261127U44R'
     if integrated:
-        assert len(manifests) == 160 and digest(manifests) == 'aaf242c83be6f9d1a2efd3da47e4dcb04e250376103334a04388a97c4bf9346f'
+        assert len(manifests) == 160 and digest(manifests) == '48dc4c5ad578767ebdf00a92792555848dd149d0921c4921ca0adcd0a5e00b0b'
     else:
         assert len(manifests) == 157 and digest(manifests) == '0146e9a78d75ed0b33c943505cc3c1a3026f7fd15d2a5ec0c6198087465cd210'
     actor = env['res.users'].browse(7)
