@@ -73,3 +73,21 @@ y 804 definiciones de contadores. El SHA-256 del paquete es
 Los recibos privados son `U44H2-steps-support-install.json`,
 `U44H2-steps-support-repeat.json`, `U44S2-steps-support-reference.json`,
 `U44HC2-steps-support-reference.json` y `U44HT2-steps-support-reference.json`.
+
+## Conversaciones y archivos del soporte original
+
+Dos operadores internos abrieron las conversaciones de los 243 tickets con sus permisos habituales. Para cada uno se recuperaron los mismos 1.564 mensajes que devuelve el lector del hilo y los 418 archivos que muestra la ficha. Los archivos suman 49.063.343 bytes. La referencia privada compara por mensaje su identidad, contenido, autor, subtipo y adjuntos. Cada archivo se identifica por tamaño y SHA-256.
+
+La cuenta de portal original sigue cinco tickets y es el contacto asignado a los cinco. El portal le presentó tres mensajes y las descargas de dos adjuntos por un total de 228.178 bytes. La ficha del adjunto tiene una comprobación de acceso independiente. El portal y el usuario público tuvieron denegadas las dos fichas en el modelo. El control revirtió las autorizaciones temporales que emitió Odoo al mostrar los mensajes y cotejó once tablas completas después de la consulta.
+
+La lista nativa se abre en `/my/tickets` y tiene ruta paginada. El enlace de ficha de cada ticket se resuelve como `/my/ticket/<id>`. Existe también la variante del enlace de invitación. En el sistema original, el detalle pasa por la personalización de soporte de Steps. La prueba `probe_steps_support_thread.py` registra únicamente cantidades y huellas del contenido.
+
+## Soporte y portal en la copia conjunta de Steps
+
+H3 reúne los 160 módulos del producto recuperado de Ventas, CRM, Biblioteca e impresión y los dos módulos LGPL de soporte. Tickets y portal pasaron instalación y actualización. Al repetir la actualización de ambos en la versión 18.0.1.0.2 se conservaron las 313 tablas de negocio y permisos examinadas y los 15.183 objetos SQL protegidos. El cotejo incluye 11.964 columnas, 5.660 restricciones, 1.922 propietarios y permisos de relaciones y 807 definiciones de secuencias.
+
+Los dos operadores abrieron los hilos y descargaron los mismos 418 archivos que en la referencia. La ficha conserva los autores y fechas de creación y modificación de los 243 tickets, tres equipos, siete etapas y 22 etiquetas. Coincidieron sus 1.100 valores. Una alta y un cambio de etapa con un operador confirmaron que Odoo registra al autor y la fecha de cada operación y conserva los datos de creación.
+
+En el portal, el listado paginado en `/my/tickets` y las dos direcciones históricas de ficha, `/my/ticket/<id>` y `/helpdesk/ticket/<id>`, se probaron con sesiones autenticadas. El destinatario encontró los cinco tickets, los tres mensajes y los dos archivos que le correspondían, con sus mismos 228.178 bytes. Coincidieron la búsqueda, los ocho órdenes, las seis agrupaciones y los filtros por estado, período, asignación, etapa y prioridad. Otra cuenta y una sesión anónima tuvieron denegado el detalle de los cinco registros. En un ticket de ensayo funcionó el enlace de invitación vigente y se rechazaron el enlace inválido y el revocado. Tras la prueba coincidieron las quince tablas de control de cada copia.
+
+Los dos módulos se identifican por los SHA-256 `327c5bc269d9ee64dab3bd49735f350300552466c046a8013566636b3e99adad` (tickets) y `4c70b5c6e9a7ddc1409fd93aece9cca5b028367c5955942ccbc579eebd223dbc` (portal). Los ocho recibos y ambos paquetes privados se comprueban con `python tools/community/verify_steps_support_suite.py <directorio>`. El SHA-256 del recibo conjunto es `7bbee05ec1426bc722570ff57a87824c130ac2ffbf1f210e5ff49b9e8d6a6c78`.

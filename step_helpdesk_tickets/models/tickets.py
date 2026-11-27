@@ -6,6 +6,7 @@ class HelpdeskStage(models.Model):
     _name = "helpdesk.stage"
     _description = "Etapa de soporte"
     _auto = False
+    _log_access = True
     _order = "sequence, id"
 
     name = fields.Char(required=True, translate=True)
@@ -20,6 +21,7 @@ class HelpdeskTag(models.Model):
     _name = "helpdesk.tag"
     _description = "Etiqueta de soporte"
     _auto = False
+    _log_access = True
     _order = "name"
 
     name = fields.Char(required=True, translate=True)
@@ -31,6 +33,7 @@ class HelpdeskTeam(models.Model):
     _inherit = ["mail.thread"]
     _description = "Equipo de soporte"
     _auto = False
+    _log_access = True
     _order = "sequence,name"
 
     name = fields.Char(required=True, translate=True)
@@ -52,6 +55,7 @@ class HelpdeskTicket(models.Model):
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _description = "Ticket de soporte"
     _auto = False
+    _log_access = True
     _order = "priority desc, id desc"
 
     name = fields.Char(string="Asunto", required=True)
