@@ -38,6 +38,28 @@ print('PROVIDERS=' + json.dumps(out))
     return providers
 
 
+def extract_runtime(archive, target, hashes):
+    require(not target.exists() and not target.is_symlink(), "new-runtime-directory-required")
+    target.mkdir(mode=0o750)
+    with tarfile.open(archive, "r|gz") as bundle:
+        pending = set(hashes)
+        for member in bundle:
+            relative = Path(member.name)
+            require(member.isfile() and member.name in pending and not relative.is_absolute()
+                    and ".." not in relative.parts, "unknown-or-duplicate-runtime-member")
+            pending.remove(member.name)
+            size, checksum, mode = hashes[member.name]
+            require(member.size == size and member.mode == mode and mode in (0o644,0o755),
+                    "runtime-member-properties-differ")
+            dest = target / relative
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            with bundle.extractfile(member) as incoming, dest.open("xb") as restored:
+                shutil.copyfileobj(incoming, restored)
+            require(dest.stat().st_size == size and digest(dest) == checksum, "restored-runtime-file-drift")
+            dest.chmod(mode)
+        require(not pending, "runtime-member-missing")
+
+
 def seal(runtime, providers, output):
     runtime = runtime.resolve(strict=True)
     # Provider paths come from the official resolver. An overlay can select a licensed
@@ -84,20 +106,7 @@ def seal(runtime, providers, output):
             require(license_ != "OEEL-1" and name.isidentifier(), "invalid-community-provider")
             rel = Path("odoo/addons" if name == "base" else "addons") / name
             add(Path(origin), rel)
-    target.mkdir(mode=0o750)
-    with tarfile.open(archive, "r|gz") as bundle:
-        pending = set(hashes)
-        for member in bundle:
-            require(member.isfile() and member.name in pending, "unknown-or-duplicate-runtime-member")
-            pending.remove(member.name)
-            dest = target / member.name
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            with bundle.extractfile(member) as incoming, dest.open("xb") as restored:
-                shutil.copyfileobj(incoming, restored)
-            size, checksum, mode = hashes[member.name]
-            require(dest.stat().st_size == size and digest(dest) == checksum, "restored-runtime-file-drift")
-            dest.chmod(mode)
-        require(not pending, "runtime-member-missing")
+    extract_runtime(archive, target, hashes)
     # Verify original bytes again after extraction, including revisions supplied by private addon overlays.
     require(all(digest(Path(provenance[key])) == value[1] for key, value in hashes.items()), "source-runtime-drift")
     serial = json.dumps(hashes, sort_keys=True, separators=(",", ":")).encode()
