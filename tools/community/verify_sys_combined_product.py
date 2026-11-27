@@ -63,9 +63,43 @@ def payroll(before):
             "historical_slips": before["public_tables"]["hr_payslip"][0]}
 
 
+def qualified_files():
+    members = json.loads((SEALED / "runtime-members.json").read_bytes())
+    qualified = {}
+    for line in (SEALED / "original-release-files.sha256").read_text().splitlines():
+        checksum, filename = line.split("  ", 1)
+        key = filename.removeprefix("./")
+        require(key not in qualified, "duplicate-qualified-payroll-member")
+        qualified[key] = checksum
+    modules = {key.split("/")[0] for key in qualified}
+    effective = {k.removeprefix("addons/"): v[1] for k, v in members.items()
+                 if k.startswith("addons/") and k.split("/")[1] in modules}
+    require(effective == qualified and len(modules) == 7 and len(qualified) == 133, "qualified-payroll-tree-drift")
+    script = """
+import json
+from pathlib import Path
+from odoo.modules.module import get_manifest, get_module_path
+active = env['ir.module.module'].search([('state','=','installed')])
+roots = {}
+for record in active:
+    origin = Path(get_module_path(record.name)).resolve(strict=True)
+    root = docs if record.name in ('step_document_library','step_document_library_portal') else core
+    assert origin.is_relative_to(root) and get_manifest(record.name)['license'] == record.license
+    roots[record.name] = get_manifest(record.name)['license']
+print('RESULT='+json.dumps(roots))
+env.cr.rollback()
+"""
+    defs = "from pathlib import Path\ncore=Path(" + repr(str(SEALED / "runtime")) + ")\ndocs=Path(" + repr(str(ROOT / "documents/addons")) + ")\n"
+    resolved = shell(defs + script)
+    require(len(resolved) == 192, "combined-effective-provider-set-drift")
+    return {"qualified_payroll_members": len(qualified), "exact_payroll_modules": len(modules),
+            "effective_providers": len(resolved), "effective_licenses": dict(Counter(resolved.values()))}
+
+
 def verify():
     require(json.loads((ROOT / "combined-admission.json").read_bytes())["package_sha256"] == DOCUMENT_SHA,
             "documents-not-admitted")
+    sources = qualified_files()
     before = full_snapshot(TARGET)
     original = json.loads(gzip.decompress((SEALED / "source-snapshot.json.gz").read_bytes()))
     payroll_tables = {name: record for name, record in original["public_tables"].items()
@@ -92,7 +126,7 @@ def verify():
             modules["step_document_library"][0] == "18.0.1.0.5" and
             modules["step_document_library_portal"][0] == "18.0.1.0.3", "combined-profile-drift")
     save(ROOT / "combined-product-proof.json", {"source": SOURCE, "target": TARGET, "installed": len(modules),
-         "enterprise": 0, "licenses": licenses, "payroll_release_sha256": PAYROLL_SHA, "document_release_sha256": DOCUMENT_SHA,
+         "enterprise": 0, "licenses": licenses, "resolved_packages": sources, "payroll_release_sha256": PAYROLL_SHA, "document_release_sha256": DOCUMENT_SHA,
          "payroll": financial, "document": common, "guard_count": len(trigger_catalog(TARGET)),
          "original_policy": policy, "preserved_payroll_tables": len(payroll_tables),
          "all_target_tables_unchanged_after_tests": len(after["public_tables"]), "forward_sequences": advances})
