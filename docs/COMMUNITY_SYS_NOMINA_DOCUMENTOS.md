@@ -45,3 +45,19 @@ Los nueve ensayos de Nómina reprodujeron los nueve resultados de U42L en maestr
 Las 87 tablas originales de historia laboral, liquidaciones y contabilidad comprobadas conservaron sus datos. Antes y después de los flujos, las 1.141 tablas de la copia coincidieron fila por fila, junto con el esquema, propietarios y permisos. Doce secuencias avanzaron en los ensayos y sus nuevos contadores quedaron registrados.
 
 El recibo funcional `combined-product-proof.json` tiene SHA-256 `3cd1f2666053fb81a088d4b7ac230ba3aa2ad804731e8080780bd3a2a2e9efb1`. La copia U43C queda como control independiente para los ensayos fiscales de una derivada posterior.
+
+## Instantánea entregada al ensayo fiscal
+
+Una vez cerrados los ejercicios se capturó una segunda instantánea de U43C. Reúne sus 1.141 tablas con 609.045 filas, las 861 secuencias, los 2.698 archivos físicos y el motor autónomo de los 192 módulos. Las 22.238 rutas del motor de Nómina conservaron sus bytes y permisos. Las otras veinte rutas coinciden con los dos proveedores de la entrega documental. En esta instantánea se conservan los contadores posteriores a las pruebas.
+
+| Verificación de la instantánea combinada | SHA-256 |
+| --- | --- |
+| Base de datos | `3e8dbc09924d1314b98a77851248f8a1d96b084672ada561c998668dd9c46fb6` |
+| Archivo del motor con los 192 proveedores | `5a3348da8fb1caa58e30023c9a27d834bdd4087ede82f7ac928bbae8e4c723c7` |
+| Archivo de objetos referenciados | `396013497147e9ee4adf89f0d65fa7dc86d35093138a0c7f26c85cb55970a438` |
+| Árbol completo del almacén, idéntico al de U42L | `71c9add47cf4265ee31555f42c02c8a819b8683154e53858490b22c6c11f8d1c` |
+| Recibo del respaldo usado por la derivada, `backup.json` | `b581a15a5551742d183720ae1faae7b480537b3622d7c990e7d2973d5bb9caa6` |
+| Recibo del almacén usado por la derivada, `filestore-physical.json` | `5547203ba39b959743c3a496d7490d031288c649b83058c3bb821ad467aaff53` |
+| Manifiesto de los 14 componentes en la estación | `838e4f1fb89c265dd71df3fc27066989e8f7c3d35677531f6704b7f79f17e231` |
+
+El verificador portable volvió a leer los 22.258 archivos del motor, las 2.698 entradas del almacén, los 133 archivos del paquete de Nómina y los veinte del paquete de Documentos. Las huellas de ambos recibos se suministraron por separado al restaurador de U44FD.
