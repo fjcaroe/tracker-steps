@@ -9,6 +9,7 @@ from preflight_original_history_storage import require
 
 
 PROFILES = {
+    'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H': 'step_helpdesk_tickets',
     'COMMUNITY_STEPS_CRM_DOC_20261127U43X': 'step_document_library,step_document_library_portal',
     'COMMUNITY_STEPS_CRM_DOC_20261127U44P': 'step_document_library,step_document_library_portal,step_report_print_colors',
     'COMMUNITY_STEPS_CRM_PRINT_20261127U43Y': 'step_report_print_colors',

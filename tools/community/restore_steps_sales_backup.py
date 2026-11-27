@@ -21,9 +21,9 @@ SQL_SHA = '0d36901de7be4bf0c20e9b5311c101bb564dc445cb0b8d9bce90ccff8cc7f12d'
 
 
 def restore(work, target, release_sha):
-    profile = re.fullmatch(r'COMMUNITY_STEPS_CRM_(DOC|PRINT)_([A-Z0-9]+)', target)
+    profile = re.fullmatch(r'COMMUNITY_STEPS_CRM_(DOC|PRINT|SUPPORT)_([A-Z0-9]+)', target)
     require(profile and re.fullmatch('[a-f0-9]{64}', release_sha), 'invalid-steps-profile')
-    purpose = {'DOC':'library','PRINT':'print'}[profile[1]]
+    purpose = {'DOC':'library','PRINT':'print','SUPPORT':'support'}[profile[1]]
     require(work.resolve(strict=True) == work and work == BASE/f'steps-sales-{purpose}-{profile[2]}',
             'isolated-steps-profile-directory-required')
     source = SEALED/'source.dump'

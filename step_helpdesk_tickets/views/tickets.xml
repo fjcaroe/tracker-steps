@@ -1,0 +1,97 @@
+<odoo>
+    <record id="ticket_list" model="ir.ui.view">
+        <field name="name">steps.helpdesk.ticket.list</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <list string="Tickets de soporte">
+                <field name="ticket_ref"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="team_id"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="priority" widget="priority"/>
+                <field name="stage_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="ticket_form" model="ir.ui.view">
+        <field name="name">steps.helpdesk.ticket.form</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <form string="Ticket de soporte">
+                <header>
+                    <field name="stage_id" widget="statusbar" options="{'clickable': 1}" domain="[('team_ids','in',[team_id])]"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <field name="ticket_ref" readonly="1"/>
+                        <h1><field name="name" placeholder="Asunto del ticket"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="team_id"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group>
+                            <field name="priority" widget="priority"/>
+                            <field name="tag_ids" widget="many2many_tags"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Descripción" name="description"><field name="description"/></page>
+                        <page string="Seguimiento" name="follow_up">
+                            <group>
+                                <field name="x_studio_etapa_intermedia"/>
+                                <field name="x_studio_causas_del_ticket"/>
+                                <field name="x_studio_accin_correctiva"/>
+                                <field name="assign_date" readonly="1"/>
+                                <field name="close_date" readonly="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="ticket_search" model="ir.ui.view">
+        <field name="name">steps.helpdesk.ticket.search</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <search><field name="ticket_ref"/><field name="name"/><field name="partner_id"/><field name="team_id"/><field name="stage_id"/></search>
+        </field>
+    </record>
+    <record id="action_all" model="ir.actions.act_window">
+        <field name="name">Todos los tickets</field>
+        <field name="res_model">helpdesk.ticket</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="ticket_search"/>
+    </record>
+    <record id="action_mine" model="ir.actions.act_window">
+        <field name="name">Mis tickets</field>
+        <field name="res_model">helpdesk.ticket</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('user_id', '=', uid)]</field>
+        <field name="search_view_id" ref="ticket_search"/>
+    </record>
+    <record id="all_list" model="ir.actions.act_window.view">
+        <field name="act_window_id" ref="action_all"/><field name="view_id" ref="ticket_list"/>
+        <field name="sequence">1</field><field name="view_mode">list</field>
+    </record>
+    <record id="all_form" model="ir.actions.act_window.view">
+        <field name="act_window_id" ref="action_all"/><field name="view_id" ref="ticket_form"/>
+        <field name="sequence">2</field><field name="view_mode">form</field>
+    </record>
+    <record id="mine_list" model="ir.actions.act_window.view">
+        <field name="act_window_id" ref="action_mine"/><field name="view_id" ref="ticket_list"/>
+        <field name="sequence">1</field><field name="view_mode">list</field>
+    </record>
+    <record id="mine_form" model="ir.actions.act_window.view">
+        <field name="act_window_id" ref="action_mine"/><field name="view_id" ref="ticket_form"/>
+        <field name="sequence">2</field><field name="view_mode">form</field>
+    </record>
+    <function model="helpdesk.ticket" name="_use_ticket_forms"/>
+</odoo>
