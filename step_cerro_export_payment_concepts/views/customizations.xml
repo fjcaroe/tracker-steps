@@ -1,0 +1,17 @@
+<odoo>
+    <record id="export_payment_concepts" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.export.payment.concept.list customization</field>
+        <field name="model">step.export.payment.concept</field>
+        <field name="inherit_id" ref="step_export.view_step_export_payment_concept_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='code']" position="after">
+                    <field name="standard_cost_per_kg" optional="show" sum="Suma de Costo estándar por kg"/>
+                    <field name="standard_cost_per_box" optional="show" sum="Suma de Costo estándar por caja"/>
+                    <field name="standard_cost_per_pallet" optional="show" sum="Suma de Costo estándar por pallet"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>

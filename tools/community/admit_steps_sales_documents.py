@@ -166,7 +166,7 @@ print('STEPS_COMBINED_DOCUMENTS='+json.dumps({'adopted':first,'user_company_scop
     proof = {}
     for label, argv in (('native',reference_command),('community',command)):
         code = (f'import sys,json;sys.path.insert(0,{str(work/"code")!r});'
-                "from probe_steps_sales_library import run;print('STEPS_DOCUMENT_READS='+json.dumps(run(env)))")
+                "from probe_steps_sales_library import read_filed_documents;print('STEPS_DOCUMENT_READS='+json.dumps(read_filed_documents(env)))")
         path = work/(label+'-files.log')
         with path.open('wb') as logs:
             process = subprocess.run(argv,input=code.encode(),stdout=logs,stderr=logs)

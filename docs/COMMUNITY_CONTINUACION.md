@@ -1,5 +1,63 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+## U44 · Copias integradas por producto, 27 de noviembre de 2026
+
+**SyS.** La copia FG integra Nómina Chile, Finanzas, Biblioteca y Portal con
+192 proveedores libres. Conservó las 12.010 columnas, 5.816 restricciones,
+2.484 índices y 26 vistas de su respaldo de origen durante las cuatro
+actualizaciones y las dos instalaciones documentales, incluidas sus repeticiones.
+Los operadores reprodujeron los 24 archivos de Previred y Libro, los textos
+de doce comprobantes fiscales y los permisos del PDF de liquidación compartido.
+Cuatro impresiones fiscales de FG conservan el contenido y la geometría.
+La restauración local con el proveedor 193 corrigió los dos tonos de gris.
+Los cuatro comprobantes coincidieron píxel por píxel con el original a
+96 y 144 ppp. [Color de los comprobantes de SyS](COMMUNITY_SYS_COLOR_FISCAL.md).
+Se verificaron fuera del servidor las 22 piezas
+del respaldo, incluidos 22.258 archivos de ejecución y 2.702 del almacén.
+Una segunda base se recuperó desde esas piezas. En sus dos arranques coincidieron
+609.133 filas, 1.141 tablas, 861 contadores y el esquema original del respaldo FG.
+De las 133 liquidaciones del último mes completo, 130 se pudieron calcular
+y tres requerían revisar el contrato en ambos motores. En 23 liquidaciones un
+crédito que quedó inactivo después del pago explica toda la diferencia
+histórica. Otras diez figuraban como editadas en los respaldos. En ellas
+la fórmula y los datos contemporáneos reprodujeron el primer importe del
+borrador actual. [Recorrido integrado de SyS](COMMUNITY_SYS_MODULE_UPGRADES.md) ·
+[Conciliación de octubre](COMMUNITY_SYS_REGLAS_HISTORICAS.md)
+
+**Steps.** En la copia de ventas, el vendedor abrió la oportunidad, guardó
+el presupuesto, confirmó el pedido y volvió a abrir la factura en borrador.
+Las cuatro impresiones históricas de venta coincidieron píxel a píxel con
+el original en la copia con el módulo de colores. La copia U44P reunió
+ventas, ese módulo y los 98 elementos de Documentos con 160 proveedores.
+Coincidieron las 686 decisiones de permiso, cuatro descargas y dos
+denegaciones. También coincidieron las respuestas de los 81 enlaces originales
+para el visitante y la cuenta externa. Cada uno pudo descargar nueve archivos
+con los mismos bytes y recibió 72 denegaciones. El respaldo conjunto U44R
+recuperó 163.303 filas y 1.748 archivos. El vendedor y el empleado repitieron
+sus recorridos en dos arranques. En Mesa de Ayuda se recuperó la atención
+de los 243 tickets, con alta, cambio de etapa y reapertura desde el menú.
+La referencia conserva 1.795 mensajes y 418 adjuntos. [Ventas e impresión](COMMUNITY_STEPS_CRM.md) ·
+[Documentos](COMMUNITY_DOCUMENTOS_STEPS.md) · [Mesa de Ayuda](COMMUNITY_STEPS_SOPORTE.md)
+
+**Cerro El Plomo.** La copia de 187 módulos abrió las pantallas de presupuesto,
+fletes y contactos de exportación. El examen contra el original encontró
+que tres empresas perdían acceso a categorías de fruta y una a seis clases.
+También cambiaron tres políticas de borrado y la representación del peso.
+La versión corregida en U44M recuperó las relaciones y restricciones del original.
+Coincidieron las 36 consultas de permisos por empresa y las pruebas de
+instalación y actualización en esa copia de 188 módulos. De 23 pantallas
+históricas, el operador alcanzó 20 por menú y reprodujo el contenido completo
+de 15. La siguiente copia de 189 módulos recuperó los seis conceptos de pago
+de exportación y sus productos. Llegó a 21 rutas, 20 lecturas de Studio y
+16 fichas completas. [Conceptos de pago](COMMUNITY_CERRO_CONCEPTOS_PAGO.md).
+Nómina sigue
+requiriendo una definición para Cerro sobre su bruto en cero frente al caso
+real de SyS. [Contratos de datos y permisos de Cerro](COMMUNITY_CERRO_CONTRATOS_POSTGRES.md)
+
+La puesta en producción de los tres productos sigue pendiente de la conversión
+y aceptación integral de cada uno. Las bases anteriores permanecen como
+referencias de sus respectivas pruebas.
+
 ## U42 · Nómina real de SyS, recuperación y biblioteca interna
 
 La referencia de Nómina Chile es SyS, confirmada por el usuario. En dos

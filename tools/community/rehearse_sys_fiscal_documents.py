@@ -102,7 +102,9 @@ def final(args, proof, receipt, sha):
     require(receipt and receipt.resolve() == receipt and receipt.parent == AUX and receipt.is_file() and digest(receipt) == sha,
             "reviewed-protected-document-admission-required")
     states = module_versions(TARGET)
-    require(len(states) == 192 and all(states[m] == ["installed", v] for m, v in DOCUMENT_MODULES.items()) and
+    require(all(state in ("uninstallable", "installed") for state, version in states.values()) and
+            sum(state == "installed" for state, version in states.values()) == 192 and
+            all(states[m] == ["installed", v] for m, v in DOCUMENT_MODULES.items()) and
             all(states[m] == ["installed", MODULES[m][1]] for m in FORWARD), "unaccepted-combined-versions")
     checkpoint(TARGET, "operator_workflows", "before")
     baseline = ROOT / "document-workflow-baseline.json.gz"
@@ -116,6 +118,9 @@ def final(args, proof, receipt, sha):
     operators = json.loads((ROOT / "combined-forms.json").read_bytes())
     finance_only = json.loads((ROOT / "forms-after.json").read_bytes())
     require(operators == finance_only, "combined-directory-or-business-action-scope-changed")
+    native_directory = PRIVATE / "community-sys-six-original-directory-20261127U44FG/receipt.json"
+    require(digest(native_directory) == "4241069cd6248766568b7c7282b556a5efb2b3f9e5576b2397277607cb85f9f9"
+            and json.loads(native_directory.read_bytes()) == operators["directory"], "native-employee-directory-scope-differs")
     if not (ROOT / "retained-release.json").is_file():
         retained_release(args)
     if not (ROOT / "release-exports.json").is_file():

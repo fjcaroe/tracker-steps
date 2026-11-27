@@ -2,7 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from sys_cohort_required import COLUMNS, guard
+from sys_cohort_required import COLUMNS, DOCUMENTS, DOCUMENT_COPY, DOCUMENT_FIELD_IDS, guard
 
 
 class CalendarAdmission(unittest.TestCase):
@@ -18,10 +18,24 @@ class CalendarAdmission(unittest.TestCase):
             checked = guard(self.drop, self.cr.dbname, plan)
             with patch('sys_cohort_required.read_original', return_value=28900) as read:
                 checked(self.cr, 'resource_calendar', 'previred_workday_type')
-                read.assert_called_once_with(self.cr, 'resource_calendar', 'previred_workday_type')
+                read.assert_called_once_with(self.cr, 'resource_calendar', 'previred_workday_type', COLUMNS)
             with patch('sys_cohort_required.read_original', return_value=42), self.assertRaises(ValueError):
                 checked(self.cr, 'resource_calendar', 'previred_workday_type')
         self.drop.assert_not_called()
+
+    def test_only_combined_copy_protects_both_document_identities(self):
+        combined = SimpleNamespace(dbname=DOCUMENT_COPY)
+        preserve = guard(self.drop, DOCUMENT_COPY, self.ids)
+        ordinary = guard(self.drop, self.cr.dbname, self.ids)
+        for table, name in DOCUMENTS:
+            expected = DOCUMENT_FIELD_IDS[table+'.'+name]
+            with patch('sys_cohort_required.read_original', return_value=expected) as read:
+                preserve(combined, table, name)
+                read.assert_called_once_with(combined, table, name, {**COLUMNS, **DOCUMENTS})
+            with patch('sys_cohort_required.read_original', return_value=expected+1), self.assertRaises(ValueError):
+                preserve(combined, table, name)
+            ordinary(self.cr, table, name)
+        self.assertEqual(self.drop.call_count, len(DOCUMENTS))
 
     def test_unrelated_fields_and_foreign_database_keep_the_original_handler(self):
         checked = guard(self.drop, self.cr.dbname, self.ids)

@@ -90,7 +90,7 @@ def check_cerro_release(release, origin):
     return hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def package(args, out, source_db, modules):
+def package(args, out, source_db, modules, effective_providers=None):
     frozen = full_snapshot(source_db)
     final = out / "sealed"
     if final.exists():
@@ -112,7 +112,9 @@ def package(args, out, source_db, modules):
         with (temporary / "source.dump").open("xb") as handle:
             pg("pg_dump", "-Fc", "--dbname=" + source_db, readonly=True, stdout=handle)
         filestore = capture(source_store, temporary, catalog)
-        providers = resolve_providers(args.runtime, args.addons, args.source_data, modules)
+        providers = effective_providers if effective_providers is not None else resolve_providers(
+            args.runtime, args.addons, args.source_data, modules)
+        require(providers.keys() == modules.keys(), 'qualified-provider-inventory-drift')
         # A cold restore must reproduce the exact code that boots the converted source.
         # Some source manifests have an unapplied forward revision. Do not run an upgrade.
         changed = {k: {"database": v[0], "manifest": providers[k][1]} for k, v in modules.items()
@@ -129,11 +131,14 @@ def package(args, out, source_db, modules):
         product = converted_profile(source_db, args.target)
         if product == "steps":
             from prepare_steps_crm_cohort import digest as inventory_digest, FREE, SOURCE_MANIFESTS
-            require(not changed and len(modules) == 157 and set(db_licenses) | set(source_licenses) <= FREE
+            integrated = (source_db,args.target) == ('COMMUNITY_STEPS_CRM_DOC_20261127U44P','COMMUNITY_STEPS_CRM_RECOVERY_20261127U44R')
+            expected_count = 160 if integrated else 157
+            expected_digest = '48dc4c5ad578767ebdf00a92792555848dd149d0921c4921ca0adcd0a5e00b0b' if integrated else SOURCE_MANIFESTS
+            require(not changed and len(modules) == expected_count and set(db_licenses) | set(source_licenses) <= FREE
                     and all(modules[name][1] == provider[2] for name, provider in providers.items()),
                     "unexpected-steps-providers")
             actual = {name: digest(Path(entry[0]) / "__manifest__.py") for name, entry in providers.items()}
-            require(inventory_digest(actual) == SOURCE_MANIFESTS, "original-steps-provider-manifests-required")
+            require(inventory_digest(actual) == expected_digest, "original-steps-provider-manifests-required")
         if product == "cerro":
             require(set(db_licenses) | set(source_licenses) <= {"LGPL-3", "AGPL-3", "GPL-3"},
                     "expected-free-cerro-provider-licenses")
@@ -163,7 +168,7 @@ def package(args, out, source_db, modules):
             shutil.rmtree(temporary)
 
 
-def open_as_user(out, db, service, boot, hidden_sources, *, private_server=False):
+def open_as_user(out, db, service, boot, hidden_sources, expected_document=None, *, private_server=False):
     core = out / "sealed/runtime"
     scratch = out / "data/tmp"
     scratch.mkdir(mode=0o700, exist_ok=True)
@@ -209,6 +214,8 @@ else:
     actor=env['res.users'].browse(6)
     assert actor.exists() and actor.active and not actor.share and actor.has_group('payroll.group_payroll_manager')
     extra={'payroll_pdf':restricted_attachment(env,actor)}
+    if expected_document is not None:
+        extra['original_library_payslip'] = original_library_payslip(env, actor, expected_document)
 scope=env(user=actor.id,su=False,context={'allowed_company_ids':actor.company_ids.filtered('active').ids,'bin_size':False})
 attachments=scope['ir.attachment'].search([('res_model','in',['res.company','ir.ui.menu','ir.ui.view']),
             ('res_field','not ilike','sign'),('store_fname','!=',False),('file_size','>',0),
@@ -229,8 +236,10 @@ env.cr.rollback()
         probes = ["probe_converted_cerro_access.py"]
     if steps:
         probes = ["probe_steps_crm_pipeline.py", "probe_converted_steps_access.py"]
+        if db == 'COMMUNITY_STEPS_CRM_RECOVERY_20261127U44R':
+            probes.append('probe_steps_sales_library.py')
     role_probe = "\n".join(Path(__file__).with_name(name).read_text() for name in probes)
-    code = role_probe + "\n" + f"is_cerro={cerro!r}\nis_steps={steps!r}\nexpected_db={db!r}\nexpected_core={str(core)!r}\nexpected_hidden={list(map(str, hidden_sources))!r}\n" + probe
+    code = role_probe + "\n" + f"expected_document={expected_document!r}\nis_cerro={cerro!r}\nis_steps={steps!r}\nexpected_db={db!r}\nexpected_core={str(core)!r}\nexpected_hidden={list(map(str, hidden_sources))!r}\n" + probe
     with (out / f"orm-{boot}.log").open("wb") as handle:
         run = subprocess.run(args, input=code.encode(), stdout=handle, stderr=handle)
     require(run.returncode == 0, "restored-official-orm-probe-failed")

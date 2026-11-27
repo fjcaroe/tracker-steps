@@ -1,0 +1,61 @@
+# Histórico contable de Steps
+
+La referencia de Steps contiene 86 asientos, 84 contabilizados y dos anulados,
+con 211 apuntes. Incluye veinte facturas de cliente contabilizadas, una nota
+de crédito de cliente contabilizada y una factura de cliente anulada.
+
+El ensayo recorrió siete combinaciones de usuario y empresa en las copias
+nativa, de ventas y Documentos, y de ventas con Mesa de Ayuda. Coincidieron
+las filas accesibles, los importes, los impuestos, las conciliaciones y las
+relaciones contables que exponían ambos sistemas. Un operador interno tenía
+86 asientos y 211 apuntes disponibles. El vendedor tenía 22 y 66. La cuenta
+de portal tenía siete y 21. La compañía sin movimientos devolvió cero y
+el visitante mantuvo denegada la consulta.
+
+Se abrieron 17 formularios de asientos, facturas y notas de crédito con sus
+acciones de menú. En las dos copias Community faltaban el tipo de documento
+tributario, su número y el estado del DTE. Los valores seguían en el origen
+y los enlaces fiscales originales tenían 27 tipos de documento informados,
+23 estados, 25 archivos DTE y 22 timbres. También había una referencia
+entre documentos.
+
+En U45F se restauró el respaldo de ventas y Documentos U44R. Se reactivaron
+los 25 archivos LGPL de la versión original del módulo de documentos
+latinoamericanos y los 51 de la localización chilena, con las dependencias
+instaladas en Steps. Se recuperaron el tipo y el número con sus valores
+originales para los mismos usuarios en los 17 formularios. El arranque
+conservó las 1.114 tablas ajenas al registro de módulos y las definiciones
+y contadores SQL del respaldo.
+
+Las comparaciones se reproducen con `probe_steps_accounting_history.py`
+y `verify_steps_accounting_history.py`. Los recibos privados U45C y U45F0
+contienen las huellas por campo de cada contexto.
+
+El primer proveedor propio recuperó el estado de 23 DTE, los 25 archivos
+tributarios vinculados, 22 timbres guardados y la referencia de una nota de
+crédito sobre sus registros de origen. Tras la instalación y una actualización
+se validaron los 86 asientos y sus 211 líneas, los permisos de siete contextos
+y 17 aperturas de formulario. Las etiquetas coincidieron en español e inglés.
+Seis campos del formulario original siguen pendientes. En la primera prueba
+de impresión, los 21 documentos contabilizados fallaron para los dos usuarios
+por faltar el campo que controla la visibilidad de la firma.
+
+La revisión 18.0.1.0.1 conservó las cuatro columnas de auditoría de las
+referencias y recuperó la configuración de firma y de resolución de la empresa.
+Las dos empresas de la muestra tenían la firma desactivada. En la prueba de
+168 configuraciones en memoria, el original falló en ocho casos al activar la
+firma en facturas o notas de crédito contabilizadas; carecía del campo de
+imagen de la firma. La revisión conservó disponible esa área para el caso
+habilitado y permitió imprimirla en blanco. Los 160 casos que el original
+pudo calcular coincidieron. La comparación fiscal de los documentos detectó
+que la plantilla de origen necesitaba también la oficina regional del SII.
+
+La revisión 18.0.1.0.2 restableció las 71 oficinas regionales originales y
+la acción Documentos de la factura. Con siete contextos coincidieron el
+indicador y el acceso a cada lista de documentos vinculados. Se abrieron los
+21 comprobantes para dos operadores. Los textos completos coincidieron en
+40 de 42 lecturas. La única factura diferente mostraba dos abonos en distinto
+orden. En diez facturas con varios abonos el sistema nativo presentaba las
+conciliaciones por su identificador original. La impresión en PDF reveló otra
+diferencia: el gráfico del timbre ocupaba más espacio. La imagen generada con
+escala 1 y margen 15 coincidió píxel a píxel con los 21 timbres nativos.

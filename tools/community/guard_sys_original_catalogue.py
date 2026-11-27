@@ -81,6 +81,8 @@ def checkpoint(database, module, position):
                 os.link(tmp, baseline)
             finally:
                 tmp.unlink(missing_ok=True)
+    require(digest(original) == "4f8f84fdd9dc34ca7cb903540aa67db88554653999bbe2adf20a7c7b4a959e27",
+            "unexpected-original-FG-catalogue-reference")
     now = catalogue(database)
     sections = {}
     for kind, source in original.items():

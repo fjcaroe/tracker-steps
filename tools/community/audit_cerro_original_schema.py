@@ -198,11 +198,11 @@ def count_relaxed_nulls(cursors, comparisons):
     return counts
 
 
-def capture():
-    result = {'databases':DATABASES, 'census':{}, 'snapshots':{}, 'comparisons':{}}
+def capture(databases=DATABASES, pairs=PAIRS):
+    result = {'databases':databases, 'census':{}, 'snapshots':{}, 'comparisons':{}}
     with ExitStack() as stack:
         cursors={}
-        for name,db in DATABASES.items():
+        for name,db in databases.items():
             connection = psycopg2.connect(dbname=db,host='/var/run/postgresql',application_name='cerro_schema_readonly')
             stack.callback(connection.close)
             connection.set_session(readonly=True,isolation_level='REPEATABLE READ')
@@ -224,7 +224,7 @@ def capture():
                 packed=json.dumps(sorted(rows.items()),ensure_ascii=True,separators=(',',':')).encode()
                 result['snapshots'].setdefault(name,{})[section]={'count':len(rows),'sha256':hashlib.sha256(packed).hexdigest()}
                 snapshots[name]=rows
-            for a,b in PAIRS:
+            for a,b in pairs:
                 result['comparisons'].setdefault(a+'_'+b,{})[section]=compare(fields,snapshots[a],snapshots[b])
         result['null_counts_for_relaxed_fields']=count_relaxed_nulls(cursors,result['comparisons'])
     return result

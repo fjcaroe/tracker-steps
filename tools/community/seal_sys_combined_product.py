@@ -1,5 +1,6 @@
 """Freeze the tested 192-module SyS product before a separately authorized fiscal rehearsal."""
 import fcntl
+import gzip
 import json
 import os
 from pathlib import Path
@@ -25,6 +26,13 @@ def freeze():
     require(evidence["target"] == TARGET and evidence["installed"] == 192 and evidence["enterprise"] == 0 and
             evidence["payroll"]["exact_qualified_results"] and evidence["document"]["ordinary_payroll_and_attachment"] and
             evidence["document"]["http"]["recipient_granted"]["recipient"] == 200, "both-functional-paths-required")
+    # Preserve the existing archival evidence. Reusing this copy for another fiscal
+    # admission also requires every original SQL field contract to remain intact.
+    original = json.loads(gzip.decompress((SEALED / 'source-snapshot.json.gz').read_bytes()))
+    candidate = full_snapshot(TARGET)
+    for section in ('columns', 'constraints', 'relation_owner_and_acl', 'sequence_definitions'):
+        changed = sorted(key for key, value in original[section].items() if candidate[section].get(key) != value)
+        require(not changed, 'original-SyS-schema-drift-before-fiscal-promotion:' + section + ':' + ','.join(changed))
     capacity()
     require(query("postgres", f"SELECT count(*) FROM pg_stat_activity WHERE datname='{NEXT}'") == "0",
             "next-test-copy-in-use")
