@@ -19,7 +19,7 @@ def season_contract(database):
        (SELECT md5(string_agg(to_jsonb(rel)::text,chr(10) ORDER BY rel.step_temporada_id,rel.res_company_id))
           FROM res_company_step_temporada_rel rel),
        (SELECT md5(string_agg(to_jsonb(a)::text,chr(10) ORDER BY a.id)) FROM ir_model_fields a WHERE a.id=27057),
-       (SELECT md5(string_agg(to_jsonb(r)::text,chr(10) ORDER BY r.id)) FROM ir_rule r WHERE r.id=553)""")
+       (SELECT md5(string_agg((to_jsonb(r)-'write_date')::text,chr(10) ORDER BY r.id)) FROM ir_rule r WHERE r.id=553)""")
 
 
 def verify(trial, database):
@@ -50,7 +50,8 @@ def verify(trial, database):
                        AND name IN ('step_agriculture_core','step_agriculture_catalogs','step_cerro_studio_farms')
                        ORDER BY name""").splitlines()
     assert len(versions) == 3
-    return {'season':season,'views':len(reference),'original_menu_paths':len(paths),
+    rule_write_time_changed = sql(SOURCE,"SELECT write_date FROM ir_rule WHERE id=553") != sql(database,"SELECT write_date FROM ir_rule WHERE id=553")
+    return {'rule_write_time_changed':rule_write_time_changed,'season':season,'views':len(reference),'original_menu_paths':len(paths),
                       'field_rule_and_seasons_sha256':hashlib.sha256(season_contract(SOURCE).encode()).hexdigest(),
                       'identity_guard':protected,'census':census,'versions':versions}
 
