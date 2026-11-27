@@ -148,4 +148,3 @@ def effects(env):
     cr.rollback()
     return {"cases":result,"advanced_sequences":advanced,"original_tables":list(initial_rows),
             "same_original_rows":True,"backup":"acfa47a2642725b22d92a0f53c40ccafc2c43205097db87dacbc987f6071de2b"}
-
