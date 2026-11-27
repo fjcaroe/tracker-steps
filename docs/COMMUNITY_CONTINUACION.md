@@ -71,6 +71,17 @@ El generador `tools/community/derive_sys_contract_review.py` exige la fuente
 propia de Cerro con `--product cerro` y reproduce por separado el paquete
 de SyS 18.0.1.2.0.
 
+La repetición U42PAYK comprobó después de guardar, en ambos motores, todos
+los parámetros trasladados del contrato, las fechas y estados de las entradas
+de trabajo, el calendario y las horas y días de la liquidación. Al ensayar la
+confirmación se marcó primero el contrato como pendiente. La acción autorizada
+levantó la marca en el completo y la mantuvo en el incompleto. Las huellas de
+los recibos privados son
+`e42fd320adaf4c8de39732615d561ebfc4b467b06434e189d145238724fc07d8`
+en el origen y
+`8a19b9feaf1137ed29d5c01226c31f0a9b57bbf6055b79a27503329db4da3e40`
+en Community.
+
 ## U39 · Diario desconocido en lotes históricos de SyS
 
 `step_payroll_oca_sys_history` es un addon optativo para la futura
