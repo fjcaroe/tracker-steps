@@ -42,3 +42,19 @@ El paquete del motor tiene SHA-256
 Este respaldo corresponde al perfil de CRM. La fuente nativa de Steps
 tenía 310 módulos activos. Los demás flujos conservan sus propias pruebas
 de aceptación.
+
+## Presupuestos en el mismo respaldo
+
+Una segunda captura incorporó la configuración de ventas probada sobre la
+base original. Conservó las 163.133 filas y los 804 contadores antes de que
+se usara la copia. En los dos arranques desde el nuevo paquete, el mismo
+vendedor abrió la acción 526 desde una oportunidad y el formulario inicializó
+el cliente y la oportunidad correctos. Pudo consultar los cuatro documentos
+de venta históricos. La prueba del alta y reapertura con importes está en
+[CRM y ventas de Steps](COMMUNITY_STEPS_CRM.md).
+
+El SHA-256 del SQL de esta versión fue
+`0d36901de7be4bf0c20e9b5311c101bb564dc445cb0b8d9bce90ccff8cc7f12d`.
+La estación comprobó los 13 componentes incluidos en el manifiesto
+`5de21f357e0c270d33cdbb23268c343ba2643a2be5ca44992210831132b22f79`.
+El recibo quedó en `U40/steps-crm-quote-cold/offline-verification.json`.
