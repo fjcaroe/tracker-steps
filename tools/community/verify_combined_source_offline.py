@@ -11,7 +11,10 @@ from verify_converted_backup import ARCHIVE_FILES, check, hash_file, read_json, 
 def verify(folder, expected):
     manifest_file = folder / "verified-local-members.json"
     manifest = read_json(manifest_file)
-    check(hash_file(manifest_file) == expected and set(manifest) == set(ARCHIVE_FILES), "source-checkpoint-expectation")
+    combined = "original-documents-release.tar" in manifest
+    extras = {"original-documents-release.tar", "fiscal-source.json", "combined-product-proof.json"} if combined else set()
+    check(hash_file(manifest_file) == expected and set(manifest) == set(ARCHIVE_FILES) | extras,
+          "source-checkpoint-expectation")
     for name, record in manifest.items():
         entry = folder / name
         check(entry.is_file() and entry.stat().st_size == record["bytes"] and hash_file(entry) == record["sha256"],
@@ -20,7 +23,10 @@ def verify(folder, expected):
     physical = read_json(folder / "filestore-physical.json")
     check(proof["source"] == physical["source"] and proof["sql_sha256"] == physical["sql_sha256"] ==
           manifest["source.dump"]["sha256"], "source-sql-identity")
-    check(proof["runtime"]["providers"] == len(read_json(folder / "effective-providers.json")) == 190,
+    expected_source = "COMMUNITY_SYS_PREVIRED_COHORT_20261127U43C" if combined else "COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L"
+    check(proof["source"] == expected_source, "source-cohort-identity")
+    count = 192 if combined else 190
+    check(proof["runtime"]["providers"] == len(read_json(folder / "effective-providers.json")) == count,
           "source-provider-count")
     members = read_json(folder / "runtime-members.json")
     pending = set(members)
@@ -68,7 +74,33 @@ def verify(folder, expected):
               if name.startswith("addons/") and name.split("/")[1] in source_modules}
     check(not pending and actual == payroll and len(payroll) == 133 and len(source_modules) == 7,
           "effective-payroll-tree-differs")
+    docs = {}
+    if combined:
+        receipt = read_json(folder / "fiscal-source.json")
+        check(receipt["sql_sha256"] == proof["sql_sha256"] and receipt["functional_source_preserved"] and
+              receipt["source_functional_receipt_sha256"] == manifest["combined-product-proof.json"]["sha256"],
+              "combined-test-receipt-differs")
+        admitted = read_json(folder / "combined-product-proof.json")
+        check(admitted["payroll"]["exact_qualified_results"] and admitted["document"]["http"]["recipient_granted"]["recipient"] == 200,
+              "missing-functional-acceptance")
+        archive_sha = manifest["original-documents-release.tar"]["sha256"]
+        check(archive_sha == receipt["original_documents_release_sha256"] == admitted["document_release_sha256"],
+              "document-package-identity")
+        with tarfile.open(folder / "original-documents-release.tar", "r:") as archive:
+            for item in archive:
+                if item.isdir():
+                    continue
+                key = item.name
+                check(item.isfile() and key.startswith(("addons/step_document_library/", "addons/step_document_library_portal/"))
+                      and key not in docs, "unexpected-document-provider-member")
+                with archive.extractfile(item) as payload:
+                    docs[key] = [item.size, stream_hashes(payload)[1]]
+        active_docs = {name: value[:2] for name, value in members.items()
+                       if name.startswith(("addons/step_document_library/", "addons/step_document_library_portal/"))}
+        check(len(docs) == receipt["additional_document_files"] == 20 and docs == active_docs,
+              "effective-document-addons-differ")
     return {"sql_sha256": proof["sql_sha256"], "source_cohort_manifest_sha256": expected,
+            "providers": count, "document_release_files": len(docs),
             "verified_runtime_files": len(members), "verified_filestore_files": len(tree), "payroll_release_files": len(payroll)}
 
 
