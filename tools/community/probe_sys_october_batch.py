@@ -9,7 +9,7 @@ from probe_sys_october_drafts import amounts, digest, prepare_draft, protect_exi
 def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, payment_reference=False,
           reopen=False, individual_payment=False, frozen_reopen=False, standalone=False, member_actions=False):
     cr = shell.cr
-    if not __debug__ or not re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname):
+    if not __debug__ or (cr.dbname != 'COMMUNITY_SYS_FINAL_RESTORED_20261127U46R' and not re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname)):
         raise RuntimeError('Use normal Python and a private SyS payroll restore.')
     scope = shell['hr.payslip'].with_user(uid).with_context(allowed_company_ids=[company],
                 tracking_disable=True, mail_notify_force_send=False)

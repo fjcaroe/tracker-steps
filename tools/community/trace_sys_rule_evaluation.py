@@ -91,7 +91,8 @@ def check_configuration_scope(env, company, uid):
 
 
 def probe(shell, company, uid, native, write_draft=False):
-    assert re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', shell.cr.dbname)
+    assert (shell.cr.dbname == 'COMMUNITY_SYS_FINAL_RESTORED_20261127U46R' or
+            re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', shell.cr.dbname))
     scope = shell['hr.payslip'].with_user(uid).with_context(allowed_company_ids=[company], tracking_disable=True)
     cr = scope.env.cr
     assert not scope.env.su and scope.env.company.id == company

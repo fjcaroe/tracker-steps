@@ -24,7 +24,7 @@ def capture(env, company_id):
 
     modules = env['ir.module.module'].sudo().search([('state', '=', 'installed')])
     enterprise = len(modules.filtered(lambda mod: mod.license == 'OEEL-1'))
-    community = env.cr.dbname.startswith('COMMUNITY_SYS_PREVIRED_')
+    community = env.cr.dbname.startswith('COMMUNITY_SYS_PREVIRED_') or env.cr.dbname == 'COMMUNITY_SYS_FINAL_RESTORED_20261127U46R'
     if community:
         assert not enterprise and 'payroll' in modules.mapped('name')
         from odoo.addons.step_payroll_contracts.access import has_payroll_role
@@ -101,7 +101,8 @@ def capture(env, company_id):
 
 
 def probe(shell_env, company_id, uid):
-    assert re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_)[A-Z0-9_]+', shell_env.cr.dbname)
+    assert (shell_env.cr.dbname == 'COMMUNITY_SYS_FINAL_RESTORED_20261127U46R' or
+            re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_)[A-Z0-9_]+', shell_env.cr.dbname))
     assert type(uid) is int and uid > 1 and type(company_id) is int and company_id > 0
     with shell_env.registry.cursor() as cursor:
         cursor.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')

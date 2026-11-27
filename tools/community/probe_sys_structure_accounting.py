@@ -5,7 +5,8 @@ import re
 def probe(shell_env, company_id, uid):
     from odoo import api
 
-    assert re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', shell_env.cr.dbname)
+    assert (shell_env.cr.dbname == 'COMMUNITY_SYS_FINAL_RESTORED_20261127U46R' or
+            re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', shell_env.cr.dbname))
     assert type(uid) is int and uid > 1 and type(company_id) is int and company_id > 0
     with shell_env.registry.cursor() as cr:
         cr.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')

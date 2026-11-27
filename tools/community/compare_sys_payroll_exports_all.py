@@ -42,7 +42,7 @@ def compare(native, community):
     if community['database'] not in ('COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I',
                                      'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40J',
                                      'COMMUNITY_SYS_PREVIRED_COHORT_20261126U42K',
-                                     'COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L') or community['enterprise']:
+                                     'COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L', 'COMMUNITY_SYS_FINAL_RESTORED_20261127U46R') or community['enterprise']:
         raise ValueError('Expected the integrated Community database')
     original, actors = index(native)
     candidate, other = index(community)

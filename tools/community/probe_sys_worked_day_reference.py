@@ -8,7 +8,7 @@ from probe_sys_october_drafts import amounts, prepare_draft, protect_existing
 
 def probe(env, uid):
     cr=env.cr
-    assert re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]+',cr.dbname)
+    assert cr.dbname == 'COMMUNITY_SYS_FINAL_RESTORED_20261127U46R' or re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]+',cr.dbname)
     scope=env['hr.payslip'].with_user(uid).with_context(allowed_company_ids=[2],tracking_disable=True)
     assert not scope.env.su and scope.env.company.id==2
     try:

@@ -164,7 +164,8 @@ def replay(scope, original_id, employee, contract, structure, day_source, confir
 
 
 def probe(env, company, uid, confirm=False):
-    assert re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_)[A-Z0-9_]+', env.cr.dbname)
+    assert (env.cr.dbname == 'COMMUNITY_SYS_FINAL_RESTORED_20261127U46R' or
+            re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_)[A-Z0-9_]+', env.cr.dbname))
     scope = env['hr.payslip'].with_user(uid).with_context(
         allowed_company_ids=[company], tracking_disable=True, mail_notify_force_send=False)
     assert not scope.env.su and scope.env.company.id == company
