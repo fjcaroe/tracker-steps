@@ -1,4 +1,5 @@
 """Compare access with a private native role matrix and exercise the original library in isolation."""
+import ast
 import hashlib
 import json
 import re
@@ -129,6 +130,16 @@ def probe(env, baseline, original_bookmarks):
     assert etree.fromstring(form["arch"].encode()).xpath("//button[@name='action_manage_access']")
     folder = document.folder_id
     assert document in library.search(folder.action_open()["domain"])
+    ancestors = set()
+    current = folder
+    while current.folder_id:
+        assert current.id not in ancestors
+        ancestors.add(current.id)
+        parent = current.folder_id
+        assert current in library.search(parent.action_open()["domain"])
+        current = parent
+    root_action = scope.ref(menu_id).action
+    assert current in library.search(ast.literal_eval(root_action.domain))
     bookmark = original_bookmarks[str(document.id)]
     check_original_bookmark(scope, document, bookmark, True)
     check_original_bookmark(read_scope, document, bookmark, False)
