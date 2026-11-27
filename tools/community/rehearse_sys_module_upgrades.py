@@ -269,13 +269,18 @@ def final_receipt(args, proof):
                     "hr_payroll_structure", "hr_salary_rule", "resource_calendar", "resource_calendar_attendance",
                     "res_groups", "ir_rule", "ir_model_access", "res_groups_users_rel", "res_groups_implied_rel", "rule_group_rel")
     require(all(name in original["public_tables"] for name in proof_tables), "missing-covered-table")
+    checks = set(proof_tables) | (set(original["public_tables"]) & {
+        "hr_causal_contract_end", "hr_employee_movement_type", "hr_contract_type", "hr_work_entry_type",
+        "hr_leave_type", "res_city", "res_country_state", "res_company"})
+    lost_required = [key for key, definition in original["columns"].items() if definition[1] and
+                     (key not in current["columns"] or not current["columns"][key][1])]
     versions = module_versions(db)
-    result = {"official_results": {m: jobs[m]["passed"] for m in MODULES},
+    result = {"relaxed_original_required_columns": sorted(lost_required), "official_results": {m: jobs[m]["passed"] for m in MODULES},
               "versions": {m: versions[m] for m in (*MODULES, "step_payroll_oca_sys_history")},
               "sealed_runtime": proof["runtime"]["archive_sha256"], "original_aliases": aliases,
               "guard_count": len(restored["guards"]), "original_files": len(original_files),
               "archived_payroll_pdfs": pdfs[0], "full_sql_delta": delta,
-              "covered_table_changes": sorted(set(proof_tables).intersection(delta["public_tables"])),
+              "covered_table_changes": sorted(checks.intersection(delta["public_tables"])),
               "after_free": check_space(0)}
     save(out / "final.json", result)
 
