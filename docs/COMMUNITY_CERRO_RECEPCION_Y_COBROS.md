@@ -1,0 +1,13 @@
+# Referencias de recepción y cobros de Cerro
+
+Se probó la trazabilidad de las recepciones de fruta en la copia aceptada de 191 módulos mediante sus modelos de inventario y las relaciones originales. Los 64 contextos de 15 usuarios devolvieron la misma huella que el control nativo, `4c418eba0f20faff2aea1b4cbafd3ac80a2d02ee204d0af4a36bfd14f53b35fe`. En el ámbito completo del usuario 6 aparecen 58 recepciones a proceso, 55 cerradas y tres borradores, 56 movimientos, 184 líneas de operación, 184 líneas de tarja y 184 paquetes. Las 184 operaciones tienen lote y propietario. La consulta conserva las cantidades, ubicaciones, productos, productores y paquetes. Ninguna de estas recepciones registra una captura de balanza.
+
+El formulario nativo 5245 reúne 211 campos distintos contando sus modelos relacionados y 34 acciones de objeto. En el registro 191 faltan 84 campos y 18 acciones. De los campos pendientes, 47 pertenecen al proveedor propio de inventario y Packing, 17 a la revisión de recepción, siete al despacho fiscal, cuatro a la revisión de documentos de Packing, cuatro a transferencias entre plantas, tres a Calidad, uno a las guías y uno al control de envases. La reconstrucción de una recepción nueva utiliza los maestros, el productor, el lote y la operación del traslado cerrado 228 en una transacción privada.
+
+## Seguimiento de cobros
+
+El control original del 27 de noviembre de 2026 devolvió responsable, tipo de recordatorio, estado, fecha siguiente, etapa, total adeudado y total vencido. Se guardó cada fila visible para los mismos 15 operadores en 64 contextos. La huella del control privado es `3085ddbf2ce5e12e47a25d2f9f50bb3a9d3245330630bcce82e2df7626f8c711`.
+
+Con las ocho empresas habilitadas, el usuario 6 leyó 225 contactos activos. Los tres saldos no nulos de la empresa activa 1 incluyen dos créditos. Un contacto requiere acción. La empresa 2 también tiene tres saldos no nulos y muestra un contacto con facturas vencidas. Las dos etapas configuradas, a 15 y 30 días, pertenecen a la empresa 1. Los 229 contactos de la base tienen recordatorio automático. Las propiedades por empresa de responsable y fecha siguiente están vacías. Las siete columnas todavía carecen de proveedor ORM en el registro 191, como confirma el recibo local de lectura `b7c9ed1473d844d9349e6fdab4436b8717774d03b2da64277cfce8a8593962d7`.
+
+Los saldos individuales y los datos de las operaciones permanecen en el archivo privado.
