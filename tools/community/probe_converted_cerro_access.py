@@ -11,8 +11,13 @@ def cerro_restore_access(env):
     public = env(user=env.ref("base.public_user").id, su=False)
     contracts = env["hr.contract"]
     people = env["res.users"].search([("active", "=", True), ("share", "=", False)], order="id")
-    reviewers = (people & payroll.users).filtered(lambda u: u.id != 1)
-    readers = (people & purchase.users).filtered(lambda u: u.id != 1 and len(u.company_ids.filtered("active")) > 1)
+    def ordinary_first(user):
+        return user.has_group("base.group_system"), user.id
+
+    reviewers = (people & payroll.users).filtered(lambda u: u.id != 1).sorted(ordinary_first)
+    readers = (people & purchase.users).filtered(
+        lambda u: u.id != 1 and len(u.company_ids.filtered("active")) > 1
+    ).sorted(ordinary_first)
     assert reviewers and readers
     review = None
     for actor in reviewers:
