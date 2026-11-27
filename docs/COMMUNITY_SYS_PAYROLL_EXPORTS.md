@@ -30,3 +30,34 @@ de Community no exponía `resource.calendar.hours_per_week`. El extractor común
 idéntico en ambos motores, usaba en consecuencia sólo la referencia de 40 horas.
 El recibo privado de la comparación U40I tiene SHA-256
 `4f7bf3d98e7b05eab9046a96ad50baf8e52a474a588f931f3fbf31bdbb1e29c9`.
+
+## Repetición sobre la instalación J
+
+En U41X3 se cargó el proveedor SyS 18.0.1.5.1 desde un directorio privado
+sobre la instalación J. El ejecutor comprobó el alta del campo en el registro
+activo, el valor semanal original y sus dependencias. El proveedor lee la misma
+columna de `resource_calendar`. Con nuevos horarios de prueba se cotejaron las
+jornadas regulares y bisemanales, modificaciones de tramos, tramos con fecha,
+licencias, recursos individuales, secciones y horarios flexibles. Se observaron
+los mismos resultados en el proveedor nativo y en Community. Los ensayos con
+horarios de prueba se ejecutaron en memoria dentro de transacciones de sólo
+lectura.
+
+| Cotejo contra el proveedor nativo | Resultado U41X3 |
+| --- | --- |
+| Empresas y cuentas autorizadas | 12 empresas, 2 operadores cada una |
+| TXT Previred | 24 de 24 archivos idénticos byte por byte |
+| Filas por operador en las 12 empresas | 133 principales y 69 anexas de 105 campos |
+| Diagnóstico de Previred | 19 avisos en 7 empresas, 0 errores y coincidencia de mensajes y pantallas de validación y generación |
+| Libro con cabecera y sin ella | 24 de 24 comparaciones idénticas en cada modalidad |
+| Libro por operador | 133 filas de 147 columnas, 133 identidades cotejadas |
+| Jornadas, contratos y liquidaciones | 41 calendarios y 512 tramos originales, con sus huellas conservadas |
+| Generación y alcance | Los dos operadores generaron ambas salidas en todas las empresas; los registros de ensayo del asistente se revirtieron |
+
+El paquete del proveedor tiene SHA-256
+`0c9f3cfb38ac5e6d13c61a6af77c637db8d90104e073c9948b6c4ed624b65026`.
+Los recibos contienen huellas de archivo completo, de filas y de cada columna.
+Los mensajes e identidades se compararon mediante HMAC con una clave privada
+compartida por los dos ensayos. La comparación integral tiene SHA-256
+`1b7d91c189eca56845d4a430fc2db4ab007a8c46e6dca1deecdf20e53a104328`.
+La instalación persistente del proveedor queda para la siguiente integración.
