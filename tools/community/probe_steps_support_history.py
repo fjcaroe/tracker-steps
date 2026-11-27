@@ -21,7 +21,8 @@ def fingerprint(value):
 
 def ticket_trial(env):
     if not __debug__ or env.cr.dbname not in ('MANAGEMENT_QA_STEPS_CRM_20261126U42C',
-                                               'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H'):
+                                               'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H',
+                                               'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2'):
         raise ValueError('Use the private Steps ticket pair.')
     assert {line.split(':')[0].strip() for line in Path('/proc/net/dev').read_text().splitlines()[2:]} == {'lo'}
     user = env['res.users'].browse(7)
@@ -115,10 +116,12 @@ def run(env):
             values = rows.read(readable, load=None)
             assert [r['id'] for r in values] == rows.ids and set(rows.ids) <= set(tickets)
             entry.update(tickets=len(rows), readable_fields=readable, identities=fingerprint(rows.ids),
-                         values=fingerprint(values))
+                         values=fingerprint(values),default_order=fingerprint(model.search([]).ids))
             writable = [row.id for row in rows if row.has_access('write')]
             entry.update(writable=len(writable), writable_ids=fingerprint(writable))
             if entry['menus'] and 'helpdesk.helpdesk_ticket_menu_all' in entry['menus']:
+                entry['master_order'] = {name:fingerprint(actor[name].search([]).ids)
+                                         for name in ('helpdesk.tag','helpdesk.team','helpdesk.stage')}
                 menu = actor.ref('helpdesk.helpdesk_ticket_menu_all')
                 action = actor['ir.actions.actions']._for_xml_id('step_helpdesk_tickets.action_all' if
                           env.cr.dbname.startswith('COMMUNITY_') else 'helpdesk.helpdesk_ticket_action_main_tree')
