@@ -1,6 +1,7 @@
 """Check the original dispatch directory and its cross-company restrictions with the full freight provider."""
 import argparse
 import fcntl
+import hashlib
 import json
 
 from check_cerro_estimation_profile import BRIDGE, PROFILE as ESTIMATES, snapshot
@@ -14,6 +15,7 @@ from compare_cerro_studio_receipts import receipt,compare
 from compare_cerro_studio_strict import NATIVE
 
 FREIGHT=ROOT/'freight-matched-grants-769a584e2bf3'
+PACKAGE_SHA='769a584e2bf3e1c7009f6ce2fd5fbd00d68228ac900c2d066582b69ea3d62c43'
 HASHES={'step_operations_ui':'6b8066659d7a3556478106f2fc4359bacce4fc0c54d4a5c535152eebd4af1f77'}
 
 
@@ -28,6 +30,8 @@ def directory(db):
 
 
 def main(db=PRODUCT_TARGET,dest=PRODUCT_DEST):
+    if hashlib.sha256((FREIGHT/'package.tar').read_bytes()).hexdigest()!=PACKAGE_SHA:
+        raise ValueError('The sealed freight distribution changed')
     if {p.name:tree_sha(p) for p in FREIGHT.iterdir() if p.is_dir()}!=HASHES:
         raise ValueError('Incomplete or modified Cerro freight package')
     with open('/run/lock/steps-environments.lock','rb') as gate:
@@ -93,7 +97,7 @@ env.cr.rollback()
         assert '5267' in result['matrix']['original_routes']
         result['census']=module_census(db)
         result['grant_and_rule_rows']=True
-        result['freight_sha256']='769a584e2bf3e1c7009f6ce2fd5fbd00d68228ac900c2d066582b69ea3d62c43'
+        result['freight_sha256']=PACKAGE_SHA
         result['upgraded']=True
         (dest/'qualified-freight.json').write_text(json.dumps(result,sort_keys=True))
 
