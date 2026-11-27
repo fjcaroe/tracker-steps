@@ -7,6 +7,9 @@ instalaciones Community independientes se compararon 133 casos con el motor
 nativo. Coincidieron las 2.098 líneas de las 130 liquidaciones calculables y
 los tres rechazos por revisión del contrato. En 33 casos ambos motores
 actuales difieren del importe histórico. Los importes cerrados se conservaron.
+En los 33 cambió el líquido. En 32 se conservaron el básico y el bruto,
+y en uno también cambiaron esos dos importes. Los dos motores actuales
+dieron el mismo resultado al repetir los 33 casos sobre borradores.
 Los archivos Previred y Libro coincidieron al byte para los dos operadores
 en las doce empresas. La instalación fría alcanzó 190 módulos activos con
 cero Enterprise y cero OPL. El inventario original de SyS tiene 336 módulos.
@@ -36,6 +39,15 @@ coincidieron 42 pantallas del portal de carpetas y 27 descargas al recorrer
 los permisos de dos cuentas de portal y un visitante anónimo.
 [CRM de Steps](COMMUNITY_STEPS_CRM.md) y
 [portal de carpetas de SyS](COMMUNITY_BIBLIOTECA_INTERNA.md).
+
+El vendedor de Steps pudo guardar un presupuesto con su cliente, producto,
+tarifa e impuestos y reabrirlo desde la oportunidad. La corrección archivó
+cuatro vistas y un menú del editor de planillas comerciales. El origen
+tenía cero planillas y conservó sus cuatro documentos de venta.
+El respaldo con ese cambio pasó dos arranques desde el paquete y una
+verificación completa en la estación de trabajo. Contiene 1.112 tablas,
+163.133 filas, 804 contadores y los 1.744 archivos físicos de ese perfil.
+Véase [recuperación de CRM y ventas de Steps](COMMUNITY_RECUPERACION_CRM_STEPS.md).
 
 El paquete de Cerro reúne en la misma copia 172 módulos libres, incluidos
 listas de materiales, fundos y Packing. La instalación fría y la actualización
