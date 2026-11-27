@@ -53,6 +53,11 @@ def run(shell):
                     if not move:
                         continue
                     move.check_access("read")
+                    billing = scope.user.has_group("account.group_account_invoice")
+                    rights = {mode: bool(scope["ir.model.access"].check("l10n_cl.account.invoice.reference", mode,
+                                                                        raise_exception=False))
+                              for mode in ("read", "write", "create", "unlink")}
+                    assert rights == {"read": True, "write": billing, "create": billing, "unlink": billing}
                     report = scope["ir.actions.report"].with_context(force_report_rendering=True, report_pdf_no_attachment=True)
                     count_before = len(calls)
                     pdf, kind = report._render_qweb_pdf("account.account_invoices", res_ids=move.ids)
@@ -67,7 +72,7 @@ def run(shell):
                     with output.open("xb") as handle:
                         handle.write(pdf)
                     output.chmod(0o600)
-                    result.append({"actor": actor.id, "kind": move_type, "pages": pages,
+                    result.append({"actor": actor.id, "kind": move_type, "pages": pages, "reference_permissions": rights,
                                    "references": len(move.l10n_cl_reference_ids), "bytes": len(pdf),
                                    "sha256": hashlib.sha256(pdf).hexdigest(), "private_file": str(output)})
                     found = True
