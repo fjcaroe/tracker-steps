@@ -12,7 +12,7 @@ import subprocess
 import tarfile
 
 from audit_sys_upgrade_policy import audit
-from build_sys_upgrade_policy_profile import build, fingerprint
+from build_sys_upgrade_policy_profile import build, fingerprint, seal_profile
 from compare_sys_payroll_exports_all import changes, index
 from custody_sys_previred_filestore import attachments, digest, object_catalog, restore_objects
 from restore_native_product_backup import pg, query
@@ -398,7 +398,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "candidate-batch", "exports", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "seal-profile", "candidate-batch", "exports", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -413,6 +413,13 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "restore":
             restore(args, proof)
+        elif args.operation == "seal-profile":
+            require(args.database.endswith("U41MP"), "separate-policy-profile-copy-required")
+            expected = json.loads((args.output / "profile-proof.json").read_bytes())
+            result = seal_profile(args.output / "profile", args.output / "upgrade-profile.tar", expected)
+            result.update(runtime=proof["runtime"]["archive_sha256"],
+                          guard_plan=digest(guarded_plan(args)))
+            save(args.output / "upgrade-profile.json", result)
         elif args.operation == "exports":
             payroll_exports(args)
         elif args.operation == "candidate-batch":

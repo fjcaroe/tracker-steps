@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import tempfile
+import tarfile
 
 from lxml import etree
 
@@ -120,3 +121,28 @@ def build(db, sealed, target, modules):
                 file.chmod(0o755 if file.stat().st_mode & 0o111 else 0o644)
         profile.rename(target)
     return {"records": total, "modules": changes, "files": files, "sha256": sha}
+
+
+def seal_profile(profile, target, expected):
+    require(fingerprint(profile) == (expected["files"], expected["sha256"]), "profile-fingerprint-drift")
+    with tarfile.open(target, "x") as output:
+        for member in sorted(profile.rglob("*")):
+            if member.is_dir():
+                continue
+            require(member.is_file() and not member.is_symlink(), "invalid-profile-member")
+            info = tarfile.TarInfo(member.relative_to(profile).as_posix())
+            info.size = member.stat().st_size
+            info.mode = 0o755 if member.stat().st_mode & 0o111 else 0o644
+            with member.open("rb") as source:
+                output.addfile(info, source)
+    with tarfile.open(target, "r|") as archive:
+        files = {}
+        for member in archive:
+            require(member.isfile() and member.name not in files, "invalid-sealed-profile")
+            with archive.extractfile(member) as data:
+                files[member.name] = hashlib.sha256(data.read()).hexdigest()
+    indexed = json.dumps(files, sort_keys=True, separators=(",", ":")).encode()
+    require(len(files) == expected["files"] and hashlib.sha256(indexed).hexdigest() == expected["sha256"],
+            "archived-upgrade-package-differs")
+    return {"archive_sha256": digest(target), "archive_bytes": target.stat().st_size,
+            "files": expected["files"], "members_sha256": expected["sha256"]}
