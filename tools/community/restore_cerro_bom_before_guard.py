@@ -13,6 +13,8 @@ from restore_cerro_studio_strict import GIB, ROOT, SPACE, TARGET as SOURCE, copy
 
 TARGET = 'COMMUNITY_CERRO_BOM_ADOPTED_20261126U42B'
 DEST = Path('/opt/steps-validation/community-cerro-bom-adopted-20261126U42B')
+COLD_TARGET = 'COMMUNITY_CERRO_BOM_COLD_20261126U42H'
+COLD_DEST = Path('/opt/steps-validation/community-cerro-studio-cold-20261126U42H')
 PROFILE = ROOT / 'bom-restore-2d6b0a1c73e6'
 PROVIDER = PROFILE / 'step_cerro_bom_company'
 GUARD = 'step_anchor_preserve_original_row'
@@ -41,59 +43,63 @@ def all_guards(db):
             FROM pg_trigger t WHERE NOT t.tgisinternal AND t.tgname LIKE 'step_anchor_%'""")
 
 
-def before_guard():
+def before_guard(source=SOURCE, target=TARGET, dest=DEST):
+    from restore_cerro_studio_strict import SOURCE as library, FILES
+    if (source,target,dest) not in ((SOURCE,TARGET,DEST),(library,COLD_TARGET,COLD_DEST)):
+        raise ValueError('Unknown private Cerro source and destination')
+    originals = FILES if source == library else ROOT / 'data/filestore' / source
     if tree_sha(PROVIDER) != 'e27bebe09c163549cf975cdbe2f8d6e301b6f51a9bdeaa19997eeac3b101db7f':
         raise ValueError('The BoM provider differs from its admission package')
-    DEST.mkdir(mode=0o751, parents=True, exist_ok=True)
+    dest.mkdir(mode=0o751, parents=True, exist_ok=True)
     postgres = pwd.getpwnam('postgres')
-    source_state = module_census(SOURCE)
+    source_state = module_census(source)
     assert not any(source_state[k] for k in ('pending', 'enterprise', 'non_free'))
-    assert sql(SOURCE, "SELECT state FROM ir_model_fields WHERE id=30516 AND model='mrp.bom' AND name='x_studio_compaia'") == 'manual'
+    assert sql(source, "SELECT state FROM ir_model_fields WHERE id=30516 AND model='mrp.bom' AND name='x_studio_compaia'") == 'manual'
     pg_dir = Path(sql('postgres', 'SHOW data_directory'))
     space = Path(sql('postgres', "SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname='" + SPACE + "'"))
-    size = int(sql('postgres', "SELECT pg_database_size('" + SOURCE + "')"))
+    size = int(sql('postgres', "SELECT pg_database_size('" + source + "')"))
     memory = int(next(l.split()[1] for l in Path('/proc/meminfo').read_text().splitlines() if l.startswith('MemAvailable:'))) * 1024
     if (not space.resolve().is_relative_to('/opt/steps-validation') or shutil.disk_usage(pg_dir).free < 5*GIB
             or shutil.disk_usage(space).free < max(8*GIB, size*4) or memory < 1536*1024**2):
         raise ValueError('Tablespace, PostgreSQL or memory reservation is insufficient')
-    backup = DEST / 'source.dump'
-    seal = DEST / 'source-seal.json'
+    backup = dest / 'source.dump'
+    seal = dest / 'source-seal.json'
     if not seal.exists():
         if backup.exists():
             raise ValueError('An earlier archive needs verification before reuse')
         with backup.open('xb') as out:
-            subprocess.run(['runuser', '-u', 'postgres', '--', 'pg_dump', '-Fc', '--no-tablespaces', '-d', SOURCE], stdout=out, check=True)
+            subprocess.run(['runuser', '-u', 'postgres', '--', 'pg_dump', '-Fc', '--no-tablespaces', '-d', source], stdout=out, check=True)
         os.chown(backup, -1, postgres.pw_gid)
         backup.chmod(0o640)
-        evidence = {'source': SOURCE, 'target': TARGET, 'sha256': hashlib.sha256(backup.read_bytes()).hexdigest(),
-                    'rows': fingerprint(SOURCE), 'guards': all_guards(SOURCE), 'field_guard': guard(SOURCE), 'census': source_state}
+        evidence = {'source': source, 'target': target, 'sha256': hashlib.sha256(backup.read_bytes()).hexdigest(),
+                    'rows': fingerprint(source), 'guards': all_guards(source), 'field_guard': guard(source), 'census': source_state}
         seal.write_text(json.dumps(evidence, sort_keys=True))
     evidence = json.loads(seal.read_text())
-    assert evidence['source'] == SOURCE and evidence['target'] == TARGET
+    assert evidence['source'] == source and evidence['target'] == target
     assert hashlib.sha256(backup.read_bytes()).hexdigest() == evidence['sha256']
     assert evidence['field_guard'].startswith('CREATE TRIGGER ' + GUARD + ' ')
     toc = subprocess.check_output(['pg_restore', '-l', str(backup)], text=True).splitlines()
     deferred = [line for line in toc if ' TRIGGER public ir_model_fields ' + GUARD + ' ' in line]
     if len(deferred) != 1:
         raise ValueError('The original row trigger is not unambiguous in the archive')
-    restricted = DEST / 'first-restore.list'
+    restricted = dest / 'first-restore.list'
     restricted.write_text('\n'.join(line for line in toc if line not in deferred) + '\n')
     os.chown(restricted, -1, postgres.pw_gid)
     restricted.chmod(0o640)
-    owner = sql('postgres', f"SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname='{TARGET}'")
+    owner = sql('postgres', f"SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname='{target}'")
     if not owner:
-        locale = sql('postgres', f"SELECT pg_encoding_to_char(encoding),datcollate,datctype FROM pg_database WHERE datname='{SOURCE}'").split('|')
+        locale = sql('postgres', f"SELECT pg_encoding_to_char(encoding),datcollate,datctype FROM pg_database WHERE datname='{source}'").split('|')
         pg('createdb', '--owner=dev_odoo18', '--template=template0', '--tablespace=' + SPACE,
-           '--encoding=' + locale[0], '--lc-collate=' + locale[1], '--lc-ctype=' + locale[2], TARGET)
+           '--encoding=' + locale[0], '--lc-collate=' + locale[1], '--lc-ctype=' + locale[2], target)
     elif owner != 'dev_odoo18':
         raise ValueError('Another owner already uses the proposed database')
-    if not sql(TARGET, "SELECT coalesce(to_regclass('public.ir_model_fields')::text,'')"):
+    if not sql(target, "SELECT coalesce(to_regclass('public.ir_model_fields')::text,'')"):
         pg('pg_restore', '--exit-on-error', '--single-transaction', '--no-tablespaces',
-           '-L', str(restricted), '-d', TARGET, str(backup))
-    assert module_census(TARGET) == evidence['census']
-    assert fingerprint(TARGET) == evidence['rows']
-    if not guard(TARGET):
-        if sql(TARGET, 'SELECT state FROM ir_model_fields WHERE id=30516') != 'manual':
+           '-L', str(restricted), '-d', target, str(backup))
+    assert module_census(target) == evidence['census']
+    assert fingerprint(target) == evidence['rows']
+    if not guard(target):
+        if sql(target, 'SELECT state FROM ir_model_fields WHERE id=30516') != 'manual':
             raise ValueError('The original unadopted field is missing')
         # Use the same migration as the actual addon and create the exact archived
         # trigger in the same transaction, before permitting any Odoo registry.
@@ -108,10 +114,10 @@ with psycopg2.connect(dbname=sys.argv[3],host='/var/run/postgresql') as conn, co
     cr.execute(sys.stdin.read())
 """
         subprocess.run(['runuser', '-u', 'postgres', '--', '/usr/bin/python3.10', '-c', exe,
-                        str(RUNTIME), str(PROVIDER / 'hooks.py'), TARGET], input=evidence['field_guard'], text=True, check=True)
-    assert guard(TARGET) == evidence['field_guard'] and all_guards(TARGET) == evidence['guards']
-    assert sql(TARGET, 'SELECT state FROM ir_model_fields WHERE id=30516') == 'base'
-    assert fingerprint(TARGET) == evidence['rows']
+                        str(RUNTIME), str(PROVIDER / 'hooks.py'), target], input=evidence['field_guard'], text=True, check=True)
+    assert guard(target) == evidence['field_guard'] and all_guards(target) == evidence['guards']
+    assert sql(target, 'SELECT state FROM ir_model_fields WHERE id=30516') == 'base'
+    assert fingerprint(target) == evidence['rows']
     check = """import psycopg2,sys
 with psycopg2.connect(dbname=sys.argv[1]) as conn, conn.cursor() as cr:
     try:
@@ -121,12 +127,12 @@ with psycopg2.connect(dbname=sys.argv[1]) as conn, conn.cursor() as cr:
     else:
         conn.rollback();raise ValueError('The restored guard did not refuse the write')
 """
-    subprocess.run(['runuser', '-u', 'postgres', '--', '/usr/bin/python3.10', '-c', check, TARGET], check=True)
-    files = references(TARGET)
-    copy_filestore(ROOT / 'data/filestore' / SOURCE, DEST, TARGET, files)
-    receipt = {'target': TARGET, 'sole_original_metadata_change': [FIELD, 'manual', 'base'], 'guards': evidence['guards'],
+    subprocess.run(['runuser', '-u', 'postgres', '--', '/usr/bin/python3.10', '-c', check, target], check=True)
+    files = references(target)
+    copy_filestore(originals, dest, target, files)
+    receipt = {'target': target, 'sole_original_metadata_change': [FIELD, 'manual', 'base'], 'guards': evidence['guards'],
                'guard_rejected_reverse': True, 'rows': evidence['rows'], 'archive_sha256': evidence['sha256'], 'objects': len(files)}
-    (DEST / 'adopted-receipt.json').write_text(json.dumps(receipt, sort_keys=True))
+    (dest / 'adopted-receipt.json').write_text(json.dumps(receipt, sort_keys=True))
     return receipt
 
 

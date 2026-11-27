@@ -261,3 +261,37 @@ de los registros originales de U40Q.
 
 El archivo privado `U42E/packing-view-owners.json` tiene SHA-256
 `2a374b6dbb921e88fa22d1e4ed94edcc43235b3db48fa0a57bf319d00d591c69`.
+
+
+## Instalación fría, actualización y presupuestos
+
+U42H se creó por restauración lógica desde la biblioteca U41L. En ese
+origen, las 23 vistas tienen exactamente las mismas filas que la copia de
+custodia nativa U40Q. Se registró el propietario de la lista de materiales
+antes de crear la primera guarda de campos. Se instalaron la adopción de
+Studio y los proveedores de Packing, estimación, Fundos, Especies, empresas,
+productos y procesos, y se actualizaron todos de nuevo.
+
+Las 23 filas, con todas sus columnas y sus arquitecturas anteriores, quedaron
+idénticas al origen en cada fase. La huella conjunta fue
+`a0e0ae80a5c095ae1ca7beb27ea16e1d3670ccba563309dc5287f4e0a34c2431`.
+Se conservaron 62.030 identificadores externos y las 23 guardas. El
+resultado de la base integrada fue 172 módulos libres, cero pendientes,
+17 rutas, 14 lecturas de Studio y diez filas web completas de 23.
+El recibo `U42H/qualified-combined.json` tiene SHA-256
+`adddcf0dde7d30462b88e2caa85bae622253a8298d32c780234c607b7d8d7656`.
+En U42B se ejercitó además la creación y copia de una lista de materiales
+con sus dos empresas y el rechazo al usuario público. El recibo compuesto
+`U42B/combined-packing-verified.json` tiene SHA-256
+`b45c1483a169adf2fd58f9dd729c57f0597bd89da941163cdf7f18d76e146f00`.
+
+En U42E los paquetes de Operaciones, Tarjas, Cosecha y Formatos conservaron
+la identidad y la bandera de actualización de los metadatos originales.
+Se instaló Diseño Presupuestario con los registros agrícolas y los
+proveedores reales de cosecha, maquinaria y movilización. Las 14
+estimaciones y los cuatro enlaces de categoría siguieron coincidiendo con
+el control. La misma prueba del usuario 6 encontró 19 rutas coincidentes,
+17 lecturas de Studio y 14 filas completas. El registro terminó con 184
+módulos, cero licencias no libres y cero transiciones pendientes.
+`U42E/budget-reference-comparison.json` tiene SHA-256
+`e48b6ce80ea45194bb0615e6957ab2dd0739ba2f4e443f213f68f16e5642ab56`.

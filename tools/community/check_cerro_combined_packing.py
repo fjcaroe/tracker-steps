@@ -58,7 +58,7 @@ def main():
         reference=receipt(NATIVE/'fullread/native.log','CERRO_FULL_READ')
         assert new['rights']==native['rights'] and new['directory']==receipt(NATIVE/'native-directory-reference/result.log','CERRO_DIRECTORY')['directory']
         rows=compare(reference,native,new)
-        final=dict(matrix=rows,bom=new['bom'],census=census,guard_count=len(before),
+        final=dict(matrix=rows,bom=new['bom'],census=census,guard_count=int(before.split('|',1)[0]),
                    backup_sha256=hashlib.sha256(backup.read_bytes()).hexdigest())
         (DEST/'combined-packing.json').write_text(json.dumps(final,sort_keys=True))
         print(json.dumps(census,sort_keys=True))
