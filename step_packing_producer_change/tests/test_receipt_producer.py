@@ -114,8 +114,8 @@ class ReceiptProducerCase(SimpleReceptionCase):
         for line in picking.move_line_ids:
             line.result_package_id = line.package_id
         self.wizard().action_apply()
-        self.assertEqual(picking.owner_id, self.env['res.partner'] if mixed or unowned else self.other)
-        self.assertEqual(picking.move_ids.restrict_partner_id, self.env['res.partner'] if mixed or unowned else self.other)
+        self.assertFalse(picking.owner_id)
+        self.assertFalse(picking.move_ids.restrict_partner_id)
         picking.move_line_ids.write({'picked': True})
         picking._action_done()
         self.assertEqual(picking.state, 'done')
