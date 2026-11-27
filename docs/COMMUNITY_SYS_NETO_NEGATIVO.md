@@ -1,5 +1,7 @@
 # Efecto del botón original de netos negativos de SyS
 
+La revisión .6.3 incorpora la aplicación de la deducción y documenta la segunda ruta del operador, que genera una actividad al abrir la liquidación en verificación. [Resultados y recuperación de la operación en Community](COMMUNITY_SYS_ARRASTRE_NETOS.md)
+
 El botón **Reporte** conlleva una operación de nómina. Los dos operadores originales lo encontraron oculto en los tres recibos cerrados que tenían la marca de neto pendiente. Al crear un borrador para el mes siguiente de cada caso, el botón apareció con un importe distinto de cero.
 
 Se ejecutó el método nativo seis veces en la copia completa U40RP, con un borrador nuevo por operador y caso. La copia conserva los 336 módulos nativos y su respaldo SQL tiene SHA-256 `acfa47a2642725b22d92a0f53c40ccafc2c43205097db87dacbc987f6071de2b`. Cada ensayo revirtió sus escrituras sobre las tablas y restricciones originales.

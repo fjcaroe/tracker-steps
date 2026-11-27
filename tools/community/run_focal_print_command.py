@@ -27,7 +27,10 @@ def run(args):
     (dev / "fd").symlink_to("/proc/self/fd")
     if args.sys_payslip_form:
         trials = {"COMMUNITY_SYS_PREVIRED_COHORT_20261127U48C": "sys-u48-payslip",
-                  "COMMUNITY_SYS_PREVIRED_COHORT_20261127U48D": "sys-u48-payslip-final"}
+                  "COMMUNITY_SYS_PREVIRED_COHORT_20261127U48D": "sys-u48-payslip-final",
+                  "COMMUNITY_SYS_PREVIRED_COHORT_20261127U49D": "sys-negative-net-u49d",
+                  "COMMUNITY_SYS_PREVIRED_COHORT_20261127U49E": "sys-negative-net-u49e",
+                  "COMMUNITY_SYS_PREVIRED_COHORT_20261127U49F": "sys-negative-net-u49f"}
         db, = (name for name in trials if name in args.command)
         module = "step_payroll_oca_sys_history"
         private = Path("/dev/shm") / trials[db] / "overlay" / module

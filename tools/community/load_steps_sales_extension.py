@@ -11,6 +11,9 @@ from preflight_original_history_storage import require
 PROFILES = {
     'COMMUNITY_SYS_PREVIRED_COHORT_20261127U48C': 'step_payroll_oca_sys_history',
     'COMMUNITY_SYS_PREVIRED_COHORT_20261127U48D': 'step_payroll_oca_sys_history',
+    'COMMUNITY_SYS_PREVIRED_COHORT_20261127U49D': 'step_payroll_oca_sys_history',
+    'COMMUNITY_SYS_PREVIRED_COHORT_20261127U49E': 'step_payroll_oca_sys_history',
+    'COMMUNITY_SYS_PREVIRED_COHORT_20261127U49F': 'step_payroll_oca_sys_history',
     'COMMUNITY_SYS_FISCAL_PRINT_20261127U45P': 'step_report_print_colors',
     'COMMUNITY_STEPS_CRM_DOC_20261127U43X': 'step_document_library,step_document_library_portal',
     'COMMUNITY_STEPS_CRM_DOC_20261127U44P': 'step_document_library,step_document_library_portal,step_report_print_colors',

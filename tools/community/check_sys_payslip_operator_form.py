@@ -27,7 +27,7 @@ def shell(label, script):
     return result.stdout
 
 
-def payroll(refs):
+def payroll(refs, *, version="18.0.1.6.2", runner=shell):
     source = refs / "U43C/wsl-finance-reference"
     if sha(source / "finance.py") != FROZEN_FINANCE or sha(source / "finance.log") != FROZEN_LOG:
         raise ValueError("Unrecognized financial reference")
@@ -35,7 +35,9 @@ def payroll(refs):
     versions = "'step_payroll_oca_sys_history':'18.0.1.6.1'"
     if script.count(versions) != 1:
         raise ValueError("Unrecognized version assertion")
-    raw = shell("payroll", script.replace(versions, versions.replace("1.6.1", "1.6.2")))
+    if version not in ("18.0.1.6.2", "18.0.1.6.3"):
+        raise ValueError("Unknown version in SyS payroll comparison")
+    raw = runner("payroll", script.replace(versions, versions.replace("18.0.1.6.1", version)))
     def entries(content):
         return {name.decode(): json.loads(body) for name, body in
                 (line.split(b" ", 1) for line in content.splitlines() if line.startswith(b"SYSL_"))}
