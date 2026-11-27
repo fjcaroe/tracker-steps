@@ -44,8 +44,7 @@ class Document(models.Model):
         self.env.cr.execute("""
             SELECT d.id, d.type, d.access_via_link,
                    coalesce(a.role IN ('view','edit') AND
-                       (a.expiration_date IS NULL OR a.expiration_date > timezone('UTC',now())),false),
-                   a.last_access_date IS NOT NULL
+                       (a.expiration_date IS NULL OR a.expiration_date > timezone('UTC',now())),false)
               FROM documents_document d LEFT JOIN documents_access a ON a.document_id=d.id AND a.partner_id=%s
              WHERE d.step_portal_reference_hash=%s AND d.active IS TRUE AND d.type=ANY(%s)
                AND (d.type='folder' OR d.attachment_id IS NOT NULL)
@@ -56,10 +55,6 @@ class Document(models.Model):
         record = self.browse(row[0])
         if row[2] in ("view", "edit") or row[3] or (user._is_internal() and record.has_access("read")):
             return record.sudo()
-        if row[1] == "folder" and portal_contact and row[4]:
-            # A previous visit can lead back to descendants the recipient still holds individually.
-            if self._listed_folder_children(record.sudo()):
-                return record.sudo()
         return self.browse()
 
     @api.model
