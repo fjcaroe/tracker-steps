@@ -73,10 +73,10 @@ def check_original_bookmark(scope, document, url, allowed):
     try:
         request = http.Request(http.HTTPRequest(builder.get_environ()))
         request.db, request.env, request.params = scope.cr.dbname, scope, {}
+        request.session = {}
         http._request_stack.push(request)
         try:
-            matcher = scope["ir.http"].routing_map().bind("localhost")
-            rule, parameters = matcher.match(path, method="GET", return_rule=True)
+            rule, parameters = scope["ir.http"]._match(path)
             assert rule.endpoint.routing["auth"] == "user" and "reference" in parameters
             try:
                 response = HistoricalLibrary().original_link(parameters["reference"])
