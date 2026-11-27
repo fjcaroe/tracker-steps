@@ -69,3 +69,17 @@ contable conservó las 211 líneas y sus 86 asientos. Quedan cinco campos del
 formulario original, vinculados con cesiones de crédito y préstamos, sin datos
 en la muestra. El paquete probado tiene la huella
 `8c7cf3cc764d92740db4549b395ddc27b126ab71596c9e2c7744a830f559cf2f`.
+
+En el circuito de pagos, el menú de clientes mostró 34 cobros y el de
+proveedores mostró 11 pagos al aplicar sus filtros iniciales. Las 42
+conciliaciones parciales y 25 completas conservaron las mismas relaciones y
+permisos en siete combinaciones de usuario y empresa. El programa propio
+`step_payment_in_process` conserva el comportamiento del diario al registrar
+un cobro manual desde la factura. Si el método carece de cuenta de cobros
+pendientes, el cobro queda en proceso y la factura en pago. El operador puede
+validar ese pago; la factura sigue en pago mientras no exista conciliación.
+Con el método y la cuenta usados en los cobros históricos, el asiento quedó
+publicado, la factura pagada y el cobro conciliado. Los dos ensayos se hicieron
+en copias aisladas y se revirtieron. Coincidieron los importes, estados y
+relaciones al repetirlos contra el original. La revisión de tres archivos tiene
+la huella `5428545ab11150a070894e1286480597925c2150856c5ba0344499a2b0c97db2`.
