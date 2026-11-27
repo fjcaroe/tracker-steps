@@ -16,7 +16,8 @@ from PyPDF2 import PdfFileReader
 
 
 def run(shell):
-    assert shell.cr.dbname in ("COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U43MF")
+    assert shell.cr.dbname in ("COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U43MF",
+                               "MANAGEMENT_QA_SYS_PREVIRED_20261126U40N")
     url = os.environ["STEPS_PRIVATE_REPORT_URL"]
     assert re.fullmatch(r"http://127[.]0[.]0[.]1:[0-9]+", url)
     shell.cr.rollback()
@@ -66,7 +67,8 @@ def run(shell):
                     rendered, fmt = report._render_qweb_html("account.account_invoices", move.ids)
                     article, = html.fromstring(rendered).xpath('//*[contains(concat(" ",normalize-space(@class)," ")," article ")]')
                     assert fmt == "html" and article.get("data-oe-id") == str(move.id) and article.get("data-oe-model") == "account.move"
-                    article_words = set(re.findall(r"\w+", article.text_content().casefold()))
+                    article_text = " ".join(article.text_content().split())
+                    article_words = set(re.findall(r"\w+", article_text.casefold()))
                     count_before = len(calls)
                     pdf, kind = report._render_qweb_pdf("account.account_invoices", res_ids=move.ids)
                     assert kind == "pdf" and pdf.startswith(b"%PDF-") and len(calls) == count_before + 1
@@ -84,6 +86,9 @@ def run(shell):
                     output.chmod(0o600)
                     result.append({"actor": actor.id, "kind": move_type, "pages": pages, "reference_permissions": rights,
                                    "references": len(move.l10n_cl_reference_ids), "bytes": len(pdf),
+                                   "document": move.id, "company": company.id,
+                                   "article_text_sha256": hashlib.sha256(article_text.encode()).hexdigest(),
+                                   "pdf_text_sha256": hashlib.sha256(" ".join(text.split()).encode()).hexdigest(),
                                    "article_words": len(article_words), "printed_article_words": len(article_words & printed_words),
                                    "sha256": hashlib.sha256(pdf).hexdigest(), "private_file": str(output)})
                     found = True
