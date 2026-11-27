@@ -1,0 +1,15 @@
+{
+  "archive_sha256": "e759f3b69e50631e3fc153009a951b3f7cc4cb3c0224a731ed3bcc3d8a8c1968",
+  "files": 4,
+  "lf_source_files": {
+    "step_cerro_picking_list_history": [
+      "__init__.py",
+      "__manifest__.py",
+      "hooks.py",
+      "models.py"
+    ]
+  },
+  "module_trees": {
+    "step_cerro_picking_list_history": "6beaabe1774dfbc179949fe7aa67be4c8d65dc48036b516975e7fed5d89e6794"
+  }
+}
