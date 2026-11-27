@@ -29,6 +29,17 @@ class AccountMove(models.Model):
     l10n_cl_reference_ids = fields.One2many("l10n_cl.account.invoice.reference", "move_id", copy=False,
                                             **METADATA["l10n_cl_reference_ids"])
     l10n_cl_sii_barcode = fields.Char(readonly=True, copy=False, **METADATA["l10n_cl_sii_barcode"])
+    signing_user = fields.Many2one("res.users", ondelete="set null", readonly=True, copy=False,
+                                  **METADATA["account.move.signing_user"])
+    show_signature_area = fields.Boolean(compute="_compute_stored_print_signature", **METADATA["account.move.show_signature_area"])
+    signature = fields.Binary(compute="_compute_stored_print_signature", **METADATA["account.move.signature"])
+
+    @api.depends("company_id.sign_invoice", "move_type", "state", "signing_user.sign_signature")
+    def _compute_stored_print_signature(self):
+        for move in self:
+            visible = move.company_id.sign_invoice and move.state == "posted" and move.move_type in ("out_invoice", "out_refund")
+            move.show_signature_area = visible
+            move.signature = move.signing_user.sign_signature if visible and move.signing_user else False
 
     def _get_name_invoice_report(self):
         self.ensure_one()
@@ -66,3 +77,11 @@ class Company(models.Model):
 
     l10n_cl_dte_resolution_date = fields.Date(**METADATA["l10n_cl_dte_resolution_date"])
     l10n_cl_dte_resolution_number = fields.Char(**METADATA["l10n_cl_dte_resolution_number"])
+    sign_invoice = fields.Boolean(**METADATA["res.company.sign_invoice"])
+    signing_user = fields.Many2one("res.users", ondelete="set null", **METADATA["res.company.signing_user"])
+
+
+class User(models.Model):
+    _inherit = "res.users"
+
+    sign_signature = fields.Binary(attachment=True, copy=False, **METADATA["res.users.sign_signature"])

@@ -71,6 +71,30 @@ def build_invoice_provider(db, output):
         labels[row[2]] = {"string": row[10]}
         if row[11]:
             labels[row[2]]["help"] = row[11]
+    signing_ids = {
+        7115: ("account.move", "signing_user", "many2one", "res.users", True),
+        7116: ("account.move", "show_signature_area", "boolean", None, False),
+        7117: ("account.move", "signature", "binary", None, False),
+        7144: ("res.company", "sign_invoice", "boolean", None, True),
+        7145: ("res.company", "signing_user", "many2one", "res.users", True),
+        18010: ("res.users", "sign_signature", "binary", None, True),
+    }
+    names = ",".join(map(str, signing_ids))
+    sign_fields = original(f"""SELECT json_agg(json_build_array(f.id,f.model,f.name,f.ttype,f.relation,f.store,
+        f.field_description->>'en_US') ORDER BY f.id) FROM ir_model_fields f JOIN ir_model_data d
+        ON d.model='ir.model.fields' AND d.res_id=f.id AND d.module IN ('account_accountant','sign') WHERE f.id IN ({names})""")
+    require({r[0]: tuple(r[1:6]) for r in sign_fields} == signing_ids, "unexpected-stored-invoice-signatory-model")
+    for pk, model, name, ttype, relation, stored, label in sign_fields:
+        labels[model + "." + name] = {"string": label}
+    sign_rules = original(f"SELECT to_json(count(*)) FROM ir_model_fields_group_rel WHERE field_id IN ({names})")
+    require(sign_rules == 0, "unexpected-signing-field-group-policy")
+    flags = original("""SELECT json_build_array(count(*),count(*) FILTER (WHERE sign_invoice),count(signing_user))
+                     FROM res_company""")
+    signers = original("""SELECT json_build_array(count(*),count(signing_user),
+                      md5(string_agg(id::text || ':' || coalesce(signing_user::text,''),',' ORDER BY id))) FROM account_move""")
+    assets = original("""SELECT json_build_array(count(*),md5(string_agg(md5(to_jsonb(a)::text),'' ORDER BY id)))
+                      FROM ir_attachment a WHERE res_model='res.users' AND res_field='sign_signature'""")
+    require(flags == [29, 0, 0] and signers[:2] == [8129,124] and assets[0] == 1, "unexpected-original-signature-census")
     models = output / "models"
     implementation = models / "sys_chilean_invoice_history.py"
     metadata = models / "sys_invoice_reference_labels.py"
@@ -82,4 +106,6 @@ def build_invoice_provider(db, output):
     init.write_text(init.read_text().rstrip() + "\nfrom . import sys_chilean_invoice_history\n")
     return {"model": model[0], "field_ids": sorted(FIELDS), "permissions": access, "references": record_hash,
             "financial_relation_ids": [5963, 6077], "original_financial_delete_actions": original_fk,
+            "signature_fields": sorted(signing_ids), "original_company_signatures": flags, "original_move_signers": signers,
+            "original_signature_attachment": assets,
             "code": digest(implementation), "metadata": digest(metadata), "init": digest(init)}
