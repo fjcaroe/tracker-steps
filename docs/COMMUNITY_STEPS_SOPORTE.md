@@ -40,3 +40,36 @@ pero sus relaciones de equipo y etapa apuntan a `helpdesk.ticket.team` y
 originales y las decisiones de acceso antes de habilitar el servicio en
 Community. El censo y el ensayo de alta anteriores corresponden al sistema
 original. [Fuente OCA revisada](https://github.com/OCA/helpdesk/tree/9fbf485f7ab7961fd06250965990523e05e00ecd/helpdesk_mgmt)
+
+## Atención de tickets en Community
+
+En U44H2 se instaló y actualizó el proveedor libre de seis archivos
+`step_helpdesk_tickets` 18.0.1.0.1. Conservó los maestros, los dos menús
+de tickets, los grupos y las reglas originales. Al comparar el primer ensayo
+se encontró que cuatro tickets mostraban sus etiquetas en otro orden. El
+original ordena las etiquetas por nombre, los equipos por secuencia y nombre,
+y los tickets por prioridad e identidad. La versión corregida reprodujo los
+tres órdenes.
+
+Tras la actualización se comprobaron siete combinaciones de usuario y empresa.
+Coincidieron el orden de las listas, los 17 valores y relaciones consultados
+por ticket, la identidad de las filas editables y los archivos de muestra.
+Los operadores abrieron los 243 tickets. La cuenta de portal pudo consultar
+cinco y tenía denegada la modificación. El usuario público mantuvo denegada
+la consulta. Un operador creó un ticket desde el menú original, consumió un
+único número de la secuencia existente, cambió la etapa y reabrió la ficha.
+El ensayo se revirtió y se comprobaron las doce tablas de historial.
+
+La ficha propia muestra quince o dieciséis campos según los permisos. La
+original reúne cincuenta, incluidos componentes de SLA, calificaciones,
+foro y WhatsApp. La prueba anterior cubre la atención básica de tickets.
+La consulta directa del modelo por la cuenta externa y el recorrido web del
+portal se comprueban por separado.
+
+Se preservaron 81 tablas de negocio y seguridad al instalar y repetir la
+actualización. El esquema mantuvo sus 11.939 columnas, 5.650 restricciones
+y 804 definiciones de contadores. El SHA-256 del paquete es
+`00adc8a137ad753c097383a928c25a5c4bb4e5098c189c195e3fbb2805f57207`.
+Los recibos privados son `U44H2-steps-support-install.json`,
+`U44H2-steps-support-repeat.json`, `U44S2-steps-support-reference.json`,
+`U44HC2-steps-support-reference.json` y `U44HT2-steps-support-reference.json`.

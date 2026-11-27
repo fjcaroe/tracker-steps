@@ -20,8 +20,10 @@ def fingerprint(value):
 
 
 def ticket_trial(env):
-    if not __debug__ or env.cr.dbname != 'MANAGEMENT_QA_STEPS_CRM_20261126U42C':
-        raise ValueError('Use the private original Steps ticket reference.')
+    if not __debug__ or env.cr.dbname not in ('MANAGEMENT_QA_STEPS_CRM_20261126U42C',
+                                               'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H',
+                                               'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2'):
+        raise ValueError('Use the private Steps ticket pair.')
     assert {line.split(':')[0].strip() for line in Path('/proc/net/dev').read_text().splitlines()[2:]} == {'lo'}
     user = env['res.users'].browse(7)
     assert user.active and not user.share and not user.has_group('base.group_system')
@@ -31,7 +33,10 @@ def ticket_trial(env):
     original = tickets.search([],order='id')
     sample = original.filtered(lambda row:row.team_id and row.partner_id and row.stage_id)[:1]
     assert sample and scope.ref('helpdesk.helpdesk_ticket_menu_all').id in scope['ir.ui.menu']._visible_menu_ids()
-    action = scope['ir.actions.actions']._for_xml_id('helpdesk.helpdesk_ticket_action_main_tree')
+    menu = scope.ref('helpdesk.helpdesk_ticket_menu_all')
+    action = scope['ir.actions.actions']._for_xml_id('step_helpdesk_tickets.action_all' if
+                env.cr.dbname.startswith('COMMUNITY_') else 'helpdesk.helpdesk_ticket_action_main_tree')
+    assert action['id'] == menu.action.id
     form_id = next((pk for pk,kind in action['views'] if kind=='form'),None)
     env.cr.execute("""SELECT id,padding,number_increment FROM ir_sequence WHERE code='helpdesk.ticket'
         AND implementation='standard' AND active AND company_id IS NULL AND prefix IS NULL AND suffix IS NULL""")
@@ -111,11 +116,16 @@ def run(env):
             values = rows.read(readable, load=None)
             assert [r['id'] for r in values] == rows.ids and set(rows.ids) <= set(tickets)
             entry.update(tickets=len(rows), readable_fields=readable, identities=fingerprint(rows.ids),
-                         values=fingerprint(values))
+                         values=fingerprint(values),default_order=fingerprint(model.search([]).ids))
             writable = [row.id for row in rows if row.has_access('write')]
             entry.update(writable=len(writable), writable_ids=fingerprint(writable))
             if entry['menus'] and 'helpdesk.helpdesk_ticket_menu_all' in entry['menus']:
-                action = actor['ir.actions.actions']._for_xml_id('helpdesk.helpdesk_ticket_action_main_tree')
+                entry['master_order'] = {name:fingerprint(actor[name].search([]).ids)
+                                         for name in ('helpdesk.tag','helpdesk.team','helpdesk.stage')}
+                menu = actor.ref('helpdesk.helpdesk_ticket_menu_all')
+                action = actor['ir.actions.actions']._for_xml_id('step_helpdesk_tickets.action_all' if
+                          env.cr.dbname.startswith('COMMUNITY_') else 'helpdesk.helpdesk_ticket_action_main_tree')
+                assert action['id'] == menu.action.id
                 assert action['res_model'] == model._name
                 view_id = next((pk for pk,kind in action['views'] if kind == 'form'), False)
                 view = model.get_view(view_id=view_id or None, view_type='form')
