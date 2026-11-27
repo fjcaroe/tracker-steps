@@ -17,7 +17,9 @@ def pdf_derivative_name(database):
     return match[1] + 'PDF_' + sha256(database.encode()).hexdigest()[:8]
 
 
-def run(command):
+def run(command, *, service_process=False):
+    if service_process and os.geteuid() == 0:
+        raise ValueError('Start the report process as the private Odoo service account.')
     shell = command.index('shell')
     options = [item for item in command[shell + 1:]
                if item not in ('--no-http', '--stop-after-init')
@@ -42,10 +44,12 @@ def run(command):
                 time.sleep(1)
         else:
             raise RuntimeError('Private report asset server did not start')
-        # sudo preserves no user-provided environment. Pass only the local asset
-        # URL after switching users, preserving the original Odoo command.
-        command = command[:3] + ['env', f'STEPS_PRIVATE_REPORT_URL={url}'] + command[3:]
-        return subprocess.run(command, env={**os.environ, 'NO_PROXY': '127.0.0.1'}, timeout=180).returncode
+        environment = {**os.environ, 'NO_PROXY': '127.0.0.1'}
+        if service_process:
+            environment['STEPS_PRIVATE_REPORT_URL'] = url
+        else:
+            command = command[:3] + ['env', f'STEPS_PRIVATE_REPORT_URL={url}'] + command[3:]
+        return subprocess.run(command, env=environment, timeout=180).returncode
     finally:
         server.terminate()
         try:
@@ -56,4 +60,5 @@ def run(command):
 
 
 if __name__ == '__main__':
-    sys.exit(run(sys.argv[1:]))
+    direct = sys.argv[1:2] == ['--service-process']
+    sys.exit(run(sys.argv[2:] if direct else sys.argv[1:], service_process=direct))

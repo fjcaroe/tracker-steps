@@ -16,7 +16,7 @@ import sys
 
 from preflight_original_history_storage import require
 from sys_previred_preservation import identifier
-from sys_cohort_required import guard as guard_required
+from sys_cohort_required import DOCUMENT_COPY, check_document_fields, guard as guard_required
 
 
 ROOTS = ('step_payroll_contracts', 'step_payroll_oca_api', 'step_simpledigital_oca_base',
@@ -32,12 +32,31 @@ def main():
     p.add_argument('--addons-path', required=True)
     p.add_argument('--data-dir', required=True)
     p.add_argument('--logfile', required=True)
-    p.add_argument('--update-history-only', action='store_true',
-                   help='Upgrade only the installed SyS history module in a converted cohort.')
+    operation = p.add_mutually_exclusive_group()
+    operation.add_argument('--update-history-only', action='store_true',
+                           help='Upgrade only the installed SyS history module in a converted cohort.')
+    operation.add_argument('--upgrade-module', choices=('l10n_cl_simpledigital_payroll', 'step_hr_previred',
+                    'step_hr_previred_simpledigital', 'hr_timesheet', 'project_sms', 'l10n_latam_invoice_document'))
+    documents = ('step_document_library', 'step_document_library_portal')
+    operation.add_argument('--install-document', choices=documents)
+    operation.add_argument('--upgrade-document', choices=documents)
     args = p.parse_args()
     database = args.database
-    require(re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', database),
+    valid_database = (database in ('COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MP',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MQ',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MV',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U43MF',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG') if args.upgrade_module
+                      else re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', database))
+    doc_module = args.install_document or args.upgrade_document
+    if doc_module:
+        valid_database = database == DOCUMENT_COPY
+    require(valid_database,
             'sys-cohort-private-loader-required')
+    require(not database.endswith(('U41MQ', 'U41MV', 'U41MW', 'U43MF', 'U44FD', 'U44FG')) or args.upgrade_module not in ('hr_timesheet', 'project_sms'),
+            'original-upstream-policy-version-required')
     plan = json.loads(args.plan.read_bytes())
     require(plan['database'] == database and plan['integral_conversion'] is False,
             'sys-cohort-scoped-plan-required')
@@ -69,6 +88,8 @@ def main():
     def process_end(self, modules):
         cr = self.env.cr
         require(cr.dbname == database, 'sys-cohort-cleanup-scope')
+        if database == DOCUMENT_COPY:
+            check_document_fields(cr)
         cr.execute("SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgenabled='O' "
                    "AND tgname='steps_sys_history_guard_row'")
         require(cr.fetchone() == (4,), 'sys-cohort-closed-history-guards-required')
@@ -100,12 +121,13 @@ def main():
     IrModelData._process_end = process_end
     sql.drop_not_null = protected_drop
     try:
+        targets = 'step_payroll_oca_sys_history' if args.update_history_only else ','.join(ROOTS)
         sys.argv = [str(args.runtime / 'odoo-bin'), '-c', args.config, '-d', database,
                     '--db-filter=^' + database + '$', '--db_host=/var/run/postgresql',
                     '--data-dir=' + args.data_dir, '--addons-path=' + args.addons_path,
                     '--load=base,web', '--workers=0', '--max-cron-threads=0', '--no-http',
                     '--stop-after-init', '--without-demo=all', '--logfile=' + args.logfile,
-                    '-u', 'step_payroll_oca_sys_history' if args.update_history_only else ','.join(ROOTS)]
+                    '-i' if args.install_document else '-u', doc_module or args.upgrade_module or targets]
         try:
             cli.main()
         except SystemExit as exc:
