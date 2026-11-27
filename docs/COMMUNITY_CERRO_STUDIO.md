@@ -134,3 +134,9 @@ del U40B híbrido. En Traslados faltan los dos campos almacenados de
 `quality_control`. En Tarjas, el proveedor de origen también protege las
 fechas de cosecha de las tarjas validadas; en Costos de exportación impide
 cambiar una tarifa usada en un programa valorizado.
+
+En la actualización nativa completa la guarda detectó que el cargador iba a
+retirar el ID de modelo de Tipos de proceso de su antiguo módulo. El código de
+cada antiguo dueño sigue registrando su modelo al actualizar. Al repetir la
+actualización se conservaron los 60.749 identificadores de la copia nativa y
+se verificaron de nuevo sus 23 vistas y rutas.

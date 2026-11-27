@@ -23,6 +23,11 @@ class FruitPackage(models.Model):
     ], string="Resultado de Packing")
 
 
+class PackingProcessType(models.Model):
+    # Keep the native module alias for the model when its fields move to the catalog.
+    _inherit = "step.packing.process.type"
+
+
 class PackingProduction(models.Model):
     _name = "step.packing.production"
     _description = "Orden de Trabajo de Packing"

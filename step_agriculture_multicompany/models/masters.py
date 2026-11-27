@@ -2,6 +2,11 @@ from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 
+class Fundo(models.Model):
+    # Retain the original model alias while the shared farm provider owns its fields.
+    _inherit = 'step.fundo'
+
+
 class Category(models.Model):
     _name = 'step.management.fruit.category'
     _inherit = ['step.management.fruit.category', 'step.shared.agriculture.master']

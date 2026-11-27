@@ -1,6 +1,6 @@
 {
     "name": "Steps - Maestros agrícolas multiempresa",
-    "version": "18.0.1.0.7",
+    "version": "18.0.1.0.8",
     "license": "LGPL-3",
     "depends": ["step_agriculture_shared_farms", "step_fruit_category_unification", "step_producer_fruit_reports", "step_packing_operations", "step_packing_ticket_revision", "step_export_shipping_design"],
     "data": ["security/rules.xml", "security/producer_access.xml", "views/masters.xml", "views/calibers.xml", "views/contact_group.xml"],

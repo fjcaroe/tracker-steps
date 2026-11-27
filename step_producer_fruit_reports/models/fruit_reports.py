@@ -2,6 +2,11 @@
 from odoo import fields, models, tools
 
 
+class Species(models.Model):
+    # External XML references to this model still belong to the reporting module.
+    _inherit = 'step.especie'
+
+
 class FruitReceptionReport(models.Model):
     _name = 'step.fruit.reception.report'
     _description = 'Informe de recepciones de fruta'
