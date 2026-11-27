@@ -25,6 +25,7 @@ METADATA = {'ir_model','ir_model_fields','ir_model_fields_selection','ir_model_d
             'ir_module_module','ir_module_module_dependency','ir_cron_trigger','ir_model_constraint'}
 
 
+SIGNATURE_PACKAGE = "2d531e14a2e78e6ebeac508b0d523771b9c1f719e01f13a63c06a3b225d21725"
 ORIGINAL_PACKAGE = "8b0bf3abc404d32467bce5f9cf396002d0bb00887e5a3f623bf1ed8ae4cbaa48"
 
 
@@ -54,7 +55,7 @@ def install_payload(checksum, root):
     for path in [root,folder,*(p for p in folder.rglob('*') if p.is_dir())]:
         path.chmod(0o755)
     manifest=ast.literal_eval((folder/'__manifest__.py').read_text())
-    require(manifest['version'] in ('18.0.1.0.0', '18.0.1.0.1') and manifest['license']=='LGPL-3' and manifest['depends']==['l10n_cl'],
+    require(manifest['version'] in ('18.0.1.0.0', '18.0.1.0.1', '18.0.1.0.2') and manifest['license']=='LGPL-3' and manifest['depends']==(['l10n_cl','step_document_library'] if manifest['version']=='18.0.1.0.2' else ['l10n_cl']),
             'unexpected-historical-provider')
     return manifest['version']
 
@@ -67,7 +68,7 @@ def run(checksum, repeat, upgrade=False):
         release.parent.mkdir(exist_ok=True)
         release.parent.chmod(0o755)
     version = install_payload(checksum,release)
-    require(version == ('18.0.1.0.1' if upgrade else '18.0.1.0.0'), 'wrong-release-for-operation')
+    require((version != '18.0.1.0.0') == upgrade, 'wrong-release-for-operation')
     frozen=json.loads(gzip.decompress((SEALED/'source-snapshot.json.gz').read_bytes()))
     argv=json.loads((WORK/'private-args.json').read_bytes())
     if upgrade:
@@ -75,9 +76,14 @@ def run(checksum, repeat, upgrade=False):
                 'original-fiscal-package-required')
         index, = (i for i,arg in enumerate(argv) if arg.startswith('--addons-path='))
         roots = argv[index].removeprefix('--addons-path=').split(',')
-        require(roots[0] in (str(WORK/'addons'), str(release)), 'unexpected-current-fiscal-overlay')
-        if roots[0] != str(release):
-            argv[index]='--addons-path='+','.join([str(release),*roots])
+        previous = WORK/'addons' if version=='18.0.1.0.1' else WORK/'releases'/SIGNATURE_PACKAGE
+        if version=='18.0.1.0.2':
+            require(json.loads((previous/'verified.json').read_bytes())['package']==SIGNATURE_PACKAGE,
+                    'signature-provider-receipt-required')
+        require(roots[0] in (str(previous),str(release)), 'unexpected-current-fiscal-overlay')
+        if roots[0] == str(previous):
+            subsequent = roots if previous == WORK/'addons' else roots[1:]
+            argv[index]='--addons-path='+','.join([str(release),*subsequent])
     require(argv[argv.index('-d')+1]==TARGET and '--no-http' in argv,'incorrect-fiscal-database')
     names=json.loads((SEALED/'effective-providers.json').read_bytes()).keys()|CONTRACTS.keys()
     baseline=release/'verified.json' if upgrade else WORK/'status-install.json'
@@ -86,7 +92,7 @@ def run(checksum, repeat, upgrade=False):
         require(baseline.is_file() and json.loads(baseline.read_bytes())['package']==checksum and active.keys()==names|{MODULE},
                 'tested-package-required-for-update')
     if upgrade:
-        require(active.keys()==names|{MODULE} and active[MODULE][0] in ('18.0.1.0.0',version), 'unexpected-upgrade-source')
+        require(active.keys()==names|{MODULE} and active[MODULE][0] in ({'18.0.1.0.1':'18.0.1.0.0','18.0.1.0.2':'18.0.1.0.1'}[version],version), 'unexpected-upgrade-source')
     if repeat or upgrade or active.keys()==names:
         command=argv.copy()
         command.remove('shell')

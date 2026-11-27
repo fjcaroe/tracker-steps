@@ -13,7 +13,7 @@ def compare_values(original, candidate):
 def compare(native, community):
     assert __debug__ and native['database']=='MANAGEMENT_QA_STEPS_CRM_20261126U42C'
     assert community['database'] in ('COMMUNITY_STEPS_CRM_DOC_20261127U44P','COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3',
-                                     'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F')
+                                     'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F','COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A')
     assert all(native[k]==community[k]==n for k,n in [('moves',86),('posted',84),('lines',211)])
     assert len(native['cases'])==len(community['cases'])==7
     missing = {}
@@ -21,6 +21,8 @@ def compare(native, community):
     opened = 0
     for left,right in zip(native['cases'],community['cases']):
         assert all(left[k]==right[k] for k in ('actor','companies','administrator'))
+        if 'document_actions' in left and right.get('document_actions', {}).get('registered'):
+            assert left['document_actions'] == right['document_actions']
         if 'archived_files' in left or 'archived_files' in right:
             assert left['archived_files']['registered']
             if right['archived_files']['registered']:

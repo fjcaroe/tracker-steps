@@ -49,3 +49,13 @@ imagen de la firma. La revisión conservó disponible esa área para el caso
 habilitado y permitió imprimirla en blanco. Los 160 casos que el original
 pudo calcular coincidieron. La comparación fiscal de los documentos detectó
 que la plantilla de origen necesitaba también la oficina regional del SII.
+
+La revisión 18.0.1.0.2 restableció las 71 oficinas regionales originales y
+la acción Documentos de la factura. Con siete contextos coincidieron el
+indicador y el acceso a cada lista de documentos vinculados. Se abrieron los
+21 comprobantes para dos operadores. Los textos completos coincidieron en
+40 de 42 lecturas. La única factura diferente mostraba dos abonos en distinto
+orden. En diez facturas con varios abonos el sistema nativo presentaba las
+conciliaciones por su identificador original. La impresión en PDF reveló otra
+diferencia: el gráfico del timbre ocupaba más espacio. La imagen generada con
+escala 1 y margen 15 coincidió píxel a píxel con los 21 timbres nativos.
