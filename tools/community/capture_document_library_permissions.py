@@ -33,7 +33,8 @@ def capture(env):
             assert all(row["user_permission"] in ("view", "edit", "none", False) for row in rows)
             case = {role: [row["id"] for row in rows if (row["user_permission"] or "none") == role]
                     for role in ("view", "edit", "none")}
-            info["cases"][key] = dict(case, model_acl=True)
+            menu = scope.ref("documents.dashboard")
+            info["cases"][key] = dict(case, model_acl=True, menu_visible=menu.id in scope["ir.ui.menu"]._visible_menu_ids())
         result["users"][str(user.id)] = info
     env.cr.rollback()
     return result
