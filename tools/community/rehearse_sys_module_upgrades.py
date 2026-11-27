@@ -323,7 +323,11 @@ def retained_release(args):
     require(len(original) == 12, "native-reference-document-coverage")
     probe += "\nimport json\nassert env.cr.dbname==" + repr(args.database)
     probe += "\naccepted=run(env,Path(" + repr(str(args.output)) + ")," + repr(original) + ")"
-    probe += "\nenv.cr.execute('SET TRANSACTION READ ONLY'); accepted['signing']=check_signing(env); env.cr.rollback()"
+    report = json.loads(effective_profile(args.output)[1].read_bytes())["modules"]["l10n_cl"]["invoice_reference_provider"]
+    receipt = PRIVATE / "community-sys-six-invoice-signing-20261127U41MSR/receipt.json"
+    require(digest(receipt) == report["native_receipt_signing"], "native-signing-receipt-drift")
+    cases, = json.loads(receipt.read_bytes())
+    probe += "\nenv.cr.execute('SET TRANSACTION READ ONLY'); accepted['signing']=check_signing(env," + repr(cases) + "); env.cr.rollback()"
     probe += "\nprint('PINNED_RELEASE='+json.dumps(accepted),flush=True)"
     log = args.output / ("retained-release-" + str(len(list(args.output.glob("retained-release-*.log")))) + ".log")
     status = odoo(args, "shell", [], log, probe.encode())

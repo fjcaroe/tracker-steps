@@ -1,5 +1,6 @@
 """Bind the original SyS Chilean invoice reference contract to its free accounting provider."""
 import json
+from itertools import product
 from pathlib import Path
 from pprint import pformat
 import shutil
@@ -95,6 +96,16 @@ def build_invoice_provider(db, output):
     assets = original("""SELECT json_build_array(count(*),md5(string_agg(md5(to_jsonb(a)::text),'' ORDER BY id)))
                       FROM ir_attachment a WHERE res_model='res.users' AND res_field='sign_signature'""")
     require(flags == [29, 0, 0] and signers[:2] == [8129,124] and assets[0] == 1, "unexpected-original-signature-census")
+    receipt = Path("/opt/steps-validation/community-sys-six-invoice-signing-20261127U41MSR/receipt.json")
+    receipt_cases, = json.loads(receipt.read_bytes())
+    types = ("out_receipt", "in_receipt")
+    expected_cases = list(product((False, True), (False, True), ("no", "blank", "sample"), types, ("draft", "posted", "cancel")))
+    require([tuple(sample[:5]) for sample in receipt_cases] == expected_cases, "native-receipt-signing-coverage")
+    enabled_types = {sample[3] for sample in receipt_cases if sample[5]}
+    for enabled, configured, image, kind, state, shown, present, identical in receipt_cases:
+        visible = enabled and kind in enabled_types and state == "posted"
+        require(shown == visible and present == identical == (visible and image == "sample"), "native-receipt-signing-rule")
+    labels["signature_document_types"] = ["out_invoice", "out_refund", *sorted(enabled_types)]
     models = output / "models"
     implementation = models / "sys_chilean_invoice_history.py"
     metadata = models / "sys_invoice_reference_labels.py"
@@ -108,4 +119,5 @@ def build_invoice_provider(db, output):
             "financial_relation_ids": [5963, 6077], "original_financial_delete_actions": original_fk,
             "signature_fields": sorted(signing_ids), "original_company_signatures": flags, "original_move_signers": signers,
             "original_signature_attachment": assets,
+            "native_receipt_signing": digest(receipt),
             "code": digest(implementation), "metadata": digest(metadata), "init": digest(init)}

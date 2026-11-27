@@ -30,7 +30,7 @@ def signing_matrix(shell, move_types):
     return result
 
 
-def check_signing(shell):
+def check_signing(shell, expected_receipts):
     types = ("out_invoice", "out_refund", "in_invoice", "in_refund", "entry")
     synthetic = signing_matrix(shell, types)
     user = shell["res.users"].browse(6)
@@ -44,4 +44,7 @@ def check_signing(shell):
     proof = json.dumps({"synthetic": synthetic, "original": dict(actual)}, sort_keys=True, separators=(",", ":")).encode()
     signature = hashlib.sha256(proof).hexdigest()
     assert signature == "d14d2f6bf28a943b8f78f621e12e26ab7dc5ce08ae5e1fdba0471cc875ddb9bf"
-    return {"signed_result": signature, "original_documents": sum(actual.values()), "synthetic_cases": len(synthetic)}
+    receipts = signing_matrix(shell, ("out_receipt", "in_receipt"))
+    assert receipts == expected_receipts
+    return {"signed_result": signature, "original_documents": sum(actual.values()), "synthetic_cases": len(synthetic),
+            "receipt_cases": len(receipts)}

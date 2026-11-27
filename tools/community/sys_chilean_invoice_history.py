@@ -37,7 +37,7 @@ class AccountMove(models.Model):
     @api.depends("company_id.sign_invoice", "move_type", "state", "signing_user.sign_signature")
     def _compute_stored_print_signature(self):
         for move in self:
-            visible = move.company_id.sign_invoice and move.state == "posted" and move.move_type in ("out_invoice", "out_refund")
+            visible = move.company_id.sign_invoice and move.state == "posted" and move.move_type in METADATA["signature_document_types"]
             move.show_signature_area = visible
             move.signature = move.signing_user.sign_signature if visible and move.signing_user else False
 
