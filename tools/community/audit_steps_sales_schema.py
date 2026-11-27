@@ -18,8 +18,8 @@ TARGETS = ('COMMUNITY_STEPS_CRM_DOC_20261127U43X','COMMUNITY_STEPS_CRM_PRINT_202
            'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2')
 
 
-def objects(db):
-    return json.loads(query(db,"""SET search_path=pg_catalog,public;
+def objects(db, read_query=query):
+    return json.loads(read_query(db,"""SET search_path=pg_catalog,public;
         WITH definitions AS (
             SELECT 'index/'||c.relname AS key, json_build_array(pg_get_indexdef(c.oid),i.indisvalid,i.indisready,
                     i.indislive,i.indisclustered,i.indisreplident,pg_get_userbyid(c.relowner),c.relacl,c.reloptions) AS body
