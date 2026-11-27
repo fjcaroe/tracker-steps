@@ -13,9 +13,13 @@ tonos de gris diferentes. Se verificaron fuera del servidor las 22 piezas
 del respaldo, incluidos 22.258 archivos de ejecución y 2.702 del almacén.
 Una segunda base se recuperó desde esas piezas. En sus dos arranques coincidieron
 609.133 filas, 1.141 tablas, 861 contadores y el esquema original del respaldo FG.
-Los resultados de las 133 liquidaciones y las
-33 diferencias históricas se detallan a continuación.
-[Recorrido integrado de SyS](COMMUNITY_SYS_MODULE_UPGRADES.md)
+De las 133 liquidaciones del último mes completo, 130 se pudieron calcular
+y tres requerían revisar el contrato en ambos motores. En 23 liquidaciones un
+crédito que quedó inactivo después del pago explica toda la diferencia
+histórica. Otras diez figuraban como editadas en los respaldos. En ellas
+la fórmula y los datos contemporáneos reprodujeron el primer importe del
+borrador actual. [Recorrido integrado de SyS](COMMUNITY_SYS_MODULE_UPGRADES.md) ·
+[Conciliación de octubre](COMMUNITY_SYS_REGLAS_HISTORICAS.md)
 
 **Steps.** En la copia de ventas, el vendedor abrió la oportunidad, guardó
 el presupuesto, confirmó el pedido y volvió a abrir la factura en borrador.
@@ -35,7 +39,9 @@ que tres empresas perdían acceso a categorías de fruta y una a seis clases.
 También cambiaron tres políticas de borrado y la representación del peso.
 La versión corregida en U44M recuperó las relaciones y restricciones del original.
 Coincidieron las 36 consultas de permisos por empresa y las pruebas de
-instalación y actualización en esa copia. Nómina sigue
+instalación y actualización en esa copia de 188 módulos. De 23 pantallas
+históricas, el operador alcanzó 20 por menú y reprodujo el contenido completo
+de 15. Nómina sigue
 requiriendo una definición para Cerro sobre su bruto en cero frente al caso
 real de SyS. [Contratos de datos y permisos de Cerro](COMMUNITY_CERRO_CONTRATOS_POSTGRES.md)
 
