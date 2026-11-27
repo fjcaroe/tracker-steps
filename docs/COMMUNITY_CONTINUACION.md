@@ -49,7 +49,7 @@ Las copias de Cerro contienen cero tablas mensuales de Impuesto de Segunda
 Categoría. El motor original pidió la de octubre en los 17 casos. Al introducir
 en la transacción de ensayo la tabla de octubre realmente registrada en SyS,
 los 17 cálculos nativos de Cerro dieron las mismas líneas entre sí. La base y
-el líquido fueron positivos y el bruto quedó sin importe positivo. La
+el líquido fueron positivos y el bruto fue exactamente cero. La
 configuración de Cerro difiere del histórico de SyS. Community detuvo el
 cálculo porque el bruto de esa estructura carece de conexión demostrada con el
 sueldo base. Este contraste deja pendiente la definición de Nómina para Cerro.
