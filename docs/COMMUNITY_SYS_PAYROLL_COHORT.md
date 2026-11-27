@@ -172,3 +172,25 @@ incluidos el diario inaccesible, la mezcla de empresas y el diario ajeno.
 Tres estructuras conservan el diagnóstico de líquido desconectado del bruto
 y una el de bruto desconectado del sueldo base. Este ensayo certifica las
 regresiones contables de Cerro. La referencia de liquidaciones es SyS.
+
+## Lotes originales de octubre en SyS
+
+El operador de Nómina abrió el menú original 953, la acción 1426 y el
+formulario 5024 en cada una de las once empresas con liquidaciones en octubre.
+En la copia nativa y en el candidato creó los once lotes sin introducir un diario.
+Community obtiene ese diario de la propiedad explícita de la estructura para la
+empresa en uso. Los lotes históricos conservan sus valores.
+
+En nuevos lotes se calcularon y cerraron las 130 liquidaciones del período.
+Los dos motores produjeron los mismos importes y los mismos 130 asientos
+en borrador, cada uno sin apuntes, tal como estaba configurado en SyS.
+También se probaron la apertura de las liquidaciones desde el lote y los
+cambios de estado a pagado, de vuelta a cerrado y a borrador. Esos pasos
+no cursan transferencias bancarias. Dos adjuntos bancarios guardados en julio,
+uno del lote y otro de una liquidación, conservaron sus 215 bytes cada uno.
+
+El contrato de Community protege los importes de una liquidación que ya se
+validó, incluso cuando su lote vuelve a borrador. El origen permite recalcular
+después de reabrir. Esta diferencia se registra por separado de los 130 cierres
+iniciales y de los archivos históricos. Las pruebas se ejecutaron con
+transacciones reversibles en las restauraciones privadas de SyS.
