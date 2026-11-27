@@ -8,6 +8,7 @@ import shutil
 import tarfile
 import tempfile
 
+from derive_cerro_freight_directory import derive as freight
 from derive_cerro_estimation_profile import derive as estimates
 from derive_cerro_packing_profile import derive as packing
 
@@ -38,7 +39,7 @@ def write_module(tar, root, required_digest, lf_paths, binary_suffixes):
 
 
 def build(source, output, profile='172'):
-    if profile not in ('172', 'budget'):
+    if profile not in ('172', 'budget', 'freight'):
         raise ValueError('Unknown Cerro archive profile')
     receipt = Path(__file__).with_name('cerro_studio_' + profile + '_receipt.json')
     expected = json.loads(receipt.read_text(encoding='utf8'))
@@ -49,6 +50,9 @@ def build(source, output, profile='172'):
             estimates(source / 'step_management_costs', source / 'step_management_estimation_entry', work / 'estimates')
             packing(source, work / 'packing')
             sources = [work / 'estimates', work / 'packing', source]
+        elif profile == 'freight':
+            freight(source, work / 'freight/step_operations_ui')
+            sources = [work / 'freight']
         archive = work / 'profile.tar'
         files = 0
         with tarfile.open(archive, 'w', format=tarfile.PAX_FORMAT) as tar:
@@ -68,6 +72,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--profile', choices=('172', 'budget'), default='172')
+    parser.add_argument('--profile', choices=('172', 'budget', 'freight'), default='172')
     args = parser.parse_args()
     print(build(args.source, args.output, args.profile))

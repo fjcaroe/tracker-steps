@@ -1,0 +1,17 @@
+{
+  "archive_sha256": "769a584e2bf3e1c7009f6ce2fd5fbd00d68228ac900c2d066582b69ea3d62c43",
+  "binary_suffixes": [
+    ".png"
+  ],
+  "files": 43,
+  "lf_source_files": {
+    "step_operations_ui": [
+      "__manifest__.py",
+      "models/__init__.py",
+      "models/step_cerro_directory.py"
+    ]
+  },
+  "module_trees": {
+    "step_operations_ui": "6b8066659d7a3556478106f2fc4359bacce4fc0c54d4a5c535152eebd4af1f77"
+  }
+}
