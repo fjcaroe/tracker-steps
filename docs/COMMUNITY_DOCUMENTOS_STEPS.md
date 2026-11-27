@@ -25,5 +25,14 @@ restricciones, 1.916 definiciones de titular y permisos y 804 definiciones
 de secuencia. También coincidieron las 15.150 comprobaciones de orden y
 propiedades de columnas, índices, vistas, propiedad de secuencias y demás
 objetos SQL originales. La biblioteca añadió 25 columnas, 10 restricciones,
-tres tablas y tres secuencias. El recorrido de descarga como empleado y la
-instalación conjunta con los colores de impresión se verifican por separado.
+tres tablas y tres secuencias.
+
+En U44P se repitió la instalación desde el mismo respaldo con los dos módulos
+documentales y el módulo de colores de impresión. Quedaron 160 proveedores
+instalados. Las 686 decisiones de permisos y las 196 asociaciones de enlaces
+coincidieron de nuevo, y el cotejo conservó todas las definiciones SQL del
+origen. Desde el menú Documentos, un empleado entró en sus carpetas y recibió
+los mismos cuatro archivos por el controlador de descarga en el original, U43X
+y U44P. También se denegaron las dos mismas peticiones. Los recibos privados
+completos son `U43X-steps-combined-library.json` y
+`U44P-steps-combined-library.json`.
