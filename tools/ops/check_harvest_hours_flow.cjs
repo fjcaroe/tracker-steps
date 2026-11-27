@@ -50,6 +50,8 @@ const { chromium } = require('playwright');
         await form.locator('[name=harvestType]').selectOption('industrial');
         await form.locator('[name=variety]').selectOption(String(center.variety_id));
         await form.locator('[name=costCenter]').selectOption(String(center.id));
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        await page.screenshot({ path: output + '.new-ot.png', fullPage: true });
         await form.getByRole('button', { name: 'Crear jornada local', exact: true }).click();
         await nav.getByRole('button', { name: /^Registrar(?:\s|$)/ }).click();
         await page.locator('form.capture-card select').selectOption(String(worker));
@@ -65,6 +67,8 @@ const { chromium } = require('playwright');
         await close.locator('[name=workStart]').fill(day + 'T00:00');
         await close.locator('[name=workEnd]').fill(day + 'T01:00');
         await close.locator('[name=workHours]').fill('1');
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        await page.screenshot({ path: output + '.close-hours.png', fullPage: true });
         function transition(action) {
             return page.waitForResponse(r => r.url().endsWith('/api/harvest/orders/transition')
                 && r.request().method() === 'POST' && r.request().postDataJSON().action === action);
