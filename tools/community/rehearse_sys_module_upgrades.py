@@ -1,5 +1,6 @@
 """Restore a sealed SyS Community cohort and exercise official upgrades on an isolated copy."""
 import argparse
+import ast
 import fcntl
 import gzip
 import json
@@ -10,11 +11,13 @@ import re
 import shutil
 import subprocess
 import tarfile
+import tempfile
 
 from audit_sys_upgrade_policy import audit
 from build_sys_upgrade_policy_profile import build, fingerprint, seal_profile
 from compare_sys_payroll_exports_all import changes, index
 from custody_sys_previred_filestore import attachments, digest, object_catalog, restore_objects
+from package_sys_original_policy_providers import COMMIT, TREES
 from restore_native_product_backup import pg, query
 from restore_sys_previred_pair import GIB, LOCK, require
 
@@ -27,6 +30,8 @@ MODULES = {
     "project_sms": ("18.0.1.0", "18.0.1.1"),
     "l10n_latam_invoice_document": ("18.0.1.0", "18.0.1.1"),
 }
+PINNED_ARCHIVE = "e1ab99abe55ac7693afe6c48f3ee51aa4ac27208b483472a6e8ae20f0be6233b"
+FORWARD = tuple(module for module in MODULES if module not in TREES)
 PRIVATE = Path("/opt/steps-validation")
 SPACE = "steps_community_storage_20261028_community"
 
@@ -126,6 +131,38 @@ def restore(args, proof):
                                  "rows": proof["rows"], "objects": len(catalog), "tablespace": SPACE, "guards": original_guards})
 
 
+def pin_original_providers(args):
+    out = args.output
+    require(args.database.endswith("U41MQ") and not (out / "pinned").exists(), "fresh-original-policy-copy-required")
+    archive = Path(__file__).with_name("original-public-addons.tar")
+    require(digest(archive) == PINNED_ARCHIVE, "unexpected-original-public-package")
+    versions = module_versions(args.database)
+    require(all(versions[m] == ["installed", "18.0.1.0"] for m in TREES), "unexpected-original-policy-version")
+    with tempfile.TemporaryDirectory(dir=out) as tmp:
+        pinned = Path(tmp) / "pinned"
+        pinned.mkdir()
+        with tarfile.open(archive, "r|") as incoming:
+            for entry in incoming:
+                rel = Path(entry.name)
+                require(not rel.is_absolute() and ".." not in rel.parts and rel.parts[0] in TREES
+                        and entry.isfile() and entry.mode in (0o644, 0o755), "invalid-original-module-member")
+                target = pinned / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with incoming.extractfile(entry) as source, target.open("xb") as output:
+                    shutil.copyfileobj(source, output)
+                target.chmod(entry.mode)
+        for module in TREES:
+            manifest = ast.literal_eval((pinned / module / "__manifest__.py").read_text())
+            require(manifest["version"] == "1.0" and manifest["license"] == "LGPL-3", "wrong-original-manifest")
+        for directory in (pinned, *(p for p in pinned.rglob("*") if p.is_dir())):
+            directory.chmod(0o755)
+        files, sha = fingerprint(pinned)
+        require(files == 200, "unexpected-number-of-original-policy-files")
+        pinned.rename(out / "pinned")
+    save(out / "pinned-providers.json", {"commit": COMMIT, "trees": TREES, "files": files, "sha256": sha,
+                                       "archive": PINNED_ARCHIVE})
+
+
 def guarded_plan(args):
     template = PRIVATE / "community-sys-cohort-20261126U40J/receipts/cohort-plan.json"
     require(digest(template) == "4b42c4c1789196f72b32f96a6f14e39bb18a822b8958907057337fbe34ec8573",
@@ -170,9 +207,14 @@ def odoo(args, mode, options, log, stdin=None, comparison_key=None):
     addons = [core / "addons", core / "odoo/addons"]
     if (out / "profile").exists():
         expected = json.loads((out / "profile-proof.json").read_bytes())
-        require(args.database.endswith("U41MP") and fingerprint(out / "profile") == (expected["files"], expected["sha256"]),
+        require(args.database.endswith(("U41MP", "U41MQ")) and fingerprint(out / "profile") == (expected["files"], expected["sha256"]),
                 "profile-checksum-drift")
         addons.insert(0, out / "profile")
+    if (out / "pinned").exists():
+        pins = json.loads((out / "pinned-providers.json").read_bytes())
+        require(args.database.endswith("U41MQ") and pins["archive"] == PINNED_ARCHIVE
+                and fingerprint(out / "pinned") == (pins["files"], pins["sha256"]), "original-pinned-modules-drift")
+        addons.insert(0, out / "pinned")
     if not mode and (out / "profile").is_dir():
         require(options == ["-u", args.module], "unexpected-candidate-operation")
         tooling = out / "validator"
@@ -242,7 +284,7 @@ def final_receipt(args, proof):
     restored = json.loads((out / "restored.json").read_bytes())
     require(restored["database"] == db and restored["sealed"] == str(args.sealed), "wrong-target")
     jobs = {}
-    for name in MODULES:
+    for name in (FORWARD if db.endswith("U41MQ") else MODULES):
         jobs[name] = json.loads((out / ("upgrade-" + name) / "receipt.json").read_bytes())
     original = json.loads(gzip.decompress((args.sealed / "source-snapshot.json.gz").read_bytes()))
     current = snapshot(db)
@@ -279,13 +321,16 @@ def final_receipt(args, proof):
     lost_required = [key for key, definition in original["columns"].items() if definition[1] and
                      (key not in current["columns"] or not current["columns"][key][1])]
     versions = module_versions(db)
-    result = {"relaxed_original_required_columns": sorted(lost_required), "official_results": {m: jobs[m]["passed"] for m in MODULES},
+    result = {"relaxed_original_required_columns": sorted(lost_required), "official_results": {m: entry["passed"] for m, entry in jobs.items()},
               "versions": {m: versions[m] for m in (*MODULES, "step_payroll_oca_sys_history")},
               "sealed_runtime": proof["runtime"]["archive_sha256"], "original_aliases": aliases,
               "guard_count": len(restored["guards"]), "original_files": len(original_files),
               "archived_payroll_pdfs": pdfs[0], "full_sql_delta": delta,
               "covered_table_changes": sorted(checks.intersection(delta["public_tables"])),
               "after_free": check_space(0)}
+    if db.endswith("U41MQ"):
+        result["retained_source_providers"] = json.loads((out / "pinned-providers.json").read_bytes())
+        require(all(versions[m] == ["installed", "18.0.1.0"] for m in TREES), "original-policy-version-drift")
     save(out / "final.json", result)
 
 
@@ -337,6 +382,7 @@ def upgrade(args, proof):
                                            if initial.get(k) != final.get(k)}, "delta": delta,
               "pg_errors": sorted(set(re.findall(r"psycopg2\.errors\.([A-Za-z_]+)", raw)))}
     if (out / "profile").is_dir():
+        require(after["columns"]["resource_calendar.previred_workday_type"][1], "native-calendar-must-remain-required")
         original_contracts = json.loads((out / "cohort-guards.json").read_bytes())["mandatory_columns"]
         result["original_required_columns"] = {key: after["columns"][key][1] for key in original_contracts}
         require(all(result["original_required_columns"].values()), "candidate-dropped-an-original-not-null")
@@ -348,7 +394,8 @@ def upgrade(args, proof):
 
 def payroll_exports(args):
     require(args.database in ("COMMUNITY_SYS_PREVIRED_MODULES_20261127U41M",
-                              "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MP"), "unapproved-export-rehearsal")
+                              "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MP",
+                              "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MQ"), "unapproved-export-rehearsal")
     out = args.output
     first = PRIVATE / "community-sys-payroll-exports-20261126U41X2/community/receipt.json"
     require(digest(first) == "fb7f44d3ac8e2ba4e40e627a987dbfce34082d0ff771744652f5d83e64592f52",
@@ -378,11 +425,11 @@ def payroll_exports(args):
 
 
 def candidate_batch(args, proof):
-    require(args.database.endswith("U41MP") and (args.output / "profile-proof.json").is_file(), "profile-required")
+    require(args.database.endswith(("U41MP", "U41MQ")) and (args.output / "profile-proof.json").is_file(), "profile-required")
     require(not (args.output / "final.json").exists(), "finished-candidate")
     for label in ("forms-before", "forms-after"):
         if label == "forms-after":
-            for module in MODULES:
+            for module in (FORWARD if args.database.endswith("U41MQ") else MODULES):
                 args.module = module
                 receipt = args.output / ("upgrade-" + module) / "receipt.json"
                 if not receipt.exists():
@@ -403,7 +450,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "seal-profile", "candidate-batch", "exports", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "pin-providers", "seal-profile", "candidate-batch", "exports", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -418,8 +465,10 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "restore":
             restore(args, proof)
+        elif args.operation == "pin-providers":
+            pin_original_providers(args)
         elif args.operation == "seal-profile":
-            require(args.database.endswith("U41MP"), "separate-policy-profile-copy-required")
+            require(args.database.endswith(("U41MP", "U41MQ")), "separate-policy-profile-copy-required")
             expected = json.loads((args.output / "profile-proof.json").read_bytes())
             result = seal_profile(args.output / "profile", args.output / "upgrade-profile.tar", expected)
             result.update(runtime=proof["runtime"]["archive_sha256"],
@@ -431,11 +480,16 @@ if __name__ == "__main__":
             candidate_batch(args, proof)
         elif args.operation == "profile":
             identity = json.loads((args.output / "restored.json").read_bytes())
-            require(args.database.endswith("U41MP") and identity["database"] == args.database
+            require(args.database.endswith(("U41MP", "U41MQ")) and identity["database"] == args.database
                     and identity["sealed"] == str(args.sealed), "separate-policy-profile-copy-required")
             versions = module_versions(args.database)
             require(all(versions[k] == ["installed", v[0]] for k, v in MODULES.items()), "profile-requires-original-versions")
-            save(args.output / "profile-proof.json", build(args.database, args.sealed, args.output / "profile", MODULES))
+            keep_original = args.database.endswith("U41MQ")
+            selected = (*FORWARD, "step_payroll_engine_transition") if keep_original else MODULES
+            if keep_original:
+                require((args.output / "pinned-providers.json").is_file(), "old-policy-providers-required")
+            save(args.output / "profile-proof.json", build(args.database, args.sealed, args.output / "profile",
+                                                          selected, original_admin_seeds=keep_original))
         elif args.operation == "final":
             final_receipt(args, proof)
         elif args.operation == "policy":

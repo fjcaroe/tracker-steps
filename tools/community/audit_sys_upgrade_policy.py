@@ -8,11 +8,11 @@ from lxml import etree
 from restore_native_product_backup import query
 
 
-def audit(db, core, modules):
+def audit(db, core, modules, *, original_admin_seeds=False):
     def rows(sql):
         return json.loads(query(db, sql))
     aliases = rows("""SELECT json_object_agg(module||'.'||name,json_build_array(model,res_id,noupdate))
-        FROM ir_model_data WHERE model IN ('ir.model','res.groups','ir.rule','ir.model.access','ir.module.category')""")
+        FROM ir_model_data WHERE model IN ('ir.model','res.groups','ir.rule','ir.model.access','ir.module.category','ir.cron','hr.contract.type','res.country')""")
     access = rows("""SELECT json_object_agg(id,json_build_object('name',name,'model_id',model_id,'group_id',group_id,
         'perm_read',perm_read,'perm_write',perm_write,'perm_create',perm_create,'perm_unlink',perm_unlink))
         FROM ir_model_access""")
@@ -20,6 +20,13 @@ def audit(db, core, modules):
         FROM res_groups""")
     rules = rows("""SELECT json_object_agg(id,json_build_object('name',name,'model_id',model_id,'domain_force',domain_force,
         'global',NOT EXISTS (SELECT 1 FROM rule_group_rel g WHERE g.rule_group_id=r.id))) FROM ir_rule r""")
+    stored_by_model = {"res.groups": groups, "ir.rule": rules}
+    if original_admin_seeds:
+        stored_by_model["hr.contract.type"] = rows("""SELECT json_object_agg(id,json_build_object(
+            'name',name,'code',code,'country_id',country_id)) FROM hr_contract_type""")
+        stored_by_model["ir.cron"] = rows("""SELECT json_object_agg(c.id,json_build_object('name',a.name,
+            'model_id',a.model_id,'state',a.state,'code',a.code,'interval_type',c.interval_type,
+            'interval_number',c.interval_number)) FROM ir_cron c JOIN ir_act_server a ON a.id=c.ir_actions_server_id""")
     memberships = {tuple(r) for r in rows("SELECT json_agg(json_build_array(gid,hid)) FROM res_groups_implied_rel")}
     result = {}
     for module in modules:
@@ -52,12 +59,14 @@ def audit(db, core, modules):
                                                           "declared_id": declared}
             elif path.suffix == ".xml":
                 xml = etree.parse(str(path))
-                for rec in xml.xpath('//record[@model="res.groups" or @model="ir.rule"]'):
+                for rec in xml.xpath("//record[@id and @model]"):
+                    if rec.get("model") not in stored_by_model:
+                        continue
                     if rec.xpath('ancestor-or-self::*[@noupdate="1"]'):
                         continue
                     model, pk, noupdate = info(rec.get("id"))
                     assert model == rec.get("model")
-                    stored = (groups if model == "res.groups" else rules)[str(pk)]
+                    stored = stored_by_model[model][str(pk)]
                     mismatch = []
                     for field in rec.iterchildren("field"):
                         name = field.get("name")
@@ -78,6 +87,8 @@ def audit(db, core, modules):
                         else:
                             expected = (field.text or "").strip()
                             old = old.strip() if isinstance(old, str) else old
+                            if type(old) is int:
+                                expected = int(expected)
                         if old != expected:
                             mismatch.append(name)
                     records[model + "/" + str(pk)] = {"differences": mismatch, "noupdate": noupdate,

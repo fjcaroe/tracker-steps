@@ -15,10 +15,15 @@ from custody_sys_previred_filestore import digest
 from restore_sys_previred_pair import require
 
 
-def wrap_rules(file, names):
+def wrap_rules(file, names, original_admin_seeds=False):
     xml = etree.parse(str(file))
     changed = set()
-    for node in xml.xpath('//record[@model="res.groups" or @model="ir.rule"]'):
+    models = {"res.groups", "ir.rule"}
+    if original_admin_seeds:
+        models.update(("hr.contract.type", "ir.cron"))
+    for node in xml.xpath("//record[@id and @model]"):
+        if node.get("model") not in models:
+            continue
         if node.xpath('ancestor-or-self::*[@noupdate="1"]'):
             continue
         require(node.get("id") in names and node.getparent().tag in ("odoo", "data"), "unexpected-policy-seed")
@@ -65,13 +70,14 @@ def fingerprint(profile):
     return len(files), hashlib.sha256(serial).hexdigest()
 
 
-def build(db, sealed, target, modules):
+def build(db, sealed, target, modules, *, original_admin_seeds=False):
     require(not target.exists(), "profile-output-exists")
     core = sealed / "runtime"
     schema = etree.RelaxNG(etree.parse(str(core / "odoo/import_xml.rng")))
-    policies = audit(db, core, modules)
+    policies = audit(db, core, modules, original_admin_seeds=original_admin_seeds)
     total = sum(len(records) for records in policies.values())
-    require(total == 40 and all(not p["differences"] for records in policies.values() for p in records.values()),
+    expected_total = 41 if original_admin_seeds else 40
+    require(total == expected_total and all(not p["differences"] for records in policies.values() for p in records.values()),
             "existing-original-acl-group-rule-differs")
     changes = {}
     with tempfile.TemporaryDirectory(dir=target.parent) as temporary:
@@ -100,7 +106,7 @@ def build(db, sealed, target, modules):
                     manifest_text = manifest_text.replace(name, alternate.relative_to(output).as_posix())
                     updated[name] = digest(alternate)
                 elif file.suffix == ".xml":
-                    ids = wrap_rules(file, names)
+                    ids = wrap_rules(file, names, original_admin_seeds)
                     if ids:
                         schema.assertValid(etree.parse(str(file)))
                         processed.update(ids)
