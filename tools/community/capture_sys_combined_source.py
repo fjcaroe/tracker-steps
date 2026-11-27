@@ -26,13 +26,13 @@ PAYROLL_SHA = "547c89989b796475cbb46075992f4008c10d23f7a50bbf450f0941192e81fc07"
 DOCUMENT_SHA = "c8548015d864c1bac5b7b0a6d8eef588d2cfb4a29ed31132309f2b2e032c1b88"
 
 
-def capacity():
+def capacity(source=SOURCE, target=TARGET):
     vol = Path(query("postgres", f"SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname='{SPACE}'"))
-    size = int(query("postgres", f"SELECT pg_database_size('{SOURCE}')"))
+    size = int(query("postgres", f"SELECT pg_database_size('{source}')"))
     require(vol.resolve().is_relative_to("/opt/steps-validation/community-payroll-storage-20261028") and
             shutil.disk_usage(vol).free > 5 * GIB + 3 * size and
             shutil.disk_usage(query("postgres", "SHOW data_directory")).free > 5 * GIB, "private-reserve-required")
-    require(query("postgres", f"SELECT count(*) FROM pg_stat_activity WHERE datname IN ('{SOURCE}','{TARGET}')") == "0",
+    require(query("postgres", f"SELECT count(*) FROM pg_stat_activity WHERE datname IN ('{source}','{target}')") == "0",
             "active-cohort-session")
 
 

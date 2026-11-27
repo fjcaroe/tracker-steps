@@ -29,24 +29,24 @@ SERVICE = pwd.getpwnam("odoo")
 MEMBERSHIP_GUARD = " TRIGGER public res_groups_users_rel steps_sys_policy_row "
 
 
-def command(shell=False, overlay=True):
-    core = SEALED / "runtime"
+def command(shell=False, overlay=True, database=TARGET, data=DATA, sealed=SEALED, documents=DOCUMENTS):
+    core = sealed / "runtime"
     roots = [core / "addons", core / "odoo/addons"]
     if overlay:
-        roots.insert(0, DOCUMENTS / "addons")
+        roots.insert(0, documents / "addons")
     return ["unshare", "--net", "--", "sh", "-ec", 'ip link set dev lo up; exec "$@"', "odoo",
             "sudo", "-n", "-u", "odoo", "env", "PYTHONDONTWRITEBYTECODE=1", "/usr/bin/python3.10",
             str(core / "odoo-bin"), *(["shell"] if shell else []), "-c", "/etc/odoo18-sys.conf",
-            "-d", TARGET, "--db-filter=^" + TARGET + "$", "--db_host=/var/run/postgresql", "--data-dir=" + str(DATA),
+            "-d", database, "--db-filter=^" + database + "$", "--db_host=/var/run/postgresql", "--data-dir=" + str(data),
             "--addons-path=" + ",".join(map(str, roots)), "--no-http", "--workers=0", "--max-cron-threads=0",
-            "--load=base,web", "--without-demo=all", "--stop-after-init", "--logfile=" + str(DATA / "odoo.log")]
+            "--load=base,web", "--without-demo=all", "--stop-after-init", "--logfile=" + str(data / "odoo.log")]
 
 
-def shell(code, marker="RESULT=", overlay=True):
-    p = subprocess.run(command(True, overlay), input=code.encode(), capture_output=True)
+def shell(code, marker="RESULT=", overlay=True, argv=None, error_root=ROOT):
+    p = subprocess.run(argv if argv is not None else command(True, overlay), input=code.encode(), capture_output=True)
     if p.returncode:
         # Odoo errors may contain personal data. Keep the trace in the private copy only.
-        (ROOT / "shell-error.log").write_bytes(p.stderr)
+        (error_root / "shell-error.log").write_bytes(p.stderr)
         raise RuntimeError("private-shell-failed")
     return json.loads(next(s[len(marker):] for s in p.stdout.decode().splitlines() if s.startswith(marker)))
 
@@ -64,28 +64,28 @@ def trigger_catalog(database):
         JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND NOT t.tgisinternal"""))
 
 
-def restore_database():
-    receipt = json.loads((ROOT / "source-checkpoint.json").read_bytes())
-    archive = SEALED / "source.dump"
-    identity = {"source": SOURCE, "target": TARGET, "tablespace": SPACE, "sql": digest(archive)}
+def restore_database(root=ROOT, sealed=SEALED, source=SOURCE, target_db=TARGET, checkpoint=None, toc=None):
+    receipt = json.loads((checkpoint or root / "source-checkpoint.json").read_bytes())
+    archive = sealed / "source.dump"
+    identity = {"source": source, "target": target_db, "tablespace": SPACE, "sql": digest(archive)}
     require(identity["sql"] == receipt["sql"], "source-sql-differs")
-    marker = ROOT / "admission-identity.json"
-    exists = query("postgres", f"SELECT count(*) FROM pg_database WHERE datname='{TARGET}'") == "1"
+    marker = root / "admission-identity.json"
+    exists = query("postgres", f"SELECT count(*) FROM pg_database WHERE datname='{target_db}'") == "1"
     if not marker.exists():
         require(not exists, "target-already-in-use")
         save(marker, identity)
     require(json.loads(marker.read_bytes()) == identity, "database-identity-drift")
     if not exists:
         enc, coll, typ = json.loads(query("postgres", f"""SELECT json_build_array(pg_encoding_to_char(encoding),
-            datcollate,datctype) FROM pg_database WHERE datname='{SOURCE}' AND pg_get_userbyid(datdba)='odoo'"""))
+            datcollate,datctype) FROM pg_database WHERE datname='{source}' AND pg_get_userbyid(datdba)='odoo'"""))
         pg("createdb", "--owner=odoo", "--template=template0", "--tablespace=" + SPACE, "--encoding=" + enc,
-           "--lc-collate=" + coll, "--lc-ctype=" + typ, TARGET)
+           "--lc-collate=" + coll, "--lc-ctype=" + typ, target_db)
     require(query("postgres", f"""SELECT s.spcname FROM pg_database d JOIN pg_tablespace s ON s.oid=d.dattablespace
-                                  WHERE d.datname='{TARGET}' AND pg_get_userbyid(d.datdba)='odoo'""") == SPACE,
+                                  WHERE d.datname='{target_db}' AND pg_get_userbyid(d.datdba)='odoo'""") == SPACE,
             "wrong-tablespace-or-owner")
     entries = subprocess.check_output(["pg_restore", "-l", str(archive)], text=True).splitlines()
     guard, = [row for row in entries if MEMBERSHIP_GUARD in row]
-    toc = Path("/opt/steps-validation/community-sys-combined-restore-toc-20261127U43C")
+    toc = toc or Path("/opt/steps-validation/community-sys-combined-restore-toc-20261127U43C")
     toc.mkdir(exist_ok=True)
     gid = pwd.getpwnam("postgres").pw_gid
     os.chown(toc, 0, gid)
@@ -96,26 +96,26 @@ def restore_database():
         os.chown(target, 0, gid)
         target.chmod(0o640)
     def apply(section):
-        with archive.open("rb") as handle, (ROOT / ("restore-" + section + ".log")).open("ab") as log:
+        with archive.open("rb") as handle, (root / ("restore-" + section + ".log")).open("ab") as log:
             pg("pg_restore", "--single-transaction", "--exit-on-error", "--no-tablespaces", "--use-list=" + str(toc / section),
-               "--dbname=" + TARGET, stdin=handle, stdout=log, stderr=log)
-    if query(TARGET, "SELECT to_regclass('public.ir_module_module') IS NULL") == "t":
-        require(query(TARGET, "SELECT count(*) FROM pg_tables WHERE schemaname='public'") == "0", "partial-restore")
+               "--dbname=" + target_db, stdin=handle, stdout=log, stderr=log)
+    if query(target_db, "SELECT to_regclass('public.ir_module_module') IS NULL") == "t":
+        require(query(target_db, "SELECT count(*) FROM pg_tables WHERE schemaname='public'") == "0", "partial-restore")
         apply("main")
     return apply
 
 
-def restore_files():
-    catalog = object_catalog(attachments(TARGET, query)["references"])
-    proof = json.loads((SEALED / "filestore-physical.json").read_bytes())
-    dest = DATA / "filestore" / TARGET
+def restore_files(data=DATA, database=TARGET, sealed=SEALED, prepare_runtime=True):
+    catalog = object_catalog(attachments(database, query)["references"])
+    proof = json.loads((sealed / "filestore-physical.json").read_bytes())
+    dest = data / "filestore" / database
     if not dest.exists():
         dest.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=dest.parent) as folder:
             stage = Path(folder) / "files"
             stage.mkdir()
-            restore_objects(SEALED / "filestore.tar", stage, catalog)
-            extra = SEALED / "filestore-extra.tar"
+            restore_objects(sealed / "filestore.tar", stage, catalog)
+            extra = sealed / "filestore-extra.tar"
             require(digest(extra) == proof["extra_archive_sha256"], "supplemental-filestore-drift")
             with tarfile.open(extra) as bundle:
                 remaining = set(proof["extras"])
@@ -132,47 +132,49 @@ def restore_files():
             hashed = hashlib.sha256(json.dumps(items, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
             require(hashed == proof["tree_sha256"], "source-physical-store-drift")
             stage.rename(dest)
-    for path in [DATA, *DATA.rglob("*")]:
+    for path in [data, *data.rglob("*")]:
         require(not path.is_symlink(), "unexpected-data-symlink")
         os.chown(path, SERVICE.pw_uid, SERVICE.pw_gid)
-    core = SEALED / "runtime"
-    for folder in [SEALED, core, *(p for p in core.rglob("*") if p.is_dir())]:
+    if not prepare_runtime:
+        return
+    core = sealed / "runtime"
+    for folder in [sealed, core, *(p for p in core.rglob("*") if p.is_dir())]:
         os.chown(folder, 0, SERVICE.pw_gid)
         folder.chmod(0o750)
 
 
-def prepare_portal_accounts(apply):
-    expected = trigger_catalog(SOURCE)
+def prepare_portal_accounts(apply, root=ROOT, sealed=SEALED, source=SOURCE, database=TARGET, argv=None):
+    expected = trigger_catalog(source)
     key = "res_groups_users_rel.steps_sys_policy_row"
     require(expected[key].endswith("|O"), "missing-original-guard")
-    sealed_accounts = ROOT / "actors-sealed.json"
-    secret = ROOT / "temporary-accounts.json"
+    sealed_accounts = root / "actors-sealed.json"
+    secret = root / "temporary-accounts.json"
     if sealed_accounts.exists():
-        require(trigger_catalog(TARGET) == expected and secret.stat().st_mode & 0o777 == 0o600,
+        require(trigger_catalog(database) == expected and secret.stat().st_mode & 0o777 == 0o600,
                 "changed-actor-seal")
         return
-    cutoff = int(query(SOURCE, "SELECT max(id) FROM res_users"))
+    cutoff = int(query(source, "SELECT max(id) FROM res_users"))
     if not secret.exists():
-        require(trigger_catalog(TARGET) == {k: v for k, v in expected.items() if k != key}, "wrong-preseal-state")
-        frozen = json.loads(gzip.decompress((SEALED / "source-snapshot.json.gz").read_bytes()))
-        verify_same(frozen, full_snapshot(TARGET))
+        require(trigger_catalog(database) == {k: v for k, v in expected.items() if k != key}, "wrong-preseal-state")
+        frozen = json.loads(gzip.decompress((sealed / "source-snapshot.json.gz").read_bytes()))
+        verify_same(frozen, full_snapshot(database))
         code = (TOOLS / "probe_document_portal_http.py").read_text() + (
             "\nresult=prepare_accounts(env)\nenv.cr.commit()\nprint('RESULT='+json.dumps(result))\n")
-        prepared = shell(code, overlay=False)
+        prepared = shell(code, overlay=False, argv=argv, error_root=root)
         require(len(prepared) == 2 and min(a[0] for a in prepared) > cutoff, "unexpected-prepared-identities")
         save(secret, prepared)
         secret.chmod(0o600)
-    if key not in trigger_catalog(TARGET):
+    if key not in trigger_catalog(database):
         apply("membership")
-    require(trigger_catalog(TARGET) == expected, "original-guard-catalog-drift")
+    require(trigger_catalog(database) == expected, "original-guard-catalog-drift")
     rows = {}
     for table, order, where in [("res_users", "id", f"id<={cutoff}"), ("res_groups_users_rel", "gid,uid", f"uid<={cutoff}"),
                                 ("res_groups", "id", "true"), ("ir_rule", "id", "true"), ("ir_model_access", "id", "true"),
                                 ("documents_document", "id", "true"), ("documents_access", "id", "true"),
                                 ("ir_attachment", "id", "true"), ("mail_mail", "id", "true")]:
-        rows[table] = fingerprint(SOURCE, table, order, where)
-        require(rows[table] == fingerprint(TARGET, table, order, where), "original-policy-drift:" + table)
-    require(query(TARGET, f"SELECT count(*) FROM res_users WHERE id>{cutoff}") == "2", "unexpected-fixture-accounts")
+        rows[table] = fingerprint(source, table, order, where)
+        require(rows[table] == fingerprint(database, table, order, where), "original-policy-drift:" + table)
+    require(query(database, f"SELECT count(*) FROM res_users WHERE id>{cutoff}") == "2", "unexpected-fixture-accounts")
     save(sealed_accounts, {"original": rows, "new_portal_accounts": 2, "guards": len(expected), "original_uid_cutoff": cutoff})
 
 
