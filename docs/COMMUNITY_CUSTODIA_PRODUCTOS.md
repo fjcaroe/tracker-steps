@@ -126,3 +126,57 @@ Los recibos `offline-verification.json` y `checkpoint-lineage.json` se guardan
 en el subdirectorio privado `synchronous-checkpoint` de la custodia U41R.
 El verificador portátil acepta `--previous-package` para comparar todas las
 filas, sus definiciones y los contadores de ambos respaldos.
+
+## Cerro El Plomo · recuperación del producto convertido U42F
+
+La base privada U42R se restauró desde la cohorte de revisión contractual U42F.
+Los dos arranques usaron únicamente las fuentes extraídas del paquete y el
+filestore restaurado. Las raíces originales de proveedores estuvieron ocultas
+durante ambos arranques. El código efectivo incluye 146 módulos LGPL-3 y tres
+AGPL-3. El proveedor propio de transición coincidió con los ocho archivos
+calificados del paquete
+`e1bd69fece7a898e7e3da5cbfd4942cb50ff491bd0c9d6278e67ca9577deef5b`.
+
+| Comprobación contra la instantánea de U42F | Resultado |
+| --- | --- |
+| Datos PostgreSQL | 1.530 tablas, 185.447 filas, 1.257 secuencias |
+| Catálogo | 17.333 columnas, 8.425 restricciones, 2.787 relaciones con propietario y permisos, 29 vistas, 3.335 índices |
+| Código | 149 proveedores, 19.144 archivos |
+| Adjuntos | 1.263 registros, 1.011 referencias físicas, 678 objetos únicos |
+| Filestore físico | 796 archivos, incluidos 59 objetos sin referencia y 59 marcadores |
+
+El permiso original del usuario 7 permitió abrir el formulario de revisión y
+leer un PDF privado de compra de 52.448 bytes. Se cotejaron sus bytes en ambos
+arranques. El acceso a ese PDF fue denegado al mismo usuario con otra compañía
+y al usuario público. En U42F existen cero contratos y cero liquidaciones.
+También se comprobaron doce adjuntos vinculados a menús y vistas.
+
+PostgreSQL reescribe ciertas conversiones de arreglos al cargar el SQL. U42R
+reprodujo literalmente ocho restricciones y seis vistas después de exigir la
+misma definición en objetos temporales. El reensayo no necesitó cambios. Para
+comparar el esquema completo, PostgreSQL imprimió los 15.223 objetos de la
+restauración en el orden del archivo original. El volcado ordinario ubicaba
+tres posiciones antes una regla independiente de flota. Se conservaron ambos
+resultados. La huella del esquema reproducido coincide con el archivo y con la
+fuente, `8902f33fbe5a1cc20891880fb8d15f50a7fa7e8d85f274a73a2c0b89e6388593`.
+
+Los valores de las 1.257 secuencias recuperadas coincidieron con el sello. En
+la comparación con el respaldo nativo U40D, 74 de los 1.242 contadores
+compartidos tenían valores distintos y la cohorte incorpora otros quince.
+Frente a la semilla viva U40J había 19 diferencias en los 1.257 contadores
+comunes. El recibo conserva los nombres y valores para distinguir la historia
+previa de la restauración.
+
+| Proveedor de U42F con revisión disponible | Base | Código efectivo |
+| --- | --- | --- |
+| Propio, `l10n_cl_simpledigital_payroll` | 18.0.1.0.0 | 18.0.1.1.0 |
+| Community, `l10n_latam_invoice_document` | 18.0.1.0 | 18.0.1.1 |
+| Community, `project_sms` | 18.0.1.0 | 18.0.1.1 |
+
+La copia fuera del servidor se verificó leyendo nuevamente los trece
+componentes. El manifiesto tiene SHA-256
+`8548d1d08511e63ca1c5a83077677d908c4242285bb18fb289f1a5d7549b15ff`,
+el SQL `9136fb60ce1b3d108ae8a02cda422499da196fd4891ca7850da987d53dabd936`
+y el inventario físico `8e9b89c3ce1bdf1b2a64faa65febc2ef9e63a5ad47cb2c2be87d24076540d167`.
+Recibo privado en
+`~/.codex/local-artifacts/community-resume-20261125/U42R/cerro-converted-cohort/offline-verification.json`.

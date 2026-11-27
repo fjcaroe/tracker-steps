@@ -28,7 +28,7 @@ def digest(path, algorithm='sha256'):
 
 def attachments(database, read_query=query):
     prefix = (r'(?:(?:COMMUNITY|MANAGEMENT_QA)_SYS_PREVIRED_|MANAGEMENT_QA_(?:STEPS|CERRO)_CUSTODY_|'
-              r'COMMUNITY_STEPS_CRM_)')
+              r'COMMUNITY_(?:PAYROLL_CERRO_REVIEW|CERRO_PAYROLL_RECOVERY|STEPS_CRM)_)')
     require(re.fullmatch(prefix + r'[A-Z0-9_]{1,32}', database), 'sys-store-private-database-required')
     return json.loads(read_query(database, """
         SELECT json_build_object(
