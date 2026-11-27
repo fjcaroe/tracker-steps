@@ -8,6 +8,20 @@ El gestor original abrió el formulario de la liquidación y el menú, formulari
 
 El operador contrastó los 24 pares de archivos de nómina de las doce empresas y volvió a imprimir cuatro facturas con el mismo texto, tipografía, geometría y permisos que la referencia nativa. Los recibos privados de exportaciones, impresión y cotejo final tienen las huellas SHA-256 `658f035c21f60012a63da9aca4e566ad009501ad57e6d709ac78d19fee5cf41a`, `cef9fb54003a3f02b9b6162c997335869aa8c2b3d498410a7c91cf4365966b0d` y `282625bf5d92f8d4f6b89acf96382256448ef63216b4dc1d70306d496a1309e1`.
 
+### Respaldo final verificado en la estación
+
+Las 22 piezas privadas suman 306.459.197 bytes. La huella del manifiesto comprobado en la estación es `b033989da829ee87fa7233e3883f68cd1130eb52a4eb37ec8ebb8185e4d6c7e6`. El SQL final contiene 609.133 filas en 1.141 tablas, 12.035 columnas, 5.826 restricciones, 2.002 relaciones con sus propietarios y permisos, y 861 secuencias con su definición y contador. El SQL tiene la huella SHA-256 `435bd9ba963688ce202107c1f63351080e55296ff25a4bdc1d23f2f0fb76bf83`.
+
+Los 192 módulos cargaron desde una copia extraída de 22.258 archivos. Coincidieron las 190 licencias LGPL-3 y dos AGPL-3 con sus manifiestos. Se restauraron todos los 2.702 archivos del almacén, incluidos 2.679 objetos referenciados, diez objetos sueltos y trece marcadores. La huella del árbol físico completo es `e93bf9a733af8514e977df016d0ed8342002d1d3ad686918a20e3851778fc7e3`. Dos arranques de solo lectura sobre la base sellada usaron únicamente el código y archivos extraídos. El gestor leyó el PDF histórico desde Documentos y Nómina en ambos arranques. La cuenta pública y el contexto de empresa fuera de alcance tuvieron denegado el adjunto restringido.
+
+El paquete de Nómina original conserva sus 133 archivos. En la versión combinada, el paquete fiscal calificado sustituye dos archivos del módulo de transición y aporta la regla de preservación de acceso. Los otros 131 archivos de Nómina son idénticos a la entrega original. El verificador exige esas tres diferencias por nombre y comprueba todos los archivos efectivos del módulo de transición contra el paquete fiscal aprobado. Las cinco entregas de proveedores y el archivo completo de código se incluyen en las 22 piezas.
+
+### Restauración independiente del estado final
+
+Después de comprobar el archivo en la estación se creó la base privada `COMMUNITY_SYS_PREVIRED_RECOVERY_20261127U44FG` en el tablespace de ensayos. Se restauró el SQL en una única transacción sobre la base vacía. Se extrajeron de nuevo los archivos del motor y ambos archivos del almacén. Las 609.133 filas, los 861 contadores, las definiciones y permisos coincidieron con la instantánea antes y después de dos nuevos arranques. Los hashes previos y posteriores del almacén también coincidieron. En cada arranque el gestor abrió el PDF común de 27.369 bytes, un segundo PDF restringido y doce adjuntos ordinarios. El ensayo verificó la denegación al adjunto restringido en otra compañía y como usuario público. La base de origen conservó la misma instantánea durante el ensayo.
+
+PostgreSQL reprodujo idéntico esquema para el volcado, el origen y la base nueva, SHA-256 `e92a9e47b12d7c2b9f0d48276876fb1e0a2377835290fed3bd462242bafd6a58`. El resultado incluye las 26 vistas y los 2.490 índices finales. Se cotejaron en la estación los tres comprobantes de restauración. La huella del comprobante completo `verified-recovery.json` es `c66aedbeac39f07e9fae61d1d04517bf35621525dfb1d0331bf32de00d1763b8`.
+
 ## Límite de preservación detectado al preparar la conversión fiscal
 
 U43C acredita los recorridos funcionales descritos y conserva fielmente su propio estado en el respaldo de catorce piezas. La comparación posterior entre el esquema original de U42L y el esquema combinado encontró trece columnas que perdieron la obligatoriedad durante la instalación de Documentos. El uso de U43C como origen de una conversión integral queda suspendido. La preparación de U44FD detectó esta diferencia antes de aplicar su primera actualización fiscal.
