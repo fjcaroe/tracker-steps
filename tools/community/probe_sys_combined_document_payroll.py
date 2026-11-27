@@ -48,7 +48,7 @@ def intersection(env, actor):
 
 
 def combined(env, prepared):
-    allowed = (COMBINED, 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD')
+    allowed = (COMBINED, 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG')
     assert env.cr.dbname in allowed and env.registry.test_cr is None
     assert {line.split(":")[0].strip() for line in Path("/proc/net/dev").read_text().splitlines()[2:]} == {"lo"}
     manager = env["res.users"].browse(6)
@@ -130,7 +130,7 @@ def combined(env, prepared):
 
 
 def compare_fiscal_copy(env, prepared, reference):
-    assert env.cr.dbname == 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD'
+    assert env.cr.dbname == 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG'
     observed = combined(env, prepared)
     assert observed == reference, 'Combined document, attachment, actor or portal behavior differs after fiscal admission'
     return observed

@@ -124,7 +124,7 @@ def sharing(document, level, native):
 
 
 def prepare_accounts(env):
-    assert env.cr.dbname in (PREPARED, COMBINED) and env.su
+    assert env.cr.dbname in (PREPARED, COMBINED, "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG") and env.su
     owner = env["res.users"].browse(6)
     setup = env(context={"tracking_disable": True, "mail_create_nolog": True, "mail_create_nosubscribe": True,
                          "mail_notrack": True, "no_reset_password": True})
