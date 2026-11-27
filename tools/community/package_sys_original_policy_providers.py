@@ -5,8 +5,10 @@ from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import tarfile
+import tempfile
 import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -80,14 +82,19 @@ def package(archive):
             assert manifest["version"] == "1.0" and manifest["license"] == "LGPL-3"
         return name, item, content
 
-    with ThreadPoolExecutor(max_workers=8) as pool, tarfile.open(archive, "x") as out:
-        for name, item, content in pool.map(download, sorted(members)):
-            info = tarfile.TarInfo(name)
-            info.size = len(content)
-            info.mode = int(item["mode"][-3:], 8)
-            out.addfile(info, io.BytesIO(content))
-    return {"commit": COMMIT, "trees": TREES, "members": len(members),
-            "sha256": hashlib.sha256(archive.read_bytes()).hexdigest()}
+    if archive.exists():
+        raise FileExistsError(archive)
+    with tempfile.TemporaryDirectory(dir=archive.parent) as work:
+        download_target = Path(work) / "providers.tar"
+        with ThreadPoolExecutor(max_workers=8) as pool, tarfile.open(download_target, "x") as out:
+            for name, item, content in pool.map(download, sorted(members)):
+                info = tarfile.TarInfo(name)
+                info.size = len(content)
+                info.mode = int(item["mode"][-3:], 8)
+                out.addfile(info, io.BytesIO(content))
+        checksum = hashlib.sha256(download_target.read_bytes()).hexdigest()
+        os.link(download_target, archive)
+    return {"commit": COMMIT, "trees": TREES, "members": len(members), "sha256": checksum}
 
 
 if __name__ == "__main__":
