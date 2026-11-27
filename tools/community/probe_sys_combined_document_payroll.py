@@ -47,8 +47,8 @@ def intersection(env, actor):
     raise AssertionError("No shared original PDF with authorized manager and excluded company")
 
 
-def combined(env, prepared):
-    allowed = (COMBINED, 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG')
+def combined(env, prepared, *, transactional_passwords=False):
+    allowed = (COMBINED, 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG', 'COMMUNITY_SYS_FINAL_RESTORED_20261127U46R')
     assert env.cr.dbname in allowed and env.registry.test_cr is None
     assert {line.split(":")[0].strip() for line in Path("/proc/net/dev").read_text().splitlines()[2:]} == {"lo"}
     manager = env["res.users"].browse(6)
@@ -96,6 +96,11 @@ def combined(env, prepared):
     grant_doc.env['res.users'].browse([a.id for a, _, _ in actors]).check_access('read')
     env.registry.enter_test_mode(env.cr)
     try:
+        if transactional_passwords:
+            assert env.cr.dbname == 'COMMUNITY_SYS_FINAL_RESTORED_20261127U46R'
+            for account, _, password in actors:
+                account.write({"password": password})
+            env.flush_all()
         clients = {"recipient": session(env.cr.dbname, actors[0]), "other": session(env.cr.dbname, actors[1]),
                    "anonymous": session(env.cr.dbname)}
         content = "/documents/content/" + quote(reference, safe="")
