@@ -25,12 +25,13 @@ def main():
         assert qa['commit'] == deployment['commit'] == release['commit']
         assert qa['release_sha256'] == deployment['sha256']
         assert qa['environment'] == target and qa['business_preserved'] is True
+        assert live['version'] == '18.0.1.1.1' and live['backend_commit'] == release['commit']
         assert live['ticket'] == 246 and live['no_business_writes'] is True and not live['errors']
         assert {form['kind'] for form in live['forms'] if form['wizard']} == {'receipt', 'tag'}
         assert live['user'] > 1
         counts = re.findall(r'0 failed, 0 error\(s\) of (\d+) tests when loading database',
                             (root / (target + '-qa.log')).read_text())
-        assert counts and int(counts[-1]) >= 11
+        assert counts and int(counts[-1]) >= 15
         verification = (root / (target + '-live-verification.log')).read_text()
         assert 'MANAGEMENT_REGISTRY_OK' in verification and '"receipt_and_c_tag": true' in verification
         branch_flow = (root / (target + '-existing-business-flow.log')).read_text()

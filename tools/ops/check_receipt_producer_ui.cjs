@@ -6,6 +6,8 @@ const { chromium } = require('playwright');
 (async () => {
     const proof = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
     const output = process.argv[3];
+    assert.equal(proof.version, '18.0.1.1.1');
+    assert.match(proof.backend_commit, /^[a-f0-9]{40}$/);
     const url = new URL(proof.url);
     assert.ok(['https://desarrollo.stepsapp.cl', 'https://cerroelplomo.stepsapp.cl',
         'https://qa-cerroelplomo.stepsapp.cl'].includes(url.origin));
@@ -51,7 +53,7 @@ const { chromium } = require('playwright');
         }
         assert.deepEqual(blocked, []);
         assert.deepEqual(errors, []);
-        fs.writeFileSync(output, JSON.stringify({ticket: 246, url: url.origin, company: proof.company_id,
+        fs.writeFileSync(output, JSON.stringify({ticket: 246, version: proof.version, backend_commit: proof.backend_commit, url: url.origin, company: proof.company_id,
             user: proof.user_id, forms: results, no_business_writes: true, errors}, null, 2));
         console.log('T246_BROWSER_FORMS_OK ' + url.origin);
     } finally { await browser.close(); }

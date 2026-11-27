@@ -19,6 +19,7 @@ script = '''
 import json
 from pathlib import Path
 from odoo import http
+import odoo.addons.step_packing_producer_change as addon
 proof = Path(PROOF)
 if CLEANUP:
     data = json.loads(proof.read_text())
@@ -52,7 +53,9 @@ else:
         'context':dict(candidate.with_user(candidate).context_get(), allowed_company_ids=company.ids),
         'session_token':candidate._compute_session_token(session.sid)})
     http.root.session_store.save(session)
-    proof.write_text(json.dumps({'session_id':session.sid,'url':URL,'company_id':company.id,'user_id':candidate.id,
+    release = json.loads((Path(addon.__file__).resolve().parent.parent / 'release.json').read_text())
+    assert release['versions'] == {'step_packing_producer_change': '18.0.1.1.1'}
+    proof.write_text(json.dumps({'version':'18.0.1.1.1','backend_commit':release['commit'],'session_id':session.sid,'url':URL,'company_id':company.id,'user_id':candidate.id,
         'receipt':receipt.id,'receipt_name':receipt.name,'tag':tag.id,'tag_name':tag.name,
         'producer':receipt.partner_id.display_name,'tags':receipt.fruit_tag_line_ids.package_id.mapped('name'),
         'receipt_action':business.ref('step_packing_operations.menu_packing_reception_process').action.id,
