@@ -1,0 +1,43 @@
+{
+  "archive_sha256": "afe9a37e9f68e260cefb81a7269058c0af5f721f81d9a5d9bc8d0bc8f4c9c35a",
+  "files": 29,
+  "lf_source_files": {
+    "step_cerro_pack_reports": [
+      "__init__.py",
+      "__manifest__.py",
+      "hooks.py",
+      "models.py"
+    ],
+    "step_cerro_receipt_flow": [
+      "SOURCE.txt",
+      "__init__.py",
+      "__manifest__.py",
+      "access_profiles.py",
+      "bindings.py",
+      "caliber.py",
+      "container_controls.py",
+      "containers.py",
+      "correction.py",
+      "fruit_import.py",
+      "fruit_reception.py",
+      "hooks.py",
+      "lot.py",
+      "order_tags.py",
+      "permissions.py",
+      "report_packing.py",
+      "reversal.py",
+      "revision.py",
+      "scale_profile.py",
+      "season.py",
+      "settings.py",
+      "simple.py",
+      "static/src/scale_capture.js",
+      "static/src/scale_capture.xml",
+      "tag.py"
+    ]
+  },
+  "module_trees": {
+    "step_cerro_pack_reports": "05b49f0c5604bd7bf27e4d5ae61b52769d131ffb35b3c3af662012c5b03f7ee3",
+    "step_cerro_receipt_flow": "fd51eca41cd60fc45628f6ec86247118c73991eddbba6bb0bfb42a6671e1549d"
+  }
+}

@@ -2,11 +2,19 @@
 from odoo.exceptions import UserError
 
 
-DATABASES=('MANAGEMENT_QA_CERRO_BOM_20261126U42N','COMMUNITY_CERRO_BOM_PACKING_20261127U46A',
+DATABASES=('MANAGEMENT_QA_CERRO_BOM_20261126U42N','COMMUNITY_CERRO_BOM_PACKING_20261127U46A', 'COMMUNITY_CERRO_BOM_PACKING_20261127U46D',
            'COMMUNITY_CERRO_BOM_PACKING_20261127U46C')
 
 
 def exercise(env):
+    return _exercise(env, False)
+
+
+def containers(env):
+    return _exercise(env, True)
+
+
+def _exercise(env, include_returns):
     assert env.cr.dbname in DATABASES
     actor=env['res.users'].browse(6)
     model=env['stock.picking'].with_user(actor).with_context(lang='en_US',allowed_company_ids=[31])
@@ -61,5 +69,15 @@ def exercise(env):
         kilos=received.step_actual_kg,boxes=received.box_count,tag_kind=received.step_tag_kind,tag_state=received.step_tag_state,
         linked=received.step_process_reception_id==picked)
     assert outcome['linked']
+    if include_returns:
+        transfers = picked.step_container_transfer_ids
+        for transfer in transfers:
+            assert transfer.direction == 'return' and transfer.state == 'draft'
+            assert transfer.company_id == picked.company_id and transfer.producer_id == item.owner_id
+            assert transfer.warehouse_id == picked.picking_type_id.warehouse_id
+        outcome['returns'] = sorted((transfer.direction, transfer.state, transfer.company_id.id,
+            transfer.warehouse_id.id, transfer.producer_id.id, line.product_id.id, line.quantity, line.lot_id.id)
+            for transfer in transfers for line in transfer.line_ids)
+        outcome['return_transfers'] = len(transfers)
     env.cr.rollback()
     return outcome
