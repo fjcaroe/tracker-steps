@@ -15,6 +15,6 @@ def preserve_alias(env):
     xml_id = 'step_cerro_studio_packing.process_types'
     old = env.ref(xml_id, raise_if_not_found=False)
     if old and old != view:
-        raise ValidationError('La vista de tipos de proceso del paquete anterior cambió.')
-    data = env['ir.model.data']
-    data._update_xmlids([{'xml_id': xml_id, 'record': view, 'noupdate': True}])
+        raise ValidationError('La vista de tipos de proceso del paquete anterior cambiÃ³.')
+    if not old:
+        env['ir.model.data']._update_xmlids([{'xml_id': xml_id, 'record': view, 'noupdate': True}])
