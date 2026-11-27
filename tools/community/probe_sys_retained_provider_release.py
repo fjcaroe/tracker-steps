@@ -4,7 +4,7 @@ import importlib
 from pathlib import Path
 
 from lxml import etree, html
-from odoo.modules.module import get_module_path
+from odoo.modules.module import adapt_version, get_manifest, get_module_path
 
 
 def run(shell, root):
@@ -19,6 +19,11 @@ def run(shell, root):
         mod, = shell["ir.module.module"].search([("name", "=", name), ("state", "=", "installed")])
         assert mod.latest_version == "18.0.1.0" and manifest["version"] == "1.0" and manifest["license"] == "LGPL-3"
         versions[name] = mod.latest_version
+    installed = shell["ir.module.module"].search([("state", "=", "installed")])
+    assert len(installed) == 190 and not installed.filtered(lambda item: item.license == "OEEL-1")
+    differences = {item.name: [item.latest_version, adapt_version(get_manifest(item.name)["version"])]
+                   for item in installed if item.latest_version != adapt_version(get_manifest(item.name)["version"])}
+    assert not differences and all(Path(get_module_path(item.name)).resolve().is_relative_to(root) for item in installed)
     shell.cr.execute("""SELECT id,encode(sha256(convert_to(arch_db::text,'UTF8')),'hex') FROM ir_ui_view
                         WHERE id IN (1215,204) ORDER BY id""")
     assert shell.cr.fetchall() == [
@@ -54,4 +59,5 @@ def run(shell, root):
             break
     assert len(result) == 2
     shell.cr.rollback()
-    return {"active_source_versions": versions, "native_standard_layout": True, "operator_invoice_renders": result}
+    return {"active_source_versions": versions, "all_installed_checked": len(installed), "version_differences": differences,
+            "native_standard_layout": True, "operator_invoice_renders": result}
