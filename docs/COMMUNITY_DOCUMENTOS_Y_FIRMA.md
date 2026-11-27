@@ -207,3 +207,38 @@ obtuvieron los mismos bytes. Al retirar el acceso por enlace volvió la
 denegación al anónimo. Para cuentas autenticadas, la ruta de la ficha puede
 devolver una pantalla con HTTP 200 aunque la descarga del archivo esté
 denegada. La prueba verifica ambas respuestas.
+
+### Aceptación del portal de archivos en SyS, versión 18.0.1.0.2
+
+La derivada Community U41PA completó 72 solicitudes HTTP contra el mismo
+archivo sintético que la referencia nativa. Se abrieron sesiones con contraseña
+para el destinatario y una segunda cuenta temporal de portal. Un tercer cliente
+visitó las mismas rutas como anónimo. Se verificaron seis estados de acceso en
+cuatro rutas por cliente.
+
+| Estado del archivo | Cliente que recibió los bytes exactos |
+| --- | --- |
+| Referencia sin emitir | Ninguno |
+| Archivo restringido | Ninguno |
+| Permiso individual de lectura | Destinatario |
+| Permiso individual revocado | Ninguno |
+| Lectura habilitada mediante enlace | Los tres |
+| Lectura mediante enlace revocada | Ninguno |
+
+La ficha, la descarga y los dos marcadores históricos coincidieron con la
+referencia en las 72 solicitudes. El primer marcador respondió con HTTP 301
+hacia el segundo y éste con HTTP 307 hacia la ficha. En las fichas denegadas de
+las cuentas autenticadas se verificó además que el nombre del archivo quedara
+oculto. La consulta a los 1.319 binarios históricos volvió a dar 38 permitidos
+y 1.281 denegados, con cero diferencias por identidad.
+
+El cotejo con U41P conservó las 1.430 fichas, los 3.955 registros de acceso y
+los permisos originales de sus siete cuentas, junto con 40 protecciones de
+base de datos. El ensayo completó la reversión de los datos temporales y las
+colas de correo conservaron sus cifras. U41PA arrancó con 188 módulos libres.
+
+El archivo instalado en U41P y U41PA tiene SHA-256
+`12fb428e5abd6e7a26e74bd41d1ef2645d604c323aea17a4dea82a6443550cfe`.
+Los recibos privados de las solicitudes y los permisos se guardan en
+`~/.codex/local-artifacts/community-resume-20261125/U30/u41pa-portal-file-final.json`
+y `u41p-historical-public-scope-final.json` en el mismo directorio.
