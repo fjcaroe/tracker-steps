@@ -26,10 +26,20 @@ def catalog(cursor, high_user, new_acl=None):
         elif name in ("res_users", "res_groups_users_rel"):
             column = "id" if name == "res_users" else "uid"
             where, params = sql.SQL("WHERE {}<=%s").format(sql.Identifier(column)), [high_user]
-        elif name == "ir_model_access":
-            # Re-importing Odoo's ACL CSV updates its audit stamps. Compare the complete ACL policy.
-            body = sql.SQL("to_jsonb(t)-'write_uid'-'write_date'")
-            if new_acl is not None:
+        elif name in ("ir_model_access", "ir_rule"):
+            # The two Community library modules reload four ACLs and two rules on upgrade.
+            # Only their last-update date changes. Preserve the dates of every other source row.
+            model = "ir.rule" if name == "ir_rule" else "ir.model.access"
+            body = sql.SQL("""
+                CASE WHEN t.id IN (
+                    SELECT x.res_id FROM ir_model_data x WHERE x.model={} AND (
+                    (x.module='step_document_library' AND x.name IN
+                        ('access_document_internal','access_grants_internal','access_permission_wizard',
+                         'document_read_scope','grant_read_scope'))
+                    OR (x.module='step_document_library_portal' AND x.name='access_link_wizard')))
+                THEN to_jsonb(t)-'write_date' ELSE to_jsonb(t) END
+            """).format(sql.Literal(model))
+            if name == "ir_model_access" and new_acl is not None:
                 where, params = sql.SQL("WHERE id<>%s"), [new_acl]
         cursor.execute(sql.SQL("""
             SELECT count(*),encode(sha256(convert_to(coalesce(string_agg(({})::text,chr(10)

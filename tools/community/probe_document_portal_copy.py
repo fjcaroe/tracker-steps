@@ -1,6 +1,6 @@
 """Compare the editor's actual clipboard field with the authenticated native sharing address."""
 from hashlib import sha256
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 from lxml import etree
 from odoo.exceptions import AccessError
@@ -20,7 +20,7 @@ def native_editor_addresses(env):
             candidates = source.search([("type", "=", kind), ("access_via_link", "=", link_role),
                                         ("user_permission", "=", "edit")], order="id", limit=1)
             assert candidates
-            url = candidates.get_base_url().rstrip("/") + candidates.access_url
+            url = urljoin(candidates.get_base_url().rstrip("/") + "/", candidates.access_url)
             assert urlsplit(url).scheme in ("http", "https") and urlsplit(url).netloc
             samples.append([candidates.id, kind, link_role, sha256(url.encode()).hexdigest()])
     return samples

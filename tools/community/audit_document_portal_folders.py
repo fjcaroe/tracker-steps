@@ -34,7 +34,7 @@ def native_folder_children(document):
     from odoo.addons.documents.controllers.documents import ShareRoute
 
     try:
-        folder = ShareRoute._from_access_token(document.access_token)
+        folder = ShareRoute._from_access_token(document.access_token, skip_log=True)
     except (Forbidden, NotFound):
         return None
     if not folder:
