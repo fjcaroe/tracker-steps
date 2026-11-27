@@ -13,6 +13,7 @@ import tarfile
 
 from audit_sys_upgrade_policy import audit
 from build_sys_upgrade_policy_profile import build, fingerprint
+from compare_sys_payroll_exports_all import changes, index
 from custody_sys_previred_filestore import attachments, digest, object_catalog, restore_objects
 from restore_native_product_backup import pg, query
 from restore_sys_previred_pair import GIB, LOCK, require
@@ -125,7 +126,7 @@ def restore(args, proof):
                                  "rows": proof["rows"], "objects": len(catalog), "tablespace": SPACE, "guards": original_guards})
 
 
-def odoo(args, mode, options, log, stdin=None):
+def odoo(args, mode, options, log, stdin=None, comparison_key=None):
     out, db = args.output, args.database
     core = out / "runtime"
     temporary = out / "data" / "tmp"
@@ -139,6 +140,12 @@ def odoo(args, mode, options, log, stdin=None):
             "--bind", str(out / "data"), str(out / "data"), "--proc", "/proc", "--dev-bind", "/dev", "/dev", "--",
             "sudo", "-n", "-u", "odoo", "env", "PYTHONDONTWRITEBYTECODE=1", "TMPDIR=" + str(temporary),
             "/usr/bin/python3.10", str(core / "odoo-bin")]
+    if comparison_key is not None:
+        require(comparison_key.is_file() and comparison_key.stat().st_size == 32, "private-comparison-key-required")
+        placeholder = out / "export-proof-key"
+        placeholder.touch(mode=0o440, exist_ok=True)
+        position = argv.index("--proc")
+        argv[position:position] = ["--ro-bind", str(comparison_key), str(placeholder)]
     if mode:
         argv.append(mode)
     addons = [core / "addons", core / "odoo/addons"]
@@ -291,6 +298,37 @@ def upgrade(args, proof):
     print(json.dumps({k: result[k] for k in ("module", "new", "passed", "pg_errors")}), flush=True)
 
 
+def payroll_exports(args):
+    require(args.database in ("COMMUNITY_SYS_PREVIRED_MODULES_20261127U41M",
+                              "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MP"), "unapproved-export-rehearsal")
+    out = args.output
+    first = PRIVATE / "community-sys-payroll-exports-20261126U41X2/community/receipt.json"
+    require(digest(first) == "fb7f44d3ac8e2ba4e40e627a987dbfce34082d0ff771744652f5d83e64592f52",
+            "unexpected-community-export-receipt")
+    key = PRIVATE / "community-sys-payroll-exports-20261126U41X3/audit.key"
+    code = Path(__file__).with_name("probe_sys_payroll_exports_all.py").read_text()
+    code += "\nfrom pathlib import Path\nassert env.cr.dbname == " + repr(args.database)
+    code += "\nprivate_key=Path(" + repr(str(out / "export-proof-key")) + ").read_bytes()"
+    code += "\nprint('SIX_EXPORTS='+json.dumps(run(env,private_key)),flush=True)\n"
+    log = out / "exports.log"
+    status = odoo(args, "shell", [], log, code.encode(), comparison_key=key)
+    lines = [l.partition("=")[2] for l in log.read_text().splitlines() if l.startswith("SIX_EXPORTS=")]
+    require(status == 0 and len(lines) == 1, "operator-export-probe-failed")
+    observed = json.loads(lines[0])
+    save(out / "exports.json", observed)
+    original = json.loads(first.read_bytes())
+    companies, actors = index(original)
+    new_companies, new_actors = index(observed)
+    require(len(companies) == 12 and companies.keys() == new_companies.keys() and len(actors) == 24
+            and actors.keys() == new_actors.keys(), "original-export-coverage-differs")
+    scope_changes = [k for k in companies if any(companies[k][field] != new_companies[k][field]
+                    for field in ("period", "closed", "closed_ids"))]
+    mismatch = {str(k): changes(actors[k], new_actors[k]) for k in actors if actors[k] != new_actors[k]}
+    save(out / "export-comparison.json", {"reference": digest(first), "companies": len(companies), "pairs": len(actors),
+        "scope_differences": scope_changes, "full_result_differences": mismatch,
+        "matches": not scope_changes and not mismatch, "originals_preserved": observed["originals_preserved"]})
+
+
 def candidate_batch(args, proof):
     require(args.database.endswith("U41MP") and (args.output / "profile-proof.json").is_file(), "profile-required")
     require(not (args.output / "final.json").exists(), "finished-candidate")
@@ -317,7 +355,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "candidate-batch", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "candidate-batch", "exports", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -332,6 +370,8 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "restore":
             restore(args, proof)
+        elif args.operation == "exports":
+            payroll_exports(args)
         elif args.operation == "candidate-batch":
             candidate_batch(args, proof)
         elif args.operation == "profile":
