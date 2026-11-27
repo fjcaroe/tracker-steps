@@ -65,21 +65,21 @@ def count_physical(target):
             'equivalent_checks':altered,'origin_fk_references':usage,'target_fk_references':target_usage}
 
 
-def native_read(body):
+def native_read(body, phase='fruit-schema', label='FRUIT_SCHEMA'):
     config=Path('/etc/odoo18-cerroelplomo.conf')
     parser=configparser.ConfigParser(interpolation=None)
     parser.read(config)
     source=json.loads((ROOT/'tools/cerro_native_providers_receipt.json').read_text())
     paths=','.join(str(Path('/opt/steps-validation')/p) for p in source['roots'])
     options=['-c',str(config),'-d',NATIVE_DB,'--db-filter=^'+NATIVE_DB+'$','--db_host=/var/run/postgresql',
-             '--data-dir='+str(NATIVE/'data'),'--logfile='+str(NATIVE/'data/fruit-schema.log'),
+             '--data-dir='+str(NATIVE/'data'),'--logfile='+str(NATIVE/'data'/(phase+'.log')),
              '--without-demo=all','--workers=0','--max-cron-threads=0','--load=base,web','--no-http',
              '--stop-after-init','--addons-path='+paths+','+parser['options']['addons_path']]
-    dst=NATIVE/'original-fruit-schema.log'
+    dst=NATIVE/('original-'+phase+'.log')
     with dst.open('w') as out:
         subprocess.run(['unshare','--net','runuser','-u','cerro_odoo18','--','/usr/bin/python3.10',
                         '/opt/odoo18/odoo-bin','shell',*options],input=body,text=True,stdout=out,stderr=out,check=True)
-    return receipt(dst,'FRUIT_SCHEMA')
+    return receipt(dst,label)
 
 
 def verify(db,dest,roots):

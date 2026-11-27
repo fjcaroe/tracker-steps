@@ -168,11 +168,11 @@ def incompatible_contracts(module):
     return out
 
 
-def run(phase, extra, payload=None, *, database=TARGET, directory=ROOT, roots=None):
+def run(phase, extra, payload=None, *, database=TARGET, directory=ROOT, roots=None, launcher=None):
     roots = roots or addon_roots(database)
     validate_modules(roots, database)
     pre = ['unshare', '--net', '--', 'runuser', '-u', 'odoo', '--', 'env', 'PYTHONDONTWRITEBYTECODE=1',
-           '/usr/bin/python3.10', str(RUNTIME / 'odoo-bin')]
+           '/usr/bin/python3.10', str(launcher or (RUNTIME / 'odoo-bin'))]
     args = ['-c', '/etc/dev_odoo18.conf', '-d', database, '--db-filter=^' + database + '$',
             '--db_host=/var/run/postgresql', '--addons-path=' + ','.join(map(str, roots)),
             '--data-dir=' + str(directory / 'data'), '--logfile=' + str(directory / 'data/strict-odoo.log'),

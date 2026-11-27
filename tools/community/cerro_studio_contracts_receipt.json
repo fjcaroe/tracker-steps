@@ -1,0 +1,21 @@
+{
+  "archive_sha256": "c29cb57fd3555b1e482522077eba2bed54e4a1bce727b4e7667ba923757c5d00",
+  "binary_suffixes": [],
+  "files": 9,
+  "lf_source_files": {
+    "step_cerro_catalog_contracts": [
+      "__init__.py",
+      "__manifest__.py",
+      "fruit_rules.xml",
+      "models/__init__.py",
+      "models/accounting.py",
+      "models/calibers.py",
+      "models/fruit.py",
+      "models/packing.py",
+      "models/usage.py"
+    ]
+  },
+  "module_trees": {
+    "step_cerro_catalog_contracts": "1e4a354857d496bbf7c1afd3b2a8188028ccccbfd703a7251d43f4ce524f2629"
+  }
+}
