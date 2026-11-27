@@ -10,6 +10,8 @@ la recepción, el productor actual y todas las tarjas afectadas. Corrige
 `stock.picking.partner_id`, el productor del paquete y su detalle, y el
 propietario de las existencias nativas. El cambio abarca la recepción
 completa para mantener consistente su campo único «Recibido de».
+Las tarjas antiguas recuperan su recepción desde la línea nativa existente
+cuando todavía no tienen el enlace explícito de origen del paquete.
 
 Cada existencia genera dos movimientos nativos de ajuste de propietario,
 referidos a recepción y tarja, con motivo, usuario y fecha. Los movimientos

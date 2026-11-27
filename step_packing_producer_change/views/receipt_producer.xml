@@ -63,7 +63,7 @@
       <xpath expr="//header" position="inside">
         <field name="step_process_reception_id" invisible="1"/>
         <button name="action_step_change_received_producer" type="object" string="Cambiar productor"
-                groups="stock.group_stock_manager" invisible="step_tag_kind != 'C' or not step_process_reception_id"/>
+                groups="stock.group_stock_manager" invisible="step_tag_kind != 'C'"/>
       </xpath>
     </field>
   </record>

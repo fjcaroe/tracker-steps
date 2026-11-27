@@ -151,3 +151,11 @@ class ReceiptProducerCase(SimpleReceptionCase):
             self.assertTrue(tree.xpath('//button[@name="action_step_change_received_producer"]'))
         action = self.tags[0].action_step_change_received_producer()
         self.assertEqual(action['context']['default_picking_id'], self.received.id)
+
+    def test_legacy_native_receipt_without_new_origin_field(self):
+        self.prepare()
+        self.tags.write({'step_process_reception_id': False})
+        action = self.tags[0].action_step_change_received_producer()
+        self.assertEqual(action['context']['default_picking_id'], self.received.id)
+        self.wizard().action_apply()
+        self.assertEqual(self.tags.owner_id, self.other)

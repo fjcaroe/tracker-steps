@@ -41,12 +41,26 @@ class Move(models.Model):
 class Package(models.Model):
     _inherit = 'stock.quant.package'
 
+    def _step_received_producer_receipt(self):
+        self.ensure_one()
+        receipt = self.step_process_reception_id
+        if not receipt:
+            # Older receipts already have the native tag row, but predate the
+            # package's explicit origin link. Resolve that existing relation.
+            receipt = self.env['step.packing.picking.tag.line'].search([
+                ('package_id', '=', self.id), ('picking_id.state', '=', 'done'),
+                ('picking_id.step_fruit_reception_kind', '=', 'process'),
+                ('picking_id.step_fruit_reversal_id', '=', False)]).picking_id
+        if len(receipt) != 1:
+            raise UserError(_('La tarja debe identificar una única recepción de fruta a proceso.'))
+        return receipt
+
     def action_step_change_received_producer(self):
         self.ensure_one()
         self.check_access('write')
-        if self.step_tag_kind != 'C' or not self.step_process_reception_id:
+        if self.step_tag_kind != 'C':
             raise UserError(_('Seleccione una tarja C con recepción de origen.'))
-        return self.step_process_reception_id.action_step_change_received_producer()
+        return self._step_received_producer_receipt().action_step_change_received_producer()
 
     def _step_set_received_producer(self, producer):
         self.check_access('write')
@@ -129,7 +143,7 @@ class ProducerChange(models.TransientModel):
             detail = tag.step_tag_line_ids
             quants = tag.quant_ids.filtered(lambda q: q.quantity or q.reserved_quantity)
             if (not tag.is_fruit_tag or tag.step_tag_kind != 'C' or tag.step_tag_state != 'validated'
-                    or tag.step_process_reception_id != self.picking_id or tag.company_id != self.company_id
+                    or tag._step_received_producer_receipt() != self.picking_id or tag.company_id != self.company_id
                     or not detail or not quants or any(q.quantity <= 0 or q.location_id.usage != 'internal'
                         or q.company_id != self.company_id or q.owner_id != self.previous_producer_id for q in quants)
                     or any(line.producer_id != self.previous_producer_id for line in detail)
