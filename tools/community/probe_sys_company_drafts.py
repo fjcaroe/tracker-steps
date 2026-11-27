@@ -23,9 +23,9 @@ def summarize_rule_changes(stored, current):
     return {"changed_rows": changed_rows, "changed_totals": changed_totals}
 
 
-def probe(env, uid, selected=None, confirm=False, summary=False):
+def probe(env, uid, selected=None, confirm=False, summary=False, components=False):
     cr = env.cr
-    assert re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname)
+    assert (re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname)
     native = bool(env['ir.module.module'].sudo().search_count([('state','=','installed'),('license','=','OEEL-1')]))
     cr.execute("""
         WITH full_month AS (
@@ -66,6 +66,9 @@ def probe(env, uid, selected=None, confirm=False, summary=False):
                                  equals_stored=current==stored)
                     if summary:
                         entry["summary_rules"] = summarize_rule_changes(stored, current)
+                    if components:
+                        from sys_rule_variance import analyze
+                        entry["changes_by_rule"] = analyze(cr, original, draft, stored, current)
                     if confirm:
                         entry['confirmation'] = confirmation(draft, original, current)
                     trial.rollback()
