@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_category_accounts" model="ir.ui.view">
+        <field name="name">Odoo Studio: product.category.list customization</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_list_view"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='display_name']" position="after">
+                    <field name="management_budget_group_id" optional="show"/>
+                    <field name="property_account_income_categ_id" optional="show"/>
+                    <field name="property_account_expense_categ_id" optional="show"/>
+                    <field name="property_stock_valuation_account_id" optional="show"/>
+                    <field name="property_stock_account_input_categ_id" optional="show"/>
+                    <field name="property_valuation" optional="show"/>
+                    <field name="property_cost_method" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="season_budget" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.management.operational.budget.list customization</field>
+        <field name="model">step.management.operational.budget</field>
+        <field name="inherit_id" ref="step_management_costs.view_operational_budget_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='season']" position="after">
+                    <field name="budget_version_id" optional="show"/>
+                </xpath>
+                <xpath expr="//field[@name='total_hectares']" position="after">
+                    <field name="total_income" optional="show" sum="Suma de Ingreso presupuestado"/>
+                    <field name="currency_id"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="actual_costs" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.management.actual.cost.report.list customization</field>
+        <field name="model">step.management.actual.cost.report</field>
+        <field name="inherit_id" ref="step_budget_design.actual_costs_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='quantity']" position="attributes">
+                    <attribute name="sum">Suma de Cantidad</attribute>
+                </xpath>
+                <xpath expr="//field[@name='debit_clp']" position="attributes">
+                    <attribute name="sum">Suma de Debe $</attribute>
+                </xpath>
+                <xpath expr="//field[@name='credit_clp']" position="attributes">
+                    <attribute name="sum">Suma de Haber $</attribute>
+                </xpath>
+                <xpath expr="//field[@name='debit_usd']" position="attributes">
+                    <attribute name="sum">Suma de Debe US$</attribute>
+                </xpath>
+                <xpath expr="//field[@name='credit_usd']" position="attributes">
+                    <attribute name="sum">Suma de Haber US$</attribute>
+                </xpath>
+            </data>
+        </field>
+    </record>
+    <record id="budget_summary" model="ir.ui.view">
+        <field name="name">Odoo Studio: budget.summary.report.list customization</field>
+        <field name="model">step.management.budget.summary.report</field>
+        <field name="inherit_id" ref="step_budget_design.summary_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='income']" position="attributes">
+                    <attribute name="sum">Suma de Ingresos</attribute>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>

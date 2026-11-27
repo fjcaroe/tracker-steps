@@ -18,13 +18,12 @@ def pre_init_hook(env):
         raise UserError('Identificador original del modelo de recepcion incompatible.')
     if native:
         _bind(env,native,'step_cosecha','model_stock_picking')
-        native.noupdate=True
     old=env['ir.model.data'].search([('module','=','step_hr'),('name','=',FIELD_XMLID)])
     if old:
         field=env['ir.model.fields'].browse(old.res_id).exists()
         if len(old)!=1 or old.model!='ir.model.fields' or not field or (field.model,field.name,field.ttype)!=('stock.picking','cosecha','boolean'):
             raise UserError('La bandera original de Cosecha no es compatible.')
-        _bind(env,old,'step_cosecha');old.noupdate=True
+        _bind(env,old,'step_cosecha')
 
 def post_init_hook(env):
     current=env['ir.model.data'].search([('module','=','step_cosecha'),('name','=',FIELD_XMLID)])
