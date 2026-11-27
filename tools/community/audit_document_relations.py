@@ -33,6 +33,14 @@ SELECT json_build_object(
     'missing_access_relations', (SELECT count(*) FROM documents_access acc
         LEFT JOIN documents_document df ON df.id=acc.document_id
         LEFT JOIN res_partner p ON p.id=acc.partner_id WHERE df.id IS NULL OR p.id IS NULL),
+    'document_row_fingerprint', encode(sha256(convert_to(string_agg((to_jsonb(d) - 'step_original_url_hash')::text, chr(10)
+        ORDER BY d.id), 'UTF8')), 'hex'),
+    'access_row_fingerprint', (SELECT encode(sha256(convert_to(string_agg(to_jsonb(acc)::text, chr(10)
+        ORDER BY acc.id), 'UTF8')), 'hex') FROM documents_access acc),
+    'attachment_fingerprint', encode(sha256(convert_to(string_agg(json_build_array(d.id,a.id,
+        a.res_model,a.res_id,a.res_field,a.type,a.store_fname,a.checksum,a.file_size,
+        encode(sha256(a.db_datas),'hex'))::text, chr(10) ORDER BY d.id) FILTER (WHERE a.id IS NOT NULL),
+        'UTF8')), 'hex'),
     'document_relationship_fingerprint', encode(sha256(convert_to(string_agg(json_build_array(d.id,d.type,d.attachment_id,
         d.folder_id,d.shortcut_document_id,d.res_model,d.res_id,d.owner_id,d.company_id,d.partner_id,
         d.access_internal,d.access_via_link,d.active)::text, chr(10) ORDER BY d.id),'UTF8')), 'hex'),
