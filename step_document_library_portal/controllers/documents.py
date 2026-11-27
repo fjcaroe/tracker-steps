@@ -29,13 +29,21 @@ class SharedDocument(HistoricalLibrary):
         response.headers["Referrer-Policy"] = "no-referrer"
         return response
 
-    @http.route("/documents/<string:reference>", auth="public", type="http", methods=["GET"], readonly=True)
+    @http.route("/documents/<string:reference>", auth="public", type="http", methods=["GET"], readonly=False)
     def document(self, reference, **params):
-        document = request.env["documents.document"]._external_file(reference)
+        library = request.env["documents.document"]
+        document = library._external_item(reference)
         if not document:
             if request.env.user._is_public():
                 raise NotFound()
             response = request.render("step_document_library_portal.unavailable_document")
+        elif document.type == "folder":
+            library._remember_folder(document)
+            children = library._listed_folder_children(document)
+            entries = [{"name": child.name, "type": child.type,
+                        "href": "/documents/" + quote(child._original_external_reference(), safe="")} for child in children]
+            response = request.render("step_document_library_portal.shared_folder", {"folder_name": document.name,
+                                                                                     "entries": entries})
         else:
             response = request.render("step_document_library_portal.shared_document", {
                 "file_name": document.name, "reference": reference,
