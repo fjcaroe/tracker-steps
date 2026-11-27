@@ -11,6 +11,7 @@ from preflight_original_history_storage import require
 PROFILES = {
     'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H': 'step_helpdesk_tickets',
     'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2': 'step_helpdesk_tickets',
+    'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3': ('step_helpdesk_tickets', 'step_helpdesk_tickets_portal'),
     'COMMUNITY_STEPS_CRM_DOC_20261127U43X': 'step_document_library,step_document_library_portal',
     'COMMUNITY_STEPS_CRM_DOC_20261127U44P': 'step_document_library,step_document_library_portal,step_report_print_colors',
     'COMMUNITY_STEPS_CRM_PRINT_20261127U43Y': 'step_report_print_colors',
@@ -36,10 +37,12 @@ def main():
     binary, plan, checksum, *args = sys.argv[1:]
     db = args[args.index('-d')+1]
     switches = [arg for arg in args if arg in ('-i','-u')]
+    allowed = PROFILES.get(db, ())
+    allowed = (allowed,) if isinstance(allowed, str) else allowed
     require(db in PROFILES and '--db-filter=^'+db+'$' in args and '--no-http' in args
             and '--stop-after-init' in args and '--max-cron-threads=0' in args
-            and (switches==['-i'] or (switches==['-u'] and db=='COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2'))
-            and args[args.index(switches[0])+1] == PROFILES[db], 'private-install-required')
+            and (switches==['-i'] or (switches==['-u'] and db in ('COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2','COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3')))
+            and args[args.index(switches[0])+1] in allowed, 'private-install-required')
     payload = Path(plan).read_bytes()
     require(hashlib.sha256(payload).hexdigest() == checksum, 'required-columns-plan-changed')
     columns = json.loads(payload)

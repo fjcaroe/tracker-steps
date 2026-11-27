@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="support_home" inherit_id="portal.portal_my_home" name="Soporte en mi cuenta">
+        <xpath expr="//div[@id='portal_common_category']" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">Tickets de soporte</t>
+                <t t-set="url" t-value="'/my/tickets'"/>
+                <t t-set="placeholder_count" t-value="'ticket_count'"/>
+            </t>
+        </xpath>
+    </template>
+
+    <template id="support_breadcrumbs" inherit_id="portal.portal_breadcrumbs" name="Ruta de soporte">
+        <xpath expr="//ol" position="inside">
+            <li t-if="page_name in ('steps_ticket', 'steps_tickets')" class="breadcrumb-item">
+                <a t-if="page_name == 'steps_ticket'" href="/my/tickets">Tickets de soporte</a>
+                <t t-else="">Tickets de soporte</t>
+            </li>
+            <li t-if="page_name == 'steps_ticket'" class="breadcrumb-item active" t-field="ticket.name"/>
+        </xpath>
+    </template>
+
+    <template id="ticket_list" name="Tickets de soporte">
+        <t t-call="portal.portal_layout">
+            <h1>Tickets de soporte</h1>
+            <form method="get" action="/my/tickets" class="row g-2 align-items-end mb-3">
+                <div class="col-sm">
+                    <label for="ticket-search" class="form-label">Buscar</label>
+                    <input id="ticket-search" class="form-control" type="search" name="search" t-att-value="search"/>
+                </div>
+                <div class="col-sm-auto">
+                    <label for="ticket-search-in" class="form-label">Buscar en</label>
+                    <select id="ticket-search-in" class="form-select" name="search_in">
+                        <option t-foreach="search_fields.items()" t-as="item" t-att-value="item[0]" t-att-selected="item[0] == search_in" t-out="item[1]"/>
+                    </select>
+                </div>
+                <div class="col-sm-auto">
+                    <label for="ticket-filter" class="form-label">Mostrar</label>
+                    <select id="ticket-filter" class="form-select" name="filterby">
+                        <option t-foreach="filters.items()" t-as="item" t-att-value="item[0]" t-att-selected="item[0] == filterby" t-out="item[1][0]"/>
+                    </select>
+                </div>
+                <div class="col-sm-auto">
+                    <label for="ticket-sort" class="form-label">Orden</label>
+                    <select id="ticket-sort" class="form-select" name="sortby">
+                        <option t-foreach="sortings.items()" t-as="item" t-att-value="item[0]" t-att-selected="item[0] == sortby" t-out="item[1]"/>
+                    </select>
+                </div>
+                <div class="col-sm-auto">
+                    <label for="ticket-group" class="form-label">Agrupar por</label>
+                    <select id="ticket-group" class="form-select" name="groupby">
+                        <option t-foreach="groups.items()" t-as="item" t-att-value="item[0]" t-att-selected="item[0] == groupby" t-out="item[1]"/>
+                    </select>
+                </div>
+                <div class="col-sm-auto">
+                    <label for="ticket-priority" class="form-label">Prioridad</label>
+                    <select id="ticket-priority" name="priority" class="form-select">
+                        <option value="">Todas</option>
+                        <option t-foreach="[('0','Baja'), ('1','Media'), ('2','Alta'), ('3','Urgente')]" t-as="item"
+                                t-att-value="item[0]" t-att-selected="item[0] == priority" t-out="item[1]"/>
+                    </select>
+                </div>
+                <div class="col-sm-auto"><label class="form-label" for="ticket-begin">Desde</label><input id="ticket-begin" type="date" name="date_begin" class="form-control" t-att-value="date_begin"/></div>
+                <div class="col-sm-auto"><label class="form-label" for="ticket-end">Hasta</label><input id="ticket-end" type="date" name="date_end" class="form-control" t-att-value="date_end"/></div>
+                <div class="col-sm-auto"><button class="btn btn-primary" type="submit">Aplicar</button></div>
+            </form>
+            <p t-if="not tickets" class="alert alert-info">No hay tickets para esta consulta.</p>
+            <t t-else="" t-call="portal.portal_table">
+                <thead><tr><th>Ticket</th><th>Asunto</th><th>Creación</th><th>Etapa</th></tr></thead>
+                <tbody t-foreach="grouped_tickets" t-as="section">
+                    <tr t-if="groupby != 'none'"><th colspan="4" t-out="(section[0].display_name if section[0] and groupby != 'kanban_state' else section[0]) or 'Sin asignar'"/></tr>
+                    <tr t-foreach="section[1]" t-as="ticket">
+                        <td><a t-att-href="ticket.access_url" t-field="ticket.ticket_ref"/></td>
+                        <td><a t-att-href="ticket.access_url" t-field="ticket.name"/></td>
+                        <td><span t-field="ticket.create_date" t-options="{'widget': 'date'}"/></td>
+                        <td><span t-field="ticket.stage_id"/></td>
+                    </tr>
+                </tbody>
+            </t>
+        </t>
+    </template>
+
+    <template id="ticket_detail" name="Detalle del ticket">
+        <t t-call="portal.portal_layout">
+            <article>
+                <header><p class="text-muted mb-1">Ticket <span t-field="ticket.ticket_ref"/></p><h1 t-field="ticket.name"/></header>
+                <dl class="row">
+                    <dt class="col-sm-3">Etapa</dt><dd class="col-sm-9" t-field="ticket.stage_id"/>
+                    <dt class="col-sm-3">Equipo</dt><dd class="col-sm-9" t-field="ticket.team_id"/>
+                    <dt class="col-sm-3">Responsable</dt><dd class="col-sm-9" t-field="ticket.user_id"/>
+                    <dt class="col-sm-3">Fecha de creación</dt><dd class="col-sm-9" t-field="ticket.create_date"/>
+                </dl>
+                <section t-if="ticket.description"><h2>Descripción</h2><div t-field="ticket.description"/></section>
+                <section id="discussion"><h2>Conversación</h2><t t-call="portal.message_thread"/></section>
+            </article>
+        </t>
+    </template>
+</odoo>
