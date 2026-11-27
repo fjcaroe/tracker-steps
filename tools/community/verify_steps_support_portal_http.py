@@ -4,10 +4,11 @@ import json
 from pathlib import Path
 
 
-def compare(original, community):
+def compare(original, community, *, target="COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3"):
     assert __debug__
     assert original["db"] == "MANAGEMENT_QA_STEPS_CRM_20261126U42C"
-    assert community["db"] == "COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3"
+    assert target in ("COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3", "COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A")
+    assert community["db"] == target
     assert original["probe_sha256"] == community["probe_sha256"]
     assert original["unchanged_table_rows"] == community["unchanged_table_rows"] == 15
     reference = original["result"]
