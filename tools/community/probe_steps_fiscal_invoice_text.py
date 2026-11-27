@@ -23,7 +23,8 @@ def run(env):
             except Exception as failure:
                 cause=failure.__cause__ or failure
                 output.append({'actor':user.id,'move':move.id,'error':type(failure).__name__,
-                               'cause':type(cause).__name__,'technical_fields':re.findall(
+                               'cause':type(cause).__name__,'key':str(cause.args[0]) if isinstance(cause,KeyError) and isinstance(cause.args[0],str) and re.fullmatch(r'[a-z_][a-z0-9_.]*',cause.args[0]) else None,
+                               'template':getattr(failure,'template',None),'technical_fields':re.findall(
                                    r"(?:attribute|field) '([a-zA-Z_][a-zA-Z0-9_]+)'",str(cause))})
                 continue
             refs=move.l10n_cl_reference_ids

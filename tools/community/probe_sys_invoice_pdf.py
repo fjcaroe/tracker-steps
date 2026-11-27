@@ -16,7 +16,8 @@ from PyPDF2 import PdfFileReader
 
 
 def run(shell):
-    assert shell.cr.dbname in ("COMMUNITY_SYS_FINAL_RESTORED_20261127U46R", "COMMUNITY_SYS_FISCAL_PRINT_20261127U45P", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW",
+    steps = shell.cr.dbname in ('MANAGEMENT_QA_STEPS_CRM_20261126U42C', 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F')
+    assert steps or shell.cr.dbname in ("COMMUNITY_SYS_FINAL_RESTORED_20261127U46R", "COMMUNITY_SYS_FISCAL_PRINT_20261127U45P", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW",
                                "COMMUNITY_SYS_PREVIRED_MODULES_20261127U43MF",
                                "MANAGEMENT_QA_SYS_PREVIRED_20261126U40N", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG")
     url = os.environ["STEPS_PRIVATE_REPORT_URL"]
@@ -34,6 +35,9 @@ def run(shell):
 
     directory = Path(tempfile.mkdtemp(prefix="historical-invoice-pdf-", dir=config["data_dir"]))
     actors = shell["res.users"].search([("active", "=", True), ("share", "=", False), ("id", ">", 1)])
+    if steps:
+        actors = actors.filtered(lambda user: user.id in (7, 10))
+        assert set(actors.ids) == {7, 10}
     assert len(actors) == 2
     result = []
     extractor = Path(shutil.which("gs")).resolve(strict=True)
@@ -50,7 +54,7 @@ def run(shell):
             for move_type in ("out_invoice", "out_refund"):
                 found = False
                 for company in actor.company_ids.filtered("active"):
-                    scope = shell(user=actor.id, su=False, context={"allowed_company_ids": [company.id], "lang": "es_CL"})
+                    scope = shell(user=actor.id, su=False, context={"allowed_company_ids": [company.id], "lang": actor.lang if steps else "es_CL"})
                     domain = [("company_id", "=", company.id), ("move_type", "=", move_type), ("state", "=", "posted"),
                               ("l10n_latam_document_type_id", "!=", False)]
                     if move_type == "out_refund":
