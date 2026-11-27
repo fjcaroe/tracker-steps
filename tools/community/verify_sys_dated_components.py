@@ -5,13 +5,15 @@ from collections import Counter, defaultdict
 from datetime import date
 from decimal import Decimal, ROUND_CEILING, ROUND_HALF_UP
 import fcntl
+import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
 from types import SimpleNamespace
 
-from rehearse_sys_module_upgrades import odoo
+from rehearse_sys_module_upgrades import differences, guards, odoo, save, snapshot
 from replay_sys_rule_variance import BASE, CODE, DB, PROBES, ROOT
 from restore_sys_previred_pair import LOCK, require
 from trace_sys_historical_rule_sources import ARCHIVES, collect, credit, digest, fingerprint, numeric, read_dump, same_formula
@@ -119,7 +121,6 @@ def prepare(sources,selected,current):
         stamp,closed=history[0]
         rule=sample["changes_by_rule"][0]["rule"]
         text=present["rules"][rule]["amount_python_compute"]
-        import hashlib
         require(hashlib.sha256(text.encode()).hexdigest()==FORMULAS[rule], "untested-source-formula")
         evidence={"first_rule":rule,"first_exact_closed_archive":stamp,
                   "paid_edited":closed["ps"]["edited"]=="t","same_days":closed["work"]==present["work"]}
@@ -192,23 +193,62 @@ def main():
     for date_tag in ARCHIVES:
         pref="retained_sys_" if date_tag.startswith("20261109") else "management_sys_"
         file=Path("/opt/steps_backups")/(pref+date_tag)/"database.dump"
-        if file.is_file():
-            sources[date_tag]=collect(read_dump(file),selected)
+        require(file.is_file(), "missing-reviewed-dated-SyS-archive")
+        sources[date_tag]=collect(read_dump(file),selected)
     current_dump=BASE/"source.dump"
     require(digest(current_dump)=="0c4e970e29579c6de38d71397a987682e97ff9a90027baad8c9e9b77f84bf606","original-L-snapshot-required")
     current=collect(read_dump(current_dump, sealed_source="COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L"),selected)
     expected,facts=prepare(sources,selected,current)
     target=ROOT/"dated-first-components.json"
-    if target.is_file():
-        raise ValueError("The completed dated test must be reviewed before starting another")
-    with open(LOCK,"rb") as lock:
-        fcntl.flock(lock,fcntl.LOCK_EX)
-        observed=run_drafts(expected,selected)
-        for pk,values in observed.items():
-            facts[pk].update(values)
-        with target.open("x") as file:
-            json.dump(facts,file,sort_keys=True,indent=2)
-        print("cases",len(facts),"additional-private-drafts",len(observed),"receipt",digest(target),flush=True)
+    with open(LOCK, "rb") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if target.is_file():
+            previous = {int(key): value for key, value in json.loads(target.read_bytes()).items()}
+            require(previous.keys() == facts.keys() and all(
+                all(previous[k].get(field) == value for field, value in facts[k].items()) for k in facts),
+                "dated-receipt-no-longer-matches-originals")
+            facts = previous
+        else:
+            observed = run_drafts(expected, selected)
+            for pk, values in observed.items():
+                facts[pk].update(values)
+            with target.open("x") as stream:
+                json.dump(facts, stream, sort_keys=True, indent=2)
+        primary = Counter(row["first_rule"] for row in facts.values())
+        require(primary == {51: 23, 35: 5, 25: 1, 36: 1, 41: 1, 60: 1, 77: 1}, "changed-first-rule-classification")
+        require(sum(row.get("credit_source", False) for row in facts.values()) == 24, "dated-credit-source-mismatch")
+        for row in facts.values():
+            require(row["same_days"], "changed-original-worked-days")
+            if row["first_rule"] == 51:
+                require(row["whole_draft_reconstructed_by_removing_credit"], "credit-does-not-explain-whole-draft")
+            else:
+                require(row["paid_edited"] and row["historical_formula_preserved"] and
+                        row["same_predicted_total_from_both_snapshots"] and row["draft_equals_predicted_at_close"] and
+                        row["draft_equals_predicted_today"] and not row["paid_equals_predicted_at_close"] and
+                        not row["fresh_draft_edited"], "dated-first-value-not-explained")
+        initial = json.loads(gzip.decompress((BASE / "source-snapshot.json.gz").read_bytes()))
+        final = snapshot(DB)
+        delta = differences(initial, final)
+        allowed = {"hr_payslip_id_seq", "hr_payslip_line_id_seq", "hr_payslip_worked_days_id_seq"}
+        require(set(delta["sequence_values"]) == allowed and
+                not any(affected for section, affected in delta.items() if section != "sequence_values") and
+                all(final["sequence_values"][seq][0] > initial["sequence_values"][seq][0] for seq in allowed),
+                "dated-replay-changed-original-data")
+        require(len(guards(DB)) == 40 and guards(DB) == guards("COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L"),
+                "original-guard-drift")
+        result = {"database": DB, "original_source": digest(BASE / "source.dump"),
+                  "original_tables": len(initial["public_tables"]), "original_rows": sum(x[0] for x in initial["public_tables"].values()),
+                  "original_columns": len(initial["columns"]), "original_constraints": len(initial["constraints"]),
+                  "triggers": 40, "private_sequence_advances": sorted(allowed), "receipts": {
+                      n: digest(ROOT / n) for n in ("classification.json", "native.json", "community.json",
+                                                     "dated-sources.json", "dated-first-components.json")}}
+        final_receipt = ROOT / "dated-storage.json"
+        if final_receipt.is_file():
+            require(json.loads(final_receipt.read_bytes()) == result, "previous-storage-receipt-differs")
+        else:
+            save(final_receipt, result)
+        print("cases",len(facts),"additional-private-drafts",len(expected),"receipt",digest(target),
+              "storage",digest(final_receipt),flush=True)
 
 
 if __name__=="__main__":

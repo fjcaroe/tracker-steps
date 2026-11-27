@@ -1,7 +1,6 @@
 """Compare October payroll inputs with dated original SyS archives in memory. Write only equality tests and counts."""
 
-from collections import Counter, defaultdict
-from datetime import date
+from collections import defaultdict
 from decimal import Decimal
 import fcntl
 import hashlib
@@ -174,8 +173,7 @@ def main():
         for stamp in ARCHIVES:
             prefix = "retained_sys_" if stamp.startswith("20261109") else "management_sys_"
             archive = Path("/opt/steps_backups") / (prefix+stamp) / "database.dump"
-            if not archive.is_file() and prefix == "retained_sys_":
-                continue
+            require(archive.is_file(), "missing-reviewed-dated-SyS-archive")
             sources[stamp] = digest(archive)
             history[stamp] = collect(read_dump(archive), selected)
         current = collect(read_dump(None, "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44VA"), selected)

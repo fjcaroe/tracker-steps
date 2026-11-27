@@ -61,6 +61,9 @@ def cases():
 
 
 def exercise(args, kind, selected):
+    output = ROOT / (kind + ".json")
+    if output.is_file():
+        return json.loads(output.read_bytes())
     probes = ROOT / "probes"
     probes.mkdir(mode=0o755, exist_ok=True)
     probes.chmod(0o755)
@@ -88,9 +91,6 @@ assert before==snapshot(env)
 result['preserved_tables']=sorted(before)
 print('COMPONENTS='+json.dumps(result),flush=True)
 """
-    output = ROOT / (kind + ".json")
-    if output.is_file():
-        return json.loads(output.read_bytes())
     log = ROOT / (kind + "-" + str(len(list(ROOT.glob(kind + "-*.log")))) + ".log")
     if kind == "community":
         status = odoo(args, "shell", [], log, script.encode())
