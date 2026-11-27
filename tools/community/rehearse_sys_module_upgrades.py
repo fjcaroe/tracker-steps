@@ -174,6 +174,16 @@ def forms(args):
     save(out / (args.label + ".json"), json.loads(lines[0]))
 
 
+def journal_migration(args):
+    script = args.sealed / "runtime/addons/l10n_latam_invoice_document/migrations/1.1/post-migration.py"
+    require(digest(script) == "9b8db12f8dd82f88133dfa6299cfa432f10ba2aef170298fd2774e20efaeda7a",
+            "unexpected-journal-migration")
+    probe = Path(__file__).with_name("probe_latam_11_journal_migration.py").read_text()
+    code = script.read_text() + "\n" + probe + "\nimport json\nprint(json.dumps(check(" + repr(args.database) + ",migrate)))"
+    command = ["unshare", "--net", "--", "sudo", "-n", "-u", "odoo", "/usr/bin/python3.10", "-B", "-"]
+    return json.loads(subprocess.check_output(command, input=code.encode()))
+
+
 def final_receipt(args, proof):
     out, db = args.output, args.database
     restored = json.loads((out / "restored.json").read_bytes())
@@ -249,6 +259,7 @@ def upgrade(args, proof):
         require(previous_stage, "version-advanced-outside-recorded-official-upgrade")
     else:
         require(initial[module] == ["installed", old], "unexpected-initial-module-state")
+    migration_case = journal_migration(args) if module == "l10n_latam_invoice_document" else None
     code = odoo(args, None, ["-u", module], run / (module + ".log"))
     final = module_versions(db)
     after = snapshot(db)
@@ -260,7 +271,7 @@ def upgrade(args, proof):
     changed_tables = {table: [before["public_tables"].get(table), after["public_tables"].get(table)]
                       for table in delta["public_tables"]}
     result = {"module": module, "aliases": [aliases, original_aliases_after], "table_fingerprints": changed_tables, "old": initial[module], "new": final[module], "expected": expected,
-              "previous_upgrade_as_dependency": previous_stage, "journal_domain": [journals, journal_domain(db)], "odoo_exit": code, "manifest": providers[module][1], "loaded": "Modules loaded." in raw,
+              "journal_script_probe": migration_case, "previous_upgrade_as_dependency": previous_stage, "journal_domain": [journals, journal_domain(db)], "odoo_exit": code, "manifest": providers[module][1], "loaded": "Modules loaded." in raw,
               "log_sha256": digest(log) if log.exists() else None,
               "passed": code == 0 and "Modules loaded." in raw and final[module] == ["installed", expected],
               "all_module_state_changes": {k: [initial.get(k), final.get(k)] for k in initial.keys() | final.keys()
