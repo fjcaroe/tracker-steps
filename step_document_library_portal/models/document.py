@@ -19,6 +19,10 @@ class Document(models.Model):
         """Resolve an adopted native reference without granting general access to attachments."""
         if not isinstance(reference, str) or not 1 <= len(reference) <= 256:
             return self.browse()
+        return self._external_file_by_digest(sha256(reference.encode()).hexdigest())
+
+    @api.model
+    def _external_file_by_digest(self, reference_digest):
         user = self.env.user
         portal_contact = user.partner_id.id if user.has_group("base.group_portal") and not user._is_public() else None
         self.env.cr.execute("""
@@ -27,7 +31,7 @@ class Document(models.Model):
                   AND a.role IN ('view','edit') AND (a.expiration_date IS NULL OR a.expiration_date > timezone('UTC',now()))
             ) FROM documents_document d WHERE d.step_portal_reference_hash=%s
             AND d.active IS TRUE AND d.type='binary' AND d.attachment_id IS NOT NULL
-        """, [portal_contact, sha256(reference.encode()).hexdigest()])
+        """, [portal_contact, reference_digest])
         row = self.env.cr.fetchone()
         if not row:
             return self.browse()
