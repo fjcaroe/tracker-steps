@@ -100,7 +100,7 @@ def prepare(base, h3):
     scripts = MEM / "tools"
     checked_directory(scripts, 0o755)
     todo = ["compare_sys_full_restore", "audit_steps_sales_schema", "probe_steps_support_thread",
-            "probe_steps_fiscal_invoice_text", "steps_barcode_runtime"]
+            "probe_steps_fiscal_invoice_text", "steps_barcode_runtime", "probe_steps_register_payment"]
     seen = set()
     while todo:
         name = todo.pop()
@@ -167,8 +167,7 @@ def schema_sha(database=RESTORED):
     return hashlib.sha256(normalized).hexdigest()
 
 
-def boot(active, invoice_reference, chatter_reference, number, database=RESTORED, work=MEM, extra=None):
-    proofdir = work / "proofs"
+def shell_command(database, work, extra=None):
     conf = work / "odoo.conf"
     conf.write_text("[options]\nlist_db = False\n")
     conf.chmod(0o644)
@@ -178,12 +177,17 @@ def boot(active, invoice_reference, chatter_reference, number, database=RESTORED
     roots = [addons, runtime / "addons", runtime / "odoo/addons"]
     if extra is not None:
         roots.insert(0, extra)
-    cmd = ["env", "HOME=" + str(data), "TMPDIR=" + str(data / "tmp"),
+    return ["env", "HOME=" + str(data), "TMPDIR=" + str(data / "tmp"),
            "PYTHONPATH=" + str(MEM / "barcode/python"), "python3.10", str(runtime / "odoo-bin"),
            "shell", "-c", str(conf), "-d", database, "--db-filter=^" + database + "$", "--db_host=" + SOCKET,
            "--db_port=" + str(PORT), "--data-dir=" + str(data), "--no-http", "--workers=0", "--max-cron-threads=0",
            "--addons-path=" + ",".join(map(str, roots)),
            "--without-demo=all", "--load=base,web", "--logfile=" + str(data / "odoo.log")]
+
+
+def boot(active, invoice_reference, chatter_reference, number, database=RESTORED, work=MEM, extra=None):
+    proofdir = work / "proofs"
+    cmd = shell_command(database, work, extra)
     script = """
 import json, logging, sys
 from pathlib import Path
@@ -221,6 +225,68 @@ env.cr.rollback()
     (result,) = [json.loads(row[10:]) for row in log.read_bytes().splitlines() if row.startswith(b"WORKFLOWS=")]
     check(result == [chatter_reference, invoice_reference], "restored-invoice-or-ticket-content-differs")
     return strong(result)
+
+
+def rehearse_payment(control, work, extra, original_store, frozen, ddl, expected, checkpoint, base):
+    db = "COMMUNITY_STEPS_CRM_PAYMENTS_TEST_20261127U46D"
+    disposable = work / "payment-rehearsal"
+    checked_directory(disposable, 0o711)
+    marker = disposable / "identity.json"
+    identity = {"database": db, "template": control, "source_checkpoint_sha256": checkpoint}
+    with open("/dev/shm/steps-shared-qa-restore.lock", "a+b") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        capacity = space(base)
+        check(capacity["tmpfs_free"] >= 1600 * 1024**2, "space-for-independent-payment-rehearsal")
+        exists = query("postgres", f"SELECT 1 FROM pg_database WHERE datname='{db}'")
+        if marker.exists():
+            check(read_json(marker) == identity, "unrelated-payment-rehearsal")
+        else:
+            check(not exists, "unidentified-payment-rehearsal-database")
+            marker.write_text(json.dumps(identity, sort_keys=True))
+        if not exists:
+            pg("createdb", "--template=" + control, "--owner=odoo", db)
+    check(schema_sha(db) == schema_sha(control), "payment-rehearsal-schema-differs")
+    before, before_objects = snapshot(db)
+    check(before_objects == ddl and all(before[key] == frozen[key] for key in frozen if key != "sequence_values"),
+          "payment-rehearsal-started-with-different-rows")
+    checked_directory(disposable / "data", 0o700, ODOO_USER)
+    checked_directory(disposable / "data/tmp", 0o700, ODOO_USER)
+    checked_directory(disposable / "data/filestore", 0o700, ODOO_USER)
+    copy = disposable / "data/filestore" / db
+    if not copy.exists():
+        with tempfile.TemporaryDirectory(dir=copy.parent) as temp:
+            tree = Path(temp) / "files"
+            shutil.copytree(original_store, tree)
+            tree.rename(copy)
+    originals = {p.relative_to(original_store): hash_file(p) for p in original_store.rglob("*") if p.is_file()}
+    check({p.relative_to(copy): hash_file(p) for p in copy.rglob("*") if p.is_file()} == originals,
+          "payment-rehearsal-filestore-differs")
+    for p in (copy, *copy.rglob("*")):
+        check(not p.is_symlink(), "payment-rehearsal-linked-to-control")
+        os.chown(p, ODOO_USER, ODOO_USER)
+    cmd = shell_command(db, disposable, extra)
+    script = ("import sys,json\nsys.path.insert(0," + repr(str(MEM / "tools")) +
+              ")\nfrom probe_steps_register_payment import run\nprint('PAYMENTS='+json.dumps(run(env),sort_keys=True))\n")
+    with (disposable / "rehearsal.log").open("wb") as log:
+        call("odoo", cmd, input=script.encode(), stdout=log, stderr=log)
+    (result,) = [json.loads(line[9:]) for line in (disposable / "rehearsal.log").read_bytes().splitlines() if line.startswith(b"PAYMENTS=")]
+    after, after_objects = snapshot(db)
+    check(after_objects == ddl and all(before[k] == after[k] for k in before if k != "sequence_values"),
+          "rehearsal-persisted-historical-data")
+    sequence_changes = 0
+    for name, (last, called) in before["sequence_values"].items():
+        end, end_called = after["sequence_values"][name]
+        if [last, called] != [end, end_called]:
+            check(end >= last and end_called and before["sequence_definitions"][name][4] > 0
+                  and not before["sequence_definitions"][name][5], "unexpected-rehearsal-sequence-change")
+            sequence_changes += 1
+    check(expected["history_unchanged"] and result == {key: expected[key] for key in ("default", "configured")},
+          "recovered-payment-workflow-differs-from-source")
+    return {"database": db, "unchanged_tables": len(after["public_tables"]), "forward_sequences": sequence_changes,
+            "pending_payment": result["default"]["state"], "pending_invoice": result["default"]["invoice_state"],
+            "configured_payment": result["configured"]["state"], "configured_invoice": result["configured"]["invoice_state"],
+            "configured_ledger": result["configured"]["move_posting"], "configured_reconciled": result["configured"]["reconciled"],
+            "result_sha256": strong(result)}
 
 
 def restore(base, h3, sealed, expected_sha, *, parent=None):
@@ -353,6 +419,8 @@ def restore(base, h3, sealed, expected_sha, *, parent=None):
             options = [name for name in business["receipts"] if "invoice-text" in name and "native" not in name]
             matches = [json.load(archive.extractfile(name)) for name in options]
             invoices, = [r for r in matches if r.get("database") == status["source"] and len(r.get("documents", ())) == 42]
+            payments, = [name for name in business["receipts"] if "manual-payment" in name and "native" not in name]
+            expected_payment = json.load(archive.extractfile(payments))
     check(invoices["database"] == chatter["db"] == status["source"] and len(invoices["documents"]) == 42,
           "wrong-integrated-workflow-expectations")
     signatures = []
@@ -360,6 +428,10 @@ def restore(base, h3, sealed, expected_sha, *, parent=None):
         signatures.append(boot(active, invoices["documents"], chatter["thread"], number, target, work, extra))
         check(snapshot(target) == [frozen, ddl] and tree() == physical, "post-boot-full-storage-drift")
     check(len(set(signatures)) == 1, "second-boot-differs")
+    payment_trial = None
+    if parent is not None:
+        payment_trial = rehearse_payment(target, work, extra, store, frozen, ddl, expected_payment, expected_sha, base)
+        check(snapshot(target) == [frozen, ddl] and tree() == physical, "payment-rehearsal-changed-its-control")
     own_cluster = MEM / "postgres/cluster"
     check(query("postgres", "SELECT current_setting('port')||'/'||current_setting('data_directory')")
           == str(PORT) + "/" + str(own_cluster), "unrecognized-cluster-at-shutdown")
@@ -370,6 +442,9 @@ def restore(base, h3, sealed, expected_sha, *, parent=None):
               "operator_files_per_boot": 418, "portal_files_per_boot": 2, "workflows_sha256": signatures[0],
               "preflight": before_capacity, "postflight": space(base), "private_cluster_stopped": True,
               "barcode_runtime_sha256": BARCODE_SHA, "barcode_reference": actual}
+    if payment_trial is not None:
+        result["independent_payment_rehearsal"] = payment_trial
+        result.update(physical_files=len(physical), schema_objects=len(ddl), schema_sha256=proof["schema_sha256"])
     (work / "proofs/restored.json").write_text(json.dumps(result, indent=2, sort_keys=True))
     return result
 
