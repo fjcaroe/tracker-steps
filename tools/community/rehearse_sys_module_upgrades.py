@@ -638,7 +638,9 @@ def restore_financial_actions(args, proof):
             RAISE EXCEPTION 'Expected the original tax reference restriction'; EXCEPTION WHEN foreign_key_violation THEN NULL; END; END $$;
         SELECT (SELECT count(*) FROM pg_temp.steps_trial_ledger),(SELECT count(*) FROM pg_temp.steps_trial_tax_rel);
         ROLLBACK;"""
-    require(query(args.database, trial) == "0|1", "native-financial-deletion-fixture-failed")
+    exercise = pg("psql", "-XAtq", "-v", "ON_ERROR_STOP=1", args.database, "-c", trial,
+                  text=True, stdout=subprocess.PIPE)
+    require(exercise.stdout.strip() == "0|1", "native-financial-deletion-fixture-failed")
     save(out / "financial-delete-actions.json", {"actions": pairs.splitlines(), "original_field": 6077,
         "ledger_row_cascaded": True, "tax_row_retained": True, "temporary_rows_rolled_back": True})
 
