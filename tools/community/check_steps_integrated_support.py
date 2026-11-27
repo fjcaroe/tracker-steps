@@ -23,6 +23,9 @@ BASE = Path("/opt/steps-validation")
 OUT = BASE / "steps-integrated-support-check-20261127U46A"
 H3 = BASE / "steps-sales-support-20261127U44H3/final-checkpoint"
 NATIVE_ARGS = BASE / "steps-crm-20261126U42/native/private-args.json"
+PROBES = {"probe_document_portal_http": "546c0bd6da4f43bb8b48f0ac3db05a59173cd90d20fa4bf06a6dca8910ee1424",
+          "probe_steps_support_portal_http": "298b60e08078f79370db213596ce6860655b4b03f0f7fe9913c80b77434e3934",
+          "probe_steps_support_thread": "ce0f89993cb6236ed2329d5e0d5eb270c6479f96aec7d8fffd3c1d4a37da92ea"}
 
 
 def sql_snapshot(db):
@@ -33,7 +36,7 @@ def sql_snapshot(db):
     return json.loads(output)
 
 
-def probe(phase):
+def probe(phase, probe_root):
     db, command_file = (NATIVE, NATIVE_ARGS) if phase == "reference" else (SUCCESSOR, INTEGRATION / "private-args.json")
     require(OUT.resolve(strict=True) == OUT, "private-support-output-required")
     args = json.loads(command_file.read_bytes())
@@ -47,6 +50,7 @@ def probe(phase):
     store_snapshot = None
     if db == SUCCESSOR:
         original = json.loads((H3 / "providers.json").read_bytes())
+        original["step_helpdesk_tickets_portal"] = ["18.0.1.0.3", "LGPL-3"]
         active = check_modules(db)
         require(len(active) == 165 and all(active.get(n) == v for n, v in original.items()) and
                 "step_cl_invoice_status_history" in active, "qualified-165-module-candidate-required")
@@ -55,8 +59,10 @@ def probe(phase):
         store_snapshot = inventory(store, catalog)
     require(query("postgres", f"SELECT count(*) FROM pg_stat_activity WHERE datname='{db}'") == "0", "support-copy-in-use")
     parts = {}
-    for name in ("probe_document_portal_http", "probe_steps_support_portal_http", "probe_steps_support_thread"):
-        parts[name] = Path(__file__).with_name(name + ".py").read_text()
+    for name, expected in PROBES.items():
+        body = (probe_root / (name + ".py")).read_bytes().replace(b"\r\n", b"\n")
+        require(hashlib.sha256(body).hexdigest() == expected, "use-native-probe-revision-bac38850")
+        parts[name] = body.decode()
     code = """
 import json, logging, sys, types
 logging.disable(logging.CRITICAL)
@@ -105,8 +111,10 @@ print('RESULT=' + json.dumps({'thread':check_thread(env),'http':check_http(env)}
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("phase", choices=["reference", "candidate"])
+    parser.add_argument("--probe-root", type=Path, default=Path(__file__).resolve().parent,
+                        help="The three native probe sources qualified at bac38850")
     args = parser.parse_args()
     os.umask(0o077)
     with open(LOCK, "rb") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        print(json.dumps(probe(args.phase)))
+        print(json.dumps(probe(args.phase, args.probe_root)))
