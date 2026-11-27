@@ -51,7 +51,7 @@ def view_messages(client, ticket_id):
 
 
 def run(env):
-    assert __debug__ and env.cr.dbname in (NATIVE, COMMUNITY, INTEGRATED) and env.registry.test_cr is None
+    assert __debug__ and env.cr.dbname in (NATIVE, COMMUNITY, INTEGRATED, "COMMUNITY_STEPS_CRM_FISCAL_20261127U45F") and env.registry.test_cr is None
     assert {line.split(":")[0].strip() for line in Path("/proc/net/dev").read_text().splitlines()[2:]} == {"lo"}
     env.cr.rollback()
     options = {"tracking_disable": True, "mail_create_nolog": True, "mail_create_nosubscribe": True,

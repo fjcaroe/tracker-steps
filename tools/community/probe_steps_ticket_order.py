@@ -8,7 +8,8 @@ from probe_steps_support_thread import request_for
 
 
 def run(env):
-    assert env.cr.dbname in ("MANAGEMENT_QA_STEPS_CRM_20261126U42C", "COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A")
+    assert env.cr.dbname in ("MANAGEMENT_QA_STEPS_CRM_20261126U42C", "COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A",
+                             "COMMUNITY_STEPS_CRM_FISCAL_20261127U45F")
     env.cr.rollback()
     env.cr.execute("SET TRANSACTION READ ONLY")
     user = env["res.users"].browse(6)
