@@ -512,10 +512,15 @@ def compare_operator_exports(args):
             require(field not in entry["previred"] and field in screen_actors[key]["previred"], "unexpected-screen-baseline")
             entry["previred"][field] = screen_actors[key]["previred"][field]
     mismatch = {str(k): changes(actors[k], new_actors[k]) for k in actors if actors[k] != new_actors[k]}
-    save(out / "complete-export-comparison.json", {"reference": digest(first), "screen_reference": digest(screen),
+    result = {"reference": digest(first), "screen_reference": digest(screen),
         "companies": len(companies), "pairs": len(actors),
         "scope_differences": scope_changes, "full_result_differences": mismatch,
-        "matches": not scope_changes and not mismatch, "originals_preserved": observed["originals_preserved"]})
+        "matches": not scope_changes and not mismatch, "originals_preserved": observed["originals_preserved"]}
+    target = out / "complete-export-comparison.json"
+    if target.is_file():
+        require(json.loads(target.read_bytes()) == result, "previous-export-comparison-differs")
+    else:
+        save(target, result)
 
 
 def print_chilean_invoices(args, proof):
