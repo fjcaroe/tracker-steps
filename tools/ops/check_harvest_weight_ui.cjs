@@ -88,8 +88,10 @@ async function main() {
         assert.equal(await standard.inputValue(), expected(3));
         if (mode === 'copy') {
             await nav.getByRole('button', { name: 'Cuadrilla', exact: true }).click();
-            const person = data.workers.find(row => row.id === worker);
-            await page.locator('tr').filter({ hasText: person.nip }).getByRole('button', { name: 'Deshabilitado' }).click();
+            await page.getByRole('button', { name: 'Seleccionar trabajador', exact: true }).click();
+            const enable = page.getByRole('dialog', { name: 'Seleccionar trabajador', exact: true });
+            await enable.locator('[name=worker]').selectOption(String(worker));
+            await enable.getByRole('button', { name: 'Habilitar en este equipo', exact: true }).click();
             await nav.getByRole('button', { name: /^Registrar(?:\s|$)/ }).click();
             await page.locator('form.capture-card select').selectOption(String(worker));
             await page.getByLabel('Hilera', { exact: true }).fill('QA-T242');
