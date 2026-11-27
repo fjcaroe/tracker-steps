@@ -23,7 +23,7 @@ def summarize_rule_changes(stored, current):
     return {"changed_rows": changed_rows, "changed_totals": changed_totals}
 
 
-def probe(env, uid, selected=None, confirm=False, summary=False, components=False):
+def probe(env, uid, selected=None, confirm=False, summary=False, components=False, compare_source=None):
     cr = env.cr
     assert (re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname)
             or (components and cr.dbname == 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44VA'))
@@ -70,6 +70,8 @@ def probe(env, uid, selected=None, confirm=False, summary=False, components=Fals
                     if components:
                         from sys_rule_variance import analyze
                         entry["changes_by_rule"] = analyze(cr, original, draft, stored, current)
+                        if compare_source:
+                            entry["dated_value_check"] = compare_source(original, draft, stored, current)
                     if confirm:
                         entry['confirmation'] = confirmation(draft, original, current)
                     trial.rollback()

@@ -26,7 +26,7 @@ RULE_FIELDS = {25: ("wage",), 35: ("colocation", "date_start", "date_end"), 36: 
                     "family_invalid_loads_count", "family_simple_loads_count", "family_maternal_loads_count")}
 
 
-def read_dump(path, db=None):
+def read_dump(path, db=None, sealed_source="SyS"):
     if db:
         require(db == "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44VA", "only-disposable-current-snapshot")
         cmd = ["sudo", "-n", "-u", "postgres", "pg_dump", "--data-only", "--no-owner", "--dbname=" + db]
@@ -34,7 +34,7 @@ def read_dump(path, db=None):
             cmd += ["--table", "public." + table]
     else:
         toc = subprocess.check_output(["pg_restore", "--list", str(path)], text=True)
-        require(re.search(r"^;\s+dbname: SyS$", toc, re.M), "original-SyS-archive-required")
+        require(sealed_source in ("SyS", "COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L") and re.search(r"^;\s+dbname: " + re.escape(sealed_source) + "$", toc, re.M), "original-SyS-archive-required")
         cmd = ["pg_restore", "--data-only", "--file=-"]
         for table in TABLES:
             cmd += ["--table", table]
