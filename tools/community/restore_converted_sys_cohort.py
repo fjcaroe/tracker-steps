@@ -132,7 +132,7 @@ installed=env['ir.module.module'].search([('state','=','installed')])
 assert installed and not installed.filtered(lambda m:m.license=='OEEL-1')
 assert all(Path(get_module_path(m.name)).resolve().is_relative_to(core) for m in installed)
 actor=env['res.users'].browse(6)
-assert actor.exists() and actor.active and not actor.share and not actor.has_group('base.group_system')
+assert actor.exists() and actor.active and not actor.share and actor.has_group('payroll.group_payroll_manager')
 scope=env(user=actor.id,su=False,context={'allowed_company_ids':actor.company_ids.filtered('active').ids,'bin_size':False})
 attachments=scope['ir.attachment'].search([('res_model','in',['res.company','ir.ui.menu','ir.ui.view']),
             ('res_field','not ilike','sign'),('store_fname','!=',False),('file_size','>',0),
@@ -143,6 +143,7 @@ for obj in attachments:
     raw=obj.raw
     assert len(raw)==obj.file_size and hashlib.sha1(raw).hexdigest()==obj.checksum
 print('CONVERTED_RESTORE='+json.dumps({'active':len(installed),'enterprise':0,'internal_uid':actor.id,
+    'original_settings_group':actor.has_group('base.group_system'),'superuser':scope.su,
     'attachments_read':len(attachments),'models':sorted(set(attachments.mapped('res_model'))),
     'all_providers_inside_restored_capsule':True,'source_directories_hidden':True,'read_only':True,'payroll_pdf':restricted_attachment(env,actor)}))
 env.cr.rollback()
