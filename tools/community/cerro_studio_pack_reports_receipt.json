@@ -1,0 +1,15 @@
+{
+  "archive_sha256": "e533b1a0113e5ef7627bc4504a4e936b76c306eedd22f6c8245d37dcd4f79d52",
+  "files": 4,
+  "lf_source_files": {
+    "step_cerro_pack_reports": [
+      "__init__.py",
+      "__manifest__.py",
+      "hooks.py",
+      "models.py"
+    ]
+  },
+  "module_trees": {
+    "step_cerro_pack_reports": "0973c3ee30e587366f4cb4fbe4f1c343052c69306191f85388c95db5cb454fa8"
+  }
+}
