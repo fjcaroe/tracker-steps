@@ -15,7 +15,13 @@ const { chromium } = require('playwright');
     assert.equal(policy.harvest_web.version, '0.0.12');
     const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH });
     try {
-        const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'es-CL' });
+        const session = await browser.newContext();
+        const nativeInfo = await session.request.post(origin + '/web/session/get_session_info', {
+            data: { jsonrpc: '2.0', method: 'call', params: {} },
+        }).then(r => r.json());
+        assert.equal(nativeInfo.result.uid, policy.user_id);
+        const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'es-CL',
+            timezoneId: nativeInfo.result.user_context.tz || 'UTC' });
         const page = await context.newPage();
         page.setDefaultTimeout(60000);
         const errors = [];
@@ -50,8 +56,12 @@ const { chromium } = require('playwright');
         await form.locator('[name=harvestType]').selectOption('industrial');
         await form.locator('[name=variety]').selectOption(String(center.variety_id));
         await form.locator('[name=costCenter]').selectOption(String(center.id));
+        await page.screenshot({ path: output + '.new-ot.png' });
+        fs.writeFileSync(output + '.layout.json', JSON.stringify(await page.evaluate(() => ({ width: innerWidth,
+            scroll: document.documentElement.scrollWidth, overflow: [...document.querySelectorAll('body *')]
+                .filter(el => el.getBoundingClientRect().right > innerWidth + 1).slice(0, 15)
+                .map(el => ({ tag: el.tagName, className: el.className, width: el.getBoundingClientRect().width })) })), null, 2));
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-        await page.screenshot({ path: output + '.new-ot.png', fullPage: true });
         await form.getByRole('button', { name: 'Crear jornada local', exact: true }).click();
         await nav.getByRole('button', { name: /^Registrar(?:\s|$)/ }).click();
         await page.locator('form.capture-card select').selectOption(String(worker));
@@ -67,8 +77,8 @@ const { chromium } = require('playwright');
         await close.locator('[name=workStart]').fill(day + 'T00:00');
         await close.locator('[name=workEnd]').fill(day + 'T01:00');
         await close.locator('[name=workHours]').fill('1');
+        await page.screenshot({ path: output + '.close-hours.png' });
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-        await page.screenshot({ path: output + '.close-hours.png', fullPage: true });
         function transition(action) {
             return page.waitForResponse(r => r.url().endsWith('/api/harvest/orders/transition')
                 && r.request().method() === 'POST' && r.request().postDataJSON().action === action);
@@ -101,6 +111,7 @@ const { chromium } = require('playwright');
         await page.reload();
         await page.getByText(/· Harvest 0\.0\.12$/).waitFor();
         await nav.getByRole('button', { name: 'OT', exact: true }).click();
+        await page.getByPlaceholder('Buscar por OT, fundo o cuadrilla').fill(id);
         await card.getByText('Enviada', { exact: true }).waitFor();
         await card.getByText('Industrial', { exact: true }).waitFor();
         assert.match(await card.innerText(), /Horas trabajadas por persona\s+1 h/);
