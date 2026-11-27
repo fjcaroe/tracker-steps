@@ -14,7 +14,8 @@ def verify(native_pdfs, community_pdfs, native_order, community_order):
         raise ValueError('Assertion checks must be enabled.')
     assert native_pdfs['database'] == native_order['database'] == 'MANAGEMENT_QA_STEPS_CRM_20261126U42C'
     assert community_pdfs['database'] == community_order['database'] and community_order['database'] in (
-        'COMMUNITY_STEPS_CRM_QUOTE_20261127U42A', 'COMMUNITY_STEPS_CRM_PRINT_20261127U43Y')
+        'COMMUNITY_STEPS_CRM_QUOTE_20261127U42A', 'COMMUNITY_STEPS_CRM_PRINT_20261127U43Y',
+        'COMMUNITY_STEPS_CRM_DOC_20261127U44P')
     for report in (native_pdfs, community_pdfs):
         assert report['history_unchanged'] and (report['action'], report['uid']) == (444, 7)
     first, second = native_pdfs['documents'], community_pdfs['documents']

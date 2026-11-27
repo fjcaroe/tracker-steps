@@ -129,11 +129,14 @@ def package(args, out, source_db, modules):
         product = converted_profile(source_db, args.target)
         if product == "steps":
             from prepare_steps_crm_cohort import digest as inventory_digest, FREE, SOURCE_MANIFESTS
-            require(not changed and len(modules) == 157 and set(db_licenses) | set(source_licenses) <= FREE
+            integrated = (source_db,args.target) == ('COMMUNITY_STEPS_CRM_DOC_20261127U44P','COMMUNITY_STEPS_CRM_RECOVERY_20261127U44R')
+            expected_count = 160 if integrated else 157
+            expected_digest = 'aaf242c83be6f9d1a2efd3da47e4dcb04e250376103334a04388a97c4bf9346f' if integrated else SOURCE_MANIFESTS
+            require(not changed and len(modules) == expected_count and set(db_licenses) | set(source_licenses) <= FREE
                     and all(modules[name][1] == provider[2] for name, provider in providers.items()),
                     "unexpected-steps-providers")
             actual = {name: digest(Path(entry[0]) / "__manifest__.py") for name, entry in providers.items()}
-            require(inventory_digest(actual) == SOURCE_MANIFESTS, "original-steps-provider-manifests-required")
+            require(inventory_digest(actual) == expected_digest, "original-steps-provider-manifests-required")
         if product == "cerro":
             require(set(db_licenses) | set(source_licenses) <= {"LGPL-3", "AGPL-3", "GPL-3"},
                     "expected-free-cerro-provider-licenses")
@@ -229,6 +232,8 @@ env.cr.rollback()
         probes = ["probe_converted_cerro_access.py"]
     if steps:
         probes = ["probe_steps_crm_pipeline.py", "probe_converted_steps_access.py"]
+        if db == 'COMMUNITY_STEPS_CRM_RECOVERY_20261127U44R':
+            probes.append('probe_steps_sales_library.py')
     role_probe = "\n".join(Path(__file__).with_name(name).read_text() for name in probes)
     code = role_probe + "\n" + f"is_cerro={cerro!r}\nis_steps={steps!r}\nexpected_db={db!r}\nexpected_core={str(core)!r}\nexpected_hidden={list(map(str, hidden_sources))!r}\n" + probe
     with (out / f"orm-{boot}.log").open("wb") as handle:

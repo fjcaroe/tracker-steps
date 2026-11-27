@@ -26,8 +26,11 @@ def steps_restore_access(env, core):
         assert info['version'] == module.latest_version and info['license'] == module.license
         assert module.license in {'LGPL-3','GPL-3','AGPL-3'}
         manifests[module.name] = sha256((path/'__manifest__.py').read_bytes()).hexdigest()
-    assert len(manifests) == 157
-    assert digest(manifests) == '0146e9a78d75ed0b33c943505cc3c1a3026f7fd15d2a5ec0c6198087465cd210'
+    integrated = env.cr.dbname == 'COMMUNITY_STEPS_CRM_RECOVERY_20261127U44R'
+    if integrated:
+        assert len(manifests) == 160 and digest(manifests) == 'aaf242c83be6f9d1a2efd3da47e4dcb04e250376103334a04388a97c4bf9346f'
+    else:
+        assert len(manifests) == 157 and digest(manifests) == '0146e9a78d75ed0b33c943505cc3c1a3026f7fd15d2a5ec0c6198087465cd210'
     actor = env['res.users'].browse(7)
     attachments = env['ir.attachment'].with_user(actor).with_context(allowed_company_ids=[1], bin_size=False)
     assert not attachments.env.su and not actor.has_group('base.group_system')
@@ -64,4 +67,9 @@ def steps_restore_access(env, core):
         assert form.partner_id == leads.partner_id and form.opportunity_id == leads
         assert model.search_count([]) == 4
         results['sale_quotation'] = {'form_initialized':True, 'action':action['id'], 'historical_orders':4}
+    if integrated:
+        results['filed_documents'] = read_filed_documents(env)
+        assert results['filed_documents']['files_and_roles'] == 'ac58f492352a5cd754652787fbb2a40a9baff8d493977f2a78d1b5572924c530'
+        assert results['filed_documents']['denied_fingerprint'] == '1f94d206e73d107b818a475cbf7ea4a88c509fbd34c1105013cdbedd515c646c'
+        env.cr.execute('SET TRANSACTION READ ONLY')
     return actor, results
