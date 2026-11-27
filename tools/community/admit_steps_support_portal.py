@@ -31,7 +31,8 @@ SEALED = RECOVERY / "sealed"
 SUPPORT = "step_helpdesk_tickets"
 PORTAL = "step_helpdesk_tickets_portal"
 SQL_SHA = "602069d8a5a8a43ff2af901f994794189a50c20857c40490d14c4bc7aa9c054b"
-SUPPORT_SHA = "00adc8a137ad753c097383a928c25a5c4bb4e5098c189c195e3fbb2805f57207"
+SUPPORT_SEED_SHA = "00adc8a137ad753c097383a928c25a5c4bb4e5098c189c195e3fbb2805f57207"
+SUPPORT_SHA = "327c5bc269d9ee64dab3bd49735f350300552466c046a8013566636b3e99adad"
 GROUP = pwd.getpwnam("odoo").pw_gid
 
 
@@ -90,7 +91,7 @@ def release(name, source, expected):
 
 
 def storage(frozen, sql_sha):
-    identity = {"copy": TARGET, "source": SOURCE, "sql": sql_sha, "support": SUPPORT_SHA, "tablespace": SPACE}
+    identity = {"copy": TARGET, "source": SOURCE, "sql": sql_sha, "support": SUPPORT_SEED_SHA, "tablespace": SPACE}
     marker = WORK / "identity.json"
     exists_sql = f"SELECT count(*) FROM pg_database WHERE datname='{TARGET}'"
     exists = query("postgres", exists_sql) == "1"
@@ -157,7 +158,7 @@ def compare_original(frozen, schema_objects):
             "retained_schema": {k: len(frozen[k]) for k in sections}}
 
 
-def admit(sql_sha, receipt_sha, portal_sha, repeat):
+def admit(sql_sha, receipt_sha, portal_sha, repeat, repeat_support):
     require(Path(__file__).resolve().parent == WORK / "code" and WORK.resolve(strict=True) == WORK, "private-steps-work-required")
     require(sql_sha == SQL_SHA and digest(RECOVERY / "restore-proof.json") == receipt_sha and digest(SEALED / "source.dump") == sql_sha and
             json.loads((RECOVERY / "restore-proof.json").read_bytes())["target"] == SOURCE, "accepted-R-recovery-required")
@@ -171,7 +172,7 @@ def admit(sql_sha, receipt_sha, portal_sha, repeat):
     frozen = json.loads(gzip.decompress((SEALED / "source-snapshot.json.gz").read_bytes()))
     verify_same(frozen, full_snapshot(SOURCE))
     core = runtime_files()
-    support = release(SUPPORT, BASE / "steps-sales-support-20261127U44H2/support.tar", SUPPORT_SHA)
+    support = release(SUPPORT, WORK / (SUPPORT_SHA + ".tar"), SUPPORT_SHA)
     portal = release(PORTAL, WORK / (portal_sha + ".tar"), portal_sha)
     storage(frozen, sql_sha)
     command = odoo(shell=True, work=WORK, target=TARGET)
@@ -183,10 +184,13 @@ def admit(sql_sha, receipt_sha, portal_sha, repeat):
     expected = check_modules(SOURCE)
     require(len(expected) == 160 and SUPPORT not in expected and PORTAL not in expected, "unexpected-combined-steps-source")
     receipt = []
-    for name, version in ((SUPPORT, "18.0.1.0.1"), (PORTAL, "18.0.1.0.2")):
+    for name, version in ((SUPPORT, "18.0.1.0.2"), (PORTAL, "18.0.1.0.2")):
         installed = check_modules(TARGET)
         if name not in installed:
             switch = "-i"
+        elif name == SUPPORT and (installed[SUPPORT][0] == "18.0.1.0.1" or repeat_support):
+            require(installed[SUPPORT] in (["18.0.1.0.1", "LGPL-3"], [version, "LGPL-3"]), "unsupported-ticket-provider-revision")
+            switch = "-u"
         elif name == PORTAL and repeat:
             require(installed[PORTAL] in (["18.0.1.0.0", "LGPL-3"], ["18.0.1.0.1", "LGPL-3"], [version, "LGPL-3"]),
                     "unsupported-or-newer-portal-version")
@@ -202,12 +206,15 @@ def admit(sql_sha, receipt_sha, portal_sha, repeat):
         receipt.append({"module": name, "operation": switch, "from": installed.get(name), "to": version,
                         **compare_original(frozen, schemas)})
     installed = check_modules(TARGET)
-    require(installed == {**expected, SUPPORT: ["18.0.1.0.1", "LGPL-3"], PORTAL: ["18.0.1.0.2", "LGPL-3"]},
+    require(installed == {**expected, SUPPORT: ["18.0.1.0.2", "LGPL-3"], PORTAL: ["18.0.1.0.2", "LGPL-3"]},
             "unexpected-steps-registry")
     result = {"database": TARGET, "source": SOURCE, "sql": sql_sha, "support": SUPPORT_SHA, "portal": portal_sha,
               "installed": len(installed), "loads": receipt, "final": compare_original(frozen, schemas)}
     from_version = next((row["from"][0] for row in receipt if row["module"] == PORTAL and row["from"]), None)
     suffix = "-from-" + from_version if from_version else ""
+    support_from = next((row["from"][0] for row in receipt if row["module"] == SUPPORT and row["from"]), None)
+    if support_from:
+        suffix += "-tickets-from-" + support_from
     save(WORK / ("admission-" + portal_sha[:12] + suffix + ".json"), result)
     print(json.dumps(result))
 
@@ -218,8 +225,9 @@ if __name__ == "__main__":
     parser.add_argument("--recovery-sha", required=True)
     parser.add_argument("--portal-sha", required=True)
     parser.add_argument("--repeat", action="store_true")
+    parser.add_argument("--repeat-support", action="store_true")
     params = parser.parse_args()
     os.umask(0o077)
     with open(LOCK, "rb") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        admit(params.sql_sha, params.recovery_sha, params.portal_sha, params.repeat)
+        admit(params.sql_sha, params.recovery_sha, params.portal_sha, params.repeat, params.repeat_support)
