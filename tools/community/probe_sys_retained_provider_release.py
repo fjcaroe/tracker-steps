@@ -1,10 +1,55 @@
 """Check loaded upstream origins and exercise the customized Latin American invoice report as original operators."""
 import ast
+import base64
 import importlib
 from pathlib import Path
 
 from lxml import etree, html
 from odoo.modules.module import adapt_version, get_manifest, get_module_path
+
+
+def invoice_text(scope, move):
+    move.check_access("read")
+    rendered, fmt = scope["ir.actions.report"]._render_qweb_html("account.account_invoices", move.ids)
+    content = rendered if isinstance(rendered, bytes) else str(rendered).encode()
+    visible = " ".join(html.fromstring(content).text_content().split())
+    identifiers = [str(value) for value in (move.name, move.l10n_latam_document_number) if value]
+    assert fmt == "html" and any(token in visible for token in identifiers)
+    return visible, len(content)
+
+
+def referenced_documents(shell, actors):
+    shell.cr.execute("""SELECT r.id,m.id,m.company_id,m.move_type FROM l10n_cl_account_invoice_reference r
+                        JOIN account_move m ON m.id=r.move_id WHERE m.state='posted' ORDER BY r.id""")
+    rows = shell.cr.fetchall()
+    assert len(rows) == 6 and [r[3] for r in rows].count("in_refund") == 5 and [r[3] for r in rows].count("out_refund") == 1
+    reference = shell["l10n_cl.account.invoice.reference"]
+    assert reference._table == "l10n_cl_account_invoice_reference" and reference._fields["move_id"].ondelete == "cascade"
+    assert shell["account.move"]._fields["l10n_cl_reference_ids"].inverse_name == "move_id"
+    rendered = 0
+    covered = set()
+    for actor in actors:
+        for ref_id, move_id, company, kind in rows:
+            if company not in actor.company_ids.ids:
+                continue
+            scope = shell(user=actor.id, su=False, context={"allowed_company_ids": [company], "lang": "es_CL"})
+            move = scope["account.move"].browse(move_id)
+            move.check_access("read")
+            ref = scope[reference._name].browse(ref_id)
+            ref.check_access("read")
+            assert ref in move.l10n_cl_reference_ids and ref.move_id == move
+            visible, size = invoice_text(scope, move)
+            assert ref.origin_doc_number and ref.origin_doc_number in visible
+            for field in (ref.reason, ref.l10n_cl_reference_doc_type_id.code):
+                if field:
+                    assert " ".join(field.split()) in visible
+            covered.add(ref_id)
+            rendered += 1
+    assert len(covered) == 6
+    synthetic = shell["account.move"]._pdf417_barcode("<TED><TEST>Offline display fixture only</TEST></TED>")
+    assert base64.b64decode(synthetic, validate=True).startswith(b"\x89PNG\r\n\x1a\n")
+    assert not shell["account.move"]._pdf417_barcode("")
+    return {"native_references": len(covered), "operator_documents": rendered, "synthetic_barcode_png": True}
 
 
 def run(shell, root):
@@ -55,15 +100,13 @@ def run(shell, root):
             footers = wave_tree.xpath('//*[contains(@t-if,"custom_footer") and contains(@t-attf-class,"o_footer_content")]')
             assert any("mx-5" in (f.get("t-attf-class") or "") and "position-absolute" not in f.get("t-attf-class")
                        for f in footers)
-            rendered, fmt = scope["ir.actions.report"]._render_qweb_html("account.account_invoices", move.ids)
-            content = rendered if isinstance(rendered, bytes) else str(rendered).encode()
-            visible = " ".join(html.fromstring(content).text_content().split())
-            identifiers = [str(value) for value in (move.name, move.l10n_latam_document_number) if value]
-            assert fmt == "html" and any(token in visible for token in identifiers)
-            result.append({"original_company": company.id, "html_bytes": len(content),
+            visible, size = invoice_text(scope, move)
+            result.append({"original_company": company.id, "html_bytes": size,
                            "document_number_visible": True, "wave_footer_nodes": len(footers)})
             break
     assert len(result) == 2
+    reference = referenced_documents(shell, actors)
     shell.cr.rollback()
     return {"active_source_versions": versions, "all_installed_checked": len(installed), "version_differences": differences,
-            "loaded_profile": overlays, "native_standard_layout": True, "operator_invoice_renders": result}
+            "loaded_profile": overlays, "native_standard_layout": True, "operator_invoice_renders": result,
+            "original_invoice_references": reference}

@@ -11,6 +11,7 @@ import tarfile
 from lxml import etree
 
 from audit_sys_upgrade_policy import audit
+from build_sys_invoice_history import build_invoice_provider
 from custody_sys_previred_filestore import digest
 from preserve_sys_original_fiscal_masters import preserve as preserve_fiscal
 from restore_native_product_backup import query
@@ -155,6 +156,8 @@ def build(db, sealed, target, modules, *, original_admin_seeds=False, original_f
             output = profile / "l10n_cl"
             shutil.copytree(origin, output)
             changes["l10n_cl"] = preserve_fiscal(origin, output, db, schema)
+            if db.endswith("U41MW"):
+                changes["l10n_cl"]["invoice_reference_provider"] = build_invoice_provider(db, output)
         files, sha = fingerprint(profile)
         # copytree retains the upstream directory modes. Validation runs under the Odoo service identity.
         for directory in (profile, *(p for p in profile.rglob("*") if p.is_dir())):
