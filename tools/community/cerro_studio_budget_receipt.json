@@ -1,0 +1,33 @@
+{
+  "archive_sha256": "b31ed47840f07a38318e80473a76b02038a4b68d4a59d30e3ad446320bfe6885",
+  "binary_suffixes": [
+    ".png"
+  ],
+  "files": 325,
+  "lf_source_files": {
+    "step_cerro_studio_budgets": [
+      "__init__.py",
+      "__manifest__.py",
+      "views/customizations.xml"
+    ],
+    "step_cosecha": [
+      "__manifest__.py",
+      "models/ir_model_data.py"
+    ]
+  },
+  "module_trees": {
+    "step_agriculture_format_core": "123ffb5fc5b64945dc360bb513f357f6fdd06d3a1df1fd089f89dd7a44182507",
+    "step_agriculture_records": "a3a43e61c03fcda5f79f0a1ece3eb90ec373317bd40a77fff66f1b6f228fabc1",
+    "step_budget_design": "19b54c6e7238227b49afb36b2fc9e37eaa8054d7643c0f64b5c2a6c39cda6970",
+    "step_cerro_studio_budgets": "f0816e9200604fc907dedd4d713926a1ad5da6aca1edaae9cd51fa32c49baf43",
+    "step_cosecha": "9bc8963902b1cdfe81f45a32e883fe64e5227b65a4c985fbe56e0f9906051780",
+    "step_cosecha_operations": "27caaec61c621195fccbe99f3070adaff80ca17292cad446b3208a395cb6bb6e",
+    "step_cosecha_planning": "c9554d8389f6fb31986c83da9493367350efd790c4d57990a5e2877bf1c46a71",
+    "step_labor_operations_core": "66538d420a64af8adb8c6955e29745445e92c37207f55054693030f3891f2ef4",
+    "step_machinery": "a42220fca4e971de1fc44cf65e90a1337ca5a48c7cc28f8ce0ad6a325dbe6255",
+    "step_management_costs_machinery": "d1da36d8c7202041f7863739cee5f40e3eeeef4a3d5549be0c146f98f2f491fb",
+    "step_mobilization": "fcc53d9c678ec2e119d4d9140181d6e7eaeb96d68004a9172340f1e8b3ed95c0",
+    "step_mobilization_agriculture": "17b7d16c6cadaac1ef7f38661f89e5bb460ced9c96717f1d7fd49d29834d167c",
+    "step_operations_core": "10e0011f6efb638b44148d05e7c38eb336789504f955daad2b72b26cb9065afd"
+  }
+}
