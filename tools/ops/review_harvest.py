@@ -255,7 +255,7 @@ print('HARVEST_REVIEW_SESSION_OK')
                         return
                 if self.command == 'GET' and not (path in ('/web', '/odoo', '/harvest/open', '/web/manifest.webmanifest', '/web/service-worker.js',
                     '/api/harvest/session', '/api/harvest/bootstrap', '/api/harvest/health',
-                    '/api/harvest/ref/jobs') or
+                    '/api/harvest/ref/jobs', '/api/harvest/orders/hours') or
                     path.startswith(('/odoo/', '/cosecha/', '/web/assets/', '/web/image', '/web/content/', '/web/webclient/', '/bus/websocket_worker_bundle')) or '/static/' in path):
                     self.send_error(403, 'Read-only Harvest review')
                     return

@@ -18,8 +18,9 @@ def exercise_work_hours(origin, policy):
     center = next(row for row in data['cost_centers'] if row.get('farm_id') in {r['id'] for r in data['farms']}
                   and row.get('variety_id') in {r['id'] for r in data['varieties']})
     location = next((row for row in data['operation_locations'] if row['farm_id'] == center['farm_id']), None)
-    token = 'QA-T244245-' + uuid.uuid4().hex
-    base = datetime(2001, 2, 3, 8, tzinfo=timezone.utc)
+    run = uuid.uuid4()
+    token = 'QA-T244245-' + run.hex
+    base = datetime(2001, 1, 1, 8, tzinfo=timezone.utc) + timedelta(days=run.int % 7000)
     scope = data['scope']
 
     def create(suffix, passed=2, created=base):
