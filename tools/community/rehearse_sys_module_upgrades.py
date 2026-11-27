@@ -228,9 +228,13 @@ def journal_migration(args):
     require(digest(script) == "9b8db12f8dd82f88133dfa6299cfa432f10ba2aef170298fd2774e20efaeda7a",
             "unexpected-journal-migration")
     probe = Path(__file__).with_name("probe_latam_11_journal_migration.py").read_text()
-    code = script.read_text() + "\n" + probe + "\nimport json\nprint(json.dumps(check(" + repr(args.database) + ",migrate)))"
-    command = ["unshare", "--net", "--", "sudo", "-n", "-u", "odoo", "/usr/bin/python3.10", "-B", "-"]
-    return json.loads(subprocess.check_output(command, input=code.encode()))
+    code = script.read_text() + "\n" + probe + "\nimport json\nprint('LATAM_SCRIPT='+json.dumps(check(env.cr," + repr(args.database) + ",migrate)))"
+    root = args.output / "upgrade-l10n_latam_invoice_document"
+    log = root / ("migration-probe-" + str(len(list(root.glob("migration-probe-*.log")))) + ".log")
+    status = odoo(args, "shell", [], log, code.encode())
+    result = [l.partition("=")[2] for l in log.read_text().splitlines() if l.startswith("LATAM_SCRIPT=")]
+    require(status == 0 and len(result) == 1, "isolated-journal-migration-failed")
+    return json.loads(result[0])
 
 
 def final_receipt(args, proof):
@@ -296,7 +300,8 @@ def upgrade(args, proof):
     old, expected = MODULES[module]
     require(providers[module][1] == expected, "manifest-version-mismatch")
     run = out / ("upgrade-" + module)
-    run.mkdir(mode=0o700)
+    run.mkdir(mode=0o700, exist_ok=True)
+    require(not (run / "receipt.json").exists() and not (run / (module + ".log")).exists(), "upgrade-already-ran")
     before = snapshot(db)
     require(guards(db) == restored["guards"], "original-guards-changed-before-upgrade")
     initial = module_versions(db)
