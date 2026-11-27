@@ -46,3 +46,6 @@ En cada uno de los diez casos, la reconstrucción con los datos fechados y la re
 | 33 borradores en Community | `5e8fc48090b8e2ca2ad3d422f62a2ec422821754c83ff8d77a72326e27c1be29` |
 | Fechas, identidades e importes contrastados en nueve respaldos | `9d2f373f0d1e096b7187659a11f212d4e59d15432edaa81b3e08cb26477d3564` |
 | Reconstrucción de las 23 liquidaciones y diez pruebas adicionales de valor | `0be6415b17aefaa52fefd73a4d6a2708066bc1b1e4289e367e86b014d73cd5dc` |
+| Verificación íntegra después de los 43 borradores de Community | `3b7f140c29ab1a6e382c4c22e914bc0097264236b1b7f7aae0853a579038c55d` |
+
+La comparación final de U44VA encontró intactas las 608.867 filas de 1.138 tablas, las 12.010 columnas con sus propiedades, las 5.816 restricciones, los propietarios y permisos de relaciones, las definiciones de secuencia y las 40 protecciones de escritura. Avanzaron tres contadores privados correspondientes a los identificadores de borradores, líneas y jornadas. En el nativo se habían cotejado también las 16 tablas de la prueba de nómina antes y después de los 33 borradores.
