@@ -156,6 +156,15 @@ class AccountMove(models.Model):
             signer = move.signing_user
             move.signature = signer.sign_signature if visible and signer and "sign_signature" in signer._fields else False
 
+    def _get_all_reconciled_invoice_partials(self):
+        payments = super()._get_all_reconciled_invoice_partials()
+        # The original printout follows the order of creation of ordinary reconciliations.
+        if (payments and self.move_type in ("out_invoice", "out_refund")
+                and self.company_id.account_fiscal_country_id.code == "CL"
+                and all(not entry['is_exchange'] for entry in payments)):
+            return sorted(payments, key=lambda entry: entry['partial_id'])
+        return payments
+
     @api.model
     def _pdf417_barcode(self, stored_stamp):
         """Render the stamp already present on the historical invoice."""
@@ -164,7 +173,8 @@ class AccountMove(models.Model):
         from pdf417gen import encode, render_image
 
         with BytesIO() as png:
-            render_image(encode(stored_stamp.encode("latin-1"), columns=13, security_level=5)).save(png, format="PNG")
+            encoded = encode(stored_stamp.encode("latin-1"), columns=13, security_level=5)
+            render_image(encoded, scale=1, ratio=3, padding=15).save(png, format="PNG")
             return b64encode(png.getvalue()).decode("ascii")
 
 
