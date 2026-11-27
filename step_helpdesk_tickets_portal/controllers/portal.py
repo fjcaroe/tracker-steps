@@ -22,7 +22,8 @@ class StepsSupportPortal(CustomerPortal):
 
     @http.route(["/my/tickets", "/my/tickets/page/<int:page>"], type="http", auth="user", website=True, methods=["GET"])
     def tickets(self, page=1, sortby="create_date desc", filterby="all", groupby="none", search=None,
-                search_in="name", priority=None, stage=None, date_begin=None, date_end=None, **kwargs):
+                search_in="name", steps_priority="all", steps_stage="0", steps_status="all", steps_assignment="all",
+                steps_period="all", date_begin=None, date_end=None, **kwargs):
         tickets = request.env[MODEL]
         if not tickets.has_access("read"):
             return request.redirect("/my")
@@ -53,10 +54,16 @@ class StepsSupportPortal(CustomerPortal):
         parts = [filters[filterby][1]]
         if search:
             parts.append([(search_in, "ilike", search)])
-        if priority in ("0", "1", "2", "3"):
-            parts.append([("priority", "=", priority)])
-        if str(stage or "") in {str(value) for value in stages.ids}:
-            parts.append([("stage_id", "=", int(stage))])
+        if steps_priority in ("0", "1", "2", "3"):
+            parts.append([("priority", "=", steps_priority)])
+        if str(steps_stage) in {str(value) for value in stages.ids}:
+            parts.append([("stage_id", "=", int(steps_stage))])
+        if steps_status in ("open", "closed"):
+            parts.append(filters[steps_status][1])
+        if steps_assignment in ("assigned", "unassigned"):
+            parts.append(filters[steps_assignment][1])
+        if steps_period in ("7", "30", "90"):
+            parts.append([("create_date", ">=", today - timedelta(days=int(steps_period)))])
         for value, op, days in ((date_begin, ">=", 0), (date_end, "<", 1)):
             if value:
                 try:
@@ -66,7 +73,8 @@ class StepsSupportPortal(CustomerPortal):
                 parts.append([("create_date", op, date)])
         domain = expression.AND(parts)
         url_args = {"sortby": sortby, "filterby": filterby, "groupby": groupby, "search": search, "search_in": search_in,
-                    "priority": priority, "stage": stage, "date_begin": date_begin, "date_end": date_end}
+                    "steps_priority": steps_priority, "steps_stage": steps_stage, "steps_status": steps_status,
+                    "steps_assignment": steps_assignment, "steps_period": steps_period, "date_begin": date_begin, "date_end": date_end}
         pager = portal_pager(url="/my/tickets", total=tickets.search_count(domain), page=page, step=self._items_per_page,
                              url_args={k: v for k, v in url_args.items() if v})
         order = sortby if groupby == "none" else groupby + ", " + sortby

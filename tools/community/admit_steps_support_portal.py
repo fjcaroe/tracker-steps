@@ -183,12 +183,12 @@ def admit(sql_sha, receipt_sha, portal_sha, repeat):
     expected = check_modules(SOURCE)
     require(len(expected) == 160 and SUPPORT not in expected and PORTAL not in expected, "unexpected-combined-steps-source")
     receipt = []
-    for name, version in ((SUPPORT, "18.0.1.0.1"), (PORTAL, "18.0.1.0.1")):
+    for name, version in ((SUPPORT, "18.0.1.0.1"), (PORTAL, "18.0.1.0.2")):
         installed = check_modules(TARGET)
         if name not in installed:
             switch = "-i"
         elif name == PORTAL and repeat:
-            require(installed[PORTAL] in (["18.0.1.0.0", "LGPL-3"], [version, "LGPL-3"]),
+            require(installed[PORTAL] in (["18.0.1.0.0", "LGPL-3"], ["18.0.1.0.1", "LGPL-3"], [version, "LGPL-3"]),
                     "unsupported-or-newer-portal-version")
             switch = "-u"
         else:
@@ -202,7 +202,7 @@ def admit(sql_sha, receipt_sha, portal_sha, repeat):
         receipt.append({"module": name, "operation": switch, "from": installed.get(name), "to": version,
                         **compare_original(frozen, schemas)})
     installed = check_modules(TARGET)
-    require(installed == {**expected, SUPPORT: ["18.0.1.0.1", "LGPL-3"], PORTAL: ["18.0.1.0.1", "LGPL-3"]},
+    require(installed == {**expected, SUPPORT: ["18.0.1.0.1", "LGPL-3"], PORTAL: ["18.0.1.0.2", "LGPL-3"]},
             "unexpected-steps-registry")
     result = {"database": TARGET, "source": SOURCE, "sql": sql_sha, "support": SUPPORT_SHA, "portal": portal_sha,
               "installed": len(installed), "loads": receipt, "final": compare_original(frozen, schemas)}

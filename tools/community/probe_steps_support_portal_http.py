@@ -85,13 +85,14 @@ def run(env):
         search = {"name": listed(recipient, search_in="name", search=sample.name)}
         assert sample.id in search["name"] and all(set(order) == set(ids) for order in groups.values())
         form = html.fromstring(get(recipient, "/my/tickets").data)
-        options = {"priority", "stage", "date_begin", "date_end", "steps_priority", "steps_stage", "steps_date_begin", "steps_date_end"}
+        options = {"steps_priority", "steps_stage", "steps_status", "steps_assignment", "steps_period"}
         parameter_names = sorted({element.get("name") for element in form.xpath("//form//*[self::input or self::select][@name]")
                                   if element.get("name") in options})
         extra = {}
         for field in parameter_names:
             name = field.removeprefix("steps_")
-            input_value = {"priority": sample.priority, "stage": str(sample.stage_id.id), "date_begin": "2100-01-01", "date_end": "1900-01-01"}[name]
+            input_value = {"priority": sample.priority, "stage": str(sample.stage_id.id), "status": "open",
+                           "assignment": "unassigned", "period": "7"}[name]
             extra[field] = listed(recipient, **{field: input_value})
         aliases = []
         for ticket in tickets:

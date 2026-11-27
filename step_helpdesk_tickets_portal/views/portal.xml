@@ -16,7 +16,7 @@
                 <a t-if="page_name == 'steps_ticket'" href="/my/tickets">Tickets de soporte</a>
                 <t t-else="">Tickets de soporte</t>
             </li>
-            <li t-if="page_name == 'steps_ticket'" class="breadcrumb-item active" t-field="ticket.name"/>
+            <li t-if="page_name == 'steps_ticket'" class="breadcrumb-item active"><span t-field="ticket.name"/></li>
         </xpath>
     </template>
 
@@ -54,14 +54,43 @@
                 </div>
                 <div class="col-sm-auto">
                     <label for="ticket-priority" class="form-label">Prioridad</label>
-                    <select id="ticket-priority" name="priority" class="form-select">
-                        <option value="">Todas</option>
+                    <select id="ticket-priority" name="steps_priority" class="form-select">
+                        <option value="all">Todas</option>
                         <option t-foreach="[('0','Baja'), ('1','Media'), ('2','Alta'), ('3','Urgente')]" t-as="item"
-                                t-att-value="item[0]" t-att-selected="item[0] == priority" t-out="item[1]"/>
+                                t-att-value="item[0]" t-att-selected="item[0] == steps_priority" t-out="item[1]"/>
                     </select>
                 </div>
-                <div class="col-sm-auto"><label class="form-label" for="ticket-begin">Desde</label><input id="ticket-begin" type="date" name="date_begin" class="form-control" t-att-value="date_begin"/></div>
-                <div class="col-sm-auto"><label class="form-label" for="ticket-end">Hasta</label><input id="ticket-end" type="date" name="date_end" class="form-control" t-att-value="date_end"/></div>
+                <div class="col-sm-auto">
+                    <label for="ticket-stage" class="form-label">Etapa</label>
+                    <select id="ticket-stage" name="steps_stage" class="form-select">
+                        <option value="0">Todas</option>
+                        <option t-foreach="stages" t-as="item" t-att-value="item.id" t-att-selected="str(item.id) == steps_stage" t-out="item.display_name"/>
+                    </select>
+                </div>
+                <div class="col-sm-auto">
+                    <label for="ticket-status" class="form-label">Estado</label>
+                    <select id="ticket-status" name="steps_status" class="form-select">
+                        <option t-foreach="[('all','Todos'), ('open','Abiertos'), ('closed','Cerrados')]" t-as="item"
+                                t-att-value="item[0]" t-att-selected="item[0] == steps_status" t-out="item[1]"/>
+                    </select>
+                </div>
+                <div class="col-sm-auto">
+                    <label for="ticket-assignment" class="form-label">Asignación</label>
+                    <select id="ticket-assignment" name="steps_assignment" class="form-select">
+                        <option t-foreach="[('all','Todos'), ('assigned','Asignados'), ('unassigned','Sin asignar')]" t-as="item"
+                                t-att-value="item[0]" t-att-selected="item[0] == steps_assignment" t-out="item[1]"/>
+                    </select>
+                </div>
+                <div class="col-sm-auto">
+                    <label for="ticket-period" class="form-label">Período</label>
+                    <select id="ticket-period" name="steps_period" class="form-select">
+                        <option value="all">Todos</option>
+                        <option t-foreach="['7','30','90']" t-as="days" t-att-value="days"
+                                t-att-selected="days == steps_period"><t t-out="days"/> días</option>
+                    </select>
+                </div>
+                <input t-if="date_begin" type="hidden" name="date_begin" t-att-value="date_begin"/>
+                <input t-if="date_end" type="hidden" name="date_end" t-att-value="date_end"/>
                 <div class="col-sm-auto"><button class="btn btn-primary" type="submit">Aplicar</button></div>
             </form>
             <p t-if="not tickets" class="alert alert-info">No hay tickets para esta consulta.</p>
@@ -85,10 +114,10 @@
             <article>
                 <header><p class="text-muted mb-1">Ticket <span t-field="ticket.ticket_ref"/></p><h1 t-field="ticket.name"/></header>
                 <dl class="row">
-                    <dt class="col-sm-3">Etapa</dt><dd class="col-sm-9" t-field="ticket.stage_id"/>
-                    <dt class="col-sm-3">Equipo</dt><dd class="col-sm-9" t-field="ticket.team_id"/>
-                    <dt class="col-sm-3">Responsable</dt><dd class="col-sm-9" t-field="ticket.user_id"/>
-                    <dt class="col-sm-3">Fecha de creación</dt><dd class="col-sm-9" t-field="ticket.create_date"/>
+                    <dt class="col-sm-3">Etapa</dt><dd class="col-sm-9"><span t-field="ticket.stage_id"/></dd>
+                    <dt class="col-sm-3">Equipo</dt><dd class="col-sm-9"><span t-field="ticket.team_id"/></dd>
+                    <dt class="col-sm-3">Responsable</dt><dd class="col-sm-9"><span t-field="ticket.user_id"/></dd>
+                    <dt class="col-sm-3">Fecha de creación</dt><dd class="col-sm-9"><span t-field="ticket.create_date"/></dd>
                 </dl>
                 <section t-if="ticket.description"><h2>Descripción</h2><div t-field="ticket.description"/></section>
                 <section id="discussion"><h2>Conversación</h2><t t-call="portal.message_thread"/></section>

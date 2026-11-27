@@ -1,6 +1,6 @@
 {
     "name": "Steps — Portal de soporte",
-    "version": "18.0.1.0.1",
+    "version": "18.0.1.0.2",
     "license": "LGPL-3",
     "author": "Steps",
     "depends": ["step_helpdesk_tickets", "portal"],
