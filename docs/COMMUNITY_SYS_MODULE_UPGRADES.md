@@ -41,3 +41,21 @@ Las dos implementaciones originales corresponden exactamente a la revisión púb
 | `project_sms` | 58 | `e2a37f7d07d09c4dc3009eae9fa8ca6d94eac45c` |
 
 Dos descargas independientes de las fuentes públicas produjeron un archivo de 4.270.080 bytes con SHA-256 `e1ab99abe55ac7693afe6c48f3ee51aa4ac27208b483472a6e8ae20f0be6233b`. El empaquetador reconstruye los árboles y valida cada archivo contra el objeto de Git correspondiente. [Empaquetador](../tools/community/package_sys_original_policy_providers.py).
+
+Los dos scripts 1.1 se ejecutaron sobre tablas temporales con los tres dominios originales. Después se consultaron ambos predicados, con cada operador y cada empresa activa que tenía asignada. En las 52 combinaciones por regla coincidieron los registros consultables. El ensayo respetó las demás reglas y permisos efectivos de cada usuario.
+
+| Regla original | Casos sintéticos | Acceso adicional de 1.1 | Acceso retirado de 1.1 |
+| --- | ---: | --- | --- |
+| Aprobador de partes de horas | 8 | El seguidor de la tarea en un proyecto privado cuyo proyecto no sigue | Ninguno |
+| Aprobador de análisis de horas | 8 | El mismo caso de seguidor de la tarea | Ninguno |
+| Encargado de plantillas SMS | 5 | Plantillas de tareas y proyectos | Plantillas de las dos clases de etapa |
+
+## Ensayos con la distribución sin adaptar
+
+U41M ejecutó el actualizador oficial con la distribución sellada y las protecciones que ya existían en PostgreSQL. Los paquetes de Simple Digital y Previred principal intentaron escribir sobre grupos originales. Las dos migraciones de proyecto intentaron modificar dominios originales. La integración Previred pasó de 2.4.1 a 2.4.2 y el cargador relajó 11 restricciones `NOT NULL` originales en `res_company`. La verificación comparó estas restricciones además de las filas.
+
+U41MP repitió las seis operaciones con el cargador protegido de la instalación original. Llegaron a su destino Previred 3.8.8 y la integración 2.4.2. El proveedor Simple Digital llegó a 1.1.0 antes de que su dependiente `step_payroll_engine_transition` fallara al reimportar un permiso existente. Las dos filas de tipos de contrato y las cuatro tareas programadas con sus acciones delegadas solo cambiaron de fecha de edición. Los seis intentos se conservaron por separado. Los 2.679 objetos de adjuntos, las 1.697 filas de PDF de liquidaciones y todas las restricciones `NOT NULL` originales se conservaron en U41MP.
+
+El instalador LATAM intentó volver a aplicar el localizador `//img/../..` sobre la plantilla estándar personalizada de SyS. La vista 204 de SyS tiene un encabezado sin imagen y la herencia 1215 ya se ajusta a él. Sus arquitecturas, padres y referencias externas coincidieron en el original nativo y en U40J. El bloque estándar distribuido por Odoo coincide en 1.0 y 1.1, con SHA-256 XML canónico `3d70253f3d94a0bd6ab09c0e3ba14fa910e7efc902bb17dbea9e49a1c48c4a39`. El cambio de la distribución 1.1 afecta al pie del diseño de ondas.
+
+El script fiscal original se ejecutó en el proceso de Odoo sobre la copia y sobre 18 combinaciones en una tabla temporal. Afectó cero diarios en la copia y solo al caso sintético de compra con documentos y bloqueo activado. Ambas transacciones se revirtieron.
