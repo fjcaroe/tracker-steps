@@ -33,6 +33,15 @@ def capture(cr):
     one.attendance_ids += env['resource.calendar.attendance'].new(
         row('3',10,13,date_from='2026-10-01',date_to='2026-11-30'))
     captured['date_limited']=hours(one)
+    leave_type = env['hr.work.entry.type'].search([('is_leave', '=', True)], limit=1)
+    assert leave_type, 'Expected an existing leave master'
+    one.attendance_ids += env['resource.calendar.attendance'].new(row('4',9,14,work_entry_type_id=leave_type.id))
+    captured['leave']=hours(one)
+    resource = env['resource.resource'].new({'name':'Synthetic calendar resource','company_id':7})
+    one.attendance_ids += env['resource.calendar.attendance'].new(row('4',9,12,resource_id=resource))
+    captured['individual']=hours(one)
+    one.attendance_ids += env['resource.calendar.attendance'].new(row('6',8,13,display_type='line_section'))
+    captured['section']=hours(one)
     two = make('two weeks',[row('0',8,12,week_type='0'),row('1',8,14,week_type='1')],two_weeks_calendar=True)
     captured['two_weeks']=hours(two)
     flex = make('flexible',[],flexible_hours=True,full_time_required_hours=35)
