@@ -1,9 +1,12 @@
 """Bind the original SyS Chilean invoice reference contract to its free accounting provider."""
 import json
+import hashlib
 from itertools import product
 from pathlib import Path
 from pprint import pformat
 import shutil
+
+from lxml import etree
 
 from custody_sys_previred_filestore import digest
 from restore_native_product_backup import query
@@ -25,6 +28,30 @@ FIELDS = {
     8347: ("res.company", "l10n_cl_dte_resolution_number", "char", None),
     8348: ("res.company", "l10n_cl_dte_resolution_date", "date", None),
 }
+
+
+def original_unit_price_layout(db, output):
+    identity = """SELECT d.id,d.res_id,v.inherit_id,d.noupdate,encode(sha256(convert_to(v.arch_db::text,'UTF8')),'hex')
+        FROM ir_model_data d JOIN ir_ui_view v ON v.id=d.res_id WHERE d.module='l10n_cl'
+        AND d.name='report_invoice_document' AND d.model='ir.ui.view'"""
+    expected = "45985|1281|985|f|8fc9e221a7d0138e7bb479054774576f7426a2710323357a81c13356285ea92a"
+    newer = "45985|1281|985|f|4cebed10732472ec0a164d4251c30db2f4482fbe7c3a319562e04fded6afe192"
+    candidate = query(db, identity)
+    require(query(NATIVE, identity) == expected and (candidate == expected or
+            db.endswith("U41MW") and candidate == newer), "unknown-chilean-invoice-template")
+    file = output / "views/report_invoice.xml"
+    tree = etree.parse(str(file))
+    template, = tree.xpath('//*[@id="report_invoice_document"]')
+    require(hashlib.sha256(etree.tostring(template, method="c14n")).hexdigest() ==
+            "14c7bc032dec5ca9508167f2df43fc50a41e5419c5d2d7ed74198bc9fc4a3e25", "unrecognized-invoice-template-source")
+    unit_price, = template.xpath('.//attribute[@name="t-options" and contains(text(), "precision")]')
+    require(unit_price.text == """{"widget": "float", "precision": line_amounts['main_currency'].decimal_places}""",
+            "unexpected-current-unit-price-format")
+    unit_price.text = '{"widget": "float", "precision": 2}'
+    discount, = template.xpath('.//td[@name="td_discount_currency"]')
+    discount.set("position", "after")
+    tree.write(str(file), encoding="UTF-8", xml_declaration=True)
+    return {"native_bilingual_arch": expected.rsplit("|", 1)[1], "published_source": digest(file)}
 
 
 def build_invoice_provider(db, output):
@@ -121,5 +148,5 @@ def build_invoice_provider(db, output):
             "financial_relation_ids": [5963, 6077], "original_financial_delete_actions": original_fk,
             "signature_fields": sorted(signing_ids), "original_company_signatures": flags, "original_move_signers": signers,
             "original_signature_attachment": assets,
-            "native_receipt_signing": digest(receipt),
+            "native_receipt_signing": digest(receipt), "original_unit_price_layout": original_unit_price_layout(db, output),
             "code": digest(implementation), "metadata": digest(metadata), "init": digest(init)}

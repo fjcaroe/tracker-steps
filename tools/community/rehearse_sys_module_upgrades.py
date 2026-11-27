@@ -170,6 +170,8 @@ def pin_original_providers(args):
 
 
 def effective_profile(out):
+    if (out / "print-profile-proof.json").is_file():
+        return out / "print-profile", out / "print-profile-proof.json"
     return ((out / "tested-profile", out / "tested-profile-proof.json") if (out / "tested-profile-proof.json").is_file()
             else (out / "profile", out / "profile-proof.json"))
 
@@ -683,6 +685,22 @@ def finish_financial_release(args, proof):
         restore_financial_actions(args, proof)
     if not (out / "financial-delete-actions.json").is_file():
         check_financial_actions(args)
+    if not (out / "original-price-layout.json").is_file():
+        receipt = out / "print-profile-proof.json"
+        if not receipt.is_file():
+            selected = (*FORWARD, "step_payroll_engine_transition", "step_account_monthly_books")
+            save(receipt, build(args.database, args.sealed, out / "print-profile", selected,
+                                original_admin_seeds=True, original_fiscal=True))
+        if not (out / "print-profile.json").is_file():
+            save(out / "print-profile.json", seal_profile(out / "print-profile", out / "print-profile.tar",
+                                                          json.loads(receipt.read_bytes())))
+        args.module = "l10n_latam_invoice_document"
+        log = out / ("original-unit-prices-" + str(len(list(out.glob("original-unit-prices-*.log")))) + ".log")
+        require(odoo(args, None, ["-u", args.module], log) == 0 and "SYS_OFFICIAL_CLEANUP" in log.read_text(),
+                "original-invoice-format-upgrade-failed")
+        final = final_receipt(args, proof, "original-price-layout.json")
+        require(not final["covered_table_changes"] and not final["relaxed_original_required_columns"]
+                and not final["full_sql_delta"]["constraints"], "original-unit-price-postflight-differs")
     if not (out / "retained-release.json").is_file():
         retained_release(args)
     if not (out / "release-exports.json").is_file():

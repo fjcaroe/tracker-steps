@@ -75,17 +75,18 @@ def run(shell, root, original):
     differences = {item.name: [item.latest_version, adapt_version(get_manifest(item.name)["version"])]
                    for item in installed if item.latest_version != adapt_version(get_manifest(item.name)["version"])}
     assert not differences and all(Path(get_module_path(item.name)).resolve().is_relative_to(root) for item in installed)
-    profile = root / ("tested-profile" if (root / "tested-profile-proof.json").is_file() else "profile")
+    profile = next(root / name for name in ("print-profile", "tested-profile", "profile") if (root / name).is_dir())
     overlays = []
     for module in sorted(profile.iterdir()):
         actual = Path(get_module_path(module.name))
         assert actual.samefile(module) and (actual / "__manifest__.py").samefile(module / "__manifest__.py")
         overlays.append(module.name)
     shell.cr.execute("""SELECT id,encode(sha256(convert_to(arch_db::text,'UTF8')),'hex') FROM ir_ui_view
-                        WHERE id IN (1215,204) ORDER BY id""")
+                        WHERE id IN (1215,204,1281) ORDER BY id""")
     assert shell.cr.fetchall() == [
         (204, "7348f33beabc72cdf09cf504c5cff83847e324953fec3bd73ff0c8e966a79111"),
-        (1215, "0e6741df23c3e3cd2f1d68068f960fb2034fd503f324be1cb2118c9443242edf")]
+        (1215, "0e6741df23c3e3cd2f1d68068f960fb2034fd503f324be1cb2118c9443242edf"),
+        (1281, "8fc9e221a7d0138e7bb479054774576f7426a2710323357a81c13356285ea92a")]
     actors = shell["res.users"].sudo().search([("active", "=", True), ("share", "=", False), ("id", ">", 1)])
     assert len(actors) == 2
     result = []
