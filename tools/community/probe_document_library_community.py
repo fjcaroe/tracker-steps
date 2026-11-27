@@ -153,7 +153,7 @@ def probe(env, baseline, original_bookmarks):
     wizard = scope[action["res_model"]].with_context(**action["context"])
     assert wizard.get_view(view_id=scope.ref("step_document_library.permission_form").id, view_type="form")
     def apply(role):
-        wizard.create({"document_id": document.id, "partner_id": reader.partner_id.id, "role": role}).action_apply()
+        wizard.create({"document_id": document.id, "user_id": reader.id, "role": role}).action_apply()
     def grant_id():
         return scope["documents.access"].search([("document_id", "=", document.id),
                                                 ("partner_id", "=", reader.partner_id.id)]).id

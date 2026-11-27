@@ -178,7 +178,8 @@ class DocumentPermission(models.TransientModel):
     _description = "Permiso individual sobre un archivo"
 
     document_id = fields.Many2one("documents.document", string="Archivo", required=True, readonly=True)
-    partner_id = fields.Many2one("res.partner", string="Contacto del usuario interno", required=True)
+    user_id = fields.Many2one("res.users", string="Usuario interno", required=True,
+                              domain=[("active", "=", True), ("share", "=", False)])
     role = fields.Selection([("none", "Retirar permiso individual"), *PERMISSIONS[1:]],
                             string="Permiso individual", required=True, default="view")
 
@@ -190,12 +191,12 @@ class DocumentPermission(models.TransientModel):
         self.env.cr.execute("SELECT id FROM documents_document WHERE id=%s FOR UPDATE", [doc.id])
         doc.invalidate_recordset(["user_permission", "may_manage_access"])
         doc.action_manage_access()
-        partner = self.partner_id
-        partner.check_access("read")
-        if not self.env["res.users"].sudo().search_count([
-            ("active", "=", True), ("share", "=", False), ("partner_id", "=", partner.id),
-        ]):
-            raise ValidationError(_("Seleccione el contacto de un usuario interno activo."))
+        recipient = self.env["res.users"].search([
+            ("id", "=", self.user_id.id), ("active", "=", True), ("share", "=", False),
+        ], limit=1)
+        if not recipient:
+            raise ValidationError(_("Seleccione un usuario interno activo de su directorio."))
+        partner = recipient.partner_id
         access = self.env["documents.access"]
         grants = access.search([("document_id", "=", doc.id), ("partner_id", "=", partner.id)])
         if len(grants) > 1:
