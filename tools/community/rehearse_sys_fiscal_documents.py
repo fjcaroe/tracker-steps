@@ -102,7 +102,9 @@ def final(args, proof, receipt, sha):
     require(receipt and receipt.resolve() == receipt and receipt.parent == AUX and receipt.is_file() and digest(receipt) == sha,
             "reviewed-protected-document-admission-required")
     states = module_versions(TARGET)
-    require(len(states) == 192 and all(states[m] == ["installed", v] for m, v in DOCUMENT_MODULES.items()) and
+    require(all(state in ("uninstallable", "installed") for state, version in states.values()) and
+            sum(state == "installed" for state, version in states.values()) == 192 and
+            all(states[m] == ["installed", v] for m, v in DOCUMENT_MODULES.items()) and
             all(states[m] == ["installed", MODULES[m][1]] for m in FORWARD), "unaccepted-combined-versions")
     checkpoint(TARGET, "operator_workflows", "before")
     baseline = ROOT / "document-workflow-baseline.json.gz"
