@@ -13,6 +13,7 @@ from probe_document_portal_http import new_portal, session
 MODEL = "helpdesk.ticket"
 NATIVE = "MANAGEMENT_QA_STEPS_CRM_20261126U42C"
 COMMUNITY = "COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3"
+INTEGRATED = "COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A"
 HOST = {"base_url": "http://localhost", "environ_overrides": {"REMOTE_ADDR": "127.0.0.1"}}
 
 
@@ -50,7 +51,7 @@ def view_messages(client, ticket_id):
 
 
 def run(env):
-    assert __debug__ and env.cr.dbname in (NATIVE, COMMUNITY) and env.registry.test_cr is None
+    assert __debug__ and env.cr.dbname in (NATIVE, COMMUNITY, INTEGRATED) and env.registry.test_cr is None
     assert {line.split(":")[0].strip() for line in Path("/proc/net/dev").read_text().splitlines()[2:]} == {"lo"}
     env.cr.rollback()
     options = {"tracking_disable": True, "mail_create_nolog": True, "mail_create_nosubscribe": True,
