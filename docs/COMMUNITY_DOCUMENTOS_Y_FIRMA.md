@@ -242,3 +242,40 @@ El archivo instalado en U41P y U41PA tiene SHA-256
 Los recibos privados de las solicitudes y los permisos se guardan en
 `~/.codex/local-artifacts/community-resume-20261125/U30/u41pa-portal-file-final.json`
 y `u41p-historical-public-scope-final.json` en el mismo directorio.
+
+### Acceso a carpetas y enlace del editor en SyS, versión 18.0.1.0.3
+
+La copia U41PF conservó 1.430 direcciones originales que se reconstruyen y se
+verifican contra su huella. El editor original abrió el formulario de dos
+archivos y dos carpetas, incluidos elementos privados y compartidos por enlace.
+La primera solicitud del formulario web devolvió en el campo de copia la misma
+dirección absoluta que el sistema nativo en los cuatro casos. Los visitantes
+anónimos y las dos cuentas de portal recibieron las doce denegaciones esperadas
+al intentar abrir el cuadro reservado al editor.
+
+| Comprobación | Resultado |
+| --- | --- |
+| Carpetas históricas con enlace válido | 110 contrastadas, 38 abiertas al público |
+| Elementos de esas carpetas visibles al público | 39, con las mismas identidades |
+| Navegación con sesión de destinatario, segunda cuenta y visitante anónimo | 42 pantallas en siete estados, cero diferencias |
+| Descargas desde las carpetas de ensayo | 27, con el contenido esperado |
+| Regresión de fichas, descargas y marcadores históricos de archivos | 72 solicitudes coincidentes |
+| Acceso público al conjunto de binarios históricos | 38 permitidos y 1.281 denegados |
+
+La navegación se probó sobre una carpeta y una subcarpeta. Se verificó el
+destino exacto de cada enlace visible en Community. Tras retirar el permiso de
+la carpeta, la siguiente solicitud ocultó su contenido incluso cuando el
+destinatario conservaba acceso individual a un archivo. La comprobación
+histórica de permisos comparó identidades sin abrir archivos de clientes.
+
+U41PF arrancó con 188 módulos libres. La revisión cotejó siete cuentas
+originales, 438 membresías, 524 reglas, 1.722 permisos, 1.430 documentos, 3.955
+registros de acceso y 40 protecciones de base de datos. La actualización
+registró una nueva fecha de escritura en cuatro permisos y dos reglas de la
+propia Biblioteca. Se verificaron todas sus condiciones y el permiso adicional
+que reserva el cuadro de copia a usuarios internos.
+
+El paquete instalado y conservado fuera del servidor tiene SHA-256
+`c8548015d864c1bac5b7b0a6d8eef588d2cfb4a29ed31132309f2b2e032c1b88`.
+El acta y sus recibos están en
+`~/.codex/local-artifacts/community-resume-20261125/U30/u41pf-portal-folders-acceptance.json`.
