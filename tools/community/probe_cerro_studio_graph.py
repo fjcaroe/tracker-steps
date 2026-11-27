@@ -7,6 +7,35 @@ import re
 FREE = {'LGPL-3', 'AGPL-3', 'GPL-3', 'GPL-2', 'GPL-3 or any later version', 'GPL-2 or any later version'}
 
 
+# These are the model/view and field owners, not the largest shared package.
+# The stock reception form uses stock.move.availability inside its moves list.
+VIEW_PROVIDERS = {
+    'expense_category_accounts': ('hr_expense', 'account'),
+    'product_template_accounts': ('account',),
+    'company_directory': ('base', 'l10n_cl_communes'),
+    'analytic_centres': ('step_hr', 'step_management_costs_agriculture'),
+    'farms': ('step_hr',),
+    'analytic_centre_form': ('step_hr',),
+    'species': ('step_hr', 'step_agriculture_catalogs', 'step_producer_fruit_reports'),
+    'agricultural_products': ('product', 'step_hr', 'step_producers'),
+    'export_estimates': ('step_producers',),
+    'payment_rates': ('step_export',),
+    'export_partners': ('step_export', 'step_export_client_revision', 'step_export_receiver_profile'),
+    'product_category_accounts': ('product', 'step_management_costs', 'stock_account'),
+    'season_budget': ('step_management_costs', 'step_budget_design'),
+    'actual_costs': ('step_budget_design',),
+    'budget_summary': ('step_budget_design',),
+    'stock_transfers': ('stock', 'step_packing'),
+    'process_types': ('step_packing', 'step_packing_operations'),
+    'packing_summary': ('step_packing_operations', 'step_packing_overweight'),
+    'package_tags': ('step_packing_ticket_revision', 'step_inventory_packing'),
+    'packing_orders': ('step_packing_operations',),
+    'external_receptions': ('step_packing_ticket_revision', 'step_packing'),
+    'process_reception_form': ('step_packing_reception_revision', 'stock'),
+    'dispatch_types': ('step_operations_ui', 'step_packing_interplant'),
+}
+
+
 def main():
     from odoo import sql_db
     from odoo.modules import module
@@ -47,6 +76,8 @@ def main():
             missing[name] = unmet
         return missing[name]
     blockers = {name: sorted(visit(name, ())) for name in roots}
+    view_blockers = {view: sorted(set().union(*(visit(module_name, ()) for module_name in owners)))
+                     for view, owners in VIEW_PROVIDERS.items()}
     with sql_db.db_connect(args.database).cursor() as cr:
         cr.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
         graph = Graph()
@@ -60,7 +91,7 @@ def main():
             if installed[name][0] == 'OEEL-1':
                 raise ValueError('Native Enterprise package requires independent migration: ' + name)
         result = {'database':args.database, 'roots':blockers, 'resolved':sorted(actual),
-                  'admitted_roots':sorted(n for n in roots if n in actual),
+                  'admitted_roots':sorted(n for n in roots if n in actual), 'view_blockers':view_blockers,
                   'native_installed':len(installed), 'native_enterprise':sum(v[0]=='OEEL-1' for v in installed.values())}
     with args.output.open('x') as out:
         json.dump(result, out, sort_keys=True, indent=2)
