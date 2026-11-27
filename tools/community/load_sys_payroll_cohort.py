@@ -44,11 +44,12 @@ def main():
                                    'COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MV',
                                    'COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW',
                                    'COMMUNITY_SYS_PREVIRED_MODULES_20261127U43MF',
-                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD') if args.upgrade_module
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG') if args.upgrade_module
                       else re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', database))
     require(valid_database,
             'sys-cohort-private-loader-required')
-    require(not database.endswith(('U41MQ', 'U41MV', 'U41MW', 'U43MF', 'U44FD')) or args.upgrade_module not in ('hr_timesheet', 'project_sms'),
+    require(not database.endswith(('U41MQ', 'U41MV', 'U41MW', 'U43MF', 'U44FD', 'U44FG')) or args.upgrade_module not in ('hr_timesheet', 'project_sms'),
             'original-upstream-policy-version-required')
     plan = json.loads(args.plan.read_bytes())
     require(plan['database'] == database and plan['integral_conversion'] is False,
