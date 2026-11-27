@@ -14,6 +14,7 @@ import subprocess
 import tarfile
 import tempfile
 
+from guard_sys_original_catalogue import checkpoint, TARGET as FG
 from audit_sys_upgrade_policy import audit
 from build_sys_upgrade_policy_profile import build, fingerprint, seal_profile
 from complete_converted_filestore import inventory, restore_supplement
@@ -37,7 +38,8 @@ FORWARD = tuple(module for module in MODULES if module not in TREES)
 COMBINED_DB = "COMMUNITY_SYS_PREVIRED_MODULES_20261127U43MF"
 DOCUMENTS_DB = "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD"
 COMBINED_SOURCES = {COMBINED_DB: "COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L",
-                    DOCUMENTS_DB: "COMMUNITY_SYS_PREVIRED_COHORT_20261127U43C"}
+                    DOCUMENTS_DB: "COMMUNITY_SYS_PREVIRED_COHORT_20261127U43C",
+                    FG: "COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L"}
 DOCUMENT_MODULES = {"step_document_library": "18.0.1.0.5", "step_document_library_portal": "18.0.1.0.3"}
 FINANCE_ARCHIVE = "ca9180cdd5d3be9b5e69073d83171760cef34b22b07ae0a7cb38940cbd63ce37"
 PRIVATE = Path("/opt/steps-validation")
@@ -87,7 +89,7 @@ def restore_combined_filestore(args):
     backup = json.loads((args.sealed / "backup.json").read_bytes())
     require(native["source"] == COMBINED_SOURCES[args.database] and native["sql_sha256"] == backup["sql_sha256"]
             and digest(archive) == native["extra_archive_sha256"], "combined-source-tree-drift")
-    if args.database == COMBINED_DB:
+    if args.database in (COMBINED_DB, FG):
         require(native["sql_sha256"] == "0c4e970e29579c6de38d71397a987682e97ff9a90027baad8c9e9b77f84bf606"
                 and native["tree_sha256"] == "71c9add47cf4265ee31555f42c02c8a819b8683154e53858490b22c6c11f8d1c",
                 "accepted-payroll-filestore-required")
@@ -106,6 +108,7 @@ def restore_combined_filestore(args):
 
 
 def restore(args, proof):
+    require(args.database != FG, "FG-requires-the-verified-private-fixture-restore")
     out, sealed, db = args.output, args.sealed, args.database
     require(not out.exists(), "private-output-exists")
     if db in COMBINED_SOURCES:
@@ -173,7 +176,7 @@ def restore(args, proof):
 
 def pin_original_providers(args):
     out = args.output
-    require(args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")) and not (out / "pinned").exists(), "fresh-original-policy-copy-required")
+    require(args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")) and not (out / "pinned").exists(), "fresh-original-policy-copy-required")
     archive = Path(__file__).with_name("original-public-addons.tar")
     require(digest(archive) == PINNED_ARCHIVE, "unexpected-original-public-package")
     versions = module_versions(args.database)
@@ -211,12 +214,12 @@ def effective_profile(out):
 
 
 def verify_retained_profile(args):
-    require(args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")), "original-sys-layout-copy-required")
+    require(args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")), "original-sys-layout-copy-required")
     out = args.output
     directory, receipt = effective_profile(out)
     expected = json.loads(receipt.read_bytes())
     latam = expected["modules"]["l10n_latam_invoice_document"]["files"]
-    if args.database.endswith(("U41MV", "U41MW", "U43MF", "U44FD")):
+    if args.database.endswith(("U41MV", "U41MW", "U43MF", "U44FD", "U44FG")):
         require("l10n_cl" in expected["modules"] and "step_account_monthly_books" in expected["modules"]
                 and "views/report_templates.xml" in latam, "complete-fiscal-preservation-profile-required")
     if "views/report_templates.xml" not in latam:
@@ -246,7 +249,8 @@ def guarded_plan(args):
     return output
 
 
-def odoo(args, mode, options, log, stdin=None, comparison_key=None, loopback=False):
+def odoo(args, mode, options, log, stdin=None, comparison_key=None, loopback=False,
+         document_module=None, document_operation=None):
     out, db = args.output, args.database
     core = out / "runtime"
     temporary = out / "data" / "tmp"
@@ -272,14 +276,19 @@ def odoo(args, mode, options, log, stdin=None, comparison_key=None, loopback=Fal
     if (out / "profile").exists():
         directory, receipt = effective_profile(out)
         expected = json.loads(receipt.read_bytes())
-        require(args.database.endswith(("U41MP", "U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")) and fingerprint(directory) == (expected["files"], expected["sha256"]),
+        require(args.database.endswith(("U41MP", "U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")) and fingerprint(directory) == (expected["files"], expected["sha256"]),
                 "profile-checksum-drift")
         addons.insert(0, directory)
     if (out / "pinned").exists():
         pins = json.loads((out / "pinned-providers.json").read_bytes())
-        require(args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")) and pins["archive"] == PINNED_ARCHIVE
+        require(args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")) and pins["archive"] == PINNED_ARCHIVE
                 and fingerprint(out / "pinned") == (pins["files"], pins["sha256"]), "original-pinned-modules-drift")
         addons.insert(0, out / "pinned")
+    if db == FG:
+        employee = json.loads((out / "employee-profile.json").read_bytes())
+        require(fingerprint(out / "employee-profile") == (employee["files"], employee["sha256"]),
+                "original-public-employee-profile-differs")
+        addons.insert(0, out / "employee-profile")
     # The standalone CLI can register runtime/addons before reading its configuration.
     # Expose the same verified sources at that location for both registry entry points.
     mounts = []
@@ -292,10 +301,25 @@ def odoo(args, mode, options, log, stdin=None, comparison_key=None, loopback=Fal
                     "missing-sealed-provider-target")
             mounts.extend(["--ro-bind", str(source), str(core / "addons" / source.name)])
             modules.add(source.name)
+    document_sources = out / "document-addons"
+    if db == FG and (out / "document-provider-proof.json").is_file():
+        proof = json.loads((out / "document-provider-proof.json").read_bytes())
+        origin = PRIVATE / "community-sys-documents-preserved-20261127U44FG/documents/addons"
+        require(set(p.name for p in origin.iterdir()) == set(DOCUMENT_MODULES)
+                and fingerprint(origin) == (proof["files"], proof["sha256"]), "document-provider-drift")
+        require(document_sources.is_dir() and document_sources.resolve() == document_sources, "private-document-provider-mount")
+        mounts.extend(["--ro-bind", str(origin), str(document_sources)])
+        addons.insert(0, document_sources)
     position = argv.index("--proc")
     argv[position:position] = mounts
     if not mode and (out / "profile").is_dir():
-        require(options == ["-u", args.module], "unexpected-candidate-operation")
+        if document_module is None:
+            require(document_operation is None and options == ["-u", args.module], "unexpected-candidate-operation")
+            operation = ["--upgrade-module", args.module]
+        else:
+            require(db == FG and document_sources in addons and document_module in DOCUMENT_MODULES and
+                    document_operation in ("install", "upgrade") and not options, "unexpected-document-operation")
+            operation = ["--" + document_operation + "-document", document_module]
         tooling = out / "validator"
         tooling.mkdir(mode=0o755, exist_ok=True)
         mount_at = argv.index("--proc")
@@ -303,7 +327,7 @@ def odoo(args, mode, options, log, stdin=None, comparison_key=None, loopback=Fal
         argv[-1] = str(tooling / "load_sys_payroll_cohort.py")
         argv.extend(["--database", db, "--runtime", str(core), "--plan", str(guarded_plan(args)),
                      "--config", "/etc/odoo18-sys.conf", "--data-dir", str(out / "data"),
-                     "--addons-path", ",".join(map(str, addons)), "--upgrade-module", args.module,
+                     "--addons-path", ",".join(map(str, addons)), *operation,
                      "--logfile", str(out / "data" / (log.stem + "-odoo.log"))])
         with log.open("xb") as handle:
             return subprocess.run(argv, stdout=handle, stderr=handle).returncode
@@ -312,7 +336,7 @@ def odoo(args, mode, options, log, stdin=None, comparison_key=None, loopback=Fal
                  "--no-http", "--workers=0", "--max-cron-threads=0", "--stop-after-init", "--without-demo=all", "--load=base,web",
                  "--logfile=" + str(out / "data" / (log.stem + "-odoo.log")), *options])
     if loopback:
-        require(mode == "shell" and db.endswith(("U41MW", "U43MF", "U44FD")), "private-fiscal-report-shell-required")
+        require(mode == "shell" and db.endswith(("U41MW", "U43MF", "U44FD", "U44FG")), "private-fiscal-report-shell-required")
         tooling = out / "validator"
         require(tooling.is_dir(), "protected-installer-mount-required")
         position = argv.index("--proc")
@@ -346,7 +370,12 @@ def forms(args):
     require(json.loads((out / "restored.json").read_bytes())["database"] == args.database, "wrong-target")
     code = Path(__file__).with_name("probe_sys_module_upgrade_forms.py").read_text()
     code += "\nimport json\nassert env.cr.dbname == " + repr(args.database)
-    code += "\nprint('SIX_FORMS='+json.dumps(run(env)),flush=True)\n"
+    if args.database == FG:
+        code += "\n" + Path(__file__).with_name("probe_sys_employee_directory.py").read_text()
+        code += "\nstats=run(env); stats['directory']=employee_directory(env)\n"
+    else:
+        code += "\nstats=run(env)\n"
+    code += "\nprint('SIX_FORMS='+json.dumps(stats),flush=True)\n"
     log = out / (args.label + ".log")
     if log.exists():
         require(not (out / (args.label + ".json")).exists(), "form-already-certified")
@@ -358,7 +387,7 @@ def forms(args):
 
 
 def retained_release(args):
-    require(args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")), "retained-sys-policy-scope-required")
+    require(args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")), "retained-sys-policy-scope-required")
     states = module_versions(args.database)
     require(all(states[m] == ["installed", MODULES[m][1]] for m in FORWARD), "forward-providers-not-yet-installed")
     probe = Path(__file__).with_name("probe_sys_invoice_signing.py").read_text() + "\n"
@@ -427,9 +456,13 @@ def final_receipt(args, proof, filename="final.json"):
     restored = json.loads((out / "restored.json").read_bytes())
     require(restored["database"] == db and restored["sealed"] == str(args.sealed), "wrong-target")
     jobs = {}
-    for name in (FORWARD if db.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")) else MODULES):
+    for name in (FORWARD if db.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")) else MODULES):
         jobs[name] = json.loads((out / ("upgrade-" + name) / "receipt.json").read_bytes())
-    original = json.loads(gzip.decompress((args.sealed / "source-snapshot.json.gz").read_bytes()))
+    source_snapshot = args.sealed / "source-snapshot.json.gz"
+    if db == FG:
+        installed = out / "document-workflow-baseline.json.gz"
+        source_snapshot = installed if installed.is_file() else out / "finance-baseline.json.gz"
+    original = json.loads(gzip.decompress(source_snapshot.read_bytes()))
     current = snapshot(db)
     delta = differences(original, current)
     source = proof["source"]
@@ -458,14 +491,15 @@ def final_receipt(args, proof, filename="final.json"):
                     "hr_payroll_structure", "hr_salary_rule", "resource_calendar", "resource_calendar_attendance",
                     "res_groups", "ir_rule", "ir_model_access", "res_groups_users_rel", "res_groups_implied_rel", "rule_group_rel")
     require(all(name in original["public_tables"] for name in proof_tables), "missing-covered-table")
-    if db.endswith(("U41MW", "U43MF", "U44FD")):
+    if db.endswith(("U41MW", "U43MF", "U44FD", "U44FG")):
         require("l10n_cl_account_invoice_reference" in original["public_tables"], "original-invoice-references-required")
     checks = set(proof_tables) | (set(original["public_tables"]) & {
         "hr_causal_contract_end", "hr_employee_movement_type", "hr_contract_type", "hr_work_entry_type",
         "hr_leave_type", "res_city", "res_country_state", "res_company", "ir_sequence", "ir_sequence_date_range",
         "res_bank", "account_account_tag", "account_report", "account_report_column", "account_report_expression",
         "account_report_line", "l10n_latam_document_type", "l10n_latam_identification_type", "l10n_cl_account_invoice_reference"})
-    if db == DOCUMENTS_DB:
+    documents_installed = db == DOCUMENTS_DB or (db == FG and (out / "document-workflow-baseline.json.gz").is_file())
+    if documents_installed:
         documents = {name for name in original["public_tables"] if name.startswith(("documents_", "step_document_library"))}
         require({"documents_document", "documents_access", "step_document_library_permission",
                  "step_document_library_link_permission"} <= documents, "accepted-document-relations-required")
@@ -486,7 +520,7 @@ def final_receipt(args, proof, filename="final.json"):
               "archived_payroll_pdfs": pdfs[0], "full_sql_delta": delta,
               "covered_table_changes": sorted(checks.intersection(delta["public_tables"])),
               "after_free": check_space(0)}
-    if db == DOCUMENTS_DB:
+    if documents_installed:
         states = module_versions(db)
         result["documents"] = {"modules": {m: states[m] for m in DOCUMENT_MODULES},
                                "covered_tables": sorted(documents), "linked_attachments": attached}
@@ -504,7 +538,7 @@ def final_receipt(args, proof, filename="final.json"):
         require(restored_sha == source_tree["tree_sha256"], "combined-original-physical-files-changed")
         result["physical_filestore"] = {"original_files": len(restored), "original_tree_sha256": restored_sha,
                                         "additional_files": len(physical) - len(restored)}
-    if db.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")):
+    if db.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")):
         result["retained_source_providers"] = json.loads((out / "pinned-providers.json").read_bytes())
         require(all(versions[m] == ["installed", "18.0.1.0"] for m in TREES), "original-policy-version-drift")
     save(out / filename, result)
@@ -541,7 +575,11 @@ def upgrade(args, proof):
     else:
         require(initial[module] == ["installed", old], "unexpected-initial-module-state")
     migration_case = journal_migration(args) if module == "l10n_latam_invoice_document" else None
+    if db == FG:
+        checkpoint(db, module, "before")
     code = odoo(args, None, ["-u", module], run / (module + ".log"))
+    if db == FG:
+        checkpoint(db, module, "after")
     final = module_versions(db)
     after = snapshot(db)
     log = out / "data" / (module + "-odoo.log")
@@ -631,7 +669,7 @@ def compare_operator_exports(args, name="exports", comparison="complete-export-c
 
 def print_chilean_invoices(args, proof):
     out = args.output
-    require(args.database.endswith(("U41MW", "U43MF", "U44FD")) and (out / "retained-release.json").is_file(), "original-invoice-render-required")
+    require(args.database.endswith(("U41MW", "U43MF", "U44FD", "U44FG")) and (out / "retained-release.json").is_file(), "original-invoice-render-required")
     if not (out / "invoice-pdf.json").is_file():
         name = "invoice-pdf-" + str(len(list(out.glob("invoice-pdf-*.log"))))
         script = Path(__file__).with_name("probe_sys_invoice_pdf.py").read_text()
@@ -651,13 +689,13 @@ def print_chilean_invoices(args, proof):
 
 
 def candidate_batch(args, proof):
-    require(args.database.endswith(("U41MP", "U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")) and (args.output / "profile-proof.json").is_file(), "profile-required")
+    require(args.database.endswith(("U41MP", "U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")) and (args.output / "profile-proof.json").is_file(), "profile-required")
     require(not (args.output / "final.json").exists(), "finished-candidate")
-    if args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")):
+    if args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")):
         verify_retained_profile(args)
     for label in ("forms-before", "forms-after"):
         if label == "forms-after":
-            for module in (FORWARD if args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")) else MODULES):
+            for module in (FORWARD if args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")) else MODULES):
                 args.module = module
                 receipt = args.output / ("upgrade-" + module) / "receipt.json"
                 if not receipt.exists():
@@ -667,7 +705,7 @@ def candidate_batch(args, proof):
             try:
                 forms(args)
             except ValueError as exc:
-                if "original-role-form-probe-failed" not in str(exc):
+                if args.database == FG or "original-role-form-probe-failed" not in str(exc):
                     raise
                 print(label, "inspect-private-role-log", flush=True)
     final_receipt(args, proof)
@@ -675,12 +713,12 @@ def candidate_batch(args, proof):
 
 def prepare_profile(args):
     identity = json.loads((args.output / "restored.json").read_bytes())
-    require(args.database.endswith(("U41MP", "U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")) and identity["database"] == args.database
+    require(args.database.endswith(("U41MP", "U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")) and identity["database"] == args.database
             and identity["sealed"] == str(args.sealed), "separate-policy-profile-copy-required")
     versions = module_versions(args.database)
     require(all(versions[k] == ["installed", v[0]] for k, v in MODULES.items()), "profile-requires-original-versions")
-    keep_original = args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD"))
-    fiscal = args.database.endswith(("U41MV", "U41MW", "U43MF", "U44FD"))
+    keep_original = args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG"))
+    fiscal = args.database.endswith(("U41MV", "U41MW", "U43MF", "U44FD", "U44FG"))
     selected = (*FORWARD, "step_payroll_engine_transition") if keep_original else MODULES
     if fiscal:
         selected = (*selected, "step_account_monthly_books")
@@ -732,7 +770,7 @@ def check_financial_actions(args):
     out = args.output
     final = json.loads((out / "financial-storage.json").read_bytes())
     require(not final["full_sql_delta"]["constraints"] and not final["covered_table_changes"]
-            and args.database.endswith(("U41MW", "U43MF", "U44FD")), "native-financial-storage-not-restored")
+            and args.database.endswith(("U41MW", "U43MF", "U44FD", "U44FG")), "native-financial-storage-not-restored")
     require(query(args.database, "SELECT on_delete FROM ir_model_fields WHERE id=6077") == "cascade",
             "runtime-account-field-policy-differs")
     pairs = query(args.database, """SELECT conname,confdeltype FROM pg_constraint WHERE conname IN
@@ -793,7 +831,7 @@ def finish_financial_release(args, proof):
 
 
 def exercise_final(args, proof):
-    require(args.database.endswith(("U41MV", "U41MW", "U43MF", "U44FD")) and not (args.output / "postflight.json").exists(),
+    require(args.database.endswith(("U41MV", "U41MW", "U43MF", "U44FD", "U44FG")) and not (args.output / "postflight.json").exists(),
             "fresh-final-rehearsal-required")
     out = args.output
     if not (out / "pinned-providers.json").is_file():
@@ -821,6 +859,7 @@ def exercise_final(args, proof):
 
 
 def exercise_combined(args, proof):
+    require(args.database != FG, "use-the-existing-FG-rehearsal-stage")
     out = args.output
     require(args.database in COMBINED_SOURCES, "combined-financial-scope")
     if not (out / "restored.json").is_file():
@@ -911,7 +950,7 @@ if __name__ == "__main__":
         elif args.operation == "pin-providers":
             pin_original_providers(args)
         elif args.operation == "seal-profile":
-            require(args.database.endswith(("U41MP", "U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")), "separate-policy-profile-copy-required")
+            require(args.database.endswith(("U41MP", "U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")), "separate-policy-profile-copy-required")
             package_profile(args, proof)
         elif args.operation == "exports":
             if not (args.output / "exports.json").is_file():
@@ -922,7 +961,7 @@ if __name__ == "__main__":
         elif args.operation == "profile":
             prepare_profile(args)
         elif args.operation == "prepare-retained":
-            require(args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD")), "retained-policy-scope-required")
+            require(args.database.endswith(("U41MQ", "U41MV", "U41MW", "U43MF", "U44FD", "U44FG")), "retained-policy-scope-required")
             if not (args.output / "pinned-providers.json").exists():
                 pin_original_providers(args)
             prepare_profile(args)
