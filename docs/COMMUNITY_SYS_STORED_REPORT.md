@@ -63,3 +63,9 @@ El ejecutable de Odoo tuvo SHA-256
 `1eed7b28497e9486295acfc125b7b6f16baaa19ba2e64356bf41b65773be6e24`.
 El generador que Odoo resolvió como wkhtmltopdf 0.12.6 con Qt modificado tuvo
 SHA-256 `02fe2e0cf224dda2b38ff276d5738581aea19a0b36980d27645ae9341c815d50`.
+
+Se repitió la impresión sobre J con el proveedor semanal SyS 18.0.1.5.1 en
+su directorio privado. Los cinco PDF, los cinco líquidos, las 61 líneas visibles,
+los dos ejecutables y los ocho adjuntos históricos pasaron los mismos cotejos.
+El recibo independiente de la repetición tiene SHA-256
+`f543fcb1cd22a17961555d9ca3ca1efd591fb71eb01d4f8155b640df3cb4f53e`.
