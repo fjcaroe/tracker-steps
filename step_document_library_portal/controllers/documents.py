@@ -20,10 +20,13 @@ class SharedDocument(http.Controller):
     def document(self, reference, **params):
         document = request.env["documents.document"]._external_file(reference)
         if not document:
-            raise NotFound()
-        response = request.render("step_document_library_portal.shared_document", {
-            "file_name": document.name, "reference": reference,
-        })
+            if request.env.user._is_public():
+                raise NotFound()
+            response = request.render("step_document_library_portal.unavailable_document")
+        else:
+            response = request.render("step_document_library_portal.shared_document", {
+                "file_name": document.name, "reference": reference,
+            })
         response.headers["Cache-Control"] = "private, no-store"
         response.headers["Referrer-Policy"] = "no-referrer"
         return response
