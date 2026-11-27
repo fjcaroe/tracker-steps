@@ -12,6 +12,7 @@ from lxml import etree
 
 from audit_sys_upgrade_policy import audit
 from custody_sys_previred_filestore import digest
+from restore_native_product_backup import query
 from restore_sys_previred_pair import require
 
 
@@ -70,6 +71,33 @@ def fingerprint(profile):
     return len(files), hashlib.sha256(serial).hexdigest()
 
 
+def original_standard_layout(db, module):
+    identities = query(db, """SELECT d.id,d.res_id,v.inherit_id,v.active,d.noupdate,
+        encode(sha256(convert_to(v.arch_db::text,'UTF8')),'hex') FROM ir_model_data d JOIN ir_ui_view v ON v.id=d.res_id
+        WHERE d.model='ir.ui.view' AND d.module IN ('web','l10n_latam_invoice_document')
+        AND d.name='external_layout_standard' ORDER BY d.module""").splitlines()
+    require(identities == [
+        "43166|1215|204|t|f|0e6741df23c3e3cd2f1d68068f960fb2034fd503f324be1cb2118c9443242edf",
+        "7779|204||t|f|7348f33beabc72cdf09cf504c5cff83847e324953fec3bd73ff0c8e966a79111"],
+        "customized-original-report-layout-differs")
+    file = module / "views/report_templates.xml"
+    xml = etree.parse(str(file))
+    node, = xml.xpath('//template[@id="external_layout_standard"]')
+    require(node.get("inherit_id") == "web.external_layout_standard" and
+            hashlib.sha256(etree.tostring(node, method="c14n")).hexdigest() ==
+            "3d70253f3d94a0bd6ab09c0e3ba14fa910e7efc902bb17dbea9e49a1c48c4a39", "original-declaration-changed")
+    old_wave, = xml.xpath('//template[@id="external_layout_wave"]')
+    wave = hashlib.sha256(etree.tostring(old_wave, method="c14n")).hexdigest()
+    wrapper = etree.Element("data", noupdate="1")
+    node.getparent().replace(node, wrapper)
+    wrapper.append(node)
+    xml.write(str(file), encoding="UTF-8", xml_declaration=True)
+    new_wave, = etree.parse(str(file)).xpath('//template[@id="external_layout_wave"]')
+    require(wave == hashlib.sha256(etree.tostring(new_wave, method="c14n")).hexdigest(), "wave-change-lost")
+    return {"source_and_original_standard_identical": True, "database_ancestor_and_view": identities,
+            "wave_source_sha256": wave, "file_sha256": digest(file)}
+
+
 def build(db, sealed, target, modules, *, original_admin_seeds=False):
     require(not target.exists(), "profile-output-exists")
     core = sealed / "runtime"
@@ -117,6 +145,9 @@ def build(db, sealed, target, modules, *, original_admin_seeds=False):
                                             if Path(n).name == "ir.model.access.csv" else n for n in manifest["data"]])
             require(revised == expected, "unexpected-manifest-change")
             manifest_file.write_text(manifest_text)
+            if original_admin_seeds and module == "l10n_latam_invoice_document":
+                updated["views/report_templates.xml"] = original_standard_layout(db, output)
+                schema.assertValid(etree.parse(str(output / "views/report_templates.xml")))
             changes[module] = {"records": records, "files": updated, "manifest": digest(manifest_file)}
         files, sha = fingerprint(profile)
         # copytree retains the upstream directory modes. Validation runs under the Odoo service identity.

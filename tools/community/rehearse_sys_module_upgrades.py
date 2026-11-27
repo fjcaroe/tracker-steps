@@ -163,6 +163,23 @@ def pin_original_providers(args):
                                        "archive": PINNED_ARCHIVE})
 
 
+def effective_profile(out):
+    return ((out / "tested-profile", out / "tested-profile-proof.json") if (out / "tested-profile-proof.json").is_file()
+            else (out / "profile", out / "profile-proof.json"))
+
+
+def verify_retained_profile(args):
+    require(args.database.endswith("U41MQ"), "original-sys-layout-copy-required")
+    out = args.output
+    directory, receipt = effective_profile(out)
+    expected = json.loads(receipt.read_bytes())
+    latam = expected["modules"]["l10n_latam_invoice_document"]["files"]
+    if "views/report_templates.xml" not in latam:
+        args_root = (*FORWARD, "step_payroll_engine_transition")
+        save(out / "tested-profile-proof.json", build(args.database, args.sealed, out / "tested-profile",
+                                                    args_root, original_admin_seeds=True))
+
+
 def guarded_plan(args):
     template = PRIVATE / "community-sys-cohort-20261126U40J/receipts/cohort-plan.json"
     require(digest(template) == "4b42c4c1789196f72b32f96a6f14e39bb18a822b8958907057337fbe34ec8573",
@@ -206,10 +223,11 @@ def odoo(args, mode, options, log, stdin=None, comparison_key=None):
         argv.append(mode)
     addons = [core / "addons", core / "odoo/addons"]
     if (out / "profile").exists():
-        expected = json.loads((out / "profile-proof.json").read_bytes())
-        require(args.database.endswith(("U41MP", "U41MQ")) and fingerprint(out / "profile") == (expected["files"], expected["sha256"]),
+        directory, receipt = effective_profile(out)
+        expected = json.loads(receipt.read_bytes())
+        require(args.database.endswith(("U41MP", "U41MQ")) and fingerprint(directory) == (expected["files"], expected["sha256"]),
                 "profile-checksum-drift")
-        addons.insert(0, out / "profile")
+        addons.insert(0, directory)
     if (out / "pinned").exists():
         pins = json.loads((out / "pinned-providers.json").read_bytes())
         require(args.database.endswith("U41MQ") and pins["archive"] == PINNED_ARCHIVE
@@ -440,6 +458,8 @@ def payroll_exports(args):
 def candidate_batch(args, proof):
     require(args.database.endswith(("U41MP", "U41MQ")) and (args.output / "profile-proof.json").is_file(), "profile-required")
     require(not (args.output / "final.json").exists(), "finished-candidate")
+    if args.database.endswith("U41MQ"):
+        verify_retained_profile(args)
     for label in ("forms-before", "forms-after"):
         if label == "forms-after":
             for module in (FORWARD if args.database.endswith("U41MQ") else MODULES):
@@ -498,8 +518,9 @@ if __name__ == "__main__":
             pin_original_providers(args)
         elif args.operation == "seal-profile":
             require(args.database.endswith(("U41MP", "U41MQ")), "separate-policy-profile-copy-required")
-            expected = json.loads((args.output / "profile-proof.json").read_bytes())
-            result = seal_profile(args.output / "profile", args.output / "upgrade-profile.tar", expected)
+            directory, receipt = effective_profile(args.output)
+            expected = json.loads(receipt.read_bytes())
+            result = seal_profile(directory, args.output / "upgrade-profile.tar", expected)
             result.update(runtime=proof["runtime"]["archive_sha256"],
                           guard_plan=digest(guarded_plan(args)))
             save(args.output / "upgrade-profile.json", result)
