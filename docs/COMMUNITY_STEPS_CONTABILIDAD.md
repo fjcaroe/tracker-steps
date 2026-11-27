@@ -83,3 +83,30 @@ publicado, la factura pagada y el cobro conciliado. Los dos ensayos se hicieron
 en copias aisladas y se revirtieron. Coincidieron los importes, estados y
 relaciones al repetirlos contra el original. La revisión de tres archivos tiene
 la huella `5428545ab11150a070894e1286480597925c2150856c5ba0344499a2b0c97db2`.
+
+## Respaldo integrado de 166 módulos
+
+La copia de Steps reunió el cobro manual con ventas, Documentos, facturas
+chilenas y Mesa de Ayuda. Se repitió la instalación de los dos módulos de
+soporte sobre la copia contable y se cotejaron los 15.183 objetos SQL.
+El vendedor pudo confirmar un pedido y abrir la factura en borrador. Los
+dos operadores contables volvieron a abrir los 21 comprobantes. Coincidieron
+los cuatro PDF fiscales y los cuatro de ventas en color a 96 y 144 ppp.
+La primera ejecución de impresión fiscal falló en la comparación histórica.
+La repetición verificó todas sus tablas de control antes y después de imprimir.
+El cotejo independiente de las 1.115 tablas frente al respaldo previo a la
+instalación identificó las mismas once tablas de configuración que ya habían
+cambiado al instalar los módulos.
+
+Se comprobaron los permisos de 98 documentos en 686 casos, 162 accesos a
+enlaces históricos, los hilos de soporte internos y las dos descargas de la
+cuenta de portal. Los cinco tickets conservaron el mismo orden en el listado
+completo y en páginas de dos. El control conjunto de ventas, Documentos y
+contabilidad conserva 22 recibos y tiene la huella
+`c9bbfa39897f7a38735b6a6e383fbb4097e860a4b44c61becb5c04dcd623e63e`.
+
+El respaldo reúne 163.602 filas, 807 contadores y 1.748 archivos. Se copiaron
+y verificaron fuera del servidor sus ocho piezas y el índice. El índice
+tiene la huella `183a72362efaa1fc6f9d44e946b9f7219efb0760a2b80caabb6cad611cf4c021`.
+La copia requiere el respaldo anterior de 165, sus dos antecesores y el
+suplemento de impresión documentado en [Mesa de Ayuda](COMMUNITY_STEPS_SOPORTE.md).
