@@ -16,6 +16,7 @@ import tempfile
 from verify_converted_backup import check, hash_file, read_json
 from verify_steps_integrated_backup import FISCAL, H3_SHA, INVOICES, OFFICIAL, PORTAL as SUPPORT_PORTAL, RESTORED, module_archives, verify
 from verify_steps_support_backup import PACKAGES, compressed, strong
+from steps_barcode_runtime import BARCODE_SHA, verify as verify_barcode_runtime
 
 
 MEM = Path("/dev/shm/steps-integrated-u46b")
@@ -99,7 +100,7 @@ def prepare(base, h3):
     scripts = MEM / "tools"
     checked_directory(scripts, 0o755)
     todo = ["compare_sys_full_restore", "audit_steps_sales_schema", "probe_steps_support_thread",
-            "probe_steps_fiscal_invoice_text"]
+            "probe_steps_fiscal_invoice_text", "steps_barcode_runtime"]
     seen = set()
     while todo:
         name = todo.pop()
@@ -174,7 +175,8 @@ def boot(active, invoice_reference, chatter_reference, number):
     runtime = MEM / "runtime"
     addons = MEM / "addons"
     data = MEM / "data"
-    cmd = ["env", "HOME=" + str(data), "TMPDIR=" + str(data / "tmp"), "python3.10", str(runtime / "odoo-bin"),
+    cmd = ["env", "HOME=" + str(data), "TMPDIR=" + str(data / "tmp"),
+           "PYTHONPATH=" + str(MEM / "barcode/python"), "python3.10", str(runtime / "odoo-bin"),
            "shell", "-c", str(conf), "-d", RESTORED, "--db-filter=^" + RESTORED + "$", "--db_host=" + SOCKET,
            "--db_port=" + str(PORT), "--data-dir=" + str(data), "--no-http", "--workers=0", "--max-cron-threads=0",
            "--addons-path=" + ",".join(map(str, (addons, runtime / "addons", runtime / "odoo/addons"))),
@@ -219,6 +221,11 @@ env.cr.rollback()
 def restore(base, h3, sealed, expected_sha):
     files = prepare(base, h3)
     status = verify(base, h3, sealed, expected_sha)
+    checked_directory(MEM / "barcode", 0o755)
+    barcode = verify_barcode_runtime(sealed / "steps-fiscal-barcode-runtime.tar.gz", BARCODE_SHA, MEM / "barcode")
+    actual = json.loads(call("odoo", ["env", "PYTHONPATH=" + str(MEM / "barcode/python"), "python3.10",
+                                     str(MEM / "tools/steps_barcode_runtime.py"), "probe"], capture_output=True).stdout)
+    check(actual == barcode["reference"], "source-and-local-barcode-runtime-differ")
     proof = read_json(sealed / "checkpoint.json")
     active = read_json(sealed / "providers.json")
     check(len(active) == 165 and "odoo" in proof["required_roles"], "wrong-integrated-installation")
@@ -306,7 +313,8 @@ def restore(base, h3, sealed, expected_sha):
     result = {**status, **identity, "role_boots": 2, "runtime_files": files, "overlay_files": sum(p.is_file() for p in overlay.rglob("*")),
               "original_invoice_reads_per_boot": len(invoices["documents"]), "original_threads_per_actor": 243,
               "operator_files_per_boot": 418, "portal_files_per_boot": 2, "workflows_sha256": signatures[0],
-              "preflight": before_capacity, "postflight": space(base), "private_cluster_stopped": True}
+              "preflight": before_capacity, "postflight": space(base), "private_cluster_stopped": True,
+              "barcode_runtime_sha256": BARCODE_SHA, "barcode_reference": actual}
     (MEM / "proofs/restored.json").write_text(json.dumps(result, indent=2, sort_keys=True))
     return result
 
