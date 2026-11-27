@@ -145,3 +145,30 @@ publicación en producción siguen pendientes. El plan de retención retiró
 cuatro bases transitorias de Cerro de los ensayos U17, U17B, U18 y U18B,
 con 727.346.256 bytes. Los controles U17D y U18C, los respaldos y los
 comprobantes permanecen disponibles.
+
+## Instalación independiente de SyS y regresión de Cerro
+
+La copia U40J se restauró desde el respaldo original de SyS en el espacio
+privado de pruebas. El paquete privado tiene SHA-256
+`f9a7be026a550acf3e383f92414ed18161d6336d771184ee0936daeaf81d39e7`.
+El arranque en Community oficial comprobó las versiones de los siete módulos
+del paquete y 190 módulos activos. Las 130 liquidaciones calculables
+volvieron a coincidir con SyS en 2.098 líneas y 130 cierres individuales.
+Los tres contratos pendientes fueron rechazados por el mismo control original.
+La prueba de horas aceptó la jornada guardada y rechazó el borrador después
+de cambiar una hora, conservando intacta la liquidación cerrada.
+
+El lote de octubre de la empresa de referencia pasó de revisión a cerrado
+por sus botones originales, con cinco liquidaciones y cinco asientos en
+borrador. La acción original de impresión generó los cinco PDF con sus
+líquidos y las 61 líneas visibles, y se verificaron los ocho archivos
+anteriores. El recibo independiente tiene SHA-256
+`4ead793cef344643be253f136c30656e5c83ed8de933dd781a905c2535db8cd1`.
+
+En una copia privada de Cerro se probaron los dos cambios contables comunes.
+El operador abrió tres formularios y las cuatro estructuras conservaron la
+relación del diario por contrato. Pasaron cinco pruebas de contabilización,
+incluidos el diario inaccesible, la mezcla de empresas y el diario ajeno.
+Tres estructuras conservan el diagnóstico de líquido desconectado del bruto
+y una el de bruto desconectado del sueldo base. Este ensayo certifica las
+regresiones contables de Cerro. La referencia de liquidaciones es SyS.
