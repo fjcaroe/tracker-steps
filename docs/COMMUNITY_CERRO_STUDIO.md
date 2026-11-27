@@ -179,3 +179,41 @@ regresión de identificadores conservó el nombre transferido, limpió una
 referencia de prueba obsoleta y rechazó dos nombres que pretendían señalar
 registros distintos. Los menús homónimos de Especies de las dos aplicaciones
 mantienen sus registros independientes.
+
+## Pantallas, listas de materiales y estimaciones en Community estricto
+
+| Copia | Módulos instalados | OEEL / no libres / pendientes | Operación comprobada |
+| --- | ---: | --- | --- |
+| U42C | 160 | 0 / 0 / 0 | Fundos, productos, empresas, tipos de proceso y especies |
+| U42B | 161 | 0 / 0 / 0 | Empresa principal y empresa adicional de la lista de materiales |
+| U42E | 152 | 0 / 0 / 0 | Lectura por cuartel y centros de costo del estimador agrícola |
+
+En U42C se recorrieron las 23 vistas originales con el usuario 6. Se llegó
+a 15 desde un menú y acción originales. En ocho coincidieron el registro,
+los campos de Studio y los valores leídos. Seis devolvieron idéntico registro
+completo, incluidos los valores relacionales del cliente web: las dos listas
+de Productos, Empresas, Fundos, Tipos de proceso y Especies. El usuario
+también abrió los seis tipos de proceso y comprobó que el selector rechaza
+una categoría inválida. El recibo privado
+`U42C/strict-with-species-comparison.json` tiene SHA-256
+`3113114534d540bbfd3f8f8e286923213fae1386c2f8ec243fe5944f099c4f42`.
+
+U42B se restauró lógicamente desde U42C. Antes de crear por primera vez la
+guarda de fila de campos, se adoptó `mrp.bom.x_studio_compaia` conservando su
+ID 30516 y la FK original a empresas. La única variación en las 27.963 filas
+de campos fue el paso de su estado manual a base. Los 62.099 identificadores
+previos y las siete listas permanecieron iguales. Se creó un identificador
+adicional del nuevo proveedor. Se verificaron los 23 triggers del ancla y
+la prohibición de revertir el estado. El usuario 6 creó una lista, copió la
+empresa adicional y la vació conservando la principal. Se rechazó la
+escritura del usuario público y se revirtió el ensayo. Los recibos privados
+son `U42B/adopted-receipt.json` y `U42B/qualified-bom.json`.
+
+U42E incorporó la declaración original de cuartel y la unicidad de
+estimación, centro y cuartel desde el primer registro del proveedor de
+costos. Reutilizó las dos vinculaciones existentes de la acción 1082: la
+lista 836 apunta a la vista 4174 y el formulario 837 a la vista 4173.
+El usuario 6 leyó las 14 líneas de estimación y sus 11 cuarteles. Coincidieron
+con el origen las 14 filas completas, el campo 31444, el índice parcial y
+la restricción validada. Los recibos privados son
+`U42E/estimate-result.json` y `U42E/estimate-user.log`.
