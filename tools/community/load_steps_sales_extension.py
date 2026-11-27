@@ -17,7 +17,7 @@ PROFILES = {
     'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F': ('step_cl_invoice_status_history','step_payment_in_process',
                                                'step_helpdesk_tickets','step_helpdesk_tickets_portal'),
     'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A': ('step_cl_invoice_status_history','step_helpdesk_tickets_portal'),
-    'COMMUNITY_STEPS_EXPENSE_20261127U50E': 'step_cl_credit_note_draft',
+    'COMMUNITY_STEPS_EXPENSE_20261127U50E': ('step_cl_credit_note_draft', 'step_expense_documents'),
     'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3': ('step_helpdesk_tickets', 'step_helpdesk_tickets_portal'),
     'COMMUNITY_STEPS_CRM_DOC_20261127U43X': 'step_document_library,step_document_library_portal',
     'COMMUNITY_STEPS_CRM_DOC_20261127U44P': 'step_document_library,step_document_library_portal,step_report_print_colors',
