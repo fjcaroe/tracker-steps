@@ -4,18 +4,20 @@ import hashlib
 import re
 
 
-def probe(env, uid):
+def probe(env, uid, individual=False):
     cr = env.cr
-    assert re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname)
-    cr.execute("""SELECT r.id, r.company_id, a.id, a.file_size, a.checksum
-                    FROM hr_payslip_run r JOIN ir_attachment a
-                      ON a.res_model='hr.payslip.run' AND a.res_id=r.id AND a.res_field='payment_report'
-                   ORDER BY r.id, a.id""")
+    if not __debug__ or not re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname):
+        raise RuntimeError('Use normal Python and a private SyS payroll restore.')
+    table, model = ('hr_payslip', 'hr.payslip') if individual else ('hr_payslip_run', 'hr.payslip.run')
+    cr.execute(f"""SELECT r.id, r.company_id, a.id, a.file_size, a.checksum
+                     FROM {table} r JOIN ir_attachment a
+                       ON a.res_model=%s AND a.res_id=r.id AND a.res_field='payment_report'
+                    ORDER BY r.id, a.id""", [model])
     sources = cr.fetchall()
     assert sources
     reports = []
     for batch_id, company, attachment_id, size, checksum in sources:
-        batches = env['hr.payslip.run'].with_user(uid).with_context(allowed_company_ids=[company], bin_size=False)
+        batches = env[model].with_user(uid).with_context(allowed_company_ids=[company], bin_size=False)
         assert not batches.env.su and batches.env.company.id == company
         batch = batches.browse(batch_id)
         batch.check_access('read')

@@ -7,9 +7,10 @@ from probe_sys_october_drafts import amounts, digest, prepare_draft, protect_exi
 
 
 def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, payment_reference=False,
-          reopen=False):
+          reopen=False, individual_payment=False, frozen_reopen=False):
     cr = shell.cr
-    assert re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+',cr.dbname)
+    if not __debug__ or not re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname):
+        raise RuntimeError('Use normal Python and a private SyS payroll restore.')
     scope = shell['hr.payslip'].with_user(uid).with_context(allowed_company_ids=[company],
                 tracking_disable=True, mail_notify_force_send=False)
     assert not scope.env.su and scope.env.company.id == company
@@ -83,6 +84,24 @@ def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, 
                 step=getattr(batch,action)()
             progress[action]={'result':step.get('type') if isinstance(step,dict) else type(step).__name__,
                               'wizard':step.get('res_model') if isinstance(step,dict) else None,**snapshot()}
+            if action == 'action_validate' and individual_payment:
+                import base64
+                import hashlib
+                chosen = slips[:1]
+                with cr.savepoint() as individual:
+                    result = chosen.action_payslip_payment_report()
+                    scope.env.flush_all()
+                    scope.env.invalidate_all(flush=False)
+                    stored = chosen.with_context(bin_size=False).payment_report
+                    report = base64.b64decode(b''.join(stored.split()), validate=True) if stored else b''
+                    progress['single_report'] = {
+                        'returned':result.get('type') if isinstance(result,dict) else type(result).__name__,
+                        'file_bytes':len(report), 'sha256':hashlib.sha256(report).hexdigest() if report else None,
+                        'also_batch':bool(batch.with_context(bin_size=False).payment_report),
+                        'also_other_slips':len((slips - chosen).filtered('payment_report')),
+                        'filename_is_batch': chosen.payment_report_filename == batch.name + '.csv',
+                        'filename_is_slip': chosen.payment_report_filename == chosen.name + '.csv'}
+                    individual.rollback()
             if portfolio and action == 'action_validate':
                 from markupsafe import Markup
                 from odoo.tools import format_date
@@ -109,7 +128,9 @@ def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, 
                         assert wizard.export_format == 'csv'
                         response = wizard.generate_payment_report()
                         scope.env.flush_all()
-                        contents = base64.b64decode(batch.with_context(bin_size=False).payment_report, validate=True)
+                        batch.invalidate_recordset(['payment_report'])
+                        contents = base64.b64decode(b''.join(batch.with_context(bin_size=False).payment_report.split()),
+                                                    validate=True)
                         assert contents and batch.payment_report_filename and batch.payment_report_date
                         progress[action].update(file_bytes=len(contents), sha256=hashlib.sha256(contents).hexdigest(),
                                                 response=response.get('type') if isinstance(response,dict) else None)
@@ -118,11 +139,17 @@ def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, 
                     import csv
                     import hashlib
                     import io
-                    contents = base64.b64decode(batch.with_context(bin_size=False).payment_report, validate=True)
+                    scope.env.flush_all()
+                    batch.invalidate_recordset(['payment_report'])
+                    contents = base64.b64decode(b''.join(batch.with_context(bin_size=False).payment_report.split()),
+                                                validate=True)
                     assert contents and batch.payment_report_filename and batch.payment_report_date
                     header, *rows = csv.reader(io.StringIO(contents.decode('utf-8')))
                     assert len(header) == 6 and rows and all(len(row) == len(header) for row in rows)
                     progress[action].update(file_bytes=len(contents), rows=len(rows),
+                                            filename_matches_batch=batch.payment_report_filename == batch.name + '.csv',
+                                            file_date_matches_record=all(r[0] == batch.payment_report_date.strftime('%d/%m/%Y')
+                                                                         for r in rows),
                                             sha256=hashlib.sha256(contents).hexdigest(),
                                             column_hashes=[digest([r[i] for r in rows]) for i in range(6)])
                     employees = {d.employee_id.name: d for d in slips}
@@ -133,6 +160,15 @@ def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, 
                         for d in slips]
                     progress[action]['csv_members'] = [
                         slips.ids.index(employees[row[2]].id) if row[2] in employees else None for row in rows]
+                    if 'payment_report' in slips._fields:
+                        slips.invalidate_recordset(['payment_report'])
+                        member_files = [d.with_context(bin_size=False).payment_report for d in slips]
+                        progress[action]['slip_files'] = [bool(blob) for blob in member_files]
+                        progress[action]['member_reports_match_batch'] = [
+                            bool(blob) and base64.b64decode(b''.join(blob.split()), validate=True) == contents
+                            for blob in member_files]
+                        progress[action]['member_filenames_match'] = [
+                            d.payment_report_filename == batch.payment_report_filename for d in slips]
                 if action == 'action_open_payslips':
                     view_domain = step.get('domain', [])
                     if isinstance(view_domain, str):
@@ -145,13 +181,28 @@ def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, 
                                                            if isinstance(item, (tuple,list))],
                                             default_run=(step.get('context') or {}).get('default_payslip_run_id') == batch.id
                                             if isinstance(step.get('context'), dict) else None)
-        if reopen:
+        if reopen or frozen_reopen:
             assert followup and batch.state == 'draft' and all(s.state == 'draft' for s in slips)
             previous = slips.mapped('move_id')
             assert len(previous) == len(slips)
             progress['attempted'] = 'recompute_after_draft'
-            for slip in slips:
-                slip.compute_sheet()
+            if frozen_reopen:
+                from odoo.exceptions import UserError
+                guards = []
+                for slip in slips:
+                    before = digest(amounts(cr, slip.id))
+                    try:
+                        with cr.savepoint():
+                            slip.compute_sheet()
+                    except UserError:
+                        guards.append(slip.step_history_locked and digest(amounts(cr, slip.id)) == before)
+                    else:
+                        guards.append(False)
+                assert all(guards)
+                progress['protected_frozen_slips'] = len(guards)
+            else:
+                for slip in slips:
+                    slip.compute_sheet()
             progress['recomputed'] = snapshot()
             for action in ('action_confirm','action_validate'):
                 progress['attempted'] = 'retry_' + action
