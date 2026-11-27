@@ -3,6 +3,7 @@ import fcntl
 import hashlib
 import json
 import os
+import subprocess
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -18,6 +19,24 @@ from verify_sys_combined_product import original_policy, payroll
 CHECKS = Path("/opt/steps-validation/community-sys-finance-final-checks-20261127U44FG")
 DOCS = {"step_document_library": ["18.0.1.0.5", "AGPL-3"], "step_document_library_portal": ["18.0.1.0.3", "LGPL-3"]}
 TREESHA = "a9622742f0e70f7de2552e1f4f1b110444191d89661ed22378890798a4319825"
+
+
+def qualified_odoo(args, mode, options, log, stdin=None, **operation):
+    # Both qualification packages have versioned tools with the same Python module
+    # names. Load the fiscal launcher in its own interpreter with its exact dependencies.
+    tool = """
+from pathlib import Path
+from types import SimpleNamespace
+import json,sys
+from rehearse_sys_module_upgrades import odoo
+request=json.load(sys.stdin)
+args=SimpleNamespace(database=request['database'],output=Path(request['output']),sealed=Path(request['sealed']))
+data=request['input'].encode() if request['input'] is not None else None
+sys.exit(odoo(args,request['mode'],request['options'],Path(request['log']),stdin=data,**request['operation']))
+"""
+    payload = {"database": args.database, "output": str(args.output), "sealed": str(args.sealed), "mode": mode,
+               "options": options, "log": str(log), "input": None if stdin is None else stdin.decode(), "operation": operation}
+    return subprocess.run(["/usr/bin/python3", "-B", "-c", tool], cwd=CHECKS, input=json.dumps(payload).encode()).returncode
 
 
 def run_fiscal_shell(odoo, args, label, code):
@@ -91,7 +110,7 @@ def admit():
     sys.path.insert(0, str(CHECKS))
     from build_sys_upgrade_policy_profile import fingerprint
     from guard_sys_original_catalogue import checkpoint
-    from rehearse_sys_module_upgrades import odoo
+    odoo = qualified_odoo
 
     require(json.loads((AUX / "pre-fiscal-seed.json").read_bytes())["all_original_rows_retained"], "qualified-seed-required")
     require((FG_RUNTIME / "document-provider-proof.json").is_file(), "fiscal-stage-must-expose-document-overlay")

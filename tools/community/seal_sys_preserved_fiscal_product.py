@@ -10,7 +10,7 @@ import sys
 from types import SimpleNamespace
 
 from admit_sys_combined_documents import PACKAGE, restore_files
-from admit_sys_preserved_document_product import CHECKS, decode, run_fiscal_shell
+from admit_sys_preserved_document_product import CHECKS, decode, qualified_odoo, run_fiscal_shell
 from capture_sys_combined_source import DOCUMENT_SHA, ORIGIN, PAYROLL_SHA, capacity, physical_bundle
 from complete_converted_filestore import inventory
 from custody_sys_previred_filestore import attachments, digest, object_catalog
@@ -67,7 +67,7 @@ env.cr.rollback()
 def freeze():
     sys.path.insert(0, str(CHECKS))
     from guard_sys_original_catalogue import checkpoint
-    from rehearse_sys_module_upgrades import effective_profile, odoo
+    odoo = qualified_odoo
 
     capacity(FG, INTENDED_RECOVERY)
     document = AUX / "document-admission.json"
@@ -85,7 +85,8 @@ def freeze():
     reports["original-schema.json"] = FG_RUNTIME / "catalogue" / catalogue
     modules = check_modules(FG)
     require(len(modules) == 192, "expected-192-final-providers")
-    fiscal_profile, _ = effective_profile(FG_RUNTIME)
+    fiscal_profile = next(FG_RUNTIME / name for name in ("print-profile", "tested-profile", "profile")
+                         if (FG_RUNTIME / name).is_dir())
     providers = active_sources(modules, odoo, fiscal_profile)
     OUT.mkdir(exist_ok=True, mode=0o750)
     service = pwd.getpwnam("odoo")
