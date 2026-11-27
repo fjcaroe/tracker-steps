@@ -8,7 +8,8 @@ from probe_sys_retained_provider_release import invoice_text
 
 def run(env):
     assert __debug__ and env.cr.dbname in ('MANAGEMENT_QA_STEPS_CRM_20261126U42C','COMMUNITY_STEPS_CRM_FISCAL_20261127U45F',
-                                         'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A','COMMUNITY_STEPS_CRM_RECOVERY_20261127U46B')
+                                         'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A','COMMUNITY_STEPS_CRM_RECOVERY_20261127U46B',
+                                         'COMMUNITY_STEPS_CRM_RECOVERY_20261127U46C')
     assert {row.split(':')[0].strip() for row in Path('/proc/net/dev').read_text().splitlines()[2:]}=={'lo'}
     env.cr.rollback()
     env.cr.execute('SET TRANSACTION READ ONLY')
