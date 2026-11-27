@@ -58,7 +58,7 @@ def form_specification(compiled):
 
 
 def run(env, *, inspect_only=False):
-    if not __debug__ or not re.fullmatch(r'(?:COMMUNITY|MANAGEMENT_QA)_STEPS_CRM_[A-Z0-9_]+', env.cr.dbname):
+    if not __debug__ or (env.cr.dbname != 'COMMUNITY_STEPS_EXPENSE_20261127U50E' and not re.fullmatch(r'(?:COMMUNITY|MANAGEMENT_QA)_STEPS_CRM_[A-Z0-9_]+', env.cr.dbname)):
         raise ValueError('Use a dedicated Steps CRM restore.')
     if inspect_only:
         env.cr.execute('SHOW transaction_read_only')

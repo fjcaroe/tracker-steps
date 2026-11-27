@@ -10,7 +10,7 @@ from probe_steps_crm_pipeline import digest
 
 
 def salesperson(env):
-    if not __debug__ or not re.fullmatch(r'(?:COMMUNITY|MANAGEMENT_QA)_STEPS_CRM_[A-Z0-9_]+', env.cr.dbname):
+    if not __debug__ or (env.cr.dbname != 'COMMUNITY_STEPS_EXPENSE_20261127U50E' and not re.fullmatch(r'(?:COMMUNITY|MANAGEMENT_QA)_STEPS_CRM_[A-Z0-9_]+', env.cr.dbname)):
         raise ValueError('Use the private Steps CRM pair.')
     leads = env['crm.lead'].with_user(7).with_context(allowed_company_ids=[1], active_test=False)
     assert not leads.env.su and leads.env.company.id == 1 and not leads.env.user.has_group('base.group_system')

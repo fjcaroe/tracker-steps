@@ -19,7 +19,7 @@ def clean(value):
 
 
 def run(env, pdf=False, output=None):
-    if not __debug__ or not re.fullmatch(r'(?:MANAGEMENT_QA|COMMUNITY)_STEPS_CRM_[A-Z0-9_]+', env.cr.dbname):
+    if not __debug__ or (env.cr.dbname != 'COMMUNITY_STEPS_EXPENSE_20261127U50E' and not re.fullmatch(r'(?:MANAGEMENT_QA|COMMUNITY)_STEPS_CRM_[A-Z0-9_]+', env.cr.dbname)):
         raise ValueError('Use the private Steps customer-sales pair.')
     orders = env['sale.order'].with_user(7).with_context(allowed_company_ids=[1])
     scope = orders.env

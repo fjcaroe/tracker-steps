@@ -7,15 +7,18 @@ from pathlib import Path
 import pymupdf
 
 from verify_steps_accounting_history import compare as compare_accounting
-from verify_steps_payment_cycle import verify as verify_payment_cycle
+from verify_steps_payment_cycle import verify as verify_payment_cycle, verify_vendor
+from verify_steps_expenses import verify as verify_expenses
 from verify_steps_fiscal_reports import compare as compare_fiscal_reports
 from verify_steps_sale_documents import verify as compare_sale_documents
 
 
-def verify(folder, run_prefix='U46A', payments=False, fiscal_print_run=None):
+def verify(folder, run_prefix='U46A', payments=False, fiscal_print_run=None, expenses=False):
     fiscal_print_run = fiscal_print_run or run_prefix+'Fiscal'
     if not run_prefix.isalnum() or not fiscal_print_run.isalnum():
         raise ValueError('Invalid evidence run identifier')
+    if expenses and not payments:
+        raise ValueError('The expense and credit release requires the accepted manual payment version')
     evidence = {}
     candidate = 'fiscal' if payments else 'integrated'
     def receipt(stem, exact=False):
@@ -80,6 +83,28 @@ def verify(folder, run_prefix='U46A', payments=False, fiscal_print_run=None):
         proof['payment_cycle']=verify_payment_cycle(receipt('U46PayMenu-steps-payment-history-native'),
             receipt(run_prefix+'Payment-steps-payment-history-fiscal'),receipt('U46PayEnd-steps-manual-payment-native'),
             receipt(run_prefix+'Payment-steps-manual-payment-fiscal'))
+        expected_db='COMMUNITY_STEPS_EXPENSE_20261127U50E' if expenses else 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F'
+        if combined_account['database'] != expected_db:
+            raise ValueError('The financial suite came from another database')
+        if expenses:
+            expense_install=receipt('U50E-admit_steps_expense_documents')
+            credit_steps=[receipt('steps-U50E-credit-'+phase+'-1') for phase in ('install','update','compare')]
+            credit=credit_steps[-1]
+            if (expense_install['database']!=expected_db or expense_install['modules']!=167 or
+                any(r['database']!=expected_db or r['providers']!=168 or r['release']!=credit['release'] or
+                    r['unchanged_sql_objects']!=15183 for r in credit_steps) or credit['original_documents']!=20 or
+                credit['operator_comparisons']!=60 or credit['assigned_folios']!=0 or credit['unchanged_tables']!=1115):
+                raise ValueError('Incomplete integrated expense and credit-note admissions')
+            proof['providers']=credit['providers']
+            proof['packages'].update(expense_documents=expense_install['package'],credit_notes=credit['release'])
+            proof['credit_notes']={k:credit[k] for k in ('original_documents','operator_comparisons','assigned_folios')}
+            proof['supplier_payments']=verify_vendor(receipt('U46PayMenu-steps-payment-history-native'),
+                receipt(run_prefix+'Payment-steps-payment-history-fiscal'),receipt('U49Vendor-steps-vendor-payment-native'),
+                receipt(run_prefix+'Vendor-steps-vendor-payment-fiscal'))
+            proof['expenses']=verify_expenses(receipt('U50ExpViews-steps-expense-history-native'),
+                receipt(run_prefix+'Expense-steps-expense-history-expense'),receipt('U50ExpFlow-steps-expense-submit-native'),
+                receipt(run_prefix+'ExpenseFlow-steps-expense-submit-expense'),receipt('U50DocsFinal-steps-expense-doccount-native'),
+                receipt(run_prefix+'Expense-steps-expense-doccount-expense'))
     else:
         proof['package']=install['package']
     return proof
@@ -90,6 +115,7 @@ if __name__=='__main__':
     parser.add_argument('folder',type=Path)
     parser.add_argument('--run-prefix',default='U46A')
     parser.add_argument('--payments',action='store_true')
+    parser.add_argument('--expenses',action='store_true',help='Verify the 168-module Steps release')
     parser.add_argument('--fiscal-print-run',help='Run that retained the four physical invoice PDFs')
     args=parser.parse_args()
-    print(json.dumps(verify(args.folder,args.run_prefix,args.payments,args.fiscal_print_run),sort_keys=True))
+    print(json.dumps(verify(args.folder,args.run_prefix,args.payments,args.fiscal_print_run,args.expenses),sort_keys=True))

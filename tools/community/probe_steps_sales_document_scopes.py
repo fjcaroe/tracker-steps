@@ -7,7 +7,7 @@ from probe_steps_crm_pipeline import run as open_pipeline
 
 def run(env, matrix):
     assert __debug__ and env.cr.dbname in ('COMMUNITY_STEPS_CRM_DOC_20261127U44P','COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3',
-            'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A', 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F')
+            'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A', 'COMMUNITY_STEPS_EXPENSE_20261127U50E', 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F')
     assert {row.split(':')[0].strip() for row in Path('/proc/net/dev').read_text().splitlines()[2:]}=={'lo'}
     assert len(matrix['documents'])==len(set(matrix['documents']))==98
     env.cr.rollback()

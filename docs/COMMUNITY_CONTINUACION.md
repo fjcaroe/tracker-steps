@@ -2,13 +2,37 @@
 
 ## Recuperación y pruebas del 27 de noviembre
 
-**Avances posteriores.** Steps dispone de un respaldo privado con 166 módulos que
-incluye el ciclo del cobro manual y las comprobaciones de ventas, facturación,
-Documentos y Mesa de Ayuda. En SyS dos operadores abrieron el formulario de
-liquidación desde su menú y calcularon y confirmaron cinco casos cada uno,
-diez en total. El paquete de recuperación de SyS conserva 52 archivos verificados.
-[Cobros en Steps](COMMUNITY_STEPS_CONTABILIDAD.md) · [Alta y confirmación de
-liquidaciones](COMMUNITY_SYS_ALTA_LIQUIDACION.md) · [Recuperación de SyS](COMMUNITY_SYS_RECUPERACION_LIQUIDACIONES.md).
+**Steps.** El respaldo con 166 módulos arrancó dos veces en otra máquina. Se
+verificaron las 163.602 filas, los archivos y los cobros. A partir de ese
+respaldo se reconstruyeron las rendiciones y el asistente de notas de crédito
+en una copia de 168 módulos. En esa misma copia pasaron 34 comprobaciones de
+ventas, facturación, cobros y pagos, rendiciones y biblioteca. Se imprimieron
+cuatro documentos fiscales y cuatro de ventas, iguales a los originales en color
+a 96 y 144 ppp. Los 20 documentos tributarios permitieron contrastar 60 decisiones
+y 41 borradores de nota de crédito. Los dos operadores de soporte conservaron
+sus hilos y sus archivos. El recibo conjunto de las 34 comprobaciones tiene la
+huella `6a8e063966aedbc789f36afaeb8e2a537095028b71101ba7933c61795772c9ea`.
+[Rendiciones](COMMUNITY_STEPS_RENDICIONES.md) · [Notas de crédito](COMMUNITY_STEPS_NOTAS_CREDITO.md) · [Cobros](COMMUNITY_STEPS_CONTABILIDAD.md).
+
+**SyS.** Dos operadores abrieron el formulario de liquidación desde su menú y
+calcularon y confirmaron cinco casos cada uno. Con 18.0.1.6.3 se recuperó el
+arrastre del líquido negativo desde el botón Reporte. Coincidieron seis recorridos
+directos y seis con cálculo previo, incluido el cierre de la actividad. El
+paquete de recuperación de esa revisión conserva 78 archivos y se contrastaron
+de nuevo los 133 casos de doce empresas.
+[Alta de liquidaciones](COMMUNITY_SYS_ALTA_LIQUIDACION.md) · [Arrastre de netos](COMMUNITY_SYS_ARRASTRE_NETOS.md).
+
+**Cerro El Plomo.** La copia de 192 módulos recibió los 612 kg y preparó la
+devolución de 180 envases desde el formulario original. Coincidieron los 900
+permisos de la operación. Con 193 módulos se recuperó en dos copias el
+seguimiento de cobros. Se cotejaron 12.487 lecturas con sus empresas y 48
+escenarios. Los 15 usuarios conservan sus 23 rutas y las lecturas de 22
+formularios completos. El formulario de recepción 5245 sigue parcialmente
+recuperado. La emisión fiscal y el criterio del bruto de nómina de Cerro
+siguen pendientes.
+[Recepción de fruta](COMMUNITY_CERRO_RECEPCION_OPERATIVA.md) · [Seguimiento de cobros](COMMUNITY_CERRO_COBROS_CONTACTOS.md).
+
+### Etapas anteriores
 
 **Steps.** La copia U46A reúne 165 proveedores de ventas, Mesa de Ayuda,
 Documentos y contabilidad chilena. Se recuperó primero el respaldo de H3 con

@@ -12,7 +12,7 @@ from verify_sys_invoice_pdfs import compare_native, compare_printed_pages, verif
 def compare(native_text, candidate_text, native_print, candidate_print, native_folder, candidate_folder):
     originals = native_text['documents']
     if (native_text['database'] != 'MANAGEMENT_QA_STEPS_CRM_20261126U42C' or
-            candidate_text['database'] not in ('COMMUNITY_STEPS_CRM_FISCAL_20261127U45F',
+            candidate_text['database'] not in ('COMMUNITY_STEPS_EXPENSE_20261127U50E', 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F',
                                                'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A')):
         raise ValueError('Unexpected reference or restored database')
     for actor in (7,10):

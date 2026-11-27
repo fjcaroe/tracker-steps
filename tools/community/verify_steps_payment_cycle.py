@@ -6,7 +6,7 @@ from pathlib import Path
 
 def verify(native, candidate, native_trial, candidate_trial):
     if (native['database']!='MANAGEMENT_QA_STEPS_CRM_20261126U42C' or candidate['database'] not in
-            ('COMMUNITY_STEPS_CRM_FISCAL_20261127U45F','COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A') or
+            ('COMMUNITY_STEPS_EXPENSE_20261127U50E', 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F','COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A') or
             len(native['cases'])!=7 or native['cases']!=candidate['cases']):
         raise ValueError('Historical payment forms, records, fields or permissions differ')
     all_companies,=[case for case in native['cases'] if case['actor']==2 and set(case['companies'])=={1,2}]

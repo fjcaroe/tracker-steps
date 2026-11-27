@@ -9,7 +9,7 @@ from odoo.exceptions import AccessError
 
 
 TARGETS = {'MANAGEMENT_QA_STEPS_CRM_20261126U42C','COMMUNITY_STEPS_CRM_DOC_20261127U44P',
-           'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3','COMMUNITY_STEPS_CRM_FISCAL_20261127U45F','COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A'}
+           'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3','COMMUNITY_STEPS_EXPENSE_20261127U50E', 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F','COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A'}
 FIELDS = {
     'account.move': ('name','move_type','state','date','invoice_date','invoice_date_due','journal_id','company_id',
                      'partner_id','commercial_partner_id','currency_id','amount_untaxed','amount_tax','amount_total',
