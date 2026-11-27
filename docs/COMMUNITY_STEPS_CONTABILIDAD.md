@@ -30,3 +30,12 @@ y contadores SQL del respaldo.
 Las comparaciones se reproducen con `probe_steps_accounting_history.py`
 y `verify_steps_accounting_history.py`. Los recibos privados U45C y U45F0
 contienen las huellas por campo de cada contexto.
+
+El primer proveedor propio recuperó el estado de 23 DTE, los 25 archivos
+tributarios vinculados, 22 timbres guardados y la referencia de una nota de
+crédito sobre sus registros de origen. Tras la instalación y una actualización
+se validaron los 86 asientos y sus 211 líneas, los permisos de siete contextos
+y 17 aperturas de formulario. Las etiquetas coincidieron en español e inglés.
+Seis campos del formulario original siguen pendientes. En la primera prueba
+de impresión, los 21 documentos contabilizados fallaron para los dos usuarios
+por faltar el campo que controla la visibilidad de la firma.
