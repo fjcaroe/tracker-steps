@@ -30,7 +30,6 @@ def pre_init_hook(env):
     for row in env['ir.model.data'].search([('module','in',LEGACY)]):
         if owned(env,row):
             alias(env,row,CORE)
-            row.noupdate=True
 
 def post_init_hook(env):
     for row in env['ir.model.data'].search([('module','=',CORE)]):
