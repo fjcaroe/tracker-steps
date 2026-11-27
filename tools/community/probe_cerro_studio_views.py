@@ -52,7 +52,7 @@ def render(env, account, row):
         seen.update(view.ids)
         return result
 
-    scoped.registry.clear_cache()
+    scoped.registry.clear_cache('default', 'templates')
     with patch.object(type(views), 'apply_inheritance_specs', observed):
         rendered = records.get_view(view_id=row['parent'], view_type=row['kind'])
     if row['view_id'] not in seen:

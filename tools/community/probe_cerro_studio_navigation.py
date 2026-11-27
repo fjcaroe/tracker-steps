@@ -48,7 +48,7 @@ def capture(env):
                         seen.update(view.ids)
                         return result
 
-                    scoped.registry.clear_cache()
+                    scoped.registry.clear_cache('default', 'templates')
                     with patch.object(cls, 'apply_inheritance_specs', collect):
                         model.get_views([(requested or False, kind)], options={'action_id': action_id})
                     for pk in seen & wanted.keys():

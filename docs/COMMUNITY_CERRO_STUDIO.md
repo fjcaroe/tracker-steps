@@ -125,3 +125,12 @@ formulario completo.
 La actualización de las vistas de U40B Community mantuvo iguales 61.896
 identificadores que existían en esa copia antes de actualizar. La guarda
 verificó la fila, el módulo, el nombre, el modelo y el registro de destino.
+
+Se habilitaron después los proveedores ya declarados de datos BPA de producto
+y código arancelario de especie, con las mismas versiones del respaldo. Con
+ellos el cliente leyó todos los campos de un registro existente en 14 pantallas
+del U40B híbrido. En Traslados faltan los dos campos almacenados de
+`l10n_cl_edi_stock` y el indicador calculado `quality_check_todo` de
+`quality_control`. En Tarjas, el proveedor de origen también protege las
+fechas de cosecha de las tarjas validadas; en Costos de exportación impide
+cambiar una tarifa usada en un programa valorizado.
