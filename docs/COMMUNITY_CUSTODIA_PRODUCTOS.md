@@ -41,3 +41,88 @@ Steps omitió `steps_transport` al arrancar con sus rutas configuradas.
 Su fuente candidata sigue fuera de esas rutas. La recuperación de los datos
 de los tres productos deja pendientes sus pruebas funcionales de conversión
 a Community y la restauración integral con cero Enterprise.
+
+
+## Respaldo de la cohorte SyS convertida U40J
+
+La copia U40J tenía 190 módulos activos, todos con licencia libre. El paquete
+conserva el SQL, el filestore, el núcleo de Odoo, sus requisitos de Python y
+los archivos de los 190 proveedores que resolvió realmente ese entorno. Se
+incluyeron los ocho módulos cuyas fuentes se encontraban fuera de las raíces
+privadas del ensayo. El archivo de código contiene 22.235 archivos y ocupa
+176.678.599 bytes comprimido.
+
+| Componente sellado | SHA-256 |
+| --- | --- |
+| SQL de la cohorte | `94db4529d4f3230a96f7df3d628d485878a978f67a826a5cf534037f237eb65e` |
+| Objetos referenciados | `3cdbab1b9d6095dbb2e321d93b12d2c209d279bb189c61670d93cf7bef19813b` |
+| Núcleo y proveedores | `10d896c4b5eee9d350c429d3be856869683ee644ed3e1b9221903dda460164be` |
+| Paquete original U40J | `f9a7be026a550acf3e383f92414ed18161d6336d771184ee0936daeaf81d39e7` |
+
+En seis módulos, U40J declaraba una versión instalada anterior a la de los
+archivos que usaba para arrancar. La recuperación conserva las versiones que
+había en la captura. La validación de las actualizaciones usa una copia aparte.
+
+| Origen | Módulo | Versión registrada | Versión del manifiesto |
+| --- | --- | --- | --- |
+| Odoo Community oficial | `hr_timesheet` | 18.0.1.0 | 18.0.1.1 |
+| Odoo Community oficial | `project_sms` | 18.0.1.0 | 18.0.1.1 |
+| Odoo Community oficial | `l10n_latam_invoice_document` | 18.0.1.0 | 18.0.1.1 |
+| Proveedor de la cohorte | `step_hr_previred` | 18.0.3.8.7 | 18.0.3.8.8 |
+| Proveedor de la cohorte | `step_hr_previred_simpledigital` | 18.0.2.4.1 | 18.0.2.4.2 |
+| Proveedor de la cohorte | `l10n_cl_simpledigital_payroll` | 18.0.1.0.0 | 18.0.1.1.0 |
+
+U41R arrancó dos veces con las carpetas del entorno original ocultas y las
+190 fuentes extraídas del paquete. Ambos arranques se ejecutaron en modo de
+lectura. Antes y después de cada uno coincidieron las 1.138 tablas, 608.840
+filas, 858 secuencias, 12.010 columnas, 5.816 restricciones y 1.996 registros
+de propietario y permisos con la captura congelada de U40J. En el intervalo
+entre el sello y la prueba, los ensayos paralelos sobre U40J habían avanzado
+siete contadores. El recibo conserva ambos valores de esos contadores. La
+comparación confirmó que U40J conservaba las mismas filas y permaneció sin
+cambios durante los dos arranques.
+
+Una cuenta original con permisos de nómina y ajustes, sin elevar privilegios,
+leyó un PDF restringido de 27.070 bytes y doce adjuntos de menú en ambos
+arranques. Coincidieron el tamaño y las huellas del PDF. Otro contexto de
+compañía de esa misma cuenta y el usuario público recibieron la denegación
+del mismo adjunto.
+
+El DDL completo del archivo, del origen y de la restaurada produjo el mismo
+SHA-256, `97a572d842a51acc6ba194c46ad3389c18f291973c58e4ed33d53874382dbb10`,
+incluidas 26 vistas y 2.484 índices. La copia de custodia de la estación
+de trabajo verificó individualmente los 13 componentes del paquete y todos
+los archivos de código mediante el manifiesto
+`d4c78ebc528648221c158e9968e63137a530a184fe3e5d8422f317a8fa84c1bd`.
+
+El SQL y los 2.679 objetos referenciados del primer respaldo corresponden al
+mismo instante. Entre esa captura y el barrido físico posterior se ejecutaron
+ensayos con rollback en U40J. El barrido posterior conservó además 11 objetos
+sin referencia y 14 marcadores del recolector de Odoo. Los 2.704 archivos de
+ese barrido coincidieron byte por byte en la restaurada y fuera del servidor.
+El recibo privado está en
+`~/.codex/local-artifacts/community-resume-20261125/U41R/converted-cohort/offline-verification.json`.
+
+
+### Captura simultánea y segunda restauración U41R2
+
+Con U40J en reposo, el segundo respaldo tomó el SQL y el inventario físico
+completo bajo la misma adquisición del bloqueo. Una lectura de toda la base y
+de todos los archivos antes y después de la captura verificó que ambos
+seguían idénticos. U41R2 se creó desde el nuevo SQL y los dos archivos de
+filestore, con restauración en un espacio privado separado. Los 190 módulos
+arrancaron dos veces desde el código sellado, con las fuentes de U40J y la
+primera copia recuperada ocultas. La cuenta original volvió a leer el mismo
+PDF y se repitieron las denegaciones por compañía y usuario público.
+
+| Comprobación U41R2 | Resultado |
+| --- | --- |
+| SHA-256 del SQL simultáneo | `97ec4563b21267dd3abd5d17715357d104184a01bde6fa77c58339da937f8f73` |
+| Huella de los 2.704 archivos en origen y restaurada, incluidos los 25 auxiliares | `2d08f8de2c79bbf481d0fee9befc0ad113a19a5cbc9fb919e69d210a9024120c` |
+| SHA-256 del recibo de los dos arranques | `cca8276e0a619105cae177ca51bcd74f15fb38e82743169a85f32daf18421b9f` |
+| Manifiesto de los 13 archivos verificados en la estación de trabajo | `ebc80579e58b707eb7b1b7f763176a57096e102833c0644c14e468abf3f72eb4` |
+
+Los recibos `offline-verification.json` y `checkpoint-lineage.json` se guardan
+en el subdirectorio privado `synchronous-checkpoint` de la custodia U41R.
+El verificador portátil acepta `--previous-package` para comparar todas las
+filas, sus definiciones y los contadores de ambos respaldos.
