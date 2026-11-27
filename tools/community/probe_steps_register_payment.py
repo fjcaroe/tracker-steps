@@ -7,7 +7,8 @@ from probe_steps_accounting_history import fingerprint
 
 def run_one(env, configured=False, supplier=False):
     assert __debug__ and env.cr.dbname in ('MANAGEMENT_QA_STEPS_CRM_20261126U42C',
-            'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F','COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A')
+            'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F','COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A',
+            'COMMUNITY_STEPS_CRM_PAYMENTS_TEST_20261127U46D')
     assert {r.split(':')[0].strip() for r in Path('/proc/net/dev').read_text().splitlines()[2:]}=={'lo'}
     env.cr.rollback()
     user=env['res.users'].browse(10)
