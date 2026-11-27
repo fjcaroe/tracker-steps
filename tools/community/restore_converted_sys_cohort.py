@@ -69,8 +69,15 @@ def package(args, out, source_db, modules):
             pg("pg_dump", "-Fc", "--dbname=" + source_db, readonly=True, stdout=handle)
         filestore = capture(source_store, temporary, catalog)
         providers = resolve_providers(args.runtime, args.addons, args.source_data, modules)
-        changed = {k: [providers[k][1], v[0]] for k, v in modules.items() if providers[k][1] != v[0]}
-        require(not changed, "installed-provider-version-drift: " + repr(changed))
+        # A cold restore must reproduce the exact code that boots the converted source.
+        # Some source manifests have an unapplied forward revision. Do not run an upgrade.
+        changed = {k: {"database": v[0], "manifest": providers[k][1]} for k, v in modules.items()
+                   if providers[k][1] != v[0]}
+        for entry in changed.values():
+            require(all(re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", value) for value in entry.values()),
+                    "unrecognized-provider-version")
+            require(tuple(map(int, entry["manifest"].split("."))) >= tuple(map(int, entry["database"].split("."))),
+                    "provider-is-older-than-converted-database")
         runtime = seal(args.runtime, providers, temporary)
         shutil.copyfile(args.release, temporary / "original-release.tar")
         require(digest(temporary / "original-release.tar") == args.release_sha256, "private-release-drift")
@@ -78,7 +85,7 @@ def package(args, out, source_db, modules):
         sets = {name: len(values) for name, values in frozen.items()}
         proof = dict(source=source_db, sql_sha256=digest(temporary / "source.dump"), sql_bytes=(temporary / "source.dump").stat().st_size,
                      release_sha256=args.release_sha256, counts=sets, rows=sum(v[0] for v in frozen["public_tables"].values()),
-                     runtime=runtime, attachments=stored, **filestore)
+                     runtime=runtime, forward_manifests_on_source=changed, attachments=stored, **filestore)
         with gzip.open(temporary / "source-snapshot.json.gz", "wt") as handle:
             json.dump(frozen, handle, separators=(",", ":"), sort_keys=True)
         save(temporary / "backup.json", proof)
