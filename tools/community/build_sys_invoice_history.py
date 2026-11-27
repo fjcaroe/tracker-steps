@@ -53,6 +53,16 @@ def build_invoice_provider(db, output):
     record_hash = original("""SELECT json_build_array(count(*),count(DISTINCT move_id),
             md5(string_agg(md5(to_jsonb(t)::text),'' ORDER BY id))) FROM l10n_cl_account_invoice_reference t""")
     require(record_hash[:2] == [6, 6], "unexpected-original-reference-rows")
+    fields = original("""SELECT json_agg(json_build_array(id,model,name,ttype,relation,relation_table,column1,column2)
+                 ORDER BY id) FROM ir_model_fields WHERE id IN (5963,6077)""")
+    require(fields == [[5963, "account.reconcile.model.line", "tax_ids", "many2many", "account.tax",
+                       "account_reconcile_model_line_account_tax_rel", "account_reconcile_model_line_id", "account_tax_id"],
+                       [6077, "account.move.line", "account_id", "many2one", "account.account", None, None, None]],
+            "original-financial-relation-fields-differ")
+    original_fk = query(NATIVE, """SELECT string_agg(confdeltype::text,',' ORDER BY conname) FROM pg_constraint
+                  WHERE conname IN ('account_move_line_account_id_fkey','account_reconcile_model_line_account_tax_re_account_tax_id_fkey')""")
+    require(original_fk == "c,r" and query(NATIVE, "SELECT on_delete FROM ir_model_fields WHERE id=6077") == "cascade",
+            "original-posted-account-deletion-contract-differs")
     choices = original("""SELECT json_agg(json_build_array(value,name->>'en_US') ORDER BY sequence)
                        FROM ir_model_fields_selection WHERE field_id=8306""")
     require([k for k, text in choices] == ["1", "2", "3"], "unexpected-historical-reference-codes")
@@ -71,4 +81,5 @@ def build_invoice_provider(db, output):
     metadata.write_text("METADATA = " + pformat(labels, sort_dicts=True) + "\n")
     init.write_text(init.read_text().rstrip() + "\nfrom . import sys_chilean_invoice_history\n")
     return {"model": model[0], "field_ids": sorted(FIELDS), "permissions": access, "references": record_hash,
+            "financial_relation_ids": [5963, 6077], "original_financial_delete_actions": original_fk,
             "code": digest(implementation), "metadata": digest(metadata), "init": digest(init)}

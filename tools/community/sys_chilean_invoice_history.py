@@ -43,6 +43,18 @@ class AccountMove(models.Model):
             return base64.b64encode(buffer.getvalue()).decode("ascii")
 
 
+class AccountMoveLine(models.Model):
+    _inherit = "account.move.line"
+
+    account_id = fields.Many2one(ondelete="cascade")
+
+
+class ReconcileModelLine(models.Model):
+    _inherit = "account.reconcile.model.line"
+
+    tax_ids = fields.Many2many(ondelete="restrict")
+
+
 class Company(models.Model):
     _inherit = "res.company"
 

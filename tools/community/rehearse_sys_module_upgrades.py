@@ -586,6 +586,38 @@ def package_profile(args, proof):
     save(args.output / "upgrade-profile.json", result)
 
 
+def restore_financial_actions(args, proof):
+    out = args.output
+    require(args.database.endswith("U41MW"), "private-financial-action-rehearsal-required")
+    initial = json.loads((out / "final.json").read_bytes())
+    constraints = ["account_move_line.account_move_line_account_id_fkey",
+                   "account_reconcile_model_line_account_tax_rel.account_reconcile_model_line_account_tax_re_account_tax_id_fkey"]
+    require(initial["full_sql_delta"]["constraints"] == constraints and not initial["covered_table_changes"]
+            and all(initial["official_results"].values()), "unexpected-pre-repair-financial-delta")
+    receipt = out / "tested-profile-proof.json"
+    if not receipt.is_file():
+        selected = (*FORWARD, "step_payroll_engine_transition", "step_account_monthly_books")
+        save(receipt, build(args.database, args.sealed, out / "tested-profile", selected,
+                           original_admin_seeds=True, original_fiscal=True))
+    expected = json.loads(receipt.read_bytes())
+    required = expected["modules"]["l10n_cl"]["invoice_reference_provider"]
+    require(required["financial_relation_ids"] == [5963, 6077] and required["original_financial_delete_actions"] == "c,r",
+            "original-financial-policies-not-in-package")
+    if not (out / "finance-profile.json").is_file():
+        package = seal_profile(out / "tested-profile", out / "finance-profile.tar", expected)
+        package.update(runtime=proof["runtime"]["archive_sha256"], guard_plan=digest(guarded_plan(args)))
+        save(out / "finance-profile.json", package)
+    args.module = "l10n_latam_invoice_document"
+    log = out / ("financial-actions-" + str(len(list(out.glob("financial-actions-*.log")))) + ".log")
+    require(odoo(args, None, ["-u", args.module], log) == 0 and "SYS_OFFICIAL_CLEANUP" in log.read_text(),
+            "official-financial-action-update-failed")
+    final = final_receipt(args, proof, "financial-storage.json")
+    require(not any(final["full_sql_delta"][name] for name in ("columns", "constraints", "relation_owner_and_acl",
+            "sequence_definitions")) and not final["covered_table_changes"], "original-financial-storage-differs")
+    require(query(args.database, "SELECT on_delete FROM ir_model_fields WHERE id=6077") == "cascade",
+            "runtime-account-field-policy-differs")
+
+
 def exercise_final(args, proof):
     require(args.database.endswith(("U41MV", "U41MW")) and not (args.output / "postflight.json").exists(),
             "fresh-final-rehearsal-required")
@@ -619,7 +651,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "exercise-final", "invoice-pdf", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "exercise-final", "invoice-pdf", "financial-actions", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -636,6 +668,8 @@ if __name__ == "__main__":
             exercise_final(args, proof)
         elif args.operation == "invoice-pdf":
             print_chilean_invoices(args, proof)
+        elif args.operation == "financial-actions":
+            restore_financial_actions(args, proof)
         elif args.operation == "restore":
             restore(args, proof)
         elif args.operation == "accept-retained":
