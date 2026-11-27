@@ -21,7 +21,8 @@ from odoo.addons.step_hr_previred.tools import previred
 
 
 DATABASES = ('MANAGEMENT_QA_SYS_PREVIRED_20261126U40N', 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I',
-             'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40J', 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U42K')
+             'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40J', 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U42K',
+             'COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L')
 TABLES = ('resource_calendar','resource_calendar_attendance','hr_employee', 'hr_payslip', 'hr_payslip_line', 'hr_payslip_input', 'hr_payslip_worked_days',
           'hr_contract', 'hr_payslip_run', 'account_move', 'account_move_line', 'ir_sequence', 'ir_sequence_date_range',
           'step_previred_batch', 'step_previred_batch_file', 'step_previred_export_wizard')

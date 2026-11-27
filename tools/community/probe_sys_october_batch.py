@@ -152,9 +152,20 @@ def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, 
                             with cr.savepoint() as mixed:
                                 batch.action_paid()
                                 progress['pay_mixed_batch'] = snapshot()
-                                first.action_payslip_unpaid()
-                                batch.action_unpaid()
-                                progress['unpay_mixed_batch'] = snapshot()
+                                try:
+                                    with cr.savepoint():
+                                        first.action_payslip_unpaid()
+                                except UserError:
+                                    progress['individual_unpay_on_paid_batch_blocked'] = True
+                                else:
+                                    progress['individual_unpay_on_paid_batch_blocked'] = False
+                                try:
+                                    with cr.savepoint():
+                                        batch.action_unpaid()
+                                except UserError as exc:
+                                    progress['unpay_mixed_batch'] = {'error': type(exc).__name__, **snapshot()}
+                                else:
+                                    progress['unpay_mixed_batch'] = snapshot()
                                 mixed.rollback()
                     trial.rollback()
             if action == 'action_validate' and individual_payment:

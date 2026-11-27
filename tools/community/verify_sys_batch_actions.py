@@ -23,7 +23,7 @@ def capture(env):
     if candidate:
         name = 'step_payroll_oca_sys_history'
         assert len(modules) == 190 and not modules.filtered(lambda m: m.license == 'OEEL-1')
-        assert modules.filtered(lambda m: m.name == name).latest_version == get_manifest(name)['version'] == '18.0.1.6.0'
+        assert modules.filtered(lambda m: m.name == name).latest_version == get_manifest(name)['version'] == '18.0.1.6.1'
     else:
         assert modules.filtered(lambda m: m.name == 'hr_payroll' and m.license == 'OEEL-1')
     receipt = {'database': database, 'forms': {}, 'installed': len(modules)}

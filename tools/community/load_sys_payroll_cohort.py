@@ -32,6 +32,8 @@ def main():
     p.add_argument('--addons-path', required=True)
     p.add_argument('--data-dir', required=True)
     p.add_argument('--logfile', required=True)
+    p.add_argument('--update-history-only', action='store_true',
+                   help='Upgrade only the installed SyS history module in a converted cohort.')
     args = p.parse_args()
     database = args.database
     require(re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', database),
@@ -103,7 +105,7 @@ def main():
                     '--data-dir=' + args.data_dir, '--addons-path=' + args.addons_path,
                     '--load=base,web', '--workers=0', '--max-cron-threads=0', '--no-http',
                     '--stop-after-init', '--without-demo=all', '--logfile=' + args.logfile,
-                    '-u', ','.join(ROOTS)]
+                    '-u', 'step_payroll_oca_sys_history' if args.update_history_only else ','.join(ROOTS)]
         try:
             cli.main()
         except SystemExit as exc:
