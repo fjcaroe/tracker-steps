@@ -154,7 +154,7 @@ def refusal(exc, key):
 def run(shell, key, report_progress=None):
     upgrades = {"COMMUNITY_SYS_PREVIRED_MODULES_20261127U41M", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MP",
                 "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MQ", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MV",
-                "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW"}
+                "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U43MF"}
     if shell.cr.dbname not in (*DATABASES, *upgrades) or not isinstance(key, bytes) or len(key) != 32:
         raise ValueError('Use the exact isolated SyS databases and a shared private comparison key')
     routes = [r for r in shell['ir.http'].routing_map().iter_rules() if r.endpoint.__name__ == 'export_libro_remuneraciones_csv']

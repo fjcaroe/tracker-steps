@@ -14,7 +14,7 @@ from odoo.tools import config
 
 
 def run(shell):
-    assert shell.cr.dbname == "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW"
+    assert shell.cr.dbname in ("COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U43MF")
     url = os.environ["STEPS_PRIVATE_REPORT_URL"]
     assert re.fullmatch(r"http://127[.]0[.]0[.]1:[0-9]+", url)
     shell.cr.rollback()
