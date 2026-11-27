@@ -15,7 +15,7 @@ import tempfile
 
 from complete_converted_filestore import inventory
 from custody_sys_previred_filestore import attachments, digest, object_catalog
-from restore_converted_sys_cohort import check_modules, full_snapshot, open_as_user, save, verify_same
+from restore_converted_sys_cohort import check_modules, full_snapshot, open_as_user, save, source_sequence_advances, verify_same
 from restore_native_product_backup import pg, query
 from restore_sys_previred_pair import GIB, LOCK, require
 from verify_converted_sql_schema import schema
@@ -58,6 +58,8 @@ def checkpoint(primary, work, source_store, target):
     old = primary / "sealed"
     sealed = work / "sealed"
     frozen = full_snapshot(source)
+    previous = json.loads(gzip.decompress((old / "source-snapshot.json.gz").read_bytes()))
+    advances = source_sequence_advances(previous, frozen, allowed=True)
     catalog = object_catalog(attachments(source, query)["references"])
     original = inventory(source_store, catalog)
     complete_hash = tree_hash(original)
@@ -165,7 +167,7 @@ def checkpoint(primary, work, source_store, target):
     require(inventory(dest, catalog) == inventory(source_store, catalog) == original, "post-boot-physical-drift")
     proof = dict(backup, checked_boots=2, full_post_boot_match=True, source_unchanged=True, role_probe=first,
                  target=target, tablespace=space, restored_filestore_objects=len(catalog),
-                 synchronized_sql_and_physical_store=True)
+                 synchronized_sql_and_physical_store=True, sequence_advances_since_original=advances)
     save(work / "restore-proof.json", proof)
     print(json.dumps({"target": target, "sql_sha256": proof["sql_sha256"], "tree_sha256": complete_hash,
                       "physical_files": len(original), "checked_boots": 2}))
