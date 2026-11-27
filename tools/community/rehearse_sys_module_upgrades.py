@@ -126,11 +126,17 @@ def restore(args, proof):
 def odoo(args, mode, options, log, stdin=None):
     out, db = args.output, args.database
     core = out / "runtime"
+    temporary = out / "data" / "tmp"
+    temporary.mkdir(mode=0o700, exist_ok=True)
+    service = pwd.getpwnam("odoo")
+    require(temporary.resolve() == temporary, "unexpected-temporary-directory")
+    os.chown(temporary, service.pw_uid, service.pw_gid)
     argv = ["unshare", "--net", "--", "bwrap", "--die-with-parent", "--ro-bind", "/", "/",
             "--tmpfs", str(PRIVATE), "--tmpfs", "/srv/odoo-data/steps-anchor-validation", "--tmpfs", "/opt/odoo18",
             "--ro-bind", str(out), str(out), "--ro-bind", str(args.sealed / "runtime"), str(core),
             "--bind", str(out / "data"), str(out / "data"), "--proc", "/proc", "--dev-bind", "/dev", "/dev", "--",
-            "sudo", "-n", "-u", "odoo", "env", "PYTHONDONTWRITEBYTECODE=1", "/usr/bin/python3.10", str(core / "odoo-bin")]
+            "sudo", "-n", "-u", "odoo", "env", "PYTHONDONTWRITEBYTECODE=1", "TMPDIR=" + str(temporary),
+            "/usr/bin/python3.10", str(core / "odoo-bin")]
     if mode:
         argv.append(mode)
     argv.extend(["-c", "/etc/odoo18-sys.conf", "-d", db, "--db-filter=^" + db + "$", "--db_host=/var/run/postgresql",
