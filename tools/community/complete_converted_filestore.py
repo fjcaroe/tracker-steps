@@ -35,6 +35,40 @@ def inventory(path, catalog):
     return result
 
 
+def restore_supplement(archive, extra, dest):
+    seen = set()
+    owner = dest.stat()
+    with tarfile.open(archive, "r|") as bundle:
+        for member in bundle:
+            key = member.name
+            require(member.isfile() and key in extra and key not in seen and member.size == extra[key][0],
+                    "unexpected-supplemental-object")
+            match = re.fullmatch(r"(checklist/)?([a-f0-9]{2})/([a-f0-9]{40})", key)
+            require(match and match[2] == match[3][:2], "invalid-supplemental-object-name")
+            seen.add(key)
+            target = dest / key
+            parent = target.parent
+            parent.mkdir(parents=True, exist_ok=True)
+            require(target.resolve() == target, "unexpected-supplemental-symlink")
+            for ancestor in (parent, *parent.parents):
+                if ancestor == dest:
+                    break
+                os.chown(ancestor, owner.st_uid, owner.st_gid)
+            with bundle.extractfile(member) as incoming, tempfile.NamedTemporaryFile(dir=parent, delete=False) as added:
+                tmp = Path(added.name)
+                try:
+                    shutil.copyfileobj(incoming, added)
+                    added.flush()
+                    require(digest(tmp) == extra[key][1], "supplemental-object-checksum")
+                    if not target.exists():
+                        os.chown(tmp, owner.st_uid, owner.st_gid)
+                        os.link(tmp, target)
+                    require(digest(target) == extra[key][1], "supplemental-target-drift")
+                finally:
+                    tmp.unlink(missing_ok=True)
+    require(seen == extra.keys(), "supplemental-object-missing")
+
+
 def complete(folder, source_store):
     proof = json.loads((folder / "restore-proof.json").read_text())
     source, restored = proof["source"], proof["target"]
@@ -59,35 +93,8 @@ def complete(folder, source_store):
                 for key in extra:
                     bundle.add(source_store / key, arcname=key, recursive=False)
             os.link(stage, archive)
-    seen = set()
-    owner = dest.stat()
-    with tarfile.open(archive, "r|") as bundle:
-        for member in bundle:
-            key = member.name
-            require(member.isfile() and key in extra and key not in seen and member.size == extra[key][0],
-                    "unexpected-supplemental-object")
-            seen.add(key)
-            target = dest / key
-            parent = target.parent
-            parent.mkdir(parents=True, exist_ok=True)
-            require(target.resolve() == target, "unexpected-supplemental-symlink")
-            for ancestor in (parent, *parent.parents):
-                if ancestor == dest:
-                    break
-                os.chown(ancestor, owner.st_uid, owner.st_gid)
-            with bundle.extractfile(member) as incoming, tempfile.NamedTemporaryFile(dir=parent, delete=False) as added:
-                tmp = Path(added.name)
-                try:
-                    shutil.copyfileobj(incoming, added)
-                    added.flush()
-                    require(digest(tmp) == extra[key][1], "supplemental-object-checksum")
-                    if not target.exists():
-                        os.chown(tmp, owner.st_uid, owner.st_gid)
-                        os.link(tmp, target)
-                    require(digest(target) == extra[key][1], "supplemental-target-drift")
-                finally:
-                    tmp.unlink(missing_ok=True)
-    require(seen == extra.keys() and inventory(dest, catalog) == original, "full-physical-filestore-differs")
+    restore_supplement(archive, extra, dest)
+    require(inventory(dest, catalog) == original, "full-physical-filestore-differs")
     encoded = json.dumps(original, sort_keys=True, separators=(",", ":")).encode()
     result = {"source": source, "restored": restored, "sql_sha256": proof["sql_sha256"],
               "referenced_objects": len(catalog), "unreferenced_objects": sum(not k.startswith("checklist/") for k in extra),

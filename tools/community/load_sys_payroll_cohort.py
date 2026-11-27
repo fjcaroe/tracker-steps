@@ -32,12 +32,23 @@ def main():
     p.add_argument('--addons-path', required=True)
     p.add_argument('--data-dir', required=True)
     p.add_argument('--logfile', required=True)
-    p.add_argument('--update-history-only', action='store_true',
-                   help='Upgrade only the installed SyS history module in a converted cohort.')
+    operation = p.add_mutually_exclusive_group()
+    operation.add_argument('--update-history-only', action='store_true',
+                           help='Upgrade only the installed SyS history module in a converted cohort.')
+    operation.add_argument('--upgrade-module', choices=('l10n_cl_simpledigital_payroll', 'step_hr_previred',
+                    'step_hr_previred_simpledigital', 'hr_timesheet', 'project_sms', 'l10n_latam_invoice_document'))
     args = p.parse_args()
     database = args.database
-    require(re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', database),
+    valid_database = (database in ('COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MP',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MQ',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MV',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MW',
+                                   'COMMUNITY_SYS_PREVIRED_MODULES_20261127U43MF') if args.upgrade_module
+                      else re.fullmatch(r'COMMUNITY_SYS_PREVIRED_COHORT_[A-Z0-9_]{1,32}', database))
+    require(valid_database,
             'sys-cohort-private-loader-required')
+    require(not database.endswith(('U41MQ', 'U41MV', 'U41MW', 'U43MF')) or args.upgrade_module not in ('hr_timesheet', 'project_sms'),
+            'original-upstream-policy-version-required')
     plan = json.loads(args.plan.read_bytes())
     require(plan['database'] == database and plan['integral_conversion'] is False,
             'sys-cohort-scoped-plan-required')
@@ -100,12 +111,13 @@ def main():
     IrModelData._process_end = process_end
     sql.drop_not_null = protected_drop
     try:
+        targets = 'step_payroll_oca_sys_history' if args.update_history_only else ','.join(ROOTS)
         sys.argv = [str(args.runtime / 'odoo-bin'), '-c', args.config, '-d', database,
                     '--db-filter=^' + database + '$', '--db_host=/var/run/postgresql',
                     '--data-dir=' + args.data_dir, '--addons-path=' + args.addons_path,
                     '--load=base,web', '--workers=0', '--max-cron-threads=0', '--no-http',
                     '--stop-after-init', '--without-demo=all', '--logfile=' + args.logfile,
-                    '-u', 'step_payroll_oca_sys_history' if args.update_history_only else ','.join(ROOTS)]
+                    '-u', args.upgrade_module or targets]
         try:
             cli.main()
         except SystemExit as exc:
