@@ -62,6 +62,8 @@ def preserve(original, output, db, schema):
             require(name not in declared and rec.get("model") in MODELS, "unexpected-fiscal-record")
             declared[name] = rec.get("model")
         xml.getroot().set("noupdate", "1")
+        for scope in xml.xpath("//data[@noupdate]"):
+            scope.set("noupdate", "1")
         schema.assertValid(xml)
         xml.write(str(file), encoding="UTF-8", xml_declaration=True)
         output_files[filename] = digest(file)
