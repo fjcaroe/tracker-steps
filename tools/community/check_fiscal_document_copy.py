@@ -47,7 +47,7 @@ def replay():
     while (FISCAL / f"portal-original-{idx}.log").exists():
         idx += 1
     log = FISCAL / f"portal-original-{idx}.log"
-    require(odoo(args, "shell", [], log, code.encode(), loopback=True) == 0, "private-fiscal-document-orm-failed")
+    require(odoo(args, "shell", [], log, code.encode()) == 0, "private-fiscal-document-orm-failed")
     results = [json.loads(row.split("=", 1)[1]) for row in log.read_text().splitlines()
                if row.startswith("PORTAL_CONFIRMED=")]
     require(results == [accepted["document"]], "changed-fiscal-document-result")
