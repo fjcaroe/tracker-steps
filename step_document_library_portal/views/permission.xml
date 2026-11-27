@@ -1,0 +1,26 @@
+<odoo>
+    <record id="library_form_external" model="ir.ui.view">
+        <field name="name">Biblioteca documental con acceso externo</field>
+        <field name="model">documents.document</field>
+        <field name="inherit_id" ref="step_document_library.library_form"/>
+        <field name="arch" type="xml">
+            <button name="action_manage_access" position="after">
+                <button name="action_external_link_permission" type="object" string="Acceso mediante enlace"
+                        invisible="not may_manage_access"/>
+            </button>
+        </field>
+    </record>
+    <record id="link_permission_form" model="ir.ui.view">
+        <field name="name">Acceso mediante enlace</field>
+        <field name="model">step.document.library.link.permission</field>
+        <field name="arch" type="xml">
+            <form>
+                <group><field name="document_id" force_save="1"/><field name="level"/></group>
+                <footer>
+                    <button name="action_apply" type="object" string="Aplicar" class="btn-primary"/>
+                    <button string="Cancelar" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

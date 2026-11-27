@@ -1,0 +1,20 @@
+<odoo>
+    <template id="shared_document" name="Archivo compartido">
+        <html lang="es">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="referrer" content="no-referrer"/>
+                <title t-esc="file_name"/>
+            </head>
+            <body>
+                <main>
+                    <h1 t-esc="file_name"/>
+                    <a t-attf-href="/documents/content/#{reference}?download=1" download="download">
+                        Descargar archivo
+                    </a>
+                </main>
+            </body>
+        </html>
+    </template>
+</odoo>
