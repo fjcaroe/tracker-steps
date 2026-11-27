@@ -13,7 +13,7 @@ from types import SimpleNamespace
 
 from complete_converted_filestore import complete
 from custody_sys_previred_filestore import digest
-from restore_converted_sys_cohort import restore, save
+from restore_converted_sys_cohort import full_snapshot, restore, save, source_sequence_advances, verify_same
 from restore_sys_previred_pair import LOCK, require
 from verify_converted_sql_schema import verify as verify_schema
 
@@ -96,7 +96,27 @@ def run(root, output, release, native_dump):
     native = native_counters(native_dump)
     with open(LOCK, "rb") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        restore(args)
+        recovery_receipt = output / "restore-proof.json"
+        previous = json.loads(recovery_receipt.read_bytes()) if recovery_receipt.is_file() else {}
+        if previous.get("exact_view_replay") and previous.get("full_post_boot_match"):
+            # When both cold boots finished and only portable schema rendering remains,
+            # recheck frozen data, role receipts and code before resuming the read-only postflight.
+            require(previous["source"] == SOURCE and previous["target"] == TARGET and previous["checked_boots"] == 2
+                    and previous["release_sha256"] == RELEASE_SHA and previous["role_probe"]["active"] == 149,
+                    "unexpected-private-recovery-witness")
+            require(digest(output / "sealed/runtime.tar.gz") == previous["runtime"]["archive_sha256"],
+                    "cold-code-checksum-drift")
+            for boot in (1, 2):
+                lines = (output / f"orm-{boot}.log").read_text().splitlines()
+                roles = [json.loads(line.split("=", 1)[1]) for line in lines if line.startswith("CONVERTED_RESTORE=")]
+                require(roles == [previous["role_probe"]], "original-cold-role-receipts-differ")
+            baseline = json.loads(gzip.decompress((output / "sealed/source-snapshot.json.gz").read_bytes()))
+            verify_same(baseline, full_snapshot(TARGET))
+            previous["source_sequence_advances_since_seal"] = source_sequence_advances(
+                baseline, full_snapshot(SOURCE), allowed=True)
+            save(recovery_receipt, previous)
+        else:
+            restore(args)
         complete(output, root / "data/filestore" / SOURCE)
         verify_schema(output)
         proof = json.loads((output / "restore-proof.json").read_bytes())

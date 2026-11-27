@@ -20,10 +20,10 @@ CHECKS = {
     ("hr_leave_accrual_level", "hr_leave_accrual_level_check_dates"),
     ("mail_notification", "mail_notification_notification_partner_required"),
 }
-LITERAL = r"'[-a-zA-Z0-9_]+'::character varying"
+LITERAL = r"'[-a-zA-Z0-9_ ]+'::character varying"
 LITERALS = rf"(?P<values>{LITERAL}(?:, {LITERAL})+)"
 ARRAY_CAST = re.compile(r"\(ARRAY\[" + LITERALS + r"\]\)::text\[\]")
-LIST_OPERATOR = re.compile(r"\((?P<column>[a-z_][a-z0-9_]*)\)::text (?P<op>= ANY|<> ALL) \("
+LIST_OPERATOR = re.compile(r"\((?P<column>[a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)?)\)::text (?P<op>= ANY|<> ALL) \("
                            + ARRAY_CAST.pattern + r"\)")
 
 
