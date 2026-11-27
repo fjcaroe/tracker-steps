@@ -327,7 +327,7 @@ def journal_migration(args):
     return json.loads(result[0])
 
 
-def final_receipt(args, proof):
+def final_receipt(args, proof, filename="final.json"):
     out, db = args.output, args.database
     restored = json.loads((out / "restored.json").read_bytes())
     require(restored["database"] == db and restored["sealed"] == str(args.sealed), "wrong-target")
@@ -381,7 +381,8 @@ def final_receipt(args, proof):
     if db.endswith(("U41MQ", "U41MV")):
         result["retained_source_providers"] = json.loads((out / "pinned-providers.json").read_bytes())
         require(all(versions[m] == ["installed", "18.0.1.0"] for m in TREES), "original-policy-version-drift")
-    save(out / "final.json", result)
+    save(out / filename, result)
+    return result
 
 
 def upgrade(args, proof):
@@ -515,12 +516,46 @@ def prepare_profile(args):
                                                   selected, original_admin_seeds=keep_original, original_fiscal=fiscal))
 
 
+def package_profile(args, proof):
+    directory, receipt = effective_profile(args.output)
+    expected = json.loads(receipt.read_bytes())
+    result = seal_profile(directory, args.output / "upgrade-profile.tar", expected)
+    result.update(runtime=proof["runtime"]["archive_sha256"], guard_plan=digest(guarded_plan(args)))
+    save(args.output / "upgrade-profile.json", result)
+
+
+def exercise_final(args, proof):
+    require(args.database.endswith("U41MV") and not (args.output / "postflight.json").exists(),
+            "fresh-final-rehearsal-required")
+    out = args.output
+    if not (out / "pinned-providers.json").is_file():
+        pin_original_providers(args)
+    if not (out / "profile-proof.json").is_file():
+        prepare_profile(args)
+    if not (out / "upgrade-profile.json").is_file():
+        package_profile(args, proof)
+    if not (out / "final.json").is_file():
+        candidate_batch(args, proof)
+    first = json.loads((out / "final.json").read_bytes())
+    require(all(first["official_results"].values()) and not first["relaxed_original_required_columns"]
+            and not first["covered_table_changes"], "primary-official-upgrade-checks-did-not-pass")
+    if not (out / "retained-release.json").is_file():
+        retained_release(args)
+    if not (out / "export-comparison.json").is_file():
+        payroll_exports(args)
+    exports = json.loads((out / "export-comparison.json").read_bytes())
+    require(exports["matches"] and exports["originals_preserved"], "operator-payroll-export-regression")
+    final = final_receipt(args, proof, "postflight.json")
+    require(not final["relaxed_original_required_columns"] and not final["covered_table_changes"],
+            "economic-storage-changed-after-operator-tests")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "exercise-final", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -533,7 +568,9 @@ if __name__ == "__main__":
     with open(LOCK, "rb") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         proof = json.loads((args.sealed / "backup.json").read_bytes())
-        if args.operation == "restore":
+        if args.operation == "exercise-final":
+            exercise_final(args, proof)
+        elif args.operation == "restore":
             restore(args, proof)
         elif args.operation == "accept-retained":
             retained_release(args)
@@ -543,12 +580,7 @@ if __name__ == "__main__":
             pin_original_providers(args)
         elif args.operation == "seal-profile":
             require(args.database.endswith(("U41MP", "U41MQ", "U41MV")), "separate-policy-profile-copy-required")
-            directory, receipt = effective_profile(args.output)
-            expected = json.loads(receipt.read_bytes())
-            result = seal_profile(directory, args.output / "upgrade-profile.tar", expected)
-            result.update(runtime=proof["runtime"]["archive_sha256"],
-                          guard_plan=digest(guarded_plan(args)))
-            save(args.output / "upgrade-profile.json", result)
+            package_profile(args, proof)
         elif args.operation == "exports":
             payroll_exports(args)
         elif args.operation == "candidate-batch":
