@@ -12,6 +12,7 @@ COLUMNS = {
     ('hr_salary_rule', 'category_id'): ('integer', 'hr_payroll'),
     ('hr_salary_rule', 'code'): ('character varying', 'hr_payroll'),
     ('hr_salary_rule_category', 'code'): ('character varying', 'hr_payroll'),
+    ('resource_calendar', 'previred_workday_type'): ('character varying', 'step_hr_previred'),
     ('res_company', 'account_tax_periodicity'): ('character varying', 'account_reports'),
     ('res_company', 'account_tax_periodicity_reminder_day'): ('integer', 'account_reports'),
     ('res_company', 'currency_interval_unit'): ('character varying', 'currency_rate_live'),
@@ -44,7 +45,9 @@ def inventory(cr):
 
 
 def guard(original, database, ids):
-    require(set(ids) == {table + '.' + name for table, name in COLUMNS},
+    expected = {table + '.' + name for table, name in COLUMNS}
+    calendar_field = 'resource_calendar.previred_workday_type'
+    require(set(ids) in (expected, expected - {calendar_field}),
             'SyS native mandatory column inventory missing')
 
     def drop_not_null(cr, table, column):
@@ -53,7 +56,11 @@ def guard(original, database, ids):
         # The official loader relaxes all unregistered columns when their
         # owning addon is outside the scoped graph. Preserve the original SQL
         # constraint without adding an implementation of the excluded feature.
-        require(read_original(cr, table, column) == ids[table + '.' + column],
+        key = table + '.' + column
+        # The first sealed plans predate the calendar bridge. On those exact
+        # inventories verify the native SyS field by its original identity too.
+        expected_id = ids[key] if key in ids else 28900
+        require(read_original(cr, table, column) == expected_id,
                 'SyS mandatory field identity changed')
 
     return drop_not_null

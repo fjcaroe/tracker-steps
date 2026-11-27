@@ -32,7 +32,10 @@ def main():
     p.add_argument('--addons-path', required=True)
     p.add_argument('--data-dir', required=True)
     p.add_argument('--logfile', required=True)
-    p.add_argument('--upgrade-module', choices=('l10n_cl_simpledigital_payroll', 'step_hr_previred',
+    operation = p.add_mutually_exclusive_group()
+    operation.add_argument('--update-history-only', action='store_true',
+                           help='Upgrade only the installed SyS history module in a converted cohort.')
+    operation.add_argument('--upgrade-module', choices=('l10n_cl_simpledigital_payroll', 'step_hr_previred',
                     'step_hr_previred_simpledigital', 'hr_timesheet', 'project_sms', 'l10n_latam_invoice_document'))
     args = p.parse_args()
     database = args.database
@@ -105,12 +108,13 @@ def main():
     IrModelData._process_end = process_end
     sql.drop_not_null = protected_drop
     try:
+        targets = 'step_payroll_oca_sys_history' if args.update_history_only else ','.join(ROOTS)
         sys.argv = [str(args.runtime / 'odoo-bin'), '-c', args.config, '-d', database,
                     '--db-filter=^' + database + '$', '--db_host=/var/run/postgresql',
                     '--data-dir=' + args.data_dir, '--addons-path=' + args.addons_path,
                     '--load=base,web', '--workers=0', '--max-cron-threads=0', '--no-http',
                     '--stop-after-init', '--without-demo=all', '--logfile=' + args.logfile,
-                    '-u', args.upgrade_module or ','.join(ROOTS)]
+                    '-u', args.upgrade_module or targets]
         try:
             cli.main()
         except SystemExit as exc:
