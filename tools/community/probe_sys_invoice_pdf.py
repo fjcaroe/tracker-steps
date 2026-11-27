@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 from unittest.mock import patch
 
+from lxml import html
 from odoo.tools import config
 
 
@@ -59,12 +60,17 @@ def run(shell):
                               for mode in ("read", "write", "create", "unlink")}
                     assert rights == {"read": True, "write": billing, "create": billing, "unlink": billing}
                     report = scope["ir.actions.report"].with_context(force_report_rendering=True, report_pdf_no_attachment=True)
+                    rendered, fmt = report._render_qweb_html("account.account_invoices", move.ids)
+                    article, = html.fromstring(rendered).xpath('//*[contains(concat(" ",normalize-space(@class)," ")," article ")]')
+                    assert fmt == "html" and article.get("data-oe-id") == str(move.id) and article.get("data-oe-model") == "account.move"
+                    article_words = set(re.findall(r"\w+", article.text_content().casefold()))
                     count_before = len(calls)
                     pdf, kind = report._render_qweb_pdf("account.account_invoices", res_ids=move.ids)
                     assert kind == "pdf" and pdf.startswith(b"%PDF-") and len(calls) == count_before + 1
                     text = subprocess.run(["pdftotext", "-layout", "-enc", "UTF-8", "-", "-"],
                                           input=pdf, check=True, capture_output=True).stdout.decode()
-                    assert any(str(value) in text for value in (move.name, move.l10n_latam_document_number) if value)
+                    printed_words = set(re.findall(r"\w+", text.casefold()))
+                    assert len(article_words) > 15 and len(article_words & printed_words) >= 0.8 * len(article_words)
                     assert all(ref.origin_doc_number in text for ref in move.l10n_cl_reference_ids)
                     pages = sum(bool(page.strip()) for page in text.split("\f"))
                     assert pages > 0
@@ -74,6 +80,7 @@ def run(shell):
                     output.chmod(0o600)
                     result.append({"actor": actor.id, "kind": move_type, "pages": pages, "reference_permissions": rights,
                                    "references": len(move.l10n_cl_reference_ids), "bytes": len(pdf),
+                                   "article_words": len(article_words), "printed_article_words": len(article_words & printed_words),
                                    "sha256": hashlib.sha256(pdf).hexdigest(), "private_file": str(output)})
                     found = True
                     break

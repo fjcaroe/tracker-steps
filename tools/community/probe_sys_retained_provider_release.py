@@ -1,6 +1,7 @@
 """Check loaded upstream origins and exercise the customized Latin American invoice report as original operators."""
 import ast
 import base64
+import hashlib
 import importlib
 from pathlib import Path
 
@@ -12,13 +13,16 @@ def invoice_text(scope, move):
     move.check_access("read")
     rendered, fmt = scope["ir.actions.report"]._render_qweb_html("account.account_invoices", move.ids)
     content = rendered if isinstance(rendered, bytes) else str(rendered).encode()
-    visible = " ".join(html.fromstring(content).text_content().split())
-    identifiers = [str(value) for value in (move.name, move.l10n_latam_document_number) if value]
-    assert fmt == "html" and any(token in visible for token in identifiers)
+    article, = html.fromstring(content).xpath('//*[contains(concat(" ",normalize-space(@class)," ")," article ")]')
+    assert fmt == "html" and article.get("data-oe-model") == "account.move" and article.get("data-oe-id") == str(move.id)
+    for element in article.xpath(".//script | .//style"):
+        element.drop_tree()
+    visible = " ".join(article.text_content().split())
+    assert visible
     return visible, len(content)
 
 
-def referenced_documents(shell, actors):
+def referenced_documents(shell, actors, original):
     shell.cr.execute("""SELECT r.id,m.id,m.company_id,m.move_type FROM l10n_cl_account_invoice_reference r
                         JOIN account_move m ON m.id=r.move_id WHERE m.state='posted' ORDER BY r.id""")
     rows = shell.cr.fetchall()
@@ -43,16 +47,18 @@ def referenced_documents(shell, actors):
             for field in (ref.reason, ref.l10n_cl_reference_doc_type_id.code):
                 if field:
                     assert " ".join(field.split()) in visible
+            assert hashlib.sha256(visible.encode()).hexdigest() == original[(actor.id, ref.id)]
             covered.add(ref_id)
             rendered += 1
-    assert len(covered) == 6
+    assert len(covered) == 6 and rendered == len(original) == 12
     synthetic = shell["account.move"]._pdf417_barcode("<TED><TEST>Offline display fixture only</TEST></TED>")
     assert base64.b64decode(synthetic, validate=True).startswith(b"\x89PNG\r\n\x1a\n")
     assert not shell["account.move"]._pdf417_barcode("")
-    return {"native_references": len(covered), "operator_documents": rendered, "synthetic_barcode_png": True}
+    return {"native_references": len(covered), "operator_documents": rendered, "full_native_texts": rendered,
+            "synthetic_barcode_png": True}
 
 
-def run(shell, root):
+def run(shell, root, original):
     shell.cr.rollback()
     shell.cr.execute("SET TRANSACTION READ ONLY")
     versions = {}
@@ -102,10 +108,10 @@ def run(shell, root):
                        for f in footers)
             visible, size = invoice_text(scope, move)
             result.append({"original_company": company.id, "html_bytes": size,
-                           "document_number_visible": True, "wave_footer_nodes": len(footers)})
+                           "original_document_rendered": True, "wave_footer_nodes": len(footers)})
             break
     assert len(result) == 2
-    reference = referenced_documents(shell, actors)
+    reference = referenced_documents(shell, actors, original)
     shell.cr.rollback()
     return {"active_source_versions": versions, "all_installed_checked": len(installed), "version_differences": differences,
             "loaded_profile": overlays, "native_standard_layout": True, "operator_invoice_renders": result,

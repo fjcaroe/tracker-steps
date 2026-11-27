@@ -315,8 +315,13 @@ def retained_release(args):
     states = module_versions(args.database)
     require(all(states[m] == ["installed", MODULES[m][1]] for m in FORWARD), "forward-providers-not-yet-installed")
     probe = Path(__file__).with_name("probe_sys_retained_provider_release.py").read_text()
+    native = PRIVATE / "community-sys-six-invoice-20261127U41MR2/receipt.json"
+    require(digest(native) == "f377c74132a77b46b34b4f49f97539b49419b436da84f27267aa7c2436fdd008",
+            "original-native-invoice-content-required")
+    original = {(r["actor"], r["ref"]): r["text_sha256"] for r in json.loads(native.read_bytes())[0]}
+    require(len(original) == 12, "native-reference-document-coverage")
     probe += "\nimport json\nassert env.cr.dbname==" + repr(args.database)
-    probe += "\nprint('PINNED_RELEASE='+json.dumps(run(env,Path(" + repr(str(args.output)) + "))),flush=True)"
+    probe += "\nprint('PINNED_RELEASE='+json.dumps(run(env,Path(" + repr(str(args.output)) + ")," + repr(original) + ")),flush=True)"
     log = args.output / ("retained-release-" + str(len(list(args.output.glob("retained-release-*.log")))) + ".log")
     status = odoo(args, "shell", [], log, probe.encode())
     rows = [line.partition("=")[2] for line in log.read_text().splitlines() if line.startswith("PINNED_RELEASE=")]
