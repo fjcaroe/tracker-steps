@@ -134,8 +134,19 @@ def verify(folder, expected):
     source_modules = {name.split("/")[0] for name in payroll}
     actual = {name.removeprefix("addons/"): value[1] for name, value in members.items()
               if name.startswith("addons/") and name.split("/")[1] in source_modules}
-    check(not pending and actual == payroll and len(payroll) == 133 and len(source_modules) == 7,
-          "effective-payroll-tree-differs")
+    check(not pending and len(payroll) == 133 and len(source_modules) == 7, "original-payroll-release-incomplete")
+    if final_fiscal:
+        transition = "step_payroll_engine_transition/"
+        changed = {name for name in payroll.keys() & actual.keys() if actual[name] != payroll[name]}
+        check(not (payroll.keys() - actual.keys()) and
+              changed == {transition + "__manifest__.py", transition + "security/rules.xml"} and
+              actual.keys() - payroll.keys() == {transition + "security/sys_preserved_access.xml"} and
+              manifest["original-release.tar"]["sha256"] == "547c89989b796475cbb46075992f4008c10d23f7a50bbf450f0941192e81fc07" and
+              manifest["original-fiscal-release.tar"]["sha256"] == "ca9180cdd5d3be9b5e69073d83171760cef34b22b07ae0a7cb38940cbd63ce37",
+              "qualified-fiscal-supersession-differs")
+        # verify_final_product also matches this entire installed module to the independently qualified fiscal TAR.
+    else:
+        check(actual == payroll, "effective-payroll-tree-differs")
     docs = {}
     if final_fiscal:
         verify_final_product(folder, manifest, members, proof)
@@ -164,6 +175,8 @@ def verify(folder, expected):
         check(len(docs) == receipt["additional_document_files"] == 20 and docs == active_docs,
               "effective-document-addons-differ")
     return {"sql_sha256": proof["sql_sha256"], "source_cohort_manifest_sha256": expected,
+            **({"effective_payroll_tree_files": len(actual), "qualified_fiscal_changes_to_payroll_files": 2,
+                "qualified_fiscal_additions_to_payroll_files": 1} if final_fiscal else {}),
             "providers": count, "document_release_files": 20 if final_fiscal else len(docs),
             "verified_runtime_files": len(members), "verified_filestore_files": len(tree), "payroll_release_files": len(payroll)}
 
