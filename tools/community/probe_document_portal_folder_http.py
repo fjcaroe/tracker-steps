@@ -185,4 +185,3 @@ def folder_http(env, fixture=None, prepared=None):
     finally:
         env.registry.leave_test_mode()
         env.cr.rollback()
-
