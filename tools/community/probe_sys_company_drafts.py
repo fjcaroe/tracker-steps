@@ -1,10 +1,29 @@
 """Replay the latest closed full month of each SyS payroll company on new, isolated drafts."""
 import re
+from decimal import Decimal
 
 from probe_sys_october_drafts import amounts, confirmation, digest, prepare_draft, protect_existing
 
 
-def probe(env, uid, selected=None, confirm=False):
+def summarize_rule_changes(stored, current):
+    # Distinguish an absent line, a missing value and the monetary value zero.
+    def total(rows):
+        return (bool(rows), sum(row[-1] is None for row in rows),
+                sum((Decimal(row[-1]) for row in rows if row[-1] is not None), Decimal(0)))
+
+    changed_rows = []
+    changed_totals = []
+    for code in ("BASIC", "GROSS", "NET"):
+        previous = [row for row in stored if row[1] == code]
+        computed = [row for row in current if row[1] == code]
+        if previous != computed:
+            changed_rows.append(code)
+        if total(previous) != total(computed):
+            changed_totals.append(code)
+    return {"changed_rows": changed_rows, "changed_totals": changed_totals}
+
+
+def probe(env, uid, selected=None, confirm=False, summary=False):
     cr = env.cr
     assert re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname)
     native = bool(env['ir.module.module'].sudo().search_count([('state','=','installed'),('license','=','OEEL-1')]))
@@ -45,6 +64,8 @@ def probe(env, uid, selected=None, confirm=False):
                     assert original.state in ('paid','done') and stored == amounts(cr,source_id)
                     entry.update(draft=digest(current), stored=digest(stored), lines=len(current),
                                  equals_stored=current==stored)
+                    if summary:
+                        entry["summary_rules"] = summarize_rule_changes(stored, current)
                     if confirm:
                         entry['confirmation'] = confirmation(draft, original, current)
                     trial.rollback()

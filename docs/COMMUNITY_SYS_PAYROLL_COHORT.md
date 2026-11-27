@@ -231,3 +231,32 @@ verificar las 25 proyecciones, los 53.659 identificadores originales, las 298
 relaciones, los 111 contadores y las reglas de acceso admitidas. El recibo
 tiene SHA-256
 `69838dd5a335f5df4b1c46249ff1f8ccf4e4a38d1f0f461d9d729c989e2f745e`.
+
+### Diferencias con los importes históricos de octubre
+
+Se repitieron los 33 cálculos que habían diferido de la liquidación guardada,
+con el mismo operador y sus permisos de empresa. U40N y U42L 18.0.1.6.1
+generaron cada una 33 borradores nuevos y reprodujeron las huellas de las
+líneas históricas y de las líneas calculadas del primer ensayo. Los 33 casos
+pertenecen a cuatro empresas y a octubre de 2026.
+
+| Importes distintos del histórico | Liquidaciones |
+| --- | ---: |
+| Solo el líquido entre los tres importes de resumen | 32 |
+| Básico, bruto y líquido | 1 |
+| Solo otras líneas, con básico, bruto y líquido idénticos | 0 |
+
+Los dos motores calcularon los mismos importes en los 130 casos admitidos.
+De ellos, 97 reprodujeron íntegramente la liquidación guardada. Los otros tres
+casos de los 133 seleccionados volvieron a quedar fuera del cálculo en el
+control original de revisión de contrato. El cotejo sumó con precisión decimal
+los totales por código y distinguió la ausencia de una línea de un importe
+cero. Se revirtieron las operaciones de cada borrador y se verificó que las
+16 tablas de negocio conservaran sus filas completas.
+
+Los recibos privados de los nuevos borradores tienen SHA-256
+`2ff075e5b52272d1511f48cf8e8f56cb936f252123004f7806827b101482808f`
+(nativo) y `b26c62c50830a79f5e0bf7310ad027b9b2304014eee7709c8bfaab8645c8063c`
+(Community). La clasificación de `tools/community/compare_sys_summary_variance.py`
+contra los dos recibos anteriores de 133 casos tiene SHA-256
+`c54a41bdba98ed3122b920c6a118cab0ee0b8ae65fc2393976dd9ee258f51065`.
