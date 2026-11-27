@@ -31,7 +31,9 @@ try:
                  'test_stale_and_direct_changes_rejected', 'test_foreign_producer_and_read_only_user_rejected',
                  'test_forms_both_entry_points', 'test_inventory_manager_can_apply_without_sudo',
                  'test_legacy_native_receipt_without_new_origin_field',
-                 'test_owned_fruit_uses_native_valuation_without_extra_inventory_restriction'):
+                 'test_owned_fruit_uses_native_valuation_without_extra_inventory_restriction',
+                 'test_pending_transfer_keeps_corrected_owner_on_completion',
+                 'test_pending_mixed_transfer_preserves_other_receipts_owner'):
         with env.cr.savepoint():
             getattr(receipt_case, name)()
     if '/steps-validation/' in ROOT:

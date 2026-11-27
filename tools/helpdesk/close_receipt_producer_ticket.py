@@ -16,7 +16,7 @@ def main():
     root = args.evidence.resolve()
     assert not root.is_relative_to(Path(__file__).resolve().parents[2])
     release = json.loads((root / 'release.json').read_text())
-    assert release['versions'] == {'step_packing_producer_change': '18.0.1.1.0'}
+    assert release['versions'] == {'step_packing_producer_change': '18.0.1.1.1'}
     identity = None
     for target in ('development', 'cerro', 'qa-cerro'):
         qa = json.loads((root / (target + '-qa.json')).read_text())

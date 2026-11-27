@@ -14,7 +14,7 @@ assert base.parent == Path('/opt/steps-validation') and base.name.startswith('t2
 release = base / 'release.tar.gz'
 with tarfile.open(release) as archive:
     proof = json.load(archive.extractfile('release.json'))
-assert proof['versions'] == {'step_packing_producer_change': '18.0.1.1.0'}
+assert proof['versions'] == {'step_packing_producer_change': '18.0.1.1.1'}
 sha = hashlib.sha256(release.read_bytes()).hexdigest()
 output = base / 'delivery'
 assert not output.is_symlink()

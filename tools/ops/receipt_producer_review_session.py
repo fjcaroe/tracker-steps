@@ -28,7 +28,7 @@ if CLEANUP:
     proof.unlink()
 else:
     assert not proof.exists()
-    assert env['ir.module.module'].search([('name','=','step_packing_producer_change')]).latest_version == '18.0.1.1.0'
+    assert env['ir.module.module'].search([('name','=','step_packing_producer_change')]).latest_version == '18.0.1.1.1'
     receipt = env['stock.picking'].search([('step_fruit_reception_kind','=','process'),('state','=','done'),
         ('fruit_tag_line_ids.package_id.step_tag_state','=','validated')], order='id desc', limit=1)
     assert receipt and receipt.fruit_tag_line_ids.package_id

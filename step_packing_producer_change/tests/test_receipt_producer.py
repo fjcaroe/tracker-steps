@@ -86,6 +86,48 @@ class ReceiptProducerCase(SimpleReceptionCase):
         self.assertEqual(tag.location_id, location)
         self.assertEqual(tag.owner_id, self.other)
 
+    def _pending_owner_transfer(self, mixed=False):
+        self.prepare()
+        tags = self.tags[:1]
+        if mixed:
+            other = self.receipt((160,), demand=160)
+            other.button_validate()
+            tags |= other.fruit_tag_line_ids.package_id
+        destination = self.env['stock.location'].create({'name': 'QA246 destino', 'usage': 'internal',
+            'location_id': self.wh.view_location_id.id, 'company_id': self.env.company.id})
+        picking = self.env['stock.picking'].create({'picking_type_id': self.wh.int_type_id.id,
+            'location_id': self.wh.lot_stock_id.id, 'location_dest_id': destination.id,
+            'owner_id': self.producer.id,
+            'move_ids': [Command.create({'name': 'QA246 reserva con propietario', 'product_id': self.product.id,
+                'product_uom': self.product.uom_id.id, 'product_uom_qty': 160 * len(tags),
+                'location_id': self.wh.lot_stock_id.id, 'location_dest_id': destination.id,
+                'restrict_partner_id': self.producer.id})]})
+        picking.action_confirm()
+        picking.do_unreserve()
+        for tag in tags:
+            picking.move_ids._update_reserved_quantity(160, self.wh.lot_stock_id,
+                package_id=tag, owner_id=self.producer, strict=True)
+        for line in picking.move_line_ids:
+            line.result_package_id = line.package_id
+        self.wizard().action_apply()
+        self.assertEqual(picking.owner_id, self.env['res.partner'] if mixed else self.other)
+        self.assertEqual(picking.move_ids.restrict_partner_id, self.env['res.partner'] if mixed else self.other)
+        picking.move_line_ids.write({'picked': True})
+        picking._action_done()
+        self.assertEqual(picking.state, 'done')
+        self.assertEqual(self.tags[:1].quant_ids.owner_id, self.other)
+        self.assertEqual(self.tags[:1].quant_ids.quantity, 160)
+        if mixed:
+            self.assertEqual((tags - self.tags).quant_ids.owner_id, self.producer)
+            self.assertEqual((tags - self.tags).quant_ids.quantity, 160)
+        self.assertFalse(tags.quant_ids.filtered(lambda quant: quant.quantity < 0))
+
+    def test_pending_transfer_keeps_corrected_owner_on_completion(self):
+        self._pending_owner_transfer()
+
+    def test_pending_mixed_transfer_preserves_other_receipts_owner(self):
+        self._pending_owner_transfer(mixed=True)
+
     def test_processed_dispatched_partial_and_missing_stock_rejected(self):
         self.prepare()
         for state in ('processed', 'dispatched', 'repalletized', 'void'):

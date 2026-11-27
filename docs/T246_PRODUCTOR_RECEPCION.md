@@ -4,7 +4,7 @@ El ticket 246 del 27-11-2026 autoriza esta funcionalidad en Desarrollo,
 Cerro El Plomo y QA-Cerro El Plomo. No requiere modificar ninguna recepción
 real durante la instalación.
 
-`step_packing_producer_change` 18.0.1.1.0 agrega **Cambiar productor** a la
+`step_packing_producer_change` 18.0.1.1.1 agrega **Cambiar productor** a la
 recepción de fruta a proceso realizada y a sus tarjas C. El asistente muestra
 la recepción, el productor actual y todas las tarjas afectadas. Corrige
 `stock.picking.partner_id`, el productor del paquete y su detalle, y el
@@ -19,6 +19,8 @@ originales conservan al productor anterior. Se mantienen productos, lotes,
 ubicaciones, fecha de entrada, kilos, cajas y fundo original; no se modifica
 el productor del maestro de fundos. Las reservas existentes se conservan
 con su propietario corregido. Un traslado interno no impide el cambio.
+Las transferencias pendientes conservan el nuevo propietario al completarse,
+incluidas las que agrupan fruta de otras recepciones con distintos dueños.
 
 No se admiten fruta consumida o despachada, tarjas procesadas o stock
 incompleto. Se comprueban nuevamente stock y estado bajo bloqueo al aplicar.
