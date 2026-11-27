@@ -1,0 +1,76 @@
+msgid ""
+msgstr ""
+"Language: es\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payment_report.py:0
+msgid "Report Date"
+msgstr "Fecha del reporte"
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payment_report.py:0
+msgid "Payslip Period"
+msgstr "Periodo del recibo de nómina"
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payment_report.py:0
+msgid "Employee name"
+msgstr "Nombre del empleado"
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payment_report.py:0
+msgid "Employee address"
+msgstr "Dirección del empleado"
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payment_report.py:0
+msgid "Bank account"
+msgstr "Cuenta bancaria"
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payment_report.py:0
+msgid "Amount to pay"
+msgstr "Importe a pagar"
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payment_report.py:0
+msgid "Bank account missing for: %s"
+msgstr "Falta la cuenta bancaria de %s."
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payment_report.py:0
+msgid "Bank account awaiting verification for: %s"
+msgstr "La cuenta bancaria de %s está pendiente de verificación."
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payment_report.py:0
+msgid "Select a validated payslip with a positive net wage."
+msgstr "Seleccione una liquidación validada con un líquido mayor que cero."
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payment_report.py:0
+msgid "Post the payroll accounting entry before registering a payment."
+msgstr "Contabilice el asiento de la liquidación antes de registrar el pago."
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payroll_batch.py:0
+msgid "Review the existing journal entries before closing this reopened batch."
+msgstr "Revise los asientos existentes antes de volver a cerrar el lote."
+
+#. module: step_payroll_oca_sys_history
+#. odoo-python
+#: code:addons/step_payroll_oca_sys_history/payroll_batch.py:0
+msgid "Calculate every payslip in the batch before confirming it."
+msgstr "Calcule todas las liquidaciones del lote antes de confirmarlo."
