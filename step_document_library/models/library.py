@@ -184,6 +184,10 @@ class DocumentPermission(models.TransientModel):
     role = fields.Selection([("none", "Retirar permiso individual"), *PERMISSIONS[1:]],
                             string="Permiso individual", required=True, default="view")
 
+    @api.model
+    def _recipient_domain(self):
+        return [("active", "=", True), ("share", "=", False)]
+
     def action_apply(self):
         self.ensure_one()
         self.check_access("write")
@@ -192,9 +196,7 @@ class DocumentPermission(models.TransientModel):
         self.env.cr.execute("SELECT id FROM documents_document WHERE id=%s FOR UPDATE", [doc.id])
         doc.invalidate_recordset(["user_permission", "may_manage_access"])
         doc.action_manage_access()
-        recipient = self.env["res.users"].search([
-            ("id", "=", self.user_id.id), ("active", "=", True), ("share", "=", False),
-        ], limit=1)
+        recipient = self.env["res.users"].search([("id", "=", self.user_id.id)] + self._recipient_domain(), limit=1)
         if not recipient:
             raise ValidationError(_("Seleccione un usuario interno activo de su directorio."))
         partner = recipient.partner_id
