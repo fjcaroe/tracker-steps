@@ -590,16 +590,22 @@ def compare_operator_exports(args, name="exports", comparison="complete-export-c
 def print_chilean_invoices(args, proof):
     out = args.output
     require(args.database.endswith(("U41MW", "U43MF")) and (out / "retained-release.json").is_file(), "original-invoice-render-required")
-    name = "invoice-pdf-" + str(len(list(out.glob("invoice-pdf-*.log"))))
-    script = Path(__file__).with_name("probe_sys_invoice_pdf.py").read_text()
-    script += "\nprint('ORIGINAL_INVOICE_PDF='+json.dumps(run(env)),flush=True)\n"
-    code = odoo(args, "shell", [], out / (name + ".log"), script.encode(), loopback=True)
-    entries = [json.loads(l.partition("=")[2]) for l in (out / (name + ".log")).read_text().splitlines()
-               if l.startswith("ORIGINAL_INVOICE_PDF=")]
-    require(code == 0 and len(entries) == 1, "original-invoice-pdf-did-not-render")
-    save(out / "invoice-pdf.json", entries[0])
-    final = final_receipt(args, proof, "postflight-pdf.json")
-    require(not final["covered_table_changes"] and not final["relaxed_original_required_columns"], "invoice-pdf-altered-history")
+    if not (out / "invoice-pdf.json").is_file():
+        name = "invoice-pdf-" + str(len(list(out.glob("invoice-pdf-*.log"))))
+        script = Path(__file__).with_name("probe_sys_invoice_pdf.py").read_text()
+        script += "\nprint('ORIGINAL_INVOICE_PDF='+json.dumps(run(env)),flush=True)\n"
+        code = odoo(args, "shell", [], out / (name + ".log"), script.encode(), loopback=True)
+        entries = [json.loads(l.partition("=")[2]) for l in (out / (name + ".log")).read_text().splitlines()
+                   if l.startswith("ORIGINAL_INVOICE_PDF=")]
+        require(code == 0 and len(entries) == 1, "original-invoice-pdf-did-not-render")
+        save(out / "invoice-pdf.json", entries[0])
+    if not (out / "postflight-pdf.json").is_file():
+        final_receipt(args, proof, "postflight-pdf.json")
+    final = json.loads((out / "postflight-pdf.json").read_bytes())
+    require(not final["covered_table_changes"] and not final["relaxed_original_required_columns"]
+            and all(final["official_results"].values()) and not any(final["full_sql_delta"][key] for key in
+            ("columns", "constraints", "relation_owner_and_acl", "sequence_definitions")), "invoice-pdf-postflight-differs")
+
 
 
 def candidate_batch(args, proof):
@@ -741,8 +747,7 @@ def finish_financial_release(args, proof):
     compare_operator_exports(args, "release-exports", "release-export-comparison")
     result = json.loads((out / "release-export-comparison.json").read_bytes())
     require(result["originals_preserved"] and result["matches"], "final-financial-payroll-regression")
-    if not (out / "invoice-pdf.json").is_file():
-        print_chilean_invoices(args, proof)
+    print_chilean_invoices(args, proof)
 
 
 def exercise_final(args, proof):
@@ -773,6 +778,42 @@ def exercise_final(args, proof):
             "economic-storage-changed-after-operator-tests")
 
 
+def exercise_combined(args, proof):
+    out = args.output
+    require(args.database == COMBINED_DB, "combined-financial-scope")
+    if not (out / "restored.json").is_file():
+        restore(args, proof)
+    if not (out / "combined-source-files.json").is_file():
+        restore_combined_filestore(args)
+    if not (out / "pinned-providers.json").is_file():
+        pin_original_providers(args)
+    if not (out / "profile-proof.json").is_file():
+        prepare_profile(args)
+    if not (out / "upgrade-profile.json").is_file():
+        package_profile(args, proof)
+    package = json.loads((out / "upgrade-profile.json").read_bytes())
+    require(package["archive_sha256"] == FINANCE_ARCHIVE and digest(out / "upgrade-profile.tar") == FINANCE_ARCHIVE,
+            "combined-financial-package-differs-from-tested-release")
+    if not (out / "final.json").is_file():
+        candidate_batch(args, proof)
+    if not (out / "financial-storage.json").is_file():
+        final_receipt(args, proof, "financial-storage.json")
+    baseline = json.loads((out / "financial-storage.json").read_bytes())
+    require(all(baseline["official_results"].values()) and not baseline["relaxed_original_required_columns"]
+            and baseline["versions"]["step_payroll_oca_sys_history"] == ["installed", "18.0.1.6.1"],
+            "combined-financial-provider-versions")
+    if not (out / "financial-delete-actions.json").is_file():
+        check_financial_actions(args)
+    if not (out / "retained-release.json").is_file():
+        retained_release(args)
+    if not (out / "release-exports.json").is_file():
+        payroll_exports(args, "release-exports")
+    compare_operator_exports(args, "release-exports", "release-export-comparison")
+    comparison = json.loads((out / "release-export-comparison.json").read_bytes())
+    require(comparison["originals_preserved"] and comparison["matches"], "combined-payroll-exports-differ")
+    print_chilean_invoices(args, proof)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", required=True)
@@ -792,38 +833,7 @@ if __name__ == "__main__":
         fcntl.flock(lock, fcntl.LOCK_EX)
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "combine-financial":
-            require(args.database == COMBINED_DB, "combined-financial-scope")
-            if not (args.output / "restored.json").is_file():
-                restore(args, proof)
-            if not (args.output / "combined-source-files.json").is_file():
-                restore_combined_filestore(args)
-            if not (args.output / "pinned-providers.json").is_file():
-                pin_original_providers(args)
-            if not (args.output / "profile-proof.json").is_file():
-                prepare_profile(args)
-            if not (args.output / "upgrade-profile.json").is_file():
-                package_profile(args, proof)
-            package = json.loads((args.output / "upgrade-profile.json").read_bytes())
-            require(package["archive_sha256"] == FINANCE_ARCHIVE and digest(args.output / "upgrade-profile.tar") == FINANCE_ARCHIVE,
-                    "combined-financial-package-differs-from-tested-release")
-            if not (args.output / "final.json").is_file():
-                candidate_batch(args, proof)
-            if not (args.output / "financial-storage.json").is_file():
-                baseline = final_receipt(args, proof, "financial-storage.json")
-                require(all(baseline["official_results"].values()) and not baseline["relaxed_original_required_columns"]
-                        and baseline["versions"]["step_payroll_oca_sys_history"] == ["installed", "18.0.1.6.1"],
-                        "combined-financial-provider-versions")
-            if not (args.output / "financial-delete-actions.json").is_file():
-                check_financial_actions(args)
-            if not (args.output / "retained-release.json").is_file():
-                retained_release(args)
-            if not (args.output / "release-exports.json").is_file():
-                payroll_exports(args, "release-exports")
-            compare_operator_exports(args, "release-exports", "release-export-comparison")
-            comparison = json.loads((args.output / "release-export-comparison.json").read_bytes())
-            require(comparison["originals_preserved"] and comparison["matches"], "combined-payroll-exports-differ")
-            if not (args.output / "invoice-pdf.json").is_file():
-                print_chilean_invoices(args, proof)
+            exercise_combined(args, proof)
         elif args.operation == "exercise-final":
             exercise_final(args, proof)
         elif args.operation == "invoice-pdf":
