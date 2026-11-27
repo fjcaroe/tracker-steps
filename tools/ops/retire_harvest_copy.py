@@ -23,10 +23,12 @@ def main():
     parser.add_argument('stages', nargs='+', type=Path)
     parser.add_argument('--apply', action='store_true')
     parser.add_argument('--failed-unit', help='Exact inactive private QA unit, for a failed copy without a certificate')
+    parser.add_argument('--failed-run', action='store_true', help='Retire only a failed T244/T245 SSH-run copy after shutdown and zero database connections')
     parser.add_argument('--archive-failed-stage', action='store_true', help='Retain all failed artifacts under a timestamped name for a fresh restore')
     args = parser.parse_args()
     plan = []
-    assert not args.archive_failed_stage or (args.failed_unit and args.apply)
+    assert not (args.failed_run and args.failed_unit)
+    assert not args.archive_failed_stage or ((args.failed_unit or args.failed_run) and args.apply)
     with open('/run/lock/steps-environments.lock', 'a') as lease:
         fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
         for stage in args.stages:
@@ -35,15 +37,20 @@ def main():
             assert match and not stage.is_symlink()
             environment, ticket, commit_prefix = match.groups()
             database = 'MANAGEMENT_QA_' + environment.upper() + '_' + ticket + '_' + commit_prefix
-            if args.failed_unit:
+            if args.failed_unit or args.failed_run:
                 assert len(args.stages) == 1
-                unit_prefix = {'development': 'qa-dev', 'qa-cerro': 'compat-qacerro', 'cerro': 'compat-cerro'}[environment]
-                assert args.failed_unit == 'steps-'+ticket+'-'+unit_prefix+'-'+commit_prefix
-                state = subprocess.check_output(['systemctl', 'show', '--value', '--property=ActiveState', args.failed_unit], text=True).strip()
-                assert state in ('failed', 'inactive')
+                if args.failed_unit:
+                    unit_prefix = {'development': 'qa-dev', 'qa-cerro': 'compat-qacerro', 'cerro': 'compat-cerro'}[environment]
+                    assert args.failed_unit == 'steps-'+ticket+'-'+unit_prefix+'-'+commit_prefix
+                    state = subprocess.check_output(['systemctl', 'show', '--value', '--property=ActiveState', args.failed_unit], text=True).strip()
+                    assert state in ('failed', 'inactive')
+                else:
+                    assert ticket == 't244245'
                 assert not (stage/'qa_passed.json').exists()
                 logs = list(stage.glob('qa-*.log'))
                 assert len(logs) == 1 and re.search(r'\b[1-9][0-9]* (?:failed|error\(s\))', logs[0].read_text())
+                if args.failed_run:
+                    assert 'Initiating shutdown' in logs[0].read_text() and re.search(r'Closed [1-9][0-9]* connections', logs[0].read_text())
             else:
                 proof = json.loads((stage/'qa_passed.json').read_text())
                 assert proof['database'] == database
