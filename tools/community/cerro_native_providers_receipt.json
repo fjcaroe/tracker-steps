@@ -1,0 +1,209 @@
+{
+  "archive_sha256": "2453f3cdf9fadcbacfd3b2db10478498fbcdd9d819e40f67054530d854dbdb27",
+  "installed_overlay_modules": {
+    "step_agriculture_catalogs": {
+      "license": "LGPL-3",
+      "root_index": 0,
+      "sha256": "41c8721b4622cce12eac2c5b3c3ffee57f000c4fb56678b51fa3b1fe01efa8d8",
+      "version": "18.0.1.1.1"
+    },
+    "step_agriculture_core": {
+      "license": "AGPL-3",
+      "root_index": 0,
+      "sha256": "d5c4022c0a1375a46fe72ce56eb535f7b11574b8d929f9635c4aabbd1222a97e",
+      "version": "18.0.1.1.4"
+    },
+    "step_agriculture_farm_directory": {
+      "license": "LGPL-3",
+      "root_index": 3,
+      "sha256": "5501d3222feeaee62f35b678869d320f1a05968fe1a9e9bfd3b6ed78a4782115",
+      "version": "18.0.1.0.0"
+    },
+    "step_agriculture_multicompany": {
+      "license": "LGPL-3",
+      "root_index": 7,
+      "sha256": "2d8397aff2a5b734fc2aa950c9242ab31325cdee72c677a1eedffbea01ba6847",
+      "version": "18.0.1.0.8"
+    },
+    "step_agriculture_shared_farms": {
+      "license": "LGPL-3",
+      "root_index": 3,
+      "sha256": "de8459b33fe712a6b8a0c9bad6918159fb6dfeea79a95406665091b09d21034d",
+      "version": "18.0.1.0.2"
+    },
+    "step_agriculture_species_pallet": {
+      "license": "LGPL-3",
+      "root_index": 0,
+      "sha256": "d25b9ac8bfb41771b7d05b5b287c277b32ea0517dc17af21ddccf78502741b30",
+      "version": "18.0.1.0.1"
+    },
+    "step_cerro_bom_company": {
+      "license": "LGPL-3",
+      "root_index": 4,
+      "sha256": "e27bebe09c163549cf975cdbe2f8d6e301b6f51a9bdeaa19997eeac3b101db7f",
+      "version": "18.0.1.0.1"
+    },
+    "step_cerro_product_account_views": {
+      "license": "LGPL-3",
+      "root_index": 13,
+      "sha256": "34b67f98c1191edd152b9f4931d39fa7ff08f1de81f24290f3c49de007cf9352",
+      "version": "18.0.1.0.0"
+    },
+    "step_cerro_studio_adoption": {
+      "license": "LGPL-3",
+      "root_index": 0,
+      "sha256": "dffd6ea696475194ec1ecfd89f3989782085a1a6e9229a8fd67664f1836a9bef",
+      "version": "18.0.1.0.1"
+    },
+    "step_cerro_studio_agriculture": {
+      "license": "LGPL-3",
+      "root_index": 3,
+      "sha256": "521a2f809b821c9c0750b5aa39a364a39b055990055e828eebf886b0a086a2fe",
+      "version": "18.0.1.0.3"
+    },
+    "step_cerro_studio_budgets": {
+      "license": "LGPL-3",
+      "root_index": 12,
+      "sha256": "f0816e9200604fc907dedd4d713926a1ad5da6aca1edaae9cd51fa32c49baf43",
+      "version": "18.0.1.0.0"
+    },
+    "step_cerro_studio_companies": {
+      "license": "LGPL-3",
+      "root_index": 12,
+      "sha256": "e235a6a427883f7f3f5aa6829dc55e62a3ba92fae886411903c37b1432024cbe",
+      "version": "18.0.1.0.0"
+    },
+    "step_cerro_studio_exports": {
+      "license": "LGPL-3",
+      "root_index": 12,
+      "sha256": "14f49502fb66b53a4892a352d89d0f0ed75e943fb871b075116384d0c497b100",
+      "version": "18.0.1.0.0"
+    },
+    "step_cerro_studio_farms": {
+      "license": "LGPL-3",
+      "root_index": 3,
+      "sha256": "6165aa71362f3ee8f1072f7f9742acefbd57ed1cbdbde385792f529a5da60955",
+      "version": "18.0.1.0.0"
+    },
+    "step_cerro_studio_packing": {
+      "license": "LGPL-3",
+      "root_index": 9,
+      "sha256": "481a714671e55991b198d5b1705b674dec96f4c2d2f281dca04d1f9950a896be",
+      "version": "18.0.1.0.1"
+    },
+    "step_cerro_studio_process_types": {
+      "license": "LGPL-3",
+      "root_index": 2,
+      "sha256": "bdc304f35307ffe4d1c598875972259da97f0cc947497e55d2dbedd7308f4ef8",
+      "version": "18.0.1.0.2"
+    },
+    "step_cerro_studio_producers": {
+      "license": "LGPL-3",
+      "root_index": 0,
+      "sha256": "60426909e9b86cf2452bb33be0176e018c5d50bf613c553fbd899a159ad4b4eb",
+      "version": "18.0.1.0.2"
+    },
+    "step_cerro_studio_species": {
+      "license": "LGPL-3",
+      "root_index": 3,
+      "sha256": "e0ebfd91c02e3d08430ed8da4cab2dcf5a2a79359d984cc5fd5ef1326a95a07b",
+      "version": "18.0.1.0.3"
+    },
+    "step_cerro_studio_transfers": {
+      "license": "LGPL-3",
+      "root_index": 12,
+      "sha256": "f19f4efe1d6460a2d49e8155dec00d38ccff2d2956738161c234527927ee17c1",
+      "version": "18.0.1.0.0"
+    },
+    "step_management_costs": {
+      "license": "LGPL-3",
+      "root_index": 1,
+      "sha256": "be3a491c9c7dbb66dcf000266ec10bc304ac979cf252700b83bce7da288e18e9",
+      "version": "18.0.21.1.1"
+    },
+    "step_management_costs_agriculture": {
+      "license": "LGPL-3",
+      "root_index": 1,
+      "sha256": "121121bf61a768cd379b63ac6d603ea06c20e888624093956ecf63613f125ccb",
+      "version": "18.0.2.2.1"
+    },
+    "step_management_costs_producers": {
+      "license": "LGPL-3",
+      "root_index": 0,
+      "sha256": "c9a375912acd7ce36050e87ca4f9c1f620aca9af5e1880311f685a4d847dbf03",
+      "version": "18.0.1.0.0"
+    },
+    "step_management_estimation_entry": {
+      "license": "LGPL-3",
+      "root_index": 1,
+      "sha256": "6906abea2e17b180cea8b79167e311e30f7ec417b6218040452cfd8ad935bc0e",
+      "version": "18.0.1.1.0"
+    },
+    "step_packing": {
+      "license": "LGPL-3",
+      "root_index": 1,
+      "sha256": "c969ad2c02494b0aef31636faddd8fa509ccb0370088e673550b415f20707ece",
+      "version": "18.0.1.2.2"
+    },
+    "step_packing_operations": {
+      "license": "LGPL-3",
+      "root_index": 7,
+      "sha256": "ccc2402ea28f3e3b575ebe283a750c0dc219274202438491f9fb7c04c2d04c12",
+      "version": "18.0.2.12.3"
+    },
+    "step_packing_process_catalog": {
+      "license": "LGPL-3",
+      "root_index": 2,
+      "sha256": "2cde86f902761b8dd9a19696b8f5d18b7cad68c540536c0162b03041e93282be",
+      "version": "18.0.1.0.0"
+    },
+    "step_packing_process_category": {
+      "license": "LGPL-3",
+      "root_index": 2,
+      "sha256": "0905d010a276a64f681fc992cea56697c9a415028e3ce5d64ed18fb5842e26a5",
+      "version": "18.0.1.0.2"
+    },
+    "step_producer_fruit_reports": {
+      "license": "LGPL-3",
+      "root_index": 7,
+      "sha256": "291ac51dc81d4bab39b093d5c9c103eae854327933c6cfb2fc74acfa024b241b",
+      "version": "18.0.1.0.4"
+    },
+    "step_producers": {
+      "license": "LGPL-3",
+      "root_index": 1,
+      "sha256": "ed14062ab6758ff2a27e02c73890c47b52e49ef2e24782f0d7a9a3deb98812c0",
+      "version": "18.0.1.9.2"
+    },
+    "step_product_bpa": {
+      "license": "AGPL-3",
+      "root_index": 8,
+      "sha256": "901b0ab67f1d52dab55b8632c7e688f6b3e6ab27f354be072450a1d90850fbbd",
+      "version": "18.0.1.0.0"
+    },
+    "step_species_tariff": {
+      "license": "LGPL-3",
+      "root_index": 8,
+      "sha256": "48c9dc0d664bc5c331e90c603cdfc21634636179b15f2e0ded54d3c63b0ff43f",
+      "version": "18.0.1.0.0"
+    }
+  },
+  "receipt_sha256": "54ef89dba13ea308b8beb55e706f40ef3cde1c79391ec8b9ea55552b42446cd7",
+  "roots": [
+    "community-cerro-studio-catalogue-20261126U40B/native-catalog-graph-u42n/sources",
+    "community-cerro-studio-catalogue-20261126U40B/native-catalog-graph-v3/providers",
+    "community-cerro-studio-strict-20261126U42C/process-catalog-4f7fbac81c90",
+    "community-cerro-studio-strict-20261126U42C/native-catalog-graph-6f4f9509a18a",
+    "community-cerro-studio-strict-20261126U42C/bom-restore-2d6b0a1c73e6",
+    "community-cerro-studio-catalogue-20261126U40B/native-directory-v1/views",
+    "community-cerro-studio-catalogue-20261126U40B/native-directory-v1/core",
+    "community-cerro-studio-catalogue-20261126U40B/upgrade-final-v2/addons",
+    "community-cerro-studio-catalogue-20261126U40B/free-sibling-fields/addons",
+    "community-cerro-studio-catalogue-20261126U40B/process-16468b136f/addons",
+    "community-cerro-studio-catalogue-20261126U40B/species-278a413917/addons",
+    "community-cerro-studio-catalogue-20261126U40B/farm-c0ede82757/addons",
+    "community-cerro-studio-catalogue-20261126U40B/final-views",
+    "community-cerro-studio-catalogue-20261126U40B/addons"
+  ],
+  "source_sql_sha256": "954c632423424cc31923e9ec5b8f01f5944435491cec4da11b69e8e02f1654b7"
+}
