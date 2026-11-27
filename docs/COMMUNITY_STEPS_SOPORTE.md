@@ -73,3 +73,11 @@ y 804 definiciones de contadores. El SHA-256 del paquete es
 Los recibos privados son `U44H2-steps-support-install.json`,
 `U44H2-steps-support-repeat.json`, `U44S2-steps-support-reference.json`,
 `U44HC2-steps-support-reference.json` y `U44HT2-steps-support-reference.json`.
+
+## Conversaciones y archivos del soporte original
+
+Dos operadores internos abrieron las conversaciones de los 243 tickets con sus permisos habituales. Para cada uno se recuperaron los mismos 1.564 mensajes que devuelve el lector del hilo y los 418 archivos que muestra la ficha. Los archivos suman 49.063.343 bytes. La referencia privada compara por mensaje su identidad, contenido, autor, subtipo y adjuntos. Cada archivo se identifica por tamaño y SHA-256.
+
+La cuenta de portal original sigue cinco tickets y es el contacto asignado a los cinco. El portal le presentó tres mensajes y las descargas de dos adjuntos por un total de 228.178 bytes. La ficha del adjunto tiene una comprobación de acceso independiente. El portal y el usuario público tuvieron denegadas las dos fichas en el modelo. El control revirtió las autorizaciones temporales que emitió Odoo al mostrar los mensajes y cotejó once tablas completas después de la consulta.
+
+La lista nativa se abre en `/my/tickets` y tiene ruta paginada. El enlace de ficha de cada ticket se resuelve como `/my/ticket/<id>`. Existe también la variante del enlace de invitación. En el sistema original, el detalle pasa por la personalización de soporte de Steps. La prueba `probe_steps_support_thread.py` registra únicamente cantidades y huellas del contenido.
