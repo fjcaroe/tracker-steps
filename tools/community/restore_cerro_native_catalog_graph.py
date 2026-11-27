@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import tarfile
 
-from check_cerro_studio_strict import ROOT
+from check_cerro_studio_strict import ROOT, tree_sha
 from compare_cerro_studio_strict import NATIVE
 from restore_cerro_studio_strict import SPACE, references, sql
 from verify_cerro_native_catalog_graph import SOURCE, season_contract, estimate_contract, categories
@@ -80,6 +80,23 @@ def guard(mode,file):
 def main():
     with open('/run/lock/steps-environments.lock','rb') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
+        from derive_cerro_native_catalog_order import derive_core
+        config=configparser.ConfigParser(interpolation=None)
+        config.read('/etc/odoo18-cerroelplomo.conf')
+        original_paths=[Path(p.strip()) for p in config['options']['addons_path'].split(',')]
+        legacy=next(p/'step_hr' for p in original_paths if (p/'step_hr/__manifest__.py').is_file())
+        native_core=TRIAL/'sources/step_agriculture_core'
+        if not native_core.exists():
+            evidence=derive_core(ROOT/'native-catalog-graph-6f4f9509a18a/step_agriculture_core',legacy,native_core)
+            (TRIAL/'native-core-source.json').write_text(json.dumps(evidence,sort_keys=True))
+        assert tree_sha(native_core)==json.loads((TRIAL/'native-core-source.json').read_text())['native_core']
+        species=ROOT/'view-alias-add2d259eb/step_agriculture_species_pallet'
+        digest='d25b9ac8bfb41771b7d05b5b287c277b32ea0517dc17af21ddccf78502741b30'
+        assert tree_sha(species)==digest
+        destination=TRIAL/'sources'/species.name
+        if not destination.exists():
+            shutil.copytree(species,destination,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+        assert tree_sha(destination)==digest
         restore()
         guard('arm','before.json')
         config=Path('/etc/odoo18-cerroelplomo.conf')
