@@ -30,6 +30,12 @@ class AccountMove(models.Model):
                                             **METADATA["l10n_cl_reference_ids"])
     l10n_cl_sii_barcode = fields.Char(readonly=True, copy=False, **METADATA["l10n_cl_sii_barcode"])
 
+    def _get_name_invoice_report(self):
+        self.ensure_one()
+        if self.l10n_latam_use_documents and self.company_id.account_fiscal_country_id.code == "CL":
+            return "l10n_cl.report_invoice_document"
+        return super()._get_name_invoice_report()
+
     @api.model
     def _pdf417_barcode(self, stored_stamp):
         """Encode the stored stamp for display in the original invoice report."""
