@@ -1,5 +1,13 @@
 # Recuperación del perfil SyS de Nómina para integrar Documentos
 
+## Producto integrado sobre el respaldo original de SyS
+
+U44FG reúne 192 módulos Community. Deriva del respaldo de U42L con Nómina 18.0.1.6.1. Las cuatro actualizaciones fiscales y las altas y repeticiones de Biblioteca 18.0.1.0.5 y Portal 18.0.1.0.3 pasaron los controles de preservación antes y después de cada operación. El control de cada paso cotejó 12.010 columnas, 5.816 restricciones, 26 vistas SQL, 2.484 índices, 1.996 relaciones con propietarios y permisos, la definición de 858 secuencias, 741 relaciones de propiedad de secuencias y tres diseños de factura originales. Se mantuvieron las 21 columnas obligatorias identificadas por nombre y las cuarenta protecciones del histórico. Dos usuarios privados de ensayo se incorporaron durante la restauración inicial para comprobar el acceso del destinatario y la denegación al segundo usuario.
+
+El gestor original abrió el formulario de la liquidación y el menú, formulario y carpeta de Biblioteca. El archivo autorizado de 27.369 bytes obtuvo el mismo SHA-256 por Nómina, por Biblioteca y por el enlace del editor en el Portal. Las nueve solicitudes HTTP cubrieron el destinatario autenticado, el segundo usuario y la sesión anónima, antes del permiso, con permiso y después de revocarlo. La repetición de los 1.430 enlaces internos y externos efectuó cero escrituras. Los nueve controles de nómina coincidieron con U42L. Después de estos ejercicios se conservaron las filas de las 1.141 tablas del producto y avanzaron doce secuencias de ensayo. La huella del recibo documental combinado es `8c8cf408bec1d91ec129ed17dc6f88b018711566cf1755dcbc048812e6e29ecb`.
+
+El operador contrastó los 24 pares de archivos de nómina de las doce empresas y volvió a imprimir cuatro facturas con el mismo texto, tipografía, geometría y permisos que la referencia nativa. Los recibos privados de exportaciones, impresión y cotejo final tienen las huellas SHA-256 `658f035c21f60012a63da9aca4e566ad009501ad57e6d709ac78d19fee5cf41a`, `cef9fb54003a3f02b9b6162c997335869aa8c2b3d498410a7c91cf4365966b0d` y `282625bf5d92f8d4f6b89acf96382256448ef63216b4dc1d70306d496a1309e1`.
+
 ## Límite de preservación detectado al preparar la conversión fiscal
 
 U43C acredita los recorridos funcionales descritos y conserva fielmente su propio estado en el respaldo de catorce piezas. La comparación posterior entre el esquema original de U42L y el esquema combinado encontró trece columnas que perdieron la obligatoriedad durante la instalación de Documentos. El uso de U43C como origen de una conversión integral queda suspendido. La preparación de U44FD detectó esta diferencia antes de aplicar su primera actualización fiscal.
