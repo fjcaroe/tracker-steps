@@ -35,12 +35,13 @@ def main():
     args = parser.parse_args()
     base = args.base
     assert base.resolve() == base and base.parent == Path('/opt/steps-validation')
-    assert re.fullmatch('(t231232|t234|t235|t236237)_[a-f0-9]{8}', args.run_id)
-    operations = args.run_id.startswith('t236237_')
+    assert re.fullmatch('(t231232|t234|t235|t236237|t244245)_[a-f0-9]{8}', args.run_id)
+    hours = args.run_id.startswith('t244245_')
+    operations = args.run_id.startswith('t236237_') or hours
     costing = args.run_id.startswith('t235_')
-    panel = args.run_id.startswith(('t234_', 't235_', 't236237_'))
+    panel = args.run_id.startswith(('t234_', 't235_', 't236237_', 't244245_'))
     reviewed = dict(tuple(map(int, item.split(':'))) for item in args.reviewed_message)
-    assert not panel or set(reviewed) == ({236, 237} if operations else {233, 234, 235} if costing else {233, 234}), 'Identify the human replies reviewed for this delivery'
+    assert not panel or set(reviewed) == ({236, 237, 242, 243, 244, 245} if hours else {236, 237} if operations else {233, 234, 235} if costing else {233, 234}), 'Identify the human replies reviewed for this delivery'
     output = base/'delivery'
     output.mkdir(mode=0o700, exist_ok=True)
     manifest = json.loads((base/'web/release.json').read_text())
@@ -86,14 +87,16 @@ def main():
         if panel:
             shutil.copyfile(stage/'harvest-browser-proof.json', output/(target+'-copy-review.json'))
         if operations:
-            configuration_files = [(kind, stage/('harvest-default-job-'+kind+'.json')) for kind in ('copy', 'live')]
-            copy_configuration, live_configuration = (json.loads(path.read_text()) for _, path in configuration_files)
-            validate_default_job_delivery(copy_configuration, live_configuration, qa, target, sha,
-                                          helper_sha, environments[target]['database'], backups[0])
+            configuration_files = [] if hours else [(kind, stage/('harvest-default-job-'+kind+'.json')) for kind in ('copy', 'live')]
+            if not hours:
+                copy_configuration, live_configuration = (json.loads(path.read_text()) for _, path in configuration_files)
+                validate_default_job_delivery(copy_configuration, live_configuration, qa, target, sha,
+                                              helper_sha, environments[target]['database'], backups[0])
             validate_operations_review(manifest, target, stage.name, qa,
                 json.loads((stage/'harvest-browser-proof.json').read_text()))
             crew_smoke = json.loads((stage/'harvest-crew-smoke.json').read_text())
-            default_job.validate_crew_smoke(crew_smoke, copy_configuration, target, sha, helper_sha, qa['commit'])
+            if not hours:
+                default_job.validate_crew_smoke(crew_smoke, copy_configuration, target, sha, helper_sha, qa['commit'])
             validate_operations_smokes(manifest, qa,
                 json.loads((stage/'harvest-operations-smoke.json').read_text()),
                 crew_smoke)
