@@ -119,9 +119,9 @@ def summarize(native, community, baselines):
         for r in rows:
             changed[(r["sequence"], r["code"], r["rule"])] += 1
             flags[(r["code"], r["rule"], r["old_rows"], r["new_rows"], tuple(r["fields"]))] += 1
-    return {"original_classification": original, "first_sequence_changes": [[k, n] for k, n in sorted(first.items())],
+    return {"original_classification": original, "first_sequence_changes": [[[list(rule) for rule in k], n] for k, n in sorted(first.items())],
             "changed_components": [[*k, n] for k, n in sorted(changed.items())],
-            "presence_and_value_fields": [[*k, n] for k, n in sorted(flags.items())]}
+            "presence_and_value_fields": [[code, rule, old, new, list(fields), n] for (code, rule, old, new, fields), n in sorted(flags.items())]}
 
 
 def main():
