@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 
+from audit_sys_upgrade_policy import audit
 from custody_sys_previred_filestore import attachments, digest, object_catalog, restore_objects
 from restore_native_product_backup import pg, query
 from restore_sys_previred_pair import GIB, LOCK, require
@@ -200,7 +201,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after"))
     args = parser.parse_args()
@@ -215,6 +216,10 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "restore":
             restore(args, proof)
+        elif args.operation == "policy":
+            identity = json.loads((args.output / "restored.json").read_bytes())
+            require(identity["database"] == args.database and identity["sealed"] == str(args.sealed), "wrong-target")
+            save(args.output / "policy.json", audit(args.database, args.sealed / "runtime", MODULES))
         elif args.operation == "forms":
             require(args.label, "form-label-required")
             forms(args)
