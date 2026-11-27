@@ -141,6 +141,12 @@ def odoo(args, mode, options, log, stdin=None):
         return subprocess.run(argv, input=stdin, stdout=handle, stderr=handle).returncode
 
 
+def original_aliases(db, max_id):
+    return json.loads(query(db, f"""SELECT json_build_array(count(*), md5(string_agg(md5(
+        json_build_array(id,module,name,model,res_id,noupdate)::text),'' ORDER BY id)))
+        FROM ir_model_data WHERE id<={int(max_id)}"""))
+
+
 def journal_domain(db):
     return json.loads(query(db, """SELECT json_build_object('purchase', count(*),
         'latam', count(*) FILTER (WHERE l10n_latam_use_documents),
@@ -177,6 +183,8 @@ def upgrade(args, proof):
     require(guards(db) == restored["guards"], "original-guards-changed-before-upgrade")
     initial = module_versions(db)
     journals = journal_domain(db)
+    max_alias = int(query(db, "SELECT max(id) FROM ir_model_data"))
+    aliases = original_aliases(db, max_alias)
     require(initial[module] == ["installed", old], "module-no-longer-at-original-version")
     code = odoo(args, None, ["-u", module], run / (module + ".log"))
     final = module_versions(db)
@@ -185,7 +193,10 @@ def upgrade(args, proof):
     raw = log.read_text() if log.is_file() else ""
     require(guards(db) == restored["guards"], "original-guards-changed-after-upgrade")
     delta = differences(before, after)
-    result = {"module": module, "old": initial[module], "new": final[module], "expected": expected,
+    original_aliases_after = original_aliases(db, max_alias)
+    changed_tables = {table: [before["public_tables"].get(table), after["public_tables"].get(table)]
+                      for table in delta["public_tables"]}
+    result = {"module": module, "aliases": [aliases, original_aliases_after], "table_fingerprints": changed_tables, "old": initial[module], "new": final[module], "expected": expected,
               "journal_domain": [journals, journal_domain(db)], "odoo_exit": code, "manifest": providers[module][1], "loaded": "Modules loaded." in raw,
               "log_sha256": digest(log) if log.exists() else None,
               "passed": code == 0 and "Modules loaded." in raw and final[module] == ["installed", expected],

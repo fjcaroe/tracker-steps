@@ -1,4 +1,5 @@
 """Open the affected actions as existing internal users of the restored SyS company."""
+from ast import literal_eval
 from collections import Counter
 
 from lxml import etree
@@ -35,7 +36,7 @@ def open_action(scope, xmlid, menu, kind):
         res = res.with_context(active_model="project.task", active_ids=record.ids, **default)
         wizard = res.new(res.default_get(["composition_mode", "res_ids", "res_model", "mass_keep_log"]))
         assert wizard.composition_mode == "mass" and wizard.mass_keep_log
-        assert wizard.res_model == "project.task" and str(record.id) in str(wizard.res_ids)
+        assert wizard.res_model == "project.task" and literal_eval(wizard.res_ids) == record.ids
     view = res.get_view(view_type="form")
     arch = etree.fromstring(view["arch"].encode("utf8"))
     assert arch.tag == "form" and arch.xpath(".//field")
