@@ -242,3 +242,22 @@ privado `U42E/packing-reference-comparison.json` tiene SHA-256
 `3b969a2d6c3d2f5d91d52c5dfae3608f5f6ca4f66e5ebbd29d964c10637fc764`.
 Se reproduce con `tools/community/compare_cerro_studio_receipts.py` usando
 las dos referencias nativas y la lectura real `U42E/packing-studio.log`.
+
+
+La matriz de fallos identifica el primer dato que interrumpe la lectura
+integral de cada pantalla del usuario. Sus nombres de módulo se obtuvieron
+de los registros originales de U40Q.
+
+| Vistas | Primer proveedor necesario |
+| --- | --- |
+| 5293 | Registros agrícolas, campo `agriculture_can_cost` |
+| 5312, 5317, 5318 | Diseño presupuestario, versión y dos informes |
+| 5193 | Inventario de Packing, estado de la tarja |
+| 5189, 5194 | Operaciones de Packing, modelo de producción |
+| 5267 | Directorio de tipos de despacho, su alcance por empresa y su destinatario |
+| 4845, 5192 | Exportaciones, concepto de pago y receptor |
+| 5187, 5244 | Calidad, `stock.picking.quality_check_todo` |
+| 5245 | Localización chilena de stock, `stock.picking.l10n_cl_sii_send_file` |
+
+El archivo privado `U42E/packing-view-owners.json` tiene SHA-256
+`2a374b6dbb921e88fa22d1e4ed94edcc43235b3db48fa0a57bf319d00d591c69`.
