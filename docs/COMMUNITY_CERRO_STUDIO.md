@@ -186,7 +186,8 @@ mantienen sus registros independientes.
 | --- | ---: | --- | --- |
 | U42C | 160 | 0 / 0 / 0 | Fundos, productos, empresas, tipos de proceso y especies |
 | U42B | 161 | 0 / 0 / 0 | Empresa principal y empresa adicional de la lista de materiales |
-| U42E | 152 | 0 / 0 / 0 | Lectura por cuartel y centros de costo del estimador agrícola |
+| U42E, estimador | 152 | 0 / 0 / 0 | Lectura por cuartel y centros de costo |
+| U42E, Packing y Productores | 171 | 0 / 0 / 0 | Categorías históricas, traslados, productores y centros analíticos |
 
 En U42C se recorrieron las 23 vistas originales con el usuario 6. Se llegó
 a 15 desde un menú y acción originales. En ocho coincidieron el registro,
@@ -217,3 +218,21 @@ El usuario 6 leyó las 14 líneas de estimación y sus 11 cuarteles. Coincidiero
 con el origen las 14 filas completas, el campo 31444, el índice parcial y
 la restricción validada. Los recibos privados son
 `U42E/estimate-result.json` y `U42E/estimate-user.log`.
+
+
+En U42E los proveedores completos de Packing y Productores registraron desde
+su primera carga el mismo catálogo de categorías de fruta que conserva el
+origen. Las cuatro claves foráneas y sus registros de campo coincidieron
+con Cerro después de cada instalación. El usuario de inventario leyó las
+184 líneas de tarja y las 55 recepciones vinculadas a una categoría. El campo
+de clase en las recepciones conservó sus valores vacíos. La integración con
+el centro analítico cargó su puente original de costos y productores.
+
+Con 171 módulos, el usuario 6 alcanzó 17 de las 23 vistas desde sus menús y
+acciones originales. En 14 coincidieron sus campos de Studio, el registro y
+el valor leído. En diez coincidió la fila completa del cliente web. Se
+preservaron las 14 estimaciones, sus 11 cuarteles y su unicidad. El recibo
+privado `U42E/packing-reference-comparison.json` tiene SHA-256
+`3b969a2d6c3d2f5d91d52c5dfae3608f5f6ca4f66e5ebbd29d964c10637fc764`.
+Se reproduce con `tools/community/compare_cerro_studio_receipts.py` usando
+las dos referencias nativas y la lectura real `U42E/packing-studio.log`.
