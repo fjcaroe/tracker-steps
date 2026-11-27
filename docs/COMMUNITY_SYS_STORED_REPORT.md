@@ -48,3 +48,18 @@ Se imprimieron nuevamente cinco PDF de una página. Los 61 identificadores, los
 archivados y las filas originales de los grupos de usuarios conservaron sus
 huellas. El recibo independiente de esta repetición tiene SHA-256
 `c9c3d3256567e5b11f8593f5051f2ba78c5da6d9aefb83094c97d17a64bc0421`.
+
+## Impresión histórica en la instalación U40J
+
+Con la acción original 1431 se generaron cinco liquidaciones de una página.
+Se cotejaron en otro equipo los cinco líquidos, las 61 filas visibles y los
+bytes de cada archivo. Los ocho PDF archivados y los registros históricos
+conservaron sus huellas. Coincidieron las versiones instaladas y ejecutadas
+de Simple Digital 18.0.1.7.3 y del puente de impresión 18.0.1.0.2.
+El recibo independiente tiene SHA-256
+`4ead793cef344643be253f136c30656e5c83ed8de933dd781a905c2535db8cd1`.
+
+El ejecutable de Odoo tuvo SHA-256
+`1eed7b28497e9486295acfc125b7b6f16baaa19ba2e64356bf41b65773be6e24`.
+El generador que Odoo resolvió como wkhtmltopdf 0.12.6 con Qt modificado tuvo
+SHA-256 `02fe2e0cf224dda2b38ff276d5738581aea19a0b36980d27645ae9341c815d50`.

@@ -48,7 +48,8 @@ def check_rule(env, xml, rule):
 
 def run(env, apply=False):
     fixture = bool(re.fullmatch(r'COMMUNITY_SYS_REPORT_ROLES_[A-Z0-9]+', env.cr.dbname))
-    if not fixture and env.cr.dbname != 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I':
+    is_reference = env.cr.dbname == 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40J' and not apply
+    if not fixture and not is_reference and env.cr.dbname != 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I':
         raise ValueError('Use an isolated employee fixture or the accepted private integrated SyS cohort')
     if (env.ref('hr_payroll.action_report_payslip').id != 1431
             or env.ref('hr_payroll.group_hr_payroll_manager') != env.ref('payroll.group_payroll_manager')
