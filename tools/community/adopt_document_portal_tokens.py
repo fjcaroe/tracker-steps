@@ -14,7 +14,7 @@ def source_identity(env):
 
 
 def capture_portal_references(env):
-    assert env.su and re.fullmatch(r"MANAGEMENT_QA_(SYS_LABOR_DOC|SYS_PORTAL|CERRO_CUSTODY)_[A-Z0-9_]+", env.cr.dbname)
+    assert env.su and re.fullmatch(r"MANAGEMENT_QA_(SYS_LABOR_DOC|SYS_PORTAL|CERRO_CUSTODY|STEPS_CRM)_[A-Z0-9_]+", env.cr.dbname)
     digests, affixes = {}, {}
     for document in env["documents.document"].with_context(active_test=False).search([], order="id"):
         token = document.access_token
@@ -34,7 +34,7 @@ def capture_portal_references(env):
 
 
 def adopt_portal_references(env, catalog):
-    assert env.su and re.fullmatch(r"COMMUNITY_(LIBRARY|PORTAL)_(SYS|CERRO)_[A-Z0-9_]+", env.cr.dbname)
+    assert env.su and re.fullmatch(r"COMMUNITY_(?:(?:LIBRARY|PORTAL)_(?:SYS|CERRO)|STEPS_CRM_DOC)_[A-Z0-9_]+", env.cr.dbname)
     env.cr.execute("LOCK TABLE documents_document IN SHARE ROW EXCLUSIVE MODE")
     if source_identity(env) != catalog["identity"]:
         raise ValidationError("Las identidades y referencias difieren de la copia nativa.")
