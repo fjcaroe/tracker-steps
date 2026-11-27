@@ -33,12 +33,36 @@ def verify(native, community, reads, providers):
             'sequence_draws': {row['database']:row['test_advanced'] for row in (native,community)}}
 
 
+def same_sales_results(paths):
+    native, community = [json.loads(path.read_bytes()) for path in paths]
+    assert native.pop('database') == 'MANAGEMENT_QA_STEPS_CRM_20261126U42C'
+    assert community.pop('database') == 'COMMUNITY_STEPS_CRM_20261126U42C'
+    assert native == community and 'error' not in native
+    return native
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for argument in ('native','community','native-read','community-read','providers'):
         parser.add_argument('--'+argument, type=Path, required=True)
+    parser.add_argument('--sales', nargs=2, type=Path, metavar=('NATIVE','COMMUNITY'))
+    parser.add_argument('--quotes', nargs=2, type=Path, metavar=('NATIVE','COMMUNITY'))
     args = parser.parse_args()
     def load(path):
         return json.loads(path.read_bytes())
-    print(json.dumps(verify(load(args.native), load(args.community),
-                            (load(args.native_read), load(args.community_read)), load(args.providers))))
+    result = verify(load(args.native), load(args.community),
+                    (load(args.native_read), load(args.community_read)), load(args.providers))
+    if args.sales:
+        sales = same_sales_results(args.sales)
+        assert (sales['orders'],sales['order_lines'],sales['linked_opportunities']) == (4,4,2)
+        assert (sales['new_quote_action'],sales['new_quote_view'],len(sales['quote_form_fields'])) == (526,1384,120)
+        attachments = sales['attachments']
+        assert attachments['sales']['allowed'] == attachments['sales']['scope'] == attachments['public']['scope'] == 238
+        assert (attachments['public']['allowed'],attachments['sales']['sample']) == (0,12)
+        result['historic_sales'] = sales['historic_sales']
+    if args.quotes:
+        quote = same_sales_results(args.quotes)
+        assert quote['saved_and_reopened'] and quote['rolled_back'] and quote['original_orders'] == 4
+        assert quote['state'] == 'draft' and quote['created_from_action'] == 526
+        result['trial_quote'] = quote['terms_and_amounts']
+    print(json.dumps(result))

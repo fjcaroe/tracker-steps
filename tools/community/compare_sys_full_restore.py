@@ -14,7 +14,7 @@ from custody_sys_previred_filestore import digest
 from restore_sys_previred_pair import LOCK, require
 
 
-def snapshot(database):
+def snapshot(database, required_nonempty=('hr_payslip', 'ir_attachment')):
     with closing(psycopg2.connect(dbname=database, user='postgres', host='/var/run/postgresql')) as conn:
         conn.set_session(readonly=True, isolation_level='REPEATABLE READ')
         with conn.cursor() as cr:
@@ -63,8 +63,8 @@ def snapshot(database):
             cr.execute("""SELECT sequencename,data_type::text,start_value,min_value,max_value,increment_by,cycle,cache_size
                           FROM pg_sequences WHERE schemaname='public' ORDER BY sequencename""")
             settings = {r[0]: list(r[1:]) for r in cr.fetchall()}
-    require('hr_payslip' in rows and rows['hr_payslip'][0] and rows['ir_attachment'][0] and sequences,
-            'expected-full-sys-data')
+    require(sequences and all(name in rows and rows[name][0] for name in required_nonempty),
+            'expected-full-restore-data')
     return {'public_tables':rows,'sequence_values':sequences,'sequence_definitions':settings,
             'relation_owner_and_acl':definitions,'columns':columns,'constraints':constraints}
 

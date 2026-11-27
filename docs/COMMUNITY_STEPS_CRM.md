@@ -35,6 +35,35 @@ copia, el de oportunidades y el de disparadores del planificador. Se
 conservaron esos avances y se contrastaron las filas de CRM y permisos
 antes y después del ensayo.
 
+El vendedor consultó también los cuatro documentos históricos de ventas
+(tres pedidos confirmados y un presupuesto en borrador). Coincidieron sus
+cuatro líneas, clientes, productos, impuestos, tarifas, cantidades e importes.
+Dos oportunidades daban acceso a los tres pedidos vinculados. Desde una
+oportunidad propia, la acción 526 abrió el formulario 1384 de presupuesto
+con los mismos valores iniciales y los mismos 120 nombres de campo.
+
+De los 447 adjuntos con archivo y modelo de oportunidad, 238 apuntaban a
+209 oportunidades existentes. El vendedor podía consultar los 238, el usuario
+público tenía denegados los 238 y doce archivos leídos por el vendedor
+coincidieron en tamaño y contenido. Los otros 209 adjuntos ya carecían de
+una oportunidad asignada en el original y se conservaron en la copia.
+
+La primera prueba de alta de un presupuesto vinculó el cliente, producto,
+tarifa e impuestos en la referencia nativa. Al inicializar el formulario de
+alta, la candidata de 157 módulos conservaba una vista original con dos
+campos sin proveedor activo, `spreadsheet_template_id` y `spreadsheet_id`.
+La vista de oportunidad y la lectura de pedidos históricos funcionaron en
+esta misma candidata. Steps tenía una plantilla de cotización, cero hojas
+de venta guardadas y cero plantillas con hoja asignada.
+
+Una segunda instalación de la selección de 157 módulos sobre el SQL
+original conservó las 163.133 filas de 1.112 tablas y los valores de los
+804 contadores antes de abrir Odoo. La comparación de cada fila encontró
+únicamente el cambio esperado de estado en los 153 módulos excluidos. Se
+conservaron 5.650 restricciones, 11.939 columnas, propietarios y permisos
+de 1.916 tablas y secuencias. Los 1.744 objetos referenciados por los
+adjuntos se recuperaron con su tamaño y contenido originales.
+
 El inventario del producto conserva 153 módulos instalados en la referencia
 nativa que este perfil deja fuera. Entre ellos se encuentran proveedores
 de soporte, aplicaciones propias y módulos Enterprise. El seguimiento de
