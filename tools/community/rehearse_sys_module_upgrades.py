@@ -283,6 +283,20 @@ def forms(args):
     save(out / (args.label + ".json"), json.loads(lines[0]))
 
 
+def retained_release(args):
+    require(args.database.endswith("U41MQ"), "retained-sys-policy-scope-required")
+    states = module_versions(args.database)
+    require(all(states[m] == ["installed", MODULES[m][1]] for m in FORWARD), "forward-providers-not-yet-installed")
+    probe = Path(__file__).with_name("probe_sys_retained_provider_release.py").read_text()
+    probe += "\nimport json\nassert env.cr.dbname==" + repr(args.database)
+    probe += "\nprint('PINNED_RELEASE='+json.dumps(run(env,Path(" + repr(str(args.output)) + "))),flush=True)"
+    log = args.output / ("retained-release-" + str(len(list(args.output.glob("retained-release-*.log")))) + ".log")
+    status = odoo(args, "shell", [], log, probe.encode())
+    rows = [line.partition("=")[2] for line in log.read_text().splitlines() if line.startswith("PINNED_RELEASE=")]
+    require(status == 0 and len(rows) == 1, "retained-policy-application-test-failed")
+    save(args.output / "retained-release.json", json.loads(rows[0]))
+
+
 def policy_impact(args):
     require(args.database.endswith(("U41M", "U41MP", "U41MQ")), "unexpected-impact-scope")
     code = Path(__file__).with_name("probe_sys_original_policy_impact.py").read_text()
@@ -497,7 +511,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -512,6 +526,8 @@ if __name__ == "__main__":
         proof = json.loads((args.sealed / "backup.json").read_bytes())
         if args.operation == "restore":
             restore(args, proof)
+        elif args.operation == "accept-retained":
+            retained_release(args)
         elif args.operation == "policy-impact":
             policy_impact(args)
         elif args.operation == "pin-providers":
