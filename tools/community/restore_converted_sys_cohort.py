@@ -278,6 +278,19 @@ def restore(args):
                stdin=handle, stdout=log, stderr=log)
     require(query("postgres", f"SELECT s.spcname FROM pg_database d JOIN pg_tablespace s ON s.oid=d.dattablespace "
                               f"WHERE d.datname='{target}'") == space, "restore-tablespace-drift")
+    check_replay = {}
+    if product == "cerro":
+        checker = Path(__file__).with_name("restore_original_check_spelling.py")
+        command = ["sudo", "-n", "-u", "postgres", "python3", "-B", str(checker), target, "-"]
+        snapshot = (sealed / "source-snapshot.json.gz").read_bytes()
+        changed_checks = json.loads(subprocess.check_output(command, input=snapshot))
+        require(not json.loads(subprocess.check_output(command, input=snapshot)), "repeat-original-check-replay")
+        receipt = out / "check-replay.json"
+        if not receipt.is_file():
+            save(receipt, {"sql_sha256": proof["sql_sha256"], "clauses": changed_checks})
+        check_replay = json.loads(receipt.read_bytes())
+        require(check_replay["sql_sha256"] == proof["sql_sha256"] and
+                (not changed_checks or check_replay["clauses"] == changed_checks), "replay-witness-mismatch")
     verify_same(frozen, full_snapshot(target))
     catalog = object_catalog(attachments(target, query)["references"])
     data = out / "data"
@@ -316,6 +329,8 @@ def restore(args):
     result = {**proof, "target": target, "tablespace": space, "full_post_boot_match": True,
               "source_unchanged": True, "source_unchanged_during_recovery": True,
               "source_sequence_advances_since_seal": advances, "checked_boots": 2, "role_probe": orm, "restored_filestore_objects": len(catalog)}
+    if check_replay:
+        result["exact_constraint_replay"] = check_replay
     save(out / "restore-proof.json", result)
     print(json.dumps(result, sort_keys=True))
 
