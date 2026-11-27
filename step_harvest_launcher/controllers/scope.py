@@ -72,6 +72,12 @@ class ScopedHarvestApi(StepHarvestApi):
         return record
 
     def _reference_data(self, resource, query=None, limit=None):
+        if resource == 'operation_locations':
+            domain = [('company_id', '=', request.env.company.id)]
+            if query:
+                domain.append(('name', 'ilike', query))
+            return [self._item(row, farm_id=row.fundo_id.id) for row in
+                    request.env['step.cosecha.ubicacion'].search(domain, order='name,id', limit=5000)]
         if resource == 'harvest_packagings':
             model = request.env['product.packaging']
             if not model.has_access('read'):
@@ -120,6 +126,9 @@ class ScopedHarvestApi(StepHarvestApi):
         crew = record.salary_id_contrac if record.type_tarea == 'contratista' else record.salary_id
         packaging = record.mobile_packaging_id
         return dict(super()._order(record), cuartel_id=record.cuartel_id.id or False,
+                    operation_location_id=record.cosecha_ubi_id.id or False,
+                    operation_location=record.cosecha_ubi_id.display_name or '',
+                    pass_number=record.qty_pasada, harvest_type=record.type_cosecha or False,
                     cuartel=record.cuartel_id.display_name or '',
                     crew_id=crew.id or False, crew_type=record.type_tarea,
                     standard_weight=record.mobile_standard_weight,
@@ -129,6 +138,10 @@ class ScopedHarvestApi(StepHarvestApi):
                     kg_per_box=record.mobile_kg_per_box)
 
     def _check_existing_plot(self, order, values):
+        for key, native in (('operation_location_id', order.cosecha_ubi_id.id),
+                            ('pass_number', order.qty_pasada), ('harvest_type', order.type_cosecha)):
+            if key in values and (values[key] or False) != (native or False):
+                raise ValidationError(_('La ubicación, pasada o tipo de cosecha no coincide con la OT existente.'))
         supplied = values.get('cuartel_id')
         if supplied and str(order.cuartel_id.id) != str(supplied):
             raise ValidationError(_('El cuartel no coincide con el de la OT existente.'))
@@ -141,6 +154,15 @@ class ScopedHarvestApi(StepHarvestApi):
         return order
 
     def _harvest_order_extra_values(self, values):
+        location = self._native_record('step.cosecha.ubicacion', values['operation_location_id']) if values.get('operation_location_id') else None
+        if location and str(location.fundo_id.id) != str(values.get('farm_id')):
+            raise ValidationError(_('Seleccione una ubicación de operación del fundo de la OT.'))
+        pasada = values.get('pass_number')
+        if ('pass_number' in values or values.get('ot_fields_version')) and (type(pasada) is not int or pasada <= 0):
+            raise ValidationError(_('El número de pasada es obligatorio y debe ser un entero mayor que cero.'))
+        harvest_type = values.get('harvest_type')
+        if harvest_type and harvest_type not in ('export', 'industrial'):
+            raise ValidationError(_('Seleccione tipo de cosecha Exportación o Industrial.'))
         standard = values.get('standard_weight') is True
         packaging = self._native_record('product.packaging', values['packaging_id'], shared=True) if values.get('packaging_id') else None
         if packaging and packaging.step_packaging_group != 'harvest':
@@ -151,7 +173,10 @@ class ScopedHarvestApi(StepHarvestApi):
                 raise ValidationError(_('Seleccione un envase de cosecha con kilos por caja mayores que cero.'))
             if values.get('kg_per_box') != kg_per_box:
                 raise ValidationError(_('Los kilos por caja del maestro cambiaron. Revise el envase antes de sincronizar la OT.'))
-        return {'mobile_standard_weight': standard, 'mobile_without_tarja': values.get('without_tarja') is True,
+        return {'cosecha_ubi_id': location.id if location else False, 'qty_pasada': pasada or 0,
+                'mobile_hours_required': values.get('ot_fields_version') == 1,
+                'type_cosecha': harvest_type or False,
+                'mobile_standard_weight': standard, 'mobile_without_tarja': values.get('without_tarja') is True,
                 'mobile_packaging_id': packaging.id if packaging else False,
                 'mobile_kg_per_box': kg_per_box if standard else 0,
                 'product_uom_id': request.env.ref('uom.product_uom_unit' if standard else 'uom.product_uom_kgm').id}
@@ -189,7 +214,7 @@ class ScopedHarvestApi(StepHarvestApi):
             'name': reference, 'folio': reference, 'mobile_work_order': reference,
             'mobile_uid': str(values.get('client_uuid') or '') or False, 'mobile_status': 'progress',
             'type_tarea': kind,
-            'date': self._event_datetime(data.get('event_datetime')),
+            'date': self._event_datetime(values.get('created_at') or data.get('event_datetime')),
             'company_id': request.env.company.id, 'responsable_id': request.env.uid,
             'fundo_id': farm.id, 'variedad_id': variety.id, 'cost_id': center.id,
             'cuartel_id': plot.id or False,
@@ -220,6 +245,7 @@ class ScopedHarvestApi(StepHarvestApi):
         payload = dict(payload)
         if request.session.uid and 'orders' in payload and 'crews' in payload:
             payload['harvest_packagings'] = self._reference_data('harvest_packagings')
+            payload['operation_locations'] = self._reference_data('operation_locations')
             payload['allows_without_tarja'] = True
         payload['scope'] = environment_scope(request.env) if request.session.uid else False
         if request.session.uid and 'company' in payload:

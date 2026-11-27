@@ -6,6 +6,12 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='folio']" position="after">
                 <field name="mobile_work_order" readonly="1" invisible="not mobile_work_order"/>
+                <field name="mobile_work_start" invisible="not mobile_work_start"/>
+                <field name="mobile_work_end" invisible="not mobile_work_start"/>
+                <field name="mobile_work_hours" widget="float_time" invisible="not mobile_work_start"/>
+                <field name="mobile_work_day" invisible="not mobile_work_start"/>
+                <field name="mobile_day_hours" widget="float_time" invisible="not mobile_work_start"/>
+                <field name="mobile_last_order" invisible="not mobile_work_start"/>
                 <field name="mobile_without_tarja" readonly="1" invisible="not mobile_work_order and not mobile_without_tarja"/>
                 <field name="mobile_packaging_id" readonly="1" invisible="not mobile_packaging_id"/>
                 <field name="mobile_standard_weight" readonly="1" invisible="not mobile_standard_weight"/>

@@ -1,6 +1,6 @@
 import hmac
 
-from odoo import http, _
+from odoo import fields, http, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.http import request
 
@@ -8,6 +8,28 @@ from .scope import ScopedHarvestApi, environment_scope
 
 
 class LifecycleHarvestApi(ScopedHarvestApi):
+    @http.route('/api/harvest/orders/hours', type='http', auth='user', methods=['GET'], sitemap=False)
+    def work_hours(self, order_id=None, crew_id=None, day=None, **kwargs):
+        error = self._active_company()
+        if error is not None:
+            return error
+        try:
+            if order_id:
+                order = self._native_record('step.cosecha.registry', order_id)
+            else:
+                request.env['step.cosecha.registry'].check_access('read')
+                crew = self._native_record('hr.salary.custom', crew_id)
+                crew._harvest_check_crew()
+                order = request.env['step.cosecha.registry'].new({'company_id': request.env.company.id,
+                    'type_tarea': crew.group_type,
+                    'salary_id_contrac' if crew.group_type == 'contratista' else 'salary_id': crew.id})
+            day = fields.Date.to_date(day)
+            if not day:
+                raise ValidationError(_('Indique el día de la OT.'))
+            return self._json({'ok': True, **order._harvest_hours_summary(day)})
+        except (AccessError, UserError, ValidationError, ValueError, TypeError) as exc:
+            return self._json({'ok': False, 'error': str(exc)}, status=422)
+
     def _approvers(self):
         candidates = request.env['res.users'].search([
             ('active', '=', True), ('share', '=', False),
@@ -103,7 +125,7 @@ class LifecycleHarvestApi(ScopedHarvestApi):
                 order = self._get_or_create_order(payload)
                 order._lock_harvest_order()
                 results = self._send_records(order, payload) if payload.get('action') == 'send' else []
-                order._harvest_transition(payload.get('action'), payload.get('delivery_uuids'))
+                order._harvest_transition(payload.get('action'), payload.get('delivery_uuids'), payload.get('work_time'))
                 return self._json({'ok': True, 'order': self._order(order),
                                    'confirmed_delivery_uuids': payload['delivery_uuids'], 'results': results})
         except (AccessError, UserError, ValidationError, ValueError, TypeError) as exc:
@@ -115,6 +137,11 @@ class LifecycleHarvestApi(ScopedHarvestApi):
         writable = record.has_access('write')
         approver = record.mobile_approver_id
         return dict(super()._order(record),
+                    order_day=str(fields.Datetime.context_timestamp(record, record.date).date()) if record.date else '',
+                    work_start=fields.Datetime.to_string(record.mobile_work_start) + 'Z' if record.mobile_work_start else False,
+                    work_end=fields.Datetime.to_string(record.mobile_work_end) + 'Z' if record.mobile_work_end else False,
+                    work_hours=record.mobile_work_hours, work_day=str(record.mobile_work_day or ''),
+                    day_hours=record.mobile_day_hours, last_order=record.mobile_last_order,
                     can_transition=record.has_access('write'),
                     approver_id=approver.id or False, approver=approver.display_name or '',
                     approved_by_id=record.mobile_approved_by_id.id or False,

@@ -12,6 +12,8 @@ class HarvestMobileLifecycle(models.Model):
         'mobile_status', 'mobile_state_date', 'mobile_state_user_id', 'mobile_approved_by_id',
         'mobile_approved_at', 'mobile_native_approval', 'mobile_approved_manifest',
         'mobile_approved_delivery_count',
+        'mobile_work_start', 'mobile_work_end', 'mobile_work_hours', 'mobile_work_day',
+        'mobile_day_hours', 'mobile_last_order',
     })
 
     mobile_status = fields.Selection(tracking=True)
@@ -76,7 +78,7 @@ class HarvestMobileLifecycle(models.Model):
         self.invalidate_recordset(['mobile_status', 'state', 'invoice_id', 'purchase_id',
                                   'mobile_approver_id', 'mobile_approved_by_id', 'mobile_native_approval'])
 
-    def _harvest_transition(self, action, delivery_uuids):
+    def _harvest_transition(self, action, delivery_uuids, work_time=None):
         """Confirm the device manifest against native deliveries before closing.
 
         Approval calls the native Ingresado -> Aprobado action. Higher ERP states
@@ -107,6 +109,7 @@ class HarvestMobileLifecycle(models.Model):
                 raise ValidationError(_('La OT no se encuentra disponible para reabrir.'))
             if current == 'progress':
                 return
+            self._harvest_check_reopen_hours()
             if self.state == 'apro' and self.mobile_native_approval:
                 self.action_in()
             self._harvest_write({'mobile_status': 'progress', 'mobile_approved_by_id': False,
@@ -132,6 +135,11 @@ class HarvestMobileLifecycle(models.Model):
                             mobile_status='reviewed', mobile_state_date=fields.Datetime.now(),
                             mobile_state_user_id=self.env.uid))
             return
+        if action == 'close':
+            if self.mobile_hours_required and work_time is None:
+                raise ValidationError(_('Actualice Harvest e indique las horas de trabajo para cerrar esta OT.'))
+            if work_time is not None:
+                self._harvest_apply_work_hours(work_time)
         if current == target:
             return  # A lost HTTP response can be retried without another event.
         if action == 'send' and not self.mobile_approved_by_id:

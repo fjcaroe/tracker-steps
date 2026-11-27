@@ -16,7 +16,7 @@ async function main() {
         const page = await context.newPage();
         page.setDefaultTimeout(40000);
         await page.goto(`${origin}/cosecha/`, { waitUntil: 'domcontentloaded' });
-        const build = page.getByText(/· Harvest 0\.0\.(10|11)$/);
+        const build = page.getByText(/· Harvest 0\.0\.(10|11|12)$/);
         await build.waitFor();
         const version = (await build.textContent()).split('Harvest ').at(-1);
         const launcher = await context.request.get(`${origin}/harvest/open`, { maxRedirects: 0 });
@@ -31,7 +31,7 @@ async function main() {
         for (const field of ['mobile_packaging_id', 'mobile_standard_weight', 'mobile_kg_per_box']) {
             assert.match(arch, new RegExp(`name="${field}"`));
         }
-        if (version === '0.0.11') assert.match(arch, /name="mobile_without_tarja"/);
+        if (['0.0.11', '0.0.12'].includes(version)) assert.match(arch, /name="mobile_without_tarja"/);
         const data = await context.request.get(`${origin}/api/harvest/bootstrap`).then(response => response.json());
         assert.ok(data.ok && data.harvest_packagings.length);
         const packaging = data.harvest_packagings.find(row => row.kg_per_box >= 0.01);
@@ -59,6 +59,14 @@ async function main() {
             await form.locator('[name=id]').fill(`QA-T242-${randomUUID()}`);
             await form.locator('[name=crew]').selectOption(String(crew.id));
             await form.locator('[name=farm]').selectOption(String(center.farm_id));
+            if (version === '0.0.12') {
+                assert.equal(await form.locator('[name=passNumber]').evaluate(input => input.required), true);
+                await form.locator('[name=passNumber]').fill('2');
+                await form.locator('[name=harvestType]').selectOption('export');
+                const choices = data.operation_locations.filter(row => row.farm_id === center.farm_id);
+                assert.equal(await form.locator('[name=operationLocation] option').count(), choices.length + 1);
+                if (choices.length) await form.locator('[name=operationLocation]').selectOption(String(choices[0].id));
+            }
             await form.locator('[name=variety]').selectOption(String(center.variety_id));
             await form.locator('[name=costCenter]').selectOption(String(center.id));
             await form.getByRole('button', { name: 'Crear jornada local' }).click();
@@ -98,7 +106,7 @@ async function main() {
         assert.equal(await manual.evaluate(input => !input.readOnly && input.validity.valid && input.step === '0.01'), true);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
         const withoutTarja = {};
-        if (version === '0.0.11') {
+        if (['0.0.11', '0.0.12'].includes(version)) {
             await page.getByTitle('Configuración', { exact: true }).click();
             await page.locator('.setting').filter({ hasText: 'Folio de tarja' })
                 .getByRole('button', { name: 'Sin tarja', exact: true }).click();
@@ -118,10 +126,26 @@ async function main() {
             }
             Object.assign(withoutTarja, { capture_without_tarja: true, worker_tarja_association_off: true });
         }
+        const hours = {};
+        if (version === '0.0.12') {
+            await nav.getByRole('button', { name: 'OT', exact: true }).click();
+            const card = page.locator('.order-list > article').first();
+            await card.getByText('Número de pasada', { exact: true }).waitFor();
+            await card.getByRole('button', { name: 'Cerrar OT', exact: true }).click();
+            const dialog = page.getByRole('dialog', { name: /^Cerrar OT / });
+            await dialog.getByText(/Jornada:/).waitFor();
+            for (const name of ['workStart', 'workEnd', 'workHours']) assert.equal(await dialog.locator(`[name=${name}]`).count(), 1);
+            await dialog.locator('[name=lastOrder]').check();
+            assert.equal(await dialog.locator('[name=workHours]').evaluate(input => input.readOnly), true);
+            await dialog.getByText(/100%/).first().waitFor();
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+            await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+            Object.assign(hours, { ot_native_fields: true, pass_required: true, ot_work_hours: true, day_allocation: true });
+        }
         fs.writeFileSync(output, JSON.stringify({ packaging_selector: true, standard_weight_readonly: true,
             manual_weight_hundredths: true, mobile_layout: true, local_weight_preserved: mode === 'copy',
             native_context: true, native_weight_form: true, harvest_launcher: true,
-            crew_native_type_contractor: true, version, server_writes: false, ...withoutTarja }, null, 2));
+            crew_native_type_contractor: true, version, server_writes: false, ...withoutTarja, ...hours }, null, 2));
     } finally {
         await browser.close();
     }

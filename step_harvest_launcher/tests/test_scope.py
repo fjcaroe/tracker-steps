@@ -229,6 +229,8 @@ class HarvestNativeScopeCase(HttpCase):
             'especie_id': species.id, 'grupo_variedad_id': group.id, 'company_id': company.id})
         crew = env['hr.salary.custom'].create({
             'name': 'Private T233 crew', 'group_type': 'propio', 'company_id': company.id})
+        location = env['step.cosecha.ubicacion'].create({'name': 'Private operation location',
+            'company_id': company.id, 'fundo_id': farm.id, 'type_ubicacion': 'rama'})
         contractor = env['res.partner'].create({'name': 'Private Harvest contractor', 'is_company': True})
         contractor_crew = env['hr.salary.custom'].create({
             'name': 'Private Harvest contractor crew', 'group_type': 'contratista',
@@ -248,6 +250,7 @@ class HarvestNativeScopeCase(HttpCase):
         self.assertEqual([plot['id'] for plot in choices[first.id]], plots[0].ids)
         self.assertEqual([plot['id'] for plot in choices[other.id]], plots[1].ids)
         self.assertNotIn(foreign.id, choices)
+        self.assertIn({'id': location.id, 'name': location.display_name, 'farm_id': farm.id}, data['operation_locations'])
         order = {'id': 'PRIVATE-T233', 'farm_id': farm.id, 'variety_id': variety.id,
                  'cost_id': first.id, 'crew_id': crew.id, 'approver_id': self.users[0].id}
 
@@ -291,3 +294,16 @@ class HarvestNativeScopeCase(HttpCase):
         legacy_order = env['step.cosecha.registry'].browse(legacy['work_order_id'])
         self.assertFalse(legacy_order.cuartel_id)
         self.assertEqual(legacy_order.mobile_approver_id, self.users[0])
+        for index, passed in enumerate((0, -1, 1.5, True, None)):
+            result = upload('invalid_pass_' + str(index), id='PRIVATE-T245-INVALID-' + str(index),
+                ot_fields_version=1, pass_number=passed)
+            self.assertFalse(result['ok'], result)
+        result = upload('new_fields', id='PRIVATE-T245', ot_fields_version=1,
+            operation_location_id=location.id, pass_number=3, harvest_type='industrial')
+        self.assertTrue(result['ok'], result)
+        saved = env['step.cosecha.registry'].browse(result['work_order_id'])
+        self.assertEqual((saved.cosecha_ubi_id, saved.qty_pasada, saved.type_cosecha), (location, 3, 'industrial'))
+        self.assertTrue(saved.mobile_hours_required)
+        self.assertFalse(upload('changed_pass', id='PRIVATE-T245', pass_number=2)['ok'])
+        result = upload('invalid_kind', id='PRIVATE-T245-INVALID-KIND', pass_number=1, harvest_type='other')
+        self.assertFalse(result['ok'], result)

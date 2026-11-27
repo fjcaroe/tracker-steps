@@ -297,7 +297,7 @@ def exercise_revised_operations(client, policy, run_uuid=None):
         manual_order = {key: work_order[key] for key in ('crew_id', 'farm_id', 'variety_id', 'cost_id', 'approver_id')}
         manual_order['id'] = manual_order['client_uuid'] = run_uuid + '-MANUAL-OT'
         manual = dict(first, client_uuid=run_uuid + '-MANUAL', work_order=manual_order, boxes=2, kilos=9.27)
-        if version == '0.0.11':
+        if version in ('0.0.11', '0.0.12'):
             assert bootstrap['allows_without_tarja'] is True
             manual_order['without_tarja'] = True
             manual['tarja'] = ''
@@ -308,7 +308,7 @@ def exercise_revised_operations(client, policy, run_uuid=None):
         row, = read_native_manifest(client, result['work_order_id'], (*fields, 'num_tarja'))
         assert (row['qty_caja'], row['qty_kg'], row['quantity']) == (2, 9.27, 9.27)
         weight_evidence = {'native_standard_weight': True, 'native_manual_hundredths': True}
-        if version == '0.0.11':
+        if version in ('0.0.11', '0.0.12'):
             assert not row['num_tarja']
             status, closed = client.request('POST', '/api/harvest/orders/transition', {
                 'scope': scope, 'work_order': {'odoo_id': result['work_order_id']}, 'action': 'close',
@@ -346,6 +346,9 @@ def main():
     assert not any((parent/'.git').exists() for parent in output.parents), 'Keep evidence outside checkouts'
     exercise = exercise_revised_operations if policy['harvest_web']['version'] in REVISED_OPERATIONS_VERSIONS else exercise_operations
     evidence = exercise(OperationsClient(origin), policy)
+    if policy['harvest_web']['version'] == '0.0.12':
+        from smoke_harvest_work_hours import exercise_work_hours
+        evidence.update(exercise_work_hours(origin, policy))
     evidence.update({'feature': proof['feature'], 'stage': stage.name, 'database': proof['database'],
         'web_commit': policy['harvest_web']['commit'], 'backend_commit': proof['commit'],
         'backend_sha256': proof['release_sha256'], 'created_at': datetime.now(timezone.utc).isoformat()})
