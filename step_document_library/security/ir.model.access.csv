@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_document_internal,Biblioteca interna,model_documents_document,base.group_user,1,1,0,0
+access_grants_internal,Permisos internos,model_documents_access,base.group_user,1,1,1,1
+access_permission_wizard,Formulario de permiso,model_step_document_library_permission,base.group_user,1,1,1,1

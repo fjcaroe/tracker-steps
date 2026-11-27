@@ -52,7 +52,7 @@ lectura.
 | Libro con cabecera y sin ella | 24 de 24 comparaciones idénticas en cada modalidad |
 | Libro por operador | 133 filas de 147 columnas, 133 identidades cotejadas |
 | Jornadas, contratos y liquidaciones | 41 calendarios y 512 tramos originales, con sus huellas conservadas |
-| Generación y alcance | Los dos operadores generaron ambas salidas en todas las empresas; los registros de ensayo del asistente se revirtieron |
+| Generación y alcance | Los dos operadores generaron ambas salidas en todas las empresas. Los registros de ensayo del asistente se revirtieron |
 
 El paquete del proveedor tiene SHA-256
 `0c9f3cfb38ac5e6d13c61a6af77c637db8d90104e073c9948b6c4ed624b65026`.
@@ -60,4 +60,27 @@ Los recibos contienen huellas de archivo completo, de filas y de cada columna.
 Los mensajes e identidades se compararon mediante HMAC con una clave privada
 compartida por los dos ensayos. La comparación integral tiene SHA-256
 `1b7d91c189eca56845d4a430fc2db4ab007a8c46e6dca1deecdf20e53a104328`.
-La instalación persistente del proveedor queda para la siguiente integración.
+
+En U42K se restauró nuevamente el respaldo original de SyS y se instaló el
+paquete privado `ce72ea6a0a40ec39a28004fccbbf4b465f04c47a2a0be7cfc6fd2959e6efa2b8`.
+La base registró el proveedor 18.0.1.5.1 entre 190 módulos instalados, ninguno
+con licencia Enterprise u OPL. Se volvieron a ejecutar los dos asistentes con
+los dos operadores en las doce empresas. Las 24 comparaciones de Previred y
+las 24 del Libro coincidieron con la copia nativa y los datos originales se
+conservaron. El recibo de esta instalación tiene SHA-256
+`614c3fae66e32ab975ac214fcd229451375f1f534bcbcf9b0204bdc6c4711c3c`.
+
+El control posterior detectó que el primer arranque había dejado opcional en
+PostgreSQL el código de jornada Previred. Los 41 valores seguían coincidiendo
+fila por fila con la copia nativa. En K se repuso la obligatoriedad después
+de comprobar la identidad original del campo y cada valor. La protección
+del cargador ahora incluye ese campo. El control repetido confirmó las
+25 proyecciones, 53.659 identificadores originales, 298 claves foráneas y
+111 contadores, además de las 16 reglas de permisos nuevas y sus 12 vínculos.
+El recibo de conservación tiene SHA-256
+`98c62bda7bc2b0f54175d89bf7865a4947dae13c15cb2e4c0b6aab0ce65abf0f`.
+
+El paquete de la prueba incluye las adaptaciones privadas de configuración
+de nómina y de revisión contractual. Sus generadores y el módulo del
+calendario están versionados. Para reproducir la prueba se usa el archivo
+privado cuya huella consta arriba y las raíces privadas de la restauración.

@@ -1,5 +1,42 @@
 # Continuidad de migración Community — Cerro El Plomo
 
+## U42 · Nómina real de SyS, recuperación y biblioteca interna
+
+La referencia de Nómina Chile es SyS, confirmada por el usuario. En dos
+instalaciones Community independientes se compararon 133 casos con el motor
+nativo. Coincidieron las 2.098 líneas de las 130 liquidaciones calculables y
+los tres rechazos por revisión del contrato. En 33 casos ambos motores
+actuales difieren del importe histórico. Los importes cerrados se conservaron.
+Los archivos Previred y Libro coincidieron al byte para los dos operadores
+en las doce empresas. La instalación fría alcanzó 190 módulos activos con
+cero Enterprise y cero OPL. El inventario original de SyS tiene 336 módulos.
+Ver [liquidaciones y lotes](COMMUNITY_SYS_PAYROLL_COHORT.md) y
+[exportaciones](COMMUNITY_SYS_PAYROLL_EXPORTS.md).
+
+Se recuperaron los nueve adjuntos que faltaban en el inventario de U37.
+La cohorte convertida de SyS se restauró dos veces, con el código y los
+archivos originales fuera del alcance del proceso de arranque. La captura
+simultánea preserva 608.840 filas, 858 secuencias, 22.235 archivos de código y
+2.704 archivos físicos. Sigue pendiente restaurar los tres productos completos
+con sus flujos de negocio en Community.
+[Custodia de los tres productos](COMMUNITY_CUSTODIA_PRODUCTOS.md).
+
+En la biblioteca interna coincidieron 84.370 decisiones de permisos de SyS y
+3.120 de Cerro. Los usuarios originales recorrieron carpeta, ficha, descarga y
+revocación de acceso. En Steps, un operador eligió una tarifa existente,
+abrió una ruta y registró la subida y bajada de un trabajador. El ensayo
+preservó los 804 contadores de Steps. Estas pruebas corresponden a las
+aplicaciones indicadas en las copias privadas.
+[Biblioteca interna](COMMUNITY_BIBLIOTECA_INTERNA.md).
+
+La configuración de Nómina Chile requiere una comparación separada en Cerro.
+En su plantilla nativa y en la copia Community coinciden las firmas de las
+47 reglas directas activas. Se cotejaron códigos, secuencia, categoría directa,
+condiciones y campos de cálculo. SyS tiene 67 reglas directas y comparte 19
+firmas con Cerro. Cada una de las 752 liquidaciones cerradas de esa plantilla
+en SyS usó entre cuatro y trece reglas sin la misma firma en Cerro. La
+comparación de importes debe conservar las reglas y los maestros de Cerro.
+
 ## U39 · Diario desconocido en lotes históricos de SyS
 
 `step_payroll_oca_sys_history` es un addon optativo para la futura
