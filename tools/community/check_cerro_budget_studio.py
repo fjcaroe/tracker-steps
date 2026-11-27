@@ -9,8 +9,9 @@ from check_cerro_packing_categories import PACKING, PRODUCER_LINK, categories
 from check_cerro_studio_strict import ROOT, addon_roots, run, tree_sha
 from restore_cerro_studio_strict import ESTIMATE_ROOT, ESTIMATE_TARGET, SOURCE, module_census
 
-OPERATIONS = ROOT / 'operation-source-aliases-29a5b64125cf'
+OPERATIONS = ROOT / 'harvest-source-aliases-1723e91df3cd'
 HASHES = {
+    'step_cosecha': '478e6ca27ff381436bee0e1bd408d984ab326822c18e75caf5b65499f86315d3',
     'step_operations_core': '10e0011f6efb638b44148d05e7c38eb336789504f955daad2b72b26cb9065afd',
     'step_labor_operations_core': '66538d420a64af8adb8c6955e29745445e92c37207f55054693030f3891f2ef4',
 }
