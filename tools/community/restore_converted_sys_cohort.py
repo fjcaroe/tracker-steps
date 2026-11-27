@@ -278,7 +278,7 @@ def restore(args):
                stdin=handle, stdout=log, stderr=log)
     require(query("postgres", f"SELECT s.spcname FROM pg_database d JOIN pg_tablespace s ON s.oid=d.dattablespace "
                               f"WHERE d.datname='{target}'") == space, "restore-tablespace-drift")
-    check_replay = {}
+    check_replay, view_replay = {}, {}
     if product == "cerro":
         checker = Path(__file__).with_name("restore_original_check_spelling.py")
         command = ["sudo", "-n", "-u", "postgres", "python3", "-B", str(checker), target, "-"]
@@ -291,6 +291,22 @@ def restore(args):
         check_replay = json.loads(receipt.read_bytes())
         require(check_replay["sql_sha256"] == proof["sql_sha256"] and
                 (not changed_checks or check_replay["clauses"] == changed_checks), "replay-witness-mismatch")
+        from verify_converted_sql_schema import schema
+
+        archive = subprocess.check_output(["pg_restore", "--schema-only", "--no-tablespaces", "--file=-",
+                                           str(sealed / "source.dump")])
+        live = pg("pg_dump", "--schema-only", "--no-tablespaces", source, readonly=True, stdout=subprocess.PIPE).stdout
+        require(schema(archive) == schema(live), "source-schema-drift-before-view-replay")
+        view_tool = Path(__file__).with_name("restore_original_view_spelling.py")
+        view_args = ["sudo", "-n", "-u", "postgres", "python3", "-B", str(view_tool), source, target]
+        changed_views = json.loads(subprocess.check_output(view_args))
+        require(not json.loads(subprocess.check_output(view_args)), "repeat-original-view-replay")
+        receipt = out / "view-replay.json"
+        if not receipt.is_file():
+            save(receipt, {"sql_sha256": proof["sql_sha256"], "definitions": changed_views})
+        view_replay = json.loads(receipt.read_bytes())
+        require(view_replay["sql_sha256"] == proof["sql_sha256"] and
+                (not changed_views or view_replay["definitions"] == changed_views), "view-replay-witness-mismatch")
     verify_same(frozen, full_snapshot(target))
     catalog = object_catalog(attachments(target, query)["references"])
     data = out / "data"
@@ -331,6 +347,7 @@ def restore(args):
               "source_sequence_advances_since_seal": advances, "checked_boots": 2, "role_probe": orm, "restored_filestore_objects": len(catalog)}
     if check_replay:
         result["exact_constraint_replay"] = check_replay
+        result["exact_view_replay"] = view_replay
     save(out / "restore-proof.json", result)
     print(json.dumps(result, sort_keys=True))
 
