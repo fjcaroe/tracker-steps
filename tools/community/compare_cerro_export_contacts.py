@@ -1,4 +1,5 @@
 """Recheck all readable receiver role values and native write restrictions on both complete private registries."""
+import argparse
 import configparser
 import fcntl
 import hashlib
@@ -7,21 +8,21 @@ import subprocess
 from pathlib import Path
 
 from check_cerro_combined_budget import PACKAGE,BUDGET
-from check_cerro_export_contacts import CONTACTS,FREIGHT,directory
+from check_cerro_export_contacts import CONTACTS,directory,profile
 from check_cerro_studio_strict import ROOT,addon_roots,run
 from compare_cerro_studio_receipts import receipt
-from restore_cerro_bom_before_guard import PRODUCT_DEST,PRODUCT_TARGET
 from restore_cerro_native_catalog_graph import TRIAL as NATIVE, TARGET as NATIVE_DB
 from restore_cerro_studio_strict import SOURCE
 
-def main():
+def main(fresh=False):
+    db,dest,freight,_=profile(fresh)
     with open('/run/lock/steps-environments.lock','rb') as gate:
         fcntl.flock(gate,fcntl.LOCK_EX)
-        final=PRODUCT_DEST/'qualified-export-contacts.json'
+        final=dest/'qualified-export-contacts.json'
         assert (NATIVE/'verified-histories.json').is_file() and final.is_file()
         body='import json,sys\nsys.path.insert(0,'+repr(str(ROOT/'tools'))+')\n'
         body+="from probe_cerro_export_contacts import capture,exercise\n"
-        body+="data=capture(env)\nexercise(env)\nassert capture(env)==data\nprint('CERO_CONTACTS',json.dumps(data,sort_keys=True))\nenv.cr.rollback()"
+        body+="data=capture(env)\nexercise(env)\nassert capture(env)==data\nprint('CERRO_CONTACTS',json.dumps(data,sort_keys=True))\nenv.cr.rollback()"
         conf=Path('/etc/odoo18-cerroelplomo.conf')
         parser=configparser.ConfigParser(interpolation=None)
         parser.read(conf)
@@ -35,17 +36,19 @@ def main():
         native=NATIVE/'native-contact-roles.log'
         with native.open('w') as out:
             subprocess.run(cmd,input=body,text=True,stdout=out,stderr=out,check=True)
-        assert directory(PRODUCT_TARGET)==directory(SOURCE)
-        run('compared-contact-roles',[],body,database=PRODUCT_TARGET,directory=PRODUCT_DEST,
-            roots=[CONTACTS,FREIGHT,BUDGET,PACKAGE,*addon_roots(PRODUCT_TARGET)])
-        values=receipt(PRODUCT_DEST/'compared-contact-roles.log','CERO_CONTACTS')
-        assert values==receipt(native,'CERO_CONTACTS') and len(values)==9
-        assert directory(PRODUCT_TARGET)==directory(SOURCE)
+        assert directory(db)==directory(SOURCE)
+        run('compared-contact-roles',[],body,database=db,directory=dest,
+            roots=[CONTACTS,freight,BUDGET,PACKAGE,*addon_roots(db)])
+        values=receipt(dest/'compared-contact-roles.log','CERRO_CONTACTS')
+        assert values==receipt(native,'CERRO_CONTACTS') and len(values)==9
+        assert directory(db)==directory(SOURCE)
         result=json.loads(final.read_text())
         result['comparison_contexts']=len(values)
         result['readable_roles_sha256']=hashlib.sha256(json.dumps(values,sort_keys=True).encode()).hexdigest()
-        (PRODUCT_DEST/'qualified-compared-export-contacts.json').write_text(json.dumps(result,sort_keys=True))
+        (dest/'qualified-compared-export-contacts.json').write_text(json.dumps(result,sort_keys=True))
 
 
 if __name__=='__main__':
-    main()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--fresh',action='store_true')
+    main(parser.parse_args().fresh)

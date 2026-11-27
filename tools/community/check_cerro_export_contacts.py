@@ -1,4 +1,5 @@
 """Qualify the complete native contact and market directory on the protected Cerro freight copy."""
+import argparse
 import fcntl
 import hashlib
 import json
@@ -8,7 +9,7 @@ from check_cerro_cold_studio import histories, NATIVE_SOURCE
 from check_cerro_studio_strict import ROOT, addon_roots, run, tree_sha
 from compare_cerro_studio_receipts import receipt, compare
 from compare_cerro_studio_strict import NATIVE
-from restore_cerro_bom_before_guard import PRODUCT_DEST, PRODUCT_TARGET
+from restore_cerro_bom_before_guard import PRODUCT_DEST, PRODUCT_TARGET, FINAL_DEST, FINAL_TARGET
 from restore_cerro_studio_strict import SOURCE, module_census, sql
 
 FREIGHT = ROOT / 'freight-operational-providers-f6a8b14fb0f8'
@@ -35,18 +36,25 @@ def directory(db):
              'res_partner_step_export_market_id_fkey')))""")
 
 
-def main():
+def profile(fresh):
+    if fresh:
+        from check_cerro_freight_directory import FREIGHT as final, HASHES
+        return FINAL_TARGET, FINAL_DEST, final, HASHES['step_operations_ui']
+    return PRODUCT_TARGET, PRODUCT_DEST, FREIGHT, 'a3d7d18eef315c017acb55a5d1bf35e6824520726c2350872eaa4d0e90a3aebe'
+
+
+def main(fresh=False):
     with open('/run/lock/steps-environments.lock','rb') as gate:
         fcntl.flock(gate,fcntl.LOCK_EX)
         assert tree_sha(CONTACTS/'step_cerro_export_contacts')=='c75f27147836381f32269043e9dd2ee5699a978314273edbca28a30b2585aa33'
-        assert tree_sha(FREIGHT/'step_operations_ui')=='a3d7d18eef315c017acb55a5d1bf35e6824520726c2350872eaa4d0e90a3aebe'
-        seed=json.loads((PRODUCT_DEST/'qualified-freight.json').read_text())
+        db,dest,freight,sha=profile(fresh)
+        assert tree_sha(freight/'step_operations_ui')==sha
+        seed=json.loads((dest/'qualified-freight.json').read_text())
         assert seed['census']['installed']==186
-        db=PRODUCT_TARGET
-        opts=dict(database=db,directory=PRODUCT_DEST,roots=[CONTACTS,FREIGHT,BUDGET,PACKAGE,*addon_roots(db)])
+        opts=dict(database=db,directory=dest,roots=[CONTACTS,freight,BUDGET,PACKAGE,*addon_roots(db)])
         source=directory(SOURCE)
         assert directory(db)==source
-        original=json.loads((PRODUCT_DEST/'qualified-archive.json').read_text())['protected']
+        original=json.loads((dest/'qualified-archive.json').read_text())['protected']
         for flag,label in [('-i','install'),('-u','upgrade')]:
             try:
                 run(label+'-export-contacts',[flag,'step_cerro_export_contacts'],**opts)
@@ -94,22 +102,35 @@ target.write({'step_export_market_id':market.id,'step_export_generic_receiver':T
 assert target.step_export and target.step_export_default_notify_id==fixture and target.step_export_market_id==market
 env.cr.rollback()
 env.invalidate_all(flush=False)
-print('CONTACT_STUDIO',json.dumps(dict(fullread=read(env),routes=routes(env),client=client(env)),sort_keys=True))
+followup=('followup_responsible_id','followup_reminder_type','followup_status','followup_next_action_date',
+          'followup_line_id','total_due','total_overdue')
+missing=sorted(set(followup)-set(partners.fields_get(list(followup))))
+print('CONTACT_STUDIO',json.dumps(dict(fullread=read(env),routes=routes(env),client=client(env),
+                                      missing_statement_fields=missing),sort_keys=True))
 env.cr.rollback()
 """
         run('contacts-user',[],actor,**opts)
-        current=receipt(PRODUCT_DEST/'contacts-user.log','CONTACT_STUDIO')
+        current=receipt(dest/'contacts-user.log','CONTACT_STUDIO')
         matrix=compare(receipt(NATIVE/'fullread/native.log','CERRO_FULL_READ'),
                        receipt(NATIVE/'upgrade-final-v2/native-postflight.log','CERRO_FULL'),current)
         alias='odoo_studio_res_part_47b48baf-5b77-4192-857b-fed73051f3c7'
-        assert alias in matrix['matching_full_record'] and '5192' in matrix['original_routes']
+        assert alias in matrix['matching_studio_values'] and '5192' in matrix['original_routes']
+        for dimension in ('matching_full_record','matching_studio_values','original_routes'):
+            assert set(seed['matrix'][dimension]) <= set(matrix[dimension])
+        statement=current['missing_statement_fields']
+        if alias not in matrix['matching_full_record']:
+            assert current['fullread'][alias]['detail']=='Missing client description: res.partner.followup_responsible_id'
+            assert set(statement)=={'followup_responsible_id','followup_reminder_type','followup_status',
+                                    'followup_next_action_date','followup_line_id','total_due','total_overdue'}
         assert directory(db)==source
         census=module_census(db)
         assert not any(census[k] for k in ('pending','enterprise','non_free'))
-        result=dict(census=census,matrix=matrix,actor=6,partners=229,markets=4,market_grants=4,
+        result=dict(census=census,matrix=matrix,actor=6,statement_view=3925,missing_statement_fields=statement,partners=229,markets=4,market_grants=4,
                     original_xmlids=original,checked_partners_and_markets=hashlib.sha256(source.encode()).hexdigest())
-        (PRODUCT_DEST/'qualified-export-contacts.json').write_text(json.dumps(result,sort_keys=True))
+        (dest/'qualified-export-contacts.json').write_text(json.dumps(result,sort_keys=True))
 
 
 if __name__ == '__main__':
-    main()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--fresh',action='store_true')
+    main(parser.parse_args().fresh)
