@@ -161,6 +161,7 @@ class DocumentAccess(models.Model):
     partner_id = fields.Many2one("res.partner", string="Contacto", readonly=True)
     role = fields.Selection(PERMISSIONS[1:], string="Permiso", readonly=True)
     expiration_date = fields.Datetime(string="Vencimiento", readonly=True)
+    last_access_date = fields.Datetime(string="Última visita", readonly=True)
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -204,8 +205,11 @@ class DocumentPermission(models.TransientModel):
         changed = False
         if self.role == "none":
             if grants.role:
-                # Keep the native row and visit history. A null role removes only the explicit grant.
-                super(DocumentAccess, grants).write({"role": False})
+                # Native access rows record a grant, a visit, or both.
+                if grants.last_access_date:
+                    super(DocumentAccess, grants).write({"role": False})
+                else:
+                    super(DocumentAccess, grants).unlink()
                 changed = True
         elif grants:
             if grants.expiration_date and grants.expiration_date <= fields.Datetime.now():

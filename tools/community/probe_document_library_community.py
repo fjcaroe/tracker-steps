@@ -172,8 +172,9 @@ def probe(env, baseline, original_bookmarks):
     assert added and (not original_grant or original_grant == added)
     apply("view")
     assert grant_id() == added
+    visited = bool(scope["documents.access"].browse(added).last_access_date)
     apply("none")
-    assert grant_id() == added and not read_document.has_access("read")
+    assert grant_id() == (added if visited else False) and not read_document.has_access("read")
     check_original_bookmark(read_scope, read_document, bookmark, False)
     urls = library.search([("type", "=", "url")])
     assert urls and all(link.action_open()["url"] == link.url for link in urls)
