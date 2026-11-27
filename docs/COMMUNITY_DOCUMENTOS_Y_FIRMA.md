@@ -18,8 +18,10 @@ no es carpeta. La anomalía ya está en la referencia nativa restaurada.
 transacción SQL de solo lectura. Compara mediante SHA-256 los IDs de documentos,
 relaciones, visibilidad y permisos explícitos. Las derivadas de SyS U40A y U40C
 y el par de Cerro U40D mantienen esas relaciones y cantidades de sus controles.
-La comparación excluye el contenido de los archivos, las direcciones URL y el
-valor de los tokens de acceso.
+La primera comparación cubrió las relaciones. La prueba posterior U41L calcula
+además una huella de todas las columnas originales, incluidos URL y tokens, y
+una huella del vínculo y almacenamiento de cada adjunto. Los valores sensibles
+permanecen dentro de PostgreSQL.
 
 Los tres productos tienen cero documentos laborales emitidos en
 `hr.labor.document`. SyS tiene 238 contratos y dos plantillas laborales validadas.
@@ -109,3 +111,39 @@ El mismo paquete se probó en dos copias nativas de SyS con un emisor original.
 En una se ejercitó la firma manual mediante descarga. En la otra se le asignó
 durante el ensayo el permiso OCA de usuario de sus propios documentos.
 La asignación se revirtió junto con el contrato y el borrador.
+
+## Biblioteca histórica interna de SyS
+
+En la copia privada U41L, `step_document_library` 18.0.1.0.4 abre los
+registros de `documents.document` y `documents.access` en sus tablas
+originales. El menú histórico conserva su identificador y sus grupos. El
+formulario permite navegar por carpetas, abrir el archivo o la URL y gestionar
+el permiso individual de una cuenta interna. Las visitas previas se conservan
+al retirar un permiso. La operación no envía notificaciones.
+
+El programa de captura registra el resultado de la búsqueda original por
+usuario y combinación de compañías. El ensayo Community compara los IDs
+visibles y sus niveles de lectura y edición, incluyendo archivados. Un segundo
+catálogo guarda la huella del marcador que produce Odoo para cada registro.
+Su adopción exige que coincidan los originales y todos los IDs y rechaza
+conflictos. La repetición en SyS produjo cero escrituras.
+
+| Comprobación en SyS U41L | Resultado |
+| --- | ---: |
+| Documentos y marcadores originales | 1.430 |
+| Permisos individuales preexistentes | 3.955 |
+| Usuarios internos originales | 2 |
+| Contextos de usuario y compañía, incluido el usuario público | 59 |
+| Comparaciones de permiso por registro | 84.370 |
+| Objetos restaurados del filestore completo | 2.679 |
+| Módulos instalados / Enterprise | 187 / 0 |
+
+Un editor recorrió el menú original y sus carpetas hasta un archivo TXT
+histórico restringido. El controlador normal de descargas devolvió los bytes
+correspondientes al tamaño y SHA-1 existentes. Tras el permiso de lectura,
+el segundo usuario abrió ese mismo archivo y obtuvo el mismo SHA-256. Su
+intento de gestionar accesos fue denegado. La repetición de la concesión
+conservó la misma fila y su retirada restituyó el alcance anterior. El ensayo
+comprobó también el marcador autenticado y la acción de la URL original,
+sin visitar su destino. Después del rollback volvieron a coincidir la matriz
+de permisos, las huellas y las 859 secuencias.
