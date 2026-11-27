@@ -26,6 +26,7 @@ def verify_evidence(root):
         for key in ('ot_native_fields', 'pass_required', 'ot_work_hours', 'day_allocation'):
             assert operations[key] is True and copy[key] is True and live[key] is True
         assert operations['native_cost_hours'] is True and copy['native_cost_hours'] is True
+        assert all(copy[key] is True for key in ('client_close_with_hours', 'client_approval_send', 'client_native_fields', 'client_reload_preserved'))
         counts = re.findall(r'0 failed, 0 error\(s\) of (\d+) tests when loading database',
                             (root / (target + '-qa.log')).read_text())
         assert counts and int(counts[-1]) >= 91

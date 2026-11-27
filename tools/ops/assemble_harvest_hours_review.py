@@ -18,6 +18,7 @@ def main():
     p.add_argument('environment', choices=('development', 'cerro', 'qa-cerro'))
     p.add_argument('mode', choices=('copy', 'live'))
     p.add_argument('browser', type=Path)
+    p.add_argument('--flow', type=Path)
     a = p.parse_args()
     manifest = read(a.base / 'web/release.json')
     assert manifest['version'] == '0.0.12'
@@ -41,10 +42,17 @@ def main():
         'tariff_form': True, 'native_centers': True, 'harvest_menu': True,
         'ot_lifecycle_available': True, 'crew_attendance_available': True, 'reviewed': True}
     if a.mode == 'copy':
+        assert a.flow
+        flow = read(a.flow)
+        for key, value in (('environment', a.environment), ('database', qa['database']), ('web_commit', manifest['commit'])):
+            assert flow[key] == value
+        assert all(flow[key] is True for key in ('client_close_with_hours', 'client_approval_send',
+            'client_native_fields', 'client_reload_preserved', 'native_cost_hours'))
         operations = read(stage / 'harvest-operations-smoke.json')
         crew = read(stage / 'harvest-crew-smoke.json')
         validate_operations_smokes(manifest, qa, operations, crew)
         result.update({key: value for source in (operations, crew) for key, value in source.items() if value is True})
+        result.update({key: value for key, value in flow.items() if value is True})
         assert operations['existing_relations_only'] and browser['local_weight_preserved']
         result.update({'no_sample_data': True, 'pending_preserved': True,
             'reviewed_messages': {236: 10650, 237: 10648, 242: 10673, 243: 10677, 244: 10692, 245: 10696},

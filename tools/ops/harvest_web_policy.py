@@ -123,7 +123,8 @@ def validate_operations_review(frontend, environment, stage_name, proof, review)
     if frontend['version'] in ('0.0.11', '0.0.12'):
         checks += ('capture_without_tarja', 'worker_tarja_association_off')
     if frontend['version'] == '0.0.12':
-        checks += ('ot_native_fields', 'pass_required', 'ot_work_hours', 'day_allocation', 'native_cost_hours')
+        checks += ('ot_native_fields', 'pass_required', 'ot_work_hours', 'day_allocation', 'native_cost_hours',
+                   'client_close_with_hours', 'client_approval_send', 'client_native_fields', 'client_reload_preserved')
     assert all(review[key] is True for key in checks), 'Incomplete crew/lifecycle review'
     if frontend['version'] in REVISED_OPERATIONS_VERSIONS:
         validate_reviewed_messages(frontend, review['reviewed_messages'])
