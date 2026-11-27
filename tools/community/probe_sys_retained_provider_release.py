@@ -82,6 +82,16 @@ def run(shell, root, original):
         actual = Path(get_module_path(module.name))
         assert actual.samefile(module) and (actual / "__manifest__.py").samefile(module / "__manifest__.py")
         overlays.append(module.name)
+    if shell.cr.dbname == "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG":
+        for folder, modules in (("employee-profile", ("hr",)),
+                                ("document-addons", ("step_document_library", "step_document_library_portal"))):
+            for name in modules:
+                private = root / folder / name
+                assert Path(get_module_path(name)).samefile(private)
+                assert Path(importlib.import_module("odoo.addons." + name).__file__).samefile(private / "__init__.py")
+                overlays.append(name)
+        employee_module = importlib.import_module("odoo.addons.hr.models.sys_original_employee_view")
+        assert employee_module.keep_existing_directory(shell["hr.employee.public"])
     shell.cr.execute("""SELECT id,encode(sha256(convert_to(arch_db::text,'UTF8')),'hex') FROM ir_ui_view
                         WHERE id IN (1215,204,1281) ORDER BY id""")
     assert shell.cr.fetchall() == [
