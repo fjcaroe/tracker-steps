@@ -21,9 +21,10 @@ from restore_sys_previred_pair import GIB, LOCK, require
 from seal_converted_runtime import resolve_providers, seal
 
 
-def full_snapshot(db):
+def full_snapshot(db, required_nonempty=None):
     code = ("import json,sys\nsys.path.insert(0," + repr(str(Path(__file__).resolve().parent)) + ")\n"
-            "from compare_sys_full_restore import snapshot\nprint(json.dumps(snapshot(" + repr(db) + ")))")
+            "from compare_sys_full_restore import snapshot\nprint(json.dumps(snapshot(" + repr(db) + ", "
+            + repr(required_nonempty) + ")))")
     result = subprocess.check_output(["sudo", "-n", "-u", "postgres", "python3", "-B", "-"], input=code.encode())
     return json.loads(result)
 
@@ -60,12 +61,13 @@ def save(path, data):
     tmp.replace(path)
 
 
-def check_modules(source):
+def check_modules(source, anchor=None):
     result = json.loads(query(source, """
         SELECT json_object_agg(name,json_build_array(latest_version,license)) FROM ir_module_module
          WHERE state='installed'
     """))
-    anchor = "crm" if source.startswith("COMMUNITY_STEPS_CRM_") else "step_payroll_oca_api"
+    if anchor is None:
+        anchor = "crm" if source.startswith("COMMUNITY_STEPS_CRM_") else "step_payroll_oca_api"
     require(result and "base" in result and anchor in result and
             not any(value[1] == "OEEL-1" for value in result.values()), "converted-module-graph-required")
     return result
