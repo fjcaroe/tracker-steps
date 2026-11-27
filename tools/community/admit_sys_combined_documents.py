@@ -178,7 +178,7 @@ def prepare_portal_accounts(apply, root=ROOT, sealed=SEALED, source=SOURCE, data
     save(sealed_accounts, {"original": rows, "new_portal_accounts": 2, "guards": len(expected), "original_uid_cutoff": cutoff})
 
 
-def install_documents():
+def extract_documents(documents=DOCUMENTS):
     require(digest(PACKAGE) == DOCUMENT_SHA, "document-package-drift")
     expected = set()
     roots = {"step_document_library", "step_document_library_portal"}
@@ -192,7 +192,7 @@ def install_documents():
             require(item.isfile() and len(name.parts) >= 3 and name.parts[0] == "addons" and
                     name.parts[1] in roots and ".." not in name.parts and name not in expected, "unexpected-doc-module")
             expected.add(name)
-            dest = DOCUMENTS / name
+            dest = documents / name
             dest.parent.mkdir(parents=True, exist_ok=True)
             with bundle.extractfile(item) as payload:
                 raw = payload.read()
@@ -201,11 +201,15 @@ def install_documents():
                     out.write(raw)
             require(dest.read_bytes() == raw, "changed-document-package")
             dest.chmod(0o644)
-    for path in [DOCUMENTS, *(p for p in DOCUMENTS.rglob("*") if p.is_dir())]:
+    for path in [documents, *(p for p in documents.rglob("*") if p.is_dir())]:
         os.chown(path, 0, SERVICE.pw_gid)
         path.chmod(0o750)
-    require(expected == {p.relative_to(DOCUMENTS) for p in DOCUMENTS.rglob("*") if p.is_file()},
+    require(expected == {p.relative_to(documents) for p in documents.rglob("*") if p.is_file()},
             "undocumented-document-package-member")
+
+
+def install_documents():
+    extract_documents()
     modules = check_modules(TARGET)
     source_modules = check_modules(SOURCE)
     if modules.keys() == source_modules.keys():
@@ -218,7 +222,7 @@ def install_documents():
     require(result == expected_modules, "combined-registry-drift")
 
 
-def adopt():
+def adopt(run_shell=shell, root=ROOT, source=SOURCE, database=TARGET):
     # The accepted documents copy holds only digests and the native non-secret token affixes.
     historical = json.loads(query(GOLDEN, """SELECT json_build_object('original_identity', encode(sha256(convert_to(
         string_agg(json_build_array(id,document_token,url)::text,chr(10) ORDER BY id),'UTF8')),'hex'),
@@ -232,12 +236,12 @@ def adopt():
     code = (TOOLS / "adopt_document_library_links.py").read_text() + "\n" + (TOOLS / "adopt_document_portal_tokens.py").read_text()
     code += "\nimport json\ndef apply_catalogs():\n    return [adopt_links(env," + repr(historical) + "),adopt_portal_references(env," + repr(portal) + ")]\n"
     code += "first=apply_catalogs()\nsecond=apply_catalogs()\nassert second==[0,0]\nenv.cr.commit()\nprint('RESULT='+json.dumps([first,second]))\n"
-    writes = shell(code)
+    writes = run_shell(code)
     require(writes[0] in ([0, 0], [1430, 1430]) and writes[1] == [0, 0], "incomplete-catalog-adoption")
-    receipt = ROOT / "combined-admission.json"
+    receipt = root / "combined-admission.json"
     if not receipt.exists():
-        save(receipt, {"source": SOURCE, "target": TARGET, "historical_documents": 1430,
-                       "link_writes": writes, "package_sha256": DOCUMENT_SHA, "module_count": len(check_modules(TARGET))})
+        save(receipt, {"source": source, "target": database, "historical_documents": 1430,
+                       "link_writes": writes, "package_sha256": DOCUMENT_SHA, "module_count": len(check_modules(database))})
 
 
 if __name__ == "__main__":

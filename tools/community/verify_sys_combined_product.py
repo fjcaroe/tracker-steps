@@ -14,30 +14,30 @@ from restore_native_product_backup import query
 from restore_sys_previred_pair import LOCK, require
 
 
-def original_policy():
-    cutoff = json.loads((ROOT / "actors-sealed.json").read_bytes())["original_uid_cutoff"]
+def original_policy(database=TARGET, actor_root=ROOT):
+    cutoff = json.loads((actor_root / "actors-sealed.json").read_bytes())["original_uid_cutoff"]
     result = {}
     for table in ("res_users", "res_groups", "ir_rule", "ir_model_access", "ir_attachment", "mail_mail", "documents_access"):
         highest = int(query(SOURCE, "SELECT coalesce(max(id),0) FROM " + table))
         result[table] = fingerprint(SOURCE, table)
-        require(result[table] == fingerprint(TARGET, table, where=f"id<={highest}"), "historical-policy-drift:" + table)
+        require(result[table] == fingerprint(database, table, where=f"id<={highest}"), "historical-policy-drift:" + table)
     for table, order, where in [("res_groups_users_rel", "gid,uid", f"uid<={cutoff}"),
                                 ("res_groups_implied_rel", "gid,hid", "true")]:
         result[table] = fingerprint(SOURCE, table, order, where)
-        require(result[table] == fingerprint(TARGET, table, order, where), "historical-role-drift:" + table)
+        require(result[table] == fingerprint(database, table, order, where), "historical-role-drift:" + table)
     result["documents_document"] = fingerprint(SOURCE, "documents_document")
     omit = ("step_original_url_hash", "step_portal_reference_hash", "step_portal_reference_prefix", "step_portal_reference_suffix")
-    require(result["documents_document"] == fingerprint(TARGET, "documents_document", omit=omit), "historical-document-drift")
-    require(trigger_catalog(TARGET) == trigger_catalog(SOURCE), "historical-guard-drift")
+    require(result["documents_document"] == fingerprint(database, "documents_document", omit=omit), "historical-document-drift")
+    require(trigger_catalog(database) == trigger_catalog(SOURCE), "historical-guard-drift")
     shared = """SELECT json_build_array(count(*),count(step_original_url_hash),count(step_portal_reference_hash),
         count(*) FILTER (WHERE encode(sha256(convert_to(step_portal_reference_prefix||document_token||
         step_portal_reference_suffix,'UTF8')),'hex')=step_portal_reference_hash)) FROM documents_document"""
-    require(json.loads(query(TARGET, shared)) == json.loads(query(GOLDEN, shared)) == [1430] * 4,
+    require(json.loads(query(database, shared)) == json.loads(query(GOLDEN, shared)) == [1430] * 4,
             "original-sharing-identity-drift")
     return result
 
 
-def payroll(before):
+def payroll(before, execute=None):
     baseline = ORIGIN / "revision61/finance.log"
     script = ORIGIN / "revision61/finance.py"
     def financial_rows(data):
@@ -45,11 +45,15 @@ def payroll(before):
                 for line in data.splitlines() if line.startswith(b"SYSL_")}
     reference = financial_rows(baseline.read_bytes())
     require(len(reference) == 10, "reference-payroll-scenarios-missing")
-    proc = subprocess.run(command(True), input=script.read_bytes(), capture_output=True)
-    if proc.returncode:
-        (ROOT / "payroll-error.log").write_bytes(proc.stderr)
-        raise RuntimeError("private-payroll-execution-failed")
-    actual = financial_rows(proc.stdout)
+    if execute is None:
+        proc = subprocess.run(command(True), input=script.read_bytes(), capture_output=True)
+        if proc.returncode:
+            (ROOT / "payroll-error.log").write_bytes(proc.stderr)
+            raise RuntimeError("private-payroll-execution-failed")
+        output = proc.stdout
+    else:
+        output = execute(script)
+    actual = financial_rows(output)
     require(actual.keys() == reference.keys(), "missing-combined-payroll-scenario")
     require(reference["SYSL_VERSIONS"]["installed"] == 190 and actual["SYSL_VERSIONS"]["installed"] == 192,
             "wrong-combined-module-count")

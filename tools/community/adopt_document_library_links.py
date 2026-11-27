@@ -30,7 +30,8 @@ def capture_links(env):
 
 def adopt_links(env, catalog):
     """Call in the migration transaction under the shared environment lock."""
-    assert env.su and (env.cr.dbname == "COMMUNITY_SYS_PREVIRED_COHORT_20261127U43C" or
+    assert env.su and (env.cr.dbname in ("COMMUNITY_SYS_PREVIRED_COHORT_20261127U43C",
+                                      "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG") or
                        re.fullmatch(r"COMMUNITY_LIBRARY_(SYS|CERRO)_[A-Z0-9_]+", env.cr.dbname))
     env.cr.execute("LOCK TABLE documents_document IN SHARE ROW EXCLUSIVE MODE")
     if catalog["original_identity"] != original_identity(env):
