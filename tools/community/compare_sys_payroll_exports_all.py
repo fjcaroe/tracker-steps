@@ -39,7 +39,8 @@ def index(receipt):
 def compare(native, community):
     if native['database'] != 'MANAGEMENT_QA_SYS_PREVIRED_20261126U40N' or native['enterprise'] <= 0:
         raise ValueError('Expected the restored original SyS database')
-    if community['database'] != 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I' or community['enterprise']:
+    if community['database'] not in ('COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I',
+                                     'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40J') or community['enterprise']:
         raise ValueError('Expected the integrated Community database')
     original, actors = index(native)
     candidate, other = index(community)

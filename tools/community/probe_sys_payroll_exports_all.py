@@ -20,8 +20,9 @@ from psycopg2 import sql
 from odoo.addons.step_hr_previred.tools import previred
 
 
-DATABASES = ('MANAGEMENT_QA_SYS_PREVIRED_20261126U40N', 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I')
-TABLES = ('hr_employee', 'hr_payslip', 'hr_payslip_line', 'hr_payslip_input', 'hr_payslip_worked_days',
+DATABASES = ('MANAGEMENT_QA_SYS_PREVIRED_20261126U40N', 'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40I',
+             'COMMUNITY_SYS_PREVIRED_COHORT_20261126U40J')
+TABLES = ('resource_calendar','resource_calendar_attendance','hr_employee', 'hr_payslip', 'hr_payslip_line', 'hr_payslip_input', 'hr_payslip_worked_days',
           'hr_contract', 'hr_payslip_run', 'account_move', 'account_move_line', 'ir_sequence', 'ir_sequence_date_range',
           'step_previred_batch', 'step_previred_batch_file', 'step_previred_export_wizard')
 
@@ -127,11 +128,13 @@ def txt(env, start, end, slips, key):
               'dataset_rows':seal(key, [row for r in dataset.records for row in r.rows])}
     wiz.action_validate()
     assert wiz.state == 'preview' and not wiz.file_data
+    result['validation_screen'] = seal(key, str(wiz.summary_html))
     try:
         wiz.action_generate()
     except (UserError, HTTPException) as exc:
         result.update(refusal(exc, key))
         return result
+    result['generation_screen'] = seal(key, str(wiz.summary_html))
     if dataset.errors:
         assert not wiz.file_data and wiz.state == 'preview'
         return dict(result, status='validation_blocked')
