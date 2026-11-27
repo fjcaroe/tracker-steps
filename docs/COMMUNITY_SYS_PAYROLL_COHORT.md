@@ -260,3 +260,5 @@ Los recibos privados de los nuevos borradores tienen SHA-256
 (Community). La clasificación de `tools/community/compare_sys_summary_variance.py`
 contra los dos recibos anteriores de 133 casos tiene SHA-256
 `c54a41bdba98ed3122b920c6a118cab0ee0b8ae65fc2393976dd9ee258f51065`.
+
+La revisión posterior comparó las identidades de las reglas y sus componentes con nueve respaldos fechados de SyS. En 23 liquidaciones, la desaparición de un crédito CCAF explica todas las líneas. Las otras diez ya constaban como editadas en el histórico. [Reglas y fuentes de las 33 diferencias](COMMUNITY_SYS_REGLAS_HISTORICAS.md).
