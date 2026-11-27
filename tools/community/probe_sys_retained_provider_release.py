@@ -71,7 +71,7 @@ def run(shell, root, original):
         assert mod.latest_version == "18.0.1.0" and manifest["version"] == "1.0" and manifest["license"] == "LGPL-3"
         versions[name] = mod.latest_version
     installed = shell["ir.module.module"].search([("state", "=", "installed")])
-    expected_modules = 192 if shell.cr.dbname == "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD" else 190
+    expected_modules = 192 if shell.cr.dbname in ("COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD", "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG") else 190
     assert len(installed) == expected_modules and not installed.filtered(lambda item: item.license == "OEEL-1")
     differences = {item.name: [item.latest_version, adapt_version(get_manifest(item.name)["version"])]
                    for item in installed if item.latest_version != adapt_version(get_manifest(item.name)["version"])}
@@ -82,6 +82,16 @@ def run(shell, root, original):
         actual = Path(get_module_path(module.name))
         assert actual.samefile(module) and (actual / "__manifest__.py").samefile(module / "__manifest__.py")
         overlays.append(module.name)
+    if shell.cr.dbname == "COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FG":
+        for folder, modules in (("employee-profile", ("hr",)),
+                                ("document-addons", ("step_document_library", "step_document_library_portal"))):
+            for name in modules:
+                private = root / folder / name
+                assert Path(get_module_path(name)).samefile(private)
+                assert Path(importlib.import_module("odoo.addons." + name).__file__).samefile(private / "__init__.py")
+                overlays.append(name)
+        employee_module = importlib.import_module("odoo.addons.hr.models.sys_original_employee_view")
+        assert employee_module.keep_existing_directory(shell["hr.employee.public"])
     shell.cr.execute("""SELECT id,encode(sha256(convert_to(arch_db::text,'UTF8')),'hex') FROM ir_ui_view
                         WHERE id IN (1215,204,1281) ORDER BY id""")
     assert shell.cr.fetchall() == [
