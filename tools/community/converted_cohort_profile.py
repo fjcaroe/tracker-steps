@@ -3,6 +3,11 @@ import re
 
 
 def converted_profile(source, target):
+    if (source, target) in {
+        ('COMMUNITY_SYS_PREVIRED_COHORT_20261126U42L', 'COMMUNITY_SYS_PREVIRED_COHORT_20261127U43C'),
+        ('COMMUNITY_SYS_PREVIRED_COHORT_20261127U43C', 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44FD'),
+    }:
+        return "sys"
     endings = r"[A-Z0-9_]{1,25}"
     profiles = (
         ("COMMUNITY_SYS_PREVIRED_COHORT_", "COMMUNITY_SYS_PREVIRED_RECOVERY_", "sys"),

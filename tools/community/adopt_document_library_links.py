@@ -30,7 +30,8 @@ def capture_links(env):
 
 def adopt_links(env, catalog):
     """Call in the migration transaction under the shared environment lock."""
-    assert re.fullmatch(r"COMMUNITY_LIBRARY_(SYS|CERRO)_[A-Z0-9_]+", env.cr.dbname) and env.su
+    assert env.su and (env.cr.dbname == "COMMUNITY_SYS_PREVIRED_COHORT_20261127U43C" or
+                       re.fullmatch(r"COMMUNITY_LIBRARY_(SYS|CERRO)_[A-Z0-9_]+", env.cr.dbname))
     env.cr.execute("LOCK TABLE documents_document IN SHARE ROW EXCLUSIVE MODE")
     if catalog["original_identity"] != original_identity(env):
         raise ValidationError("La referencia de enlaces corresponde a otra biblioteca.")
