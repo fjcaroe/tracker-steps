@@ -101,9 +101,12 @@ def examine(client, user, role, docs, fixture, native):
 
     for focus in ("parent", "nested"):
         folder = docs[focus]
+        folder.env.invalidate_all()
         response = get("/documents/" + quote(refs[focus], safe=""))
         tree = html.fromstring(response.data)
         if native:
+            # A request gets a fresh record cache after a previous connection commits its change.
+            folder.env.invalidate_all()
             ids = native_request(folder.env, user, lambda: native_folder_children(folder))
             entries = sorted(key for key, doc in docs.items() if ids is not None and doc.id in ids)
             allowed = ids is not None
@@ -175,7 +178,7 @@ def folder_http(env, fixture=None, prepared=None):
                     individual(docs["personal"], users["recipient"], "view" if label == "child_restored" else "none", True)
                 elif label in ("by_link", "link_revoked"):
                     docs["parent"].write({"access_via_link": "view" if label == "by_link" else "none"})
-                env.flush_all()
+                env.invalidate_all()
                 fixture["policies"][label] = copy_policy(env, docs, users)
             else:
                 assert copy_policy(env, docs, users, fixture["policies"][label]) == fixture["policies"][label]
