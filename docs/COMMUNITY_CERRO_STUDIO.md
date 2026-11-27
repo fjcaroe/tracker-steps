@@ -166,10 +166,16 @@ confirmó las 8.370 restricciones con iguales definiciones y validación, y
 las 14 líneas de estimación con idénticos valores. U41L añadió cuatro
 restricciones para sus nuevos proveedores.
 
-La actualización nativa ampliada del núcleo encontró que la extensión 4637
-de `step_agriculture_catalogs` necesita `step.temporada.company_ids` durante
-la validación del formulario 4159. Esa actualización quedó pendiente. La
-lectura de las 23 pantallas del control nativo sigue comprobada.
+La primera actualización nativa ampliada encontró que la vista 4637 exige
+la relación de empresas al validar el formulario de Temporadas 4159. Al
+cargar juntos el catálogo 18.0.1.1.0 y su núcleo, el registro superó esa
+fase y llegó a las categorías de Packing. La restauración sellada U40Q
+conserva los enlaces de vistas 836 y 837 de la acción de centros de costo
+1082. En el control de actualizaciones sucesivas U40B, la versión anterior
+del proveedor agrícola los recreó como 945 y 946. Por ello la actualización
+completa se vuelve a ensayar desde el respaldo sellado, con el proveedor que
+reutiliza ambas identidades desde la primera carga. Las 23 pantallas
+del control nativo disponen de su lectura anterior al cambio.
 
 En U42C el usuario 6 obtuvo los mismos 53 fundos y los mismos registros al
 abrir cada empresa. También coincidieron el inverso de productores y todas
