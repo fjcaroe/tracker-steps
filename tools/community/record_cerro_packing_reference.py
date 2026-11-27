@@ -8,6 +8,7 @@ from record_cerro_concept_reference import DEST, NATIVE, state
 
 
 PROBES = (
+    ('probe_cerro_reception_flow','exercise','picking-fruit-physical-u46','native-fruit-receipt-flow-u46.json'),
     ('probe_cerro_picking_lists','exercise','picking-quality-search-u46','native-picking-search-u46.json'),
     ('probe_cerro_picking_lists','search_cases','picking-quality-mixed-search-u46','native-picking-mixed-search-u46.json'),
     ('probe_cerro_packing_landscape','capture','packing-fields-u46','native-packing-fields-u46.json'),
