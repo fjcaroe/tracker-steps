@@ -8,6 +8,11 @@ from record_cerro_concept_reference import DEST, NATIVE, state
 
 
 PROBES = (
+    ('probe_cerro_followup_properties', 'exercise', 'followup-properties-u46', 'native-followup-properties-u46.json'),
+    ('probe_cerro_followup_cases', 'reference', 'followup-cases-u46', 'native-followup-cases-u46.json'),
+    ('probe_cerro_followup_cases', 'combinations', 'followup-combinations-u46', 'native-followup-combinations-u46.json'),
+    ('probe_cerro_followup_cases', 'changes', 'followup-changes-u46', 'native-followup-changes-u46.json'),
+    ('probe_cerro_followup_filters', 'capture', 'followup-request-filters-u46', 'native-followup-request-filters-u46.json'),
     ('probe_cerro_receipt_import_access','model_access','fruit-model-access-u46','native-fruit-model-access-u46.json'),
     ('probe_cerro_receipt_import_access','exercise','fruit-import-access-u46','native-fruit-import-access-u46.json'),
     ('probe_cerro_reception_flow','containers','picking-fruit-container-u46','native-fruit-receipt-container-u46.json'),

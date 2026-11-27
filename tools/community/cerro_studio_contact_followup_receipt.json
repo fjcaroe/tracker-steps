@@ -1,0 +1,15 @@
+{
+  "archive_sha256": "dad06f9ee868d78aeea53dc572492b278ac0f55ff36bc9f40a61b9b1a5a5e8c6",
+  "files": 4,
+  "lf_source_files": {
+    "step_cerro_contact_followup": [
+      "__init__.py",
+      "__manifest__.py",
+      "hooks.py",
+      "models.py"
+    ]
+  },
+  "module_trees": {
+    "step_cerro_contact_followup": "a977c242e57ad9847f286b96e809d0a9bd3bbe7cef7b9e4091f059682e6b6ea7"
+  }
+}
