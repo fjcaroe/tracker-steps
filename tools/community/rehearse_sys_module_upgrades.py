@@ -445,12 +445,26 @@ def candidate_batch(args, proof):
     final_receipt(args, proof)
 
 
+def prepare_profile(args):
+    identity = json.loads((args.output / "restored.json").read_bytes())
+    require(args.database.endswith(("U41MP", "U41MQ")) and identity["database"] == args.database
+            and identity["sealed"] == str(args.sealed), "separate-policy-profile-copy-required")
+    versions = module_versions(args.database)
+    require(all(versions[k] == ["installed", v[0]] for k, v in MODULES.items()), "profile-requires-original-versions")
+    keep_original = args.database.endswith("U41MQ")
+    selected = (*FORWARD, "step_payroll_engine_transition") if keep_original else MODULES
+    if keep_original:
+        require((args.output / "pinned-providers.json").is_file(), "old-policy-providers-required")
+    save(args.output / "profile-proof.json", build(args.database, args.sealed, args.output / "profile",
+                                                  selected, original_admin_seeds=keep_original))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "pin-providers", "seal-profile", "candidate-batch", "exports", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "profile", "prepare-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -479,17 +493,12 @@ if __name__ == "__main__":
         elif args.operation == "candidate-batch":
             candidate_batch(args, proof)
         elif args.operation == "profile":
-            identity = json.loads((args.output / "restored.json").read_bytes())
-            require(args.database.endswith(("U41MP", "U41MQ")) and identity["database"] == args.database
-                    and identity["sealed"] == str(args.sealed), "separate-policy-profile-copy-required")
-            versions = module_versions(args.database)
-            require(all(versions[k] == ["installed", v[0]] for k, v in MODULES.items()), "profile-requires-original-versions")
-            keep_original = args.database.endswith("U41MQ")
-            selected = (*FORWARD, "step_payroll_engine_transition") if keep_original else MODULES
-            if keep_original:
-                require((args.output / "pinned-providers.json").is_file(), "old-policy-providers-required")
-            save(args.output / "profile-proof.json", build(args.database, args.sealed, args.output / "profile",
-                                                          selected, original_admin_seeds=keep_original))
+            prepare_profile(args)
+        elif args.operation == "prepare-retained":
+            require(args.database.endswith("U41MQ"), "retained-policy-scope-required")
+            if not (args.output / "pinned-providers.json").exists():
+                pin_original_providers(args)
+            prepare_profile(args)
         elif args.operation == "final":
             final_receipt(args, proof)
         elif args.operation == "policy":
