@@ -59,3 +59,13 @@ orden. En diez facturas con varios abonos el sistema nativo presentaba las
 conciliaciones por su identificador original. La impresión en PDF reveló otra
 diferencia: el gráfico del timbre ocupaba más espacio. La imagen generada con
 escala 1 y margen 15 coincidió píxel a píxel con los 21 timbres nativos.
+
+La revisión 18.0.1.0.3 recuperó el orden de las conciliaciones y el tamaño
+del timbre. El texto completo de los 21 comprobantes coincide para ambos
+operadores. Se imprimieron cuatro PDF con la acción original: dos facturas y
+dos notas de crédito. Coinciden sus cuatro páginas, los 210 tramos de texto,
+156 trazos y todos los píxeles en color a 96 y 144 ppp. El mismo control
+contable conservó las 211 líneas y sus 86 asientos. Quedan cinco campos del
+formulario original, vinculados con cesiones de crédito y préstamos, sin datos
+en la muestra. El paquete probado tiene la huella
+`8c7cf3cc764d92740db4549b395ddc27b126ab71596c9e2c7744a830f559cf2f`.
