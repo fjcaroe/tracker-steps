@@ -8,7 +8,9 @@ import sys
 from preflight_original_history_storage import require
 
 
+PAYROLL_UPDATES = ('COMMUNITY_SYS_PREVIRED_COHORT_20261127U48C', 'COMMUNITY_SYS_PREVIRED_COHORT_20261127U48D')
 PROFILES = {
+    **dict.fromkeys(PAYROLL_UPDATES, 'step_payroll_oca_sys_history'),
     'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H': 'step_helpdesk_tickets',
     'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2': 'step_helpdesk_tickets',
     'COMMUNITY_SYS_FISCAL_PRINT_20261127U45P': 'step_report_print_colors',
@@ -44,7 +46,8 @@ def main():
     allowed = (allowed,) if isinstance(allowed, str) else allowed
     require(db in PROFILES and '--db-filter=^'+db+'$' in args and '--no-http' in args
             and '--stop-after-init' in args and '--max-cron-threads=0' in args
-            and (switches == ['-i'] or switches == ['-u'] and db in (
+            and (switches == ['-i'] and db not in PAYROLL_UPDATES or switches == ['-u'] and db in (
+                *PAYROLL_UPDATES,
                 'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2', 'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3',
                 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F', 'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A'))
             and args[args.index(switches[0])+1] in allowed, 'private-install-required')
