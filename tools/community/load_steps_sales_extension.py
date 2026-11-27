@@ -22,6 +22,9 @@ PROFILES = {
                                                'step_helpdesk_tickets','step_helpdesk_tickets_portal'),
     'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A': ('step_cl_invoice_status_history','step_helpdesk_tickets_portal'),
     'COMMUNITY_STEPS_EXPENSE_20261127U50E': ('step_cl_credit_note_draft', 'step_expense_documents'),
+    **dict.fromkeys(('COMMUNITY_STEPS_PROJECT_20261127U51P', 'COMMUNITY_STEPS_PROJECT_20261127U51Q'),
+                    ('base_address_extended', 'step_agriculture_core', 'step_operations_core',
+                     'step_project_agriculture_scope', 'step_project_documents')),
     'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3': ('step_helpdesk_tickets', 'step_helpdesk_tickets_portal'),
     'COMMUNITY_STEPS_CRM_DOC_20261127U43X': 'step_document_library,step_document_library_portal',
     'COMMUNITY_STEPS_CRM_DOC_20261127U44P': 'step_document_library,step_document_library_portal,step_report_print_colors',
@@ -59,7 +62,8 @@ def main():
                 'COMMUNITY_STEPS_CRM_PAYMENTS_TEST_20261127U46D',
                 'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H2', 'COMMUNITY_STEPS_CRM_SUPPORT_20261127U44H3',
                 'COMMUNITY_STEPS_CRM_FISCAL_20261127U45F', 'COMMUNITY_STEPS_CRM_INTEGRATED_20261127U46A',
-                'COMMUNITY_STEPS_EXPENSE_20261127U50E'))
+                'COMMUNITY_STEPS_EXPENSE_20261127U50E', 'COMMUNITY_STEPS_PROJECT_20261127U51P',
+                'COMMUNITY_STEPS_PROJECT_20261127U51Q'))
             and module in allowed, 'private-install-required')
     payload = Path(plan).read_bytes()
     require(hashlib.sha256(payload).hexdigest() == checksum, 'required-columns-plan-changed')

@@ -22,6 +22,7 @@ from werkzeug.wrappers import Response
 
 NATIVE = "MANAGEMENT_QA_SYS_REPORT_ROLES_20261126U40RP"
 COMMUNITY = "COMMUNITY_SYS_PREVIRED_COHORT_20261127U49E"
+RECOVERY = "COMMUNITY_SYS_FINAL_PRINT_RECOVERY_20261127U51S"
 
 
 @contextmanager
@@ -182,8 +183,8 @@ def render(scope, slip, prefix, directory, community):
 
 
 def run(shell, capsule, destination, fresh=False):
-    assert shell.cr.dbname in (NATIVE, COMMUNITY)
-    community = shell.cr.dbname == COMMUNITY
+    assert shell.cr.dbname in (NATIVE, COMMUNITY, RECOVERY)
+    community = shell.cr.dbname in (COMMUNITY, RECOVERY)
     directory = Path(destination)
     assert directory.is_dir()
     result = []

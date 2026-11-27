@@ -14,6 +14,11 @@ sus hilos y sus archivos. El recibo conjunto de las 34 comprobaciones tiene la
 huella `6a8e063966aedbc789f36afaeb8e2a537095028b71101ba7933c61795772c9ea`.
 [Rendiciones](COMMUNITY_STEPS_RENDICIONES.md) · [Notas de crédito](COMMUNITY_STEPS_NOTAS_CREDITO.md) · [Cobros](COMMUNITY_STEPS_CONTABILIDAD.md).
 
+La derivada de 173 módulos recuperó el proyecto, sus seis tareas, dos
+hitos y tres archivos. Un operador creó, vinculó y cambió de etapa una
+tarea. Coincidieron las lecturas y los archivos de los usuarios originales.
+[Proyectos de Steps](COMMUNITY_STEPS_PROYECTOS.md).
+
 **SyS.** Dos operadores abrieron el formulario de liquidación desde su menú y
 calcularon y confirmaron cinco casos cada uno. Con 18.0.1.6.3 se recuperó el
 arrastre del líquido negativo desde el botón Reporte. Coincidieron seis recorridos
