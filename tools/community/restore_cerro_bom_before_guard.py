@@ -17,6 +17,8 @@ COLD_TARGET = 'COMMUNITY_CERRO_BOM_COLD_20261126U42H'
 COLD_DEST = Path('/opt/steps-validation/community-cerro-studio-cold-20261126U42H')
 PRODUCT_TARGET = 'COMMUNITY_CERRO_BOM_PRODUCT_20261126U42P'
 PRODUCT_DEST = Path('/opt/steps-validation/community-cerro-studio-product-20261126U42P')
+FINAL_TARGET = 'COMMUNITY_CERRO_BOM_QUALIFIED_20261127U43Z'
+FINAL_DEST = Path('/opt/steps-validation/community-cerro-studio-final-20261127U43Z')
 PROFILE = ROOT / 'bom-restore-2d6b0a1c73e6'
 PROVIDER = PROFILE / 'step_cerro_bom_company'
 GUARD = 'step_anchor_preserve_original_row'
@@ -47,7 +49,8 @@ def all_guards(db):
 
 def before_guard(source=SOURCE, target=TARGET, dest=DEST):
     from restore_cerro_studio_strict import SOURCE as library, FILES
-    if (source,target,dest) not in ((SOURCE,TARGET,DEST),(library,COLD_TARGET,COLD_DEST),(library,PRODUCT_TARGET,PRODUCT_DEST)):
+    if (source,target,dest) not in ((SOURCE,TARGET,DEST),(library,COLD_TARGET,COLD_DEST),(library,PRODUCT_TARGET,PRODUCT_DEST),
+                                   (library,FINAL_TARGET,FINAL_DEST)):
         raise ValueError('Unknown private Cerro source and destination')
     originals = FILES if source == library else ROOT / 'data/filestore' / source
     if tree_sha(PROVIDER) != 'e27bebe09c163549cf975cdbe2f8d6e301b6f51a9bdeaa19997eeac3b101db7f':

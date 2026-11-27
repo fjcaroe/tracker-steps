@@ -1,19 +1,20 @@
 """Check the original dispatch directory and its cross-company restrictions with the full freight provider."""
+import argparse
 import fcntl
 import json
 
-from check_cerro_budget_studio import OPERATIONS
 from check_cerro_estimation_profile import BRIDGE, PROFILE as ESTIMATES, snapshot
 from check_cerro_packing_categories import PACKING, PRODUCER_LINK, categories
 from check_cerro_studio_strict import ROOT, addon_roots, run, tree_sha
-from restore_cerro_bom_before_guard import PRODUCT_DEST, PRODUCT_TARGET
+from restore_cerro_bom_before_guard import PRODUCT_DEST, PRODUCT_TARGET, FINAL_DEST, FINAL_TARGET
 from restore_cerro_studio_strict import SOURCE, module_census, sql
-from check_cerro_combined_budget import PACKAGE
+from check_cerro_combined_budget import PACKAGE, BUDGET, guard, shared_wizard_ids
+from check_cerro_cold_studio import histories, NATIVE_SOURCE
 from compare_cerro_studio_receipts import receipt,compare
 from compare_cerro_studio_strict import NATIVE
 
-FREIGHT=ROOT/'freight-operational-providers-f6a8b14fb0f8'
-HASHES={'step_operations_ui':'a3d7d18eef315c017acb55a5d1bf35e6824520726c2350872eaa4d0e90a3aebe'}
+FREIGHT=ROOT/'freight-matched-grants-769a584e2bf3'
+HASHES={'step_operations_ui':'6b8066659d7a3556478106f2fc4359bacce4fc0c54d4a5c535152eebd4af1f77'}
 
 
 def directory(db):
@@ -21,27 +22,30 @@ def directory(db):
       (SELECT md5(string_agg(to_jsonb(d)::text,chr(10) ORDER BY id)) FROM step_freight_dispatch_type d),
       (SELECT md5(string_agg(to_jsonb(d)::text,chr(10) ORDER BY dispatch_type_id,company_id)) FROM step_freight_dispatch_type_company_rel d),
       (SELECT md5(string_agg(jsonb_build_array(id,company_id,dispatch_type_id)::text,chr(10) ORDER BY id)) FROM step_dispatch_guide),
-      (SELECT md5(string_agg((to_jsonb(a)-'write_date')::text,chr(10) ORDER BY id)) FROM ir_model_access a WHERE model_id=1320),
-      (SELECT md5(string_agg((to_jsonb(r)-'write_date')::text,chr(10) ORDER BY id)) FROM ir_rule r WHERE model_id=1320),
+      (SELECT md5(string_agg(to_jsonb(a)::text,chr(10) ORDER BY id)) FROM ir_model_access a WHERE model_id=1320),
+      (SELECT md5(string_agg(to_jsonb(r)::text,chr(10) ORDER BY id)) FROM ir_rule r WHERE model_id=1320),
       (SELECT md5(string_agg(jsonb_build_array(id,field_id,value)::text,chr(10) ORDER BY id)) FROM ir_model_fields_selection WHERE field_id IN(25040,30980))""")
 
 
-def main():
+def main(db=PRODUCT_TARGET,dest=PRODUCT_DEST):
     if {p.name:tree_sha(p) for p in FREIGHT.iterdir() if p.is_dir()}!=HASHES:
         raise ValueError('Incomplete or modified Cerro freight package')
     with open('/run/lock/steps-environments.lock','rb') as gate:
         fcntl.flock(gate,fcntl.LOCK_EX)
-        db=PRODUCT_TARGET
-        assert (PRODUCT_DEST/'qualified-archive.json').is_file()
+        assert (dest/'qualified-archive.json').is_file()
         assert sql(db,"SELECT state FROM ir_module_module WHERE name='step_hr'")=='uninstalled'
         assert not any(module_census(db)[k] for k in ('enterprise','non_free','pending'))
         original=(directory(SOURCE),snapshot(SOURCE),categories(SOURCE))
         assert (directory(db),snapshot(db),categories(db))==original
-        args=dict(database=db,directory=PRODUCT_DEST,roots=[FREIGHT,OPERATIONS,PACKAGE,*addon_roots(db)])
-        try:
-            run('install-freight-directory',['-i','step_operations_ui'],**args)
-        finally:
-            assert (directory(db),snapshot(db),categories(db))==original
+        args=dict(database=db,directory=dest,roots=[FREIGHT,BUDGET,PACKAGE,*addon_roots(db)])
+        budget_receipt=json.loads((dest/'qualified-archive.json').read_text())
+        for stage, flag in [('install','-i'), ('upgrade','-u')]:
+            try:
+                run(stage+'-freight-directory',[flag,'step_operations_ui'],**args)
+            finally:
+                assert (directory(db),snapshot(db),categories(db))==original
+            assert guard('verify',db)==budget_receipt['protected']
+            assert histories(db)==histories(NATIVE_SOURCE) and shared_wizard_ids(db)==shared_wizard_ids(SOURCE)
         assert sql(db,"SELECT state FROM ir_module_module WHERE name='step_operations_ui'")=='installed'
         assert sql(db,"SELECT state FROM ir_module_module WHERE name='step_hr'")=='uninstalled'
         assert not any(module_census(db)[k] for k in ('enterprise','non_free','pending'))
@@ -77,19 +81,28 @@ print('FREIGHT_DIRECTORY',json.dumps(dict(actor=actor.id,entries=len(entries),pa
 env.cr.rollback()
 """
         run('freight-directory-user',[],body,**args)
-        result=receipt(PRODUCT_DEST/'freight-directory-user.log','FREIGHT_DIRECTORY')
+        result=receipt(dest/'freight-directory-user.log','FREIGHT_DIRECTORY')
         code='import json,sys\nsys.path.insert(0,'+repr(str(ROOT/'tools'))+')\n'
         code+="from probe_cerro_studio_fullread import capture as fullread\nfrom probe_cerro_studio_navigation import capture as routes\nfrom probe_cerro_studio_client import capture as client\n"
         code+="print('FREIGHT_STUDIO',json.dumps(dict(fullread=fullread(env),routes=routes(env),client=client(env)),sort_keys=True))\nenv.cr.rollback()"
         run('freight-studio',[],code,**args)
-        full=receipt(PRODUCT_DEST/'freight-studio.log','FREIGHT_STUDIO')
+        full=receipt(dest/'freight-studio.log','FREIGHT_STUDIO')
         result['matrix']=compare(receipt(NATIVE/'fullread/native.log','CERRO_FULL_READ'),receipt(NATIVE/'upgrade-final-v2/native-postflight.log','CERRO_FULL'),full)
         alias='odoo_studio_x_tipo_d_3250512b-69a9-4adb-bfed-cfaab2ff993e'
         assert alias in result['matrix']['matching_full_record']
         assert '5267' in result['matrix']['original_routes']
         result['census']=module_census(db)
-        (PRODUCT_DEST/'qualified-freight.json').write_text(json.dumps(result,sort_keys=True))
+        result['grant_and_rule_rows']=True
+        result['freight_sha256']='769a584e2bf3e1c7009f6ce2fd5fbd00d68228ac900c2d066582b69ea3d62c43'
+        result['upgraded']=True
+        (dest/'qualified-freight.json').write_text(json.dumps(result,sort_keys=True))
 
 
 if __name__=='__main__':
-    main()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--fresh',action='store_true')
+    args=parser.parse_args()
+    if args.fresh:
+        main(FINAL_TARGET,FINAL_DEST)
+    else:
+        main()

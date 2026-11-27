@@ -56,18 +56,43 @@ def derive(source,output):
     recipient=fragment(data['step_packing_interplant/dispatch.py'],'DispatchType')
     text='from odoo import _,api,fields,models\nfrom odoo.exceptions import AccessError,ValidationError\n\n\n'
     text+=directory+'\n\n\n'+recipient+'\n'
+    text += '''
+    
+class FreightAccessGrants(models.Model):
+    _inherit = 'ir.model.access'
+
+    def _load_records_write(self, values):
+        # The native freight CSV redeclares grants already present in the
+        # restored database. Genuine changes still take the usual Odoo path.
+        columns = {'name', 'model_id', 'group_id', 'perm_read', 'perm_write',
+                   'perm_create', 'perm_unlink'}
+        context = self.env.context
+        filename = context.get('install_filename', '')
+        if (context.get('install_module') == 'step_operations_ui'
+                and filename.endswith('security/ir.model.access.csv')
+                and values.keys() == columns):
+            original = self.env['ir.model.data'].search_count([
+                ('module', '=', 'step_operations_ui'), ('model', '=', self._name),
+                ('res_id', '=', self.id)], limit=1)
+            if original:
+                current = {k: self[k].id if k in ('model_id', 'group_id') else self[k]
+                           for k in columns}
+                if current == values:
+                    return
+        return super()._load_records_write(values)
+'''
     ast.parse(text)
     shutil.copytree(source/'step_operations_ui',output,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     (output/'models/step_cerro_directory.py').write_text(text,encoding='utf8',newline='\n')
     init=data['step_operations_ui/models/__init__.py'].rstrip()+'\nfrom . import step_cerro_directory\n'
     (output/'models/__init__.py').write_text(init,encoding='utf8',newline='\n')
-    manifest=data['step_operations_ui/__manifest__.py'].replace('18.0.2.7.3','18.0.2.7.5')
+    manifest=data['step_operations_ui/__manifest__.py'].replace('18.0.2.7.3','18.0.2.7.6')
     manifest=manifest.replace('"LGPL-3"','"AGPL-3"')
     # The free canonical fleet and machinery providers now own the former agricultural fields.
     # Tracker has separate payroll wizards and supplies no API or menu used by this application.
     manifest=manifest.replace('"step_hr",','"step_agriculture_core", "step_operations_core",')
     assert 'step_hr' not in ast.literal_eval(manifest)['depends'] and {'step_machinery','step_mobilization'}<=set(ast.literal_eval(manifest)['depends'])
-    assert ast.literal_eval(manifest)['version']=='18.0.2.7.5' and ast.literal_eval(manifest)['license']=='AGPL-3'
+    assert ast.literal_eval(manifest)['version']=='18.0.2.7.6' and ast.literal_eval(manifest)['license']=='AGPL-3'
     (output/'__manifest__.py').write_text(manifest,encoding='utf8',newline='\n')
 
 
