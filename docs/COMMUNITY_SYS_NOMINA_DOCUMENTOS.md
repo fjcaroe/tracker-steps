@@ -1,5 +1,16 @@
 # Recuperación del perfil SyS de Nómina para integrar Documentos
 
+## Límite de preservación detectado al preparar la conversión fiscal
+
+U43C acredita los recorridos funcionales descritos y conserva fielmente su propio estado en el respaldo de catorce piezas. La comparación posterior entre el esquema original de U42L y el esquema combinado encontró trece columnas que perdieron la obligatoriedad durante la instalación de Documentos. El uso de U43C como origen de una conversión integral queda suspendido. La preparación de U44FD detectó esta diferencia antes de aplicar su primera actualización fiscal.
+
+Las once columnas afectadas de `res_company` son `account_tax_periodicity`, `account_tax_periodicity_reminder_day`, `currency_interval_unit`, `deferred_expense_amount_computation_method`, `deferred_revenue_amount_computation_method`, `generate_deferred_expense_entries_method`, `generate_deferred_revenue_entries_method`, `planning_employee_unavailabilities`, `planning_generation_interval`, `timesheet_mail_employee_interval` y `timesheet_mail_interval`. En `documents_document` se vieron afectadas `alias_id` y `document_token`.
+
+Los dos snapshots conservan las 12.010 columnas de U42L, sus tipos y valores por defecto. Las 5.816 restricciones originales, las 1.996 relaciones con sus propietarios y permisos y las 858 definiciones de secuencias coinciden. U43C añadió 25 columnas, diez restricciones, seis relaciones y tres secuencias de los asistentes y campos documentales.
+
+Una segunda limitación afecta al directorio de ejecución extraído del paquete. El proceso de recuperación lo creó con permisos 0700 de root y el usuario de Odoo no pudo atravesarlo en el montaje fiscal. El archivo del motor sí pasó su verificación byte a byte en la estación. La siguiente restauración debe comprobar el arranque como el usuario de servicio desde la extracción preparada con los permisos de lectura correspondientes.
+
+
 El punto de partida de U43C es la copia privada U42L de SyS. Contiene 765 liquidaciones y 1.430 documentos. El respaldo congela las 1.138 tablas públicas, sus 608.867 filas y las 858 secuencias con sus valores. La segunda lectura de U42L coincidió con las tablas, el esquema y los contadores de la primera.
 
 | Componente verificado fuera del servidor | Resultado |
