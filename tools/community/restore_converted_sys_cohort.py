@@ -65,7 +65,8 @@ def check_modules(source):
         SELECT json_object_agg(name,json_build_array(latest_version,license)) FROM ir_module_module
          WHERE state='installed'
     """))
-    require(result and "base" in result and "step_payroll_oca_api" in result and
+    anchor = "crm" if source.startswith("COMMUNITY_STEPS_CRM_") else "step_payroll_oca_api"
+    require(result and "base" in result and anchor in result and
             not any(value[1] == "OEEL-1" for value in result.values()), "converted-module-graph-required")
     return result
 
@@ -125,7 +126,15 @@ def package(args, out, source_db, modules):
         db_licenses = dict(Counter(v[1] for v in modules.values()))
         source_licenses = dict(Counter(v[2] for v in providers.values()))
         review_map = None
-        if converted_profile(source_db, args.target) == "cerro":
+        product = converted_profile(source_db, args.target)
+        if product == "steps":
+            from prepare_steps_crm_cohort import digest as inventory_digest, FREE, SOURCE_MANIFESTS
+            require(not changed and len(modules) == 157 and set(db_licenses) | set(source_licenses) <= FREE
+                    and all(modules[name][1] == provider[2] for name, provider in providers.items()),
+                    "unexpected-steps-providers")
+            actual = {name: digest(Path(entry[0]) / "__manifest__.py") for name, entry in providers.items()}
+            require(inventory_digest(actual) == SOURCE_MANIFESTS, "original-steps-provider-manifests-required")
+        if product == "cerro":
             require(set(db_licenses) | set(source_licenses) <= {"LGPL-3", "AGPL-3", "GPL-3"},
                     "expected-free-cerro-provider-licenses")
             review_map = check_cerro_release(args.release, Path(providers["step_payroll_engine_transition"][0]))
@@ -142,6 +151,7 @@ def package(args, out, source_db, modules):
                      runtime=runtime, forward_manifests_on_source=changed, attachments=stored, **filestore)
         if review_map:
             proof["contract_provider_file_map_sha256"] = review_map
+        if product in ("cerro", "steps"):
             proof["simultaneous_physical_tree_sha256"] = args.physical_tree_sha256
         with gzip.open(temporary / "source-snapshot.json.gz", "wt") as handle:
             json.dump(frozen, handle, separators=(",", ":"), sort_keys=True)
@@ -159,7 +169,8 @@ def open_as_user(out, db, service, boot, hidden_sources):
     scratch.mkdir(mode=0o700, exist_ok=True)
     os.chown(scratch, service.pw_uid, service.pw_gid)
     cerro = db.startswith("COMMUNITY_CERRO_PAYROLL_RECOVERY_")
-    config = "/etc/dev_odoo18.conf" if cerro else "/etc/odoo18-sys.conf"
+    steps = db.startswith("COMMUNITY_STEPS_CRM_RECOVERY_")
+    config = "/etc/odoo18.conf" if steps else "/etc/dev_odoo18.conf" if cerro else "/etc/odoo18-sys.conf"
     args = [
         "unshare", "--net", "--", "sh", "-ec", 'ip link set dev lo up; exec "$@"', "steps",
         "bwrap", "--die-with-parent", "--ro-bind", "/", "/", "--tmpfs", "/opt/steps-validation",
@@ -189,7 +200,9 @@ assert Path(odoo.__file__).resolve().is_relative_to(core)
 installed=env['ir.module.module'].search([('state','=','installed')])
 assert installed and not installed.filtered(lambda m:m.license=='OEEL-1')
 assert all(Path(get_module_path(m.name)).resolve().is_relative_to(core) for m in installed)
-if is_cerro:
+if is_steps:
+    actor, extra = steps_restore_access(env, core)
+elif is_cerro:
     actor,extra=cerro_restore_access(env)
 else:
     actor=env['res.users'].browse(6)
@@ -210,9 +223,13 @@ print('CONVERTED_RESTORE='+json.dumps({'active':len(installed),'enterprise':0,'i
     'all_providers_inside_restored_capsule':True,'source_directories_hidden':True,'read_only':True,**extra}))
 env.cr.rollback()
 """
-    probe_file = "probe_converted_cerro_access.py" if cerro else "probe_converted_cohort_attachment.py"
-    role_probe = Path(__file__).with_name(probe_file).read_text()
-    code = role_probe + "\n" + f"is_cerro={cerro!r}\nexpected_db={db!r}\nexpected_core={str(core)!r}\nexpected_hidden={list(map(str, hidden_sources))!r}\n" + probe
+    probes = ["probe_converted_cohort_attachment.py"]
+    if cerro:
+        probes = ["probe_converted_cerro_access.py"]
+    if steps:
+        probes = ["probe_steps_crm_pipeline.py", "probe_converted_steps_access.py"]
+    role_probe = "\n".join(Path(__file__).with_name(name).read_text() for name in probes)
+    code = role_probe + "\n" + f"is_cerro={cerro!r}\nis_steps={steps!r}\nexpected_db={db!r}\nexpected_core={str(core)!r}\nexpected_hidden={list(map(str, hidden_sources))!r}\n" + probe
     with (out / f"orm-{boot}.log").open("wb") as handle:
         run = subprocess.run(args, input=code.encode(), stdout=handle, stderr=handle)
     require(run.returncode == 0, "restored-official-orm-probe-failed")
@@ -250,7 +267,7 @@ def restore(args):
         save(out / "identity.json", {"source": source, "target": target})
     require(not out.is_symlink() and json.loads((out / "identity.json").read_text()) == {"source": source, "target": target},
             "unrecognized-recovery-directory")
-    if product == "cerro":
+    if product in ("cerro", "steps"):
         from complete_converted_filestore import inventory
 
         original_objects = object_catalog(attachments(source, query)["references"])
@@ -259,7 +276,7 @@ def restore(args):
             json.dumps(physical, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest()
     frozen, proof, source_at_start, advances = package(args, out, source, modules)
-    if product == "cerro":
+    if product in ("cerro", "steps"):
         require(proof.get("simultaneous_physical_tree_sha256") == args.physical_tree_sha256,
                 "physical-source-changed-since-the-sql-freeze")
     sealed = out / "sealed"

@@ -7,6 +7,7 @@ def converted_profile(source, target):
     profiles = (
         ("COMMUNITY_SYS_PREVIRED_COHORT_", "COMMUNITY_SYS_PREVIRED_RECOVERY_", "sys"),
         ("COMMUNITY_PAYROLL_CERRO_REVIEW_", "COMMUNITY_CERRO_PAYROLL_RECOVERY_", "cerro"),
+        ("COMMUNITY_STEPS_CRM_(?!RECOVERY_)", "COMMUNITY_STEPS_CRM_RECOVERY_", "steps"),
     )
     for original, restored, name in profiles:
         if re.fullmatch(original + endings, source) and re.fullmatch(restored + endings, target):
