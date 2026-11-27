@@ -13,3 +13,11 @@ En la derivada de ensayos U46D, los 60 contrastes de los dos usuarios y el caso 
 | Asistente y facturas originales, 60 contrastes y textos vacíos | `ef434372dc52a52df01aea2191e27d89f9c9500fd23583f8e6e04a869b2420ec` |
 | Actualización del proveedor en U46D | `f628ad3db5aef236fd239bcd49d258a51766c003d5dadbde415465525969ea02` |
 | Contraste funcional en U46D | `fc2022b9a842a6bd8e98d0eb6b279e7502b73745afd89a61ee159493833b36a4` |
+
+## Integración con Rendiciones
+
+U50E partió de los 166 módulos recuperados, la corrección de la vista de Rendiciones y el proveedor de documentos de gastos. El módulo de notas de crédito se instaló como el número 168 y se actualizó con el mismo paquete. Las cinco identidades históricas del asistente, los 15.183 objetos SQL y los 1.748 archivos físicos coincidieron antes y después de cada paso. La instalación conservó 1.110 tablas completas y cambió cinco de metadatos. La actualización conservó 1.112 tablas y cambió tres de metadatos.
+
+El operador y el usuario de consulta reprodujeron los 60 resultados del sistema original. Los 41 borradores se revirtieron y las 1.115 tablas mantuvieron su contenido. Avanzaron cinco contadores de prueba. Los recibos de instalación, actualización y prueba tienen las huellas `bf597de671ea26b0a21be3e4d4df4cdf29cc534fc1f7c29caa0c03908c3fd000`, `ce6864dcbc36790693d51f6cab75b50671349932febef6c711d85ac4675a1f92` y `faccf32d19f335636b04811c059152f85445d0a0d144ecbc0b2be75815060222`.
+
+Los dos operadores consultaron también los 243 tickets y sus 418 adjuntos en U50E. El invitado volvió a ver cinco tickets, tres mensajes y dos descargas. Se mantuvieron las denegaciones del portal, los enlaces vigentes y revocados, y los límites de las páginas de dos tickets. El control original tiene la huella `b70f02af8ef320ae106f27fb74c4fa26db878733de21a7e673eb79250b2884c8` y el de U50E `6129bb233dc0de833f6cc665df42e6d506de456eaa128a6df5cb8439917a6f92`.
