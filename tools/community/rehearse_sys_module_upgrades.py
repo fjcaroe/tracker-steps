@@ -236,6 +236,20 @@ def odoo(args, mode, options, log, stdin=None, comparison_key=None):
         require(args.database.endswith(("U41MQ", "U41MV")) and pins["archive"] == PINNED_ARCHIVE
                 and fingerprint(out / "pinned") == (pins["files"], pins["sha256"]), "original-pinned-modules-drift")
         addons.insert(0, out / "pinned")
+    # The standalone CLI can register runtime/addons before reading its configuration.
+    # Expose the same verified sources at that location for both registry entry points.
+    mounts = []
+    modules = set()
+    for private in addons[:-2]:
+        for source in sorted(private.iterdir()):
+            require(source.is_dir() and (source / "__manifest__.py").is_file() and source.name not in modules,
+                    "ambiguous-original-provider")
+            require((args.sealed / "runtime/addons" / source.name / "__manifest__.py").is_file(),
+                    "missing-sealed-provider-target")
+            mounts.extend(["--ro-bind", str(source), str(core / "addons" / source.name)])
+            modules.add(source.name)
+    position = argv.index("--proc")
+    argv[position:position] = mounts
     if not mode and (out / "profile").is_dir():
         require(options == ["-u", args.module], "unexpected-candidate-operation")
         tooling = out / "validator"

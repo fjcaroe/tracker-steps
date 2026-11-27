@@ -13,8 +13,8 @@ def run(shell, root):
     versions = {}
     for name in ("hr_timesheet", "project_sms"):
         path = (root / "pinned" / name).resolve()
-        assert Path(get_module_path(name)).resolve() == path
-        assert Path(importlib.import_module("odoo.addons." + name).__file__).resolve().parent == path
+        assert Path(get_module_path(name)).samefile(path)
+        assert Path(importlib.import_module("odoo.addons." + name).__file__).samefile(path / "__init__.py")
         manifest = ast.literal_eval((path / "__manifest__.py").read_text())
         mod, = shell["ir.module.module"].search([("name", "=", name), ("state", "=", "installed")])
         assert mod.latest_version == "18.0.1.0" and manifest["version"] == "1.0" and manifest["license"] == "LGPL-3"
@@ -24,6 +24,12 @@ def run(shell, root):
     differences = {item.name: [item.latest_version, adapt_version(get_manifest(item.name)["version"])]
                    for item in installed if item.latest_version != adapt_version(get_manifest(item.name)["version"])}
     assert not differences and all(Path(get_module_path(item.name)).resolve().is_relative_to(root) for item in installed)
+    profile = root / ("tested-profile" if (root / "tested-profile-proof.json").is_file() else "profile")
+    overlays = []
+    for module in sorted(profile.iterdir()):
+        actual = Path(get_module_path(module.name))
+        assert actual.samefile(module) and (actual / "__manifest__.py").samefile(module / "__manifest__.py")
+        overlays.append(module.name)
     shell.cr.execute("""SELECT id,encode(sha256(convert_to(arch_db::text,'UTF8')),'hex') FROM ir_ui_view
                         WHERE id IN (1215,204) ORDER BY id""")
     assert shell.cr.fetchall() == [
@@ -60,4 +66,4 @@ def run(shell, root):
     assert len(result) == 2
     shell.cr.rollback()
     return {"active_source_versions": versions, "all_installed_checked": len(installed), "version_differences": differences,
-            "native_standard_layout": True, "operator_invoice_renders": result}
+            "loaded_profile": overlays, "native_standard_layout": True, "operator_invoice_renders": result}
