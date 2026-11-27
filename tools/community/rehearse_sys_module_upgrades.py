@@ -474,7 +474,7 @@ def upgrade(args, proof):
     print(json.dumps({k: result[k] for k in ("module", "new", "passed", "pg_errors")}), flush=True)
 
 
-def payroll_exports(args):
+def payroll_exports(args, name="exports"):
     require(args.database in ("COMMUNITY_SYS_PREVIRED_MODULES_20261127U41M",
                               "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MP",
                               "COMMUNITY_SYS_PREVIRED_MODULES_20261127U41MQ",
@@ -486,17 +486,17 @@ def payroll_exports(args):
     code += "\nfrom pathlib import Path\nassert env.cr.dbname == " + repr(args.database)
     code += "\nprivate_key=Path(" + repr(str(out / "export-proof-key")) + ").read_bytes()"
     code += "\nprint('SIX_EXPORTS='+json.dumps(run(env,private_key)),flush=True)\n"
-    log = out / "exports.log"
+    log = out / (name + ".log")
     status = odoo(args, "shell", [], log, code.encode(), comparison_key=key)
     lines = [l.partition("=")[2] for l in log.read_text().splitlines() if l.startswith("SIX_EXPORTS=")]
     require(status == 0 and len(lines) == 1, "operator-export-probe-failed")
     observed = json.loads(lines[0])
-    save(out / "exports.json", observed)
+    save(out / (name + ".json"), observed)
 
 
-def compare_operator_exports(args):
+def compare_operator_exports(args, name="exports", comparison="complete-export-comparison"):
     out = args.output
-    observed = json.loads((out / "exports.json").read_bytes())
+    observed = json.loads((out / (name + ".json")).read_bytes())
     require(observed["database"] == args.database and not observed["enterprise"], "unexpected-export-origin")
     first = PRIVATE / "community-sys-payroll-exports-20261126U41X2/community/receipt.json"
     screen = PRIVATE / "community-sys-payroll-exports-20261126U41X3/community/receipt.json"
@@ -521,7 +521,7 @@ def compare_operator_exports(args):
         "companies": len(companies), "pairs": len(actors),
         "scope_differences": scope_changes, "full_result_differences": mismatch,
         "matches": not scope_changes and not mismatch, "originals_preserved": observed["originals_preserved"]}
-    target = out / "complete-export-comparison.json"
+    target = out / (comparison + ".json")
     if target.is_file():
         require(json.loads(target.read_bytes()) == result, "previous-export-comparison-differs")
     else:
@@ -621,6 +621,43 @@ def restore_financial_actions(args, proof):
             "sequence_definitions")) and not final["covered_table_changes"], "original-financial-storage-differs")
     require(query(args.database, "SELECT on_delete FROM ir_model_fields WHERE id=6077") == "cascade",
             "runtime-account-field-policy-differs")
+    pairs = query(args.database, """SELECT conname,confdeltype FROM pg_constraint WHERE conname IN
+        ('account_move_line_account_id_fkey', 'account_reconcile_model_line_account_tax_re_account_tax_id_fkey') ORDER BY conname""")
+    require([row.rsplit("|", 1)[1] for row in pairs.splitlines()] == ["c", "r"], "historical-foreign-key-actions-required")
+    actions = {"c": "CASCADE", "r": "RESTRICT"}
+    ledger, tax = [actions[row.rsplit("|", 1)[1]] for row in pairs.splitlines()]
+    trial = f"""BEGIN;
+        CREATE TEMP TABLE steps_trial_accounts (id integer PRIMARY KEY);
+        CREATE TEMP TABLE steps_trial_tax (id integer PRIMARY KEY);
+        CREATE TEMP TABLE steps_trial_ledger (account_id integer REFERENCES steps_trial_accounts(id) ON DELETE {ledger});
+        CREATE TEMP TABLE steps_trial_tax_rel (tax_id integer REFERENCES steps_trial_tax(id) ON DELETE {tax});
+        INSERT INTO steps_trial_accounts VALUES(1); INSERT INTO steps_trial_ledger VALUES(1);
+        INSERT INTO steps_trial_tax VALUES(1); INSERT INTO steps_trial_tax_rel VALUES(1);
+        DELETE FROM pg_temp.steps_trial_accounts WHERE id=1;
+        DO $$ BEGIN BEGIN DELETE FROM pg_temp.steps_trial_tax WHERE id=1;
+            RAISE EXCEPTION 'Expected the original tax reference restriction'; EXCEPTION WHEN foreign_key_violation THEN NULL; END; END $$;
+        SELECT (SELECT count(*) FROM pg_temp.steps_trial_ledger),(SELECT count(*) FROM pg_temp.steps_trial_tax_rel);
+        ROLLBACK;"""
+    require(query(args.database, trial) == "0|1", "native-financial-deletion-fixture-failed")
+    save(out / "financial-delete-actions.json", {"actions": pairs.splitlines(), "original_field": 6077,
+        "ledger_row_cascaded": True, "tax_row_retained": True, "temporary_rows_rolled_back": True})
+
+
+def finish_financial_release(args, proof):
+    out = args.output
+    require(args.database.endswith("U41MW"), "final-financial-release-required")
+    if not (out / "financial-storage.json").is_file():
+        restore_financial_actions(args, proof)
+    require((out / "financial-delete-actions.json").is_file(), "original-delete-policies-not-proven")
+    if not (out / "retained-release.json").is_file():
+        retained_release(args)
+    if not (out / "release-exports.json").is_file():
+        payroll_exports(args, "release-exports")
+    compare_operator_exports(args, "release-exports", "release-export-comparison")
+    result = json.loads((out / "release-export-comparison.json").read_bytes())
+    require(result["originals_preserved"] and result["matches"], "final-financial-payroll-regression")
+    if not (out / "invoice-pdf.json").is_file():
+        print_chilean_invoices(args, proof)
 
 
 def exercise_final(args, proof):
@@ -656,7 +693,7 @@ if __name__ == "__main__":
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sealed", type=Path, required=True)
-    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "exercise-final", "invoice-pdf", "financial-actions", "final"))
+    parser.add_argument("operation", choices=("restore", "upgrade", "forms", "policy", "policy-impact", "profile", "prepare-retained", "accept-retained", "pin-providers", "seal-profile", "candidate-batch", "exports", "exercise-final", "invoice-pdf", "financial-actions", "finish-financial", "final"))
     parser.add_argument("--module", choices=MODULES)
     parser.add_argument("--label", choices=("forms-before", "forms-after", "forms-checkpoint"))
     args = parser.parse_args()
@@ -675,6 +712,8 @@ if __name__ == "__main__":
             print_chilean_invoices(args, proof)
         elif args.operation == "financial-actions":
             restore_financial_actions(args, proof)
+        elif args.operation == "finish-financial":
+            finish_financial_release(args, proof)
         elif args.operation == "restore":
             restore(args, proof)
         elif args.operation == "accept-retained":
