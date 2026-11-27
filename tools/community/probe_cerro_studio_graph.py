@@ -26,7 +26,7 @@ VIEW_PROVIDERS = {
     'actual_costs': ('step_budget_design',),
     'budget_summary': ('step_budget_design',),
     'stock_transfers': ('stock', 'step_packing'),
-    'process_types': ('step_packing', 'step_packing_operations'),
+    'process_types': ('step_packing', 'step_packing_process_category'),
     'packing_summary': ('step_packing_operations', 'step_packing_overweight'),
     'package_tags': ('step_packing_ticket_revision', 'step_inventory_packing'),
     'packing_orders': ('step_packing_operations',),
@@ -57,7 +57,7 @@ def main():
     providers = set(module.get_modules())
     roots = sorted(n for n in providers if n.startswith('step_cerro_studio_') or n in
                    {'step_cerro_bom_company', 'step_cerro_product_account_views'})
-    assert len(roots) == 11
+    assert len(roots) == 12
     wanted = set()
     missing = {}
     def visit(name, path):

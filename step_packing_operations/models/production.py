@@ -23,14 +23,6 @@ class FruitPackage(models.Model):
     ], string="Resultado de Packing")
 
 
-class PackingProcessType(models.Model):
-    _inherit = "step.packing.process.type"
-
-    step_category = fields.Selection([
-        ("selection", "Selección"), ("packing", "Embalaje"), ("correction", "Corrección"),
-    ], string="Categoría de proceso", default="packing", required=True)
-
-
 class PackingProduction(models.Model):
     _name = "step.packing.production"
     _description = "Orden de Trabajo de Packing"

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="process_types" model="ir.ui.view">
+        <field name="name">Odoo Studio: step.packing.process.type.list customization</field>
+        <field name="model">step.packing.process.type</field>
+        <field name="inherit_id" ref="step_packing.view_step_packing_process_type_list"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//list[1]/field[@name='name']" position="after">
+                    <field name="step_category" optional="show"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>
