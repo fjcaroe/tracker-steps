@@ -7,6 +7,7 @@ from odoo.addons.step_inventory_packing.models.fruit_package import (
 )
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools.float_utils import float_compare
+from odoo.tools.misc import clean_context
 
 
 _CHANGE = object()
@@ -123,7 +124,7 @@ class ProducerChange(models.TransientModel):
             wizard.tag_ids = wizard.picking_id.fruit_tag_line_ids.package_id
 
     def _plan(self, tags):
-        plans = []
+        plans = {}
         for tag in tags:
             detail = tag.step_tag_line_ids
             quants = tag.quant_ids.filtered(lambda q: q.quantity or q.reserved_quantity)
@@ -148,8 +149,13 @@ class ProducerChange(models.TransientModel):
             if any(line.location_dest_id.usage != 'internal' and not line.move_id.step_producer_receipt_id
                    and not line.move_id.step_receipt_correction_id for line in history):
                 raise UserError(_('La tarja %s registra fruta despachada o procesada.') % tag.name)
-            plans.extend((tag, q.product_id, q.lot_id, q.location_id, q.quantity, q.in_date) for q in quants)
-        return plans
+            for quant in quants:
+                key = (tag, quant.product_id, quant.lot_id, quant.location_id)
+                if key not in plans:
+                    plans[key] = [0.0, quant.in_date]
+                plans[key][0] += quant.quantity
+                plans[key][1] = min(plans[key][1], quant.in_date)
+        return [(*key, quantity, in_date) for key, (quantity, in_date) in plans.items()]
 
     def action_apply(self):
         self.ensure_one()
@@ -185,7 +191,8 @@ class ProducerChange(models.TransientModel):
             receipt.with_context(_step_receipt_producer=_CHANGE, tracking_disable=True).write({'partner_id': producer.id})
             saved = [(line, line.quantity, line.picked) for line in pending]
             pending.write({'quantity': 0})
-            Move = self.env['stock.move'].with_company(self.company_id).with_context(_step_receipt_producer=_CHANGE)
+            Move = self.env['stock.move'].with_context(
+                clean_context(self.env.context), _step_receipt_producer=_CHANGE).with_company(self.company_id)
             changes = self.env['stock.move']
             for tag, product, lot, location, quantity, in_date in plans:
                 adjustment = product.with_company(self.company_id).property_stock_inventory
@@ -197,6 +204,7 @@ class ProducerChange(models.TransientModel):
                     move = Move.create({
                         'name': _('Cambio de productor %s') % tag.name, 'origin': receipt.name,
                         'company_id': self.company_id.id, 'product_id': product.id, 'product_uom': product.uom_id.id,
+                        'picking_id': False,
                         'product_uom_qty': quantity, 'location_id': src.id, 'location_dest_id': dst.id,
                         'state': 'confirmed', 'is_inventory': True, 'picked': True, 'restrict_partner_id': owner.id,
                         'step_producer_receipt_id': receipt.id, 'step_producer_tag_id': tag.id,
@@ -216,7 +224,7 @@ class ProducerChange(models.TransientModel):
                 if line.move_id.restrict_partner_id == self.previous_producer_id:
                     line.move_id.restrict_partner_id = False
                 line.write({'owner_id': producer.id, 'quantity': quantity, 'picked': picked})
-            if set(changes.mapped('state')) != {'done'} or changes.stock_valuation_layer_ids:
+            if set(changes.mapped('state')) != {'done'} or changes.picking_id or changes.stock_valuation_layer_ids:
                 raise ValidationError(_('El cambio de productor no debe modificar la valoración de la fruta de terceros.'))
             for tag in tags:
                 if tag.owner_id != producer or tag.step_producer_id != producer or tag.step_tag_line_ids.producer_id != producer:

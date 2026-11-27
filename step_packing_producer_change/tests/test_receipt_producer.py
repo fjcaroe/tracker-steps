@@ -40,6 +40,9 @@ class ReceiptProducerCase(SimpleReceptionCase):
         self.assertEqual(original.read(['owner_id', 'quantity', 'lot_id', 'result_package_id', 'location_dest_id']), history)
         self.assertEqual(len(self.received.step_producer_change_move_ids), 4)
         self.assertFalse(self.received.step_producer_change_move_ids.stock_valuation_layer_ids)
+        html, _ = self.env['ir.actions.report']._render_qweb_html(
+            'step_inventory_fruit_tag.action_report_fruit_tag', self.tags.ids)
+        self.assertIn(self.other.name, html.decode())
         self.wizard(producer=self.producer).action_apply()
         self.assertEqual(self.snapshot(), before)
         self.assertEqual(self.tags.owner_id, self.producer)
@@ -124,6 +127,7 @@ class ReceiptProducerCase(SimpleReceptionCase):
     def test_inventory_manager_can_apply_without_sudo(self):
         self.prepare()
         from odoo.tests.common import new_test_user
+        original_moves = self.received.move_ids
         manager = new_test_user(self.env(context=dict(self.env.context, no_reset_password=True)),
             login='qa246.manager', groups='stock.group_stock_manager',
             company_id=self.env.company.id, company_ids=[Command.set(self.env.company.ids)])
@@ -134,6 +138,8 @@ class ReceiptProducerCase(SimpleReceptionCase):
         wizard.action_apply()
         self.assertEqual(self.tags.owner_id, self.other)
         self.assertEqual(self.received.step_producer_change_move_ids.create_uid, manager)
+        self.assertEqual(self.received.move_ids, original_moves)
+        self.assertFalse(self.received.step_producer_change_move_ids.picking_id)
 
     def test_forms_both_entry_points(self):
         self.prepare()
