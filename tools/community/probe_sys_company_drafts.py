@@ -26,6 +26,7 @@ def summarize_rule_changes(stored, current):
 def probe(env, uid, selected=None, confirm=False, summary=False, components=False):
     cr = env.cr
     assert (re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname)
+            or (components and cr.dbname == 'COMMUNITY_SYS_PREVIRED_MODULES_20261127U44VA'))
     native = bool(env['ir.module.module'].sudo().search_count([('state','=','installed'),('license','=','OEEL-1')]))
     cr.execute("""
         WITH full_month AS (
