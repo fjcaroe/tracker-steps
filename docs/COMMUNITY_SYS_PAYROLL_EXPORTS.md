@@ -60,4 +60,12 @@ Los recibos contienen huellas de archivo completo, de filas y de cada columna.
 Los mensajes e identidades se compararon mediante HMAC con una clave privada
 compartida por los dos ensayos. La comparación integral tiene SHA-256
 `1b7d91c189eca56845d4a430fc2db4ab007a8c46e6dca1deecdf20e53a104328`.
-La instalación persistente del proveedor queda para la siguiente integración.
+
+En U42K se restauró nuevamente el respaldo original de SyS y se instaló el
+paquete privado `ce72ea6a0a40ec39a28004fccbbf4b465f04c47a2a0be7cfc6fd2959e6efa2b8`.
+La base registró el proveedor 18.0.1.5.1 entre 190 módulos instalados, ninguno
+con licencia Enterprise u OPL. Se volvieron a ejecutar los dos asistentes con
+los dos operadores en las doce empresas. Las 24 comparaciones de Previred y
+las 24 del Libro coincidieron con la copia nativa y los datos originales se
+conservaron. El recibo de esta instalación tiene SHA-256
+`614c3fae66e32ab975ac214fcd229451375f1f534bcbcf9b0204bdc6c4711c3c`.

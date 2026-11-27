@@ -7,7 +7,7 @@ from probe_sys_october_drafts import amounts, digest, prepare_draft, protect_exi
 
 
 def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, payment_reference=False,
-          reopen=False, individual_payment=False, frozen_reopen=False):
+          reopen=False, individual_payment=False, frozen_reopen=False, standalone=False, member_actions=False):
     cr = shell.cr
     if not __debug__ or not re.fullmatch(r'(?:MANAGEMENT_QA_SYS_PREVIRED_|COMMUNITY_SYS_PREVIRED_COHORT_)[A-Z0-9_]+', cr.dbname):
         raise RuntimeError('Use normal Python and a private SyS payroll restore.')
@@ -31,6 +31,30 @@ def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, 
         elif not portfolio:
             assert company == 37 and len(cases) == 5
         Run=scope.env['hr.payslip.run']
+        if standalone:
+            import base64
+            import csv
+            import hashlib
+            import io
+            source, employee, contract, structure, _ = cases[0]
+            _, slip, *_ = prepare_draft(scope, source, employee, contract, structure, 'stored_worked_days')
+            assert not slip.payslip_run_id
+            slip.number = 'STEP_SYS_WITHOUT_BATCH_' + uuid4().hex
+            slip.compute_sheet()
+            slip.with_context(without_compute_sheet=True).action_payslip_done()
+            assert slip.state == 'done' and not slip.payslip_run_id
+            progress['attempted'] = 'single_without_batch'
+            result = slip.action_payslip_payment_report()
+            scope.env.flush_all()
+            slip.invalidate_recordset()
+            raw = base64.b64decode(b''.join(slip.with_context(bin_size=False).payment_report.split()), validate=True)
+            header, row = csv.reader(io.StringIO(raw.decode()))
+            assert len(header) == len(row) == 6 and row[2] == slip.employee_id.name
+            return {'returned': result.get('type') if isinstance(result, dict) else type(result).__name__,
+                    'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(),
+                    'filename_is_slip': slip.payment_report_filename == slip.name + '.csv',
+                    'filename_is_number': slip.payment_report_filename == slip.number + '.csv',
+                    'has_date': bool(slip.payment_report_date)}
         original=Run.browse(cases[0][4])
         original.check_access('read')
         new={'name':'STEP_SYS_BATCH_'+uuid4().hex, 'date_start':original.date_start,'date_end':original.date_end,
@@ -84,6 +108,55 @@ def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, 
                 step=getattr(batch,action)()
             progress[action]={'result':step.get('type') if isinstance(step,dict) else type(step).__name__,
                               'wizard':step.get('res_model') if isinstance(step,dict) else None,**snapshot()}
+            if action == 'action_validate' and member_actions:
+                from odoo.exceptions import UserError
+                with cr.savepoint() as trial:
+                    first = slips[:1]
+                    button = getattr(first, 'action_register_payment', None)
+                    if button:
+                        try:
+                            with cr.savepoint():
+                                window = button()
+                        except UserError as exc:
+                            progress['register'] = {'error': type(exc).__name__}
+                        else:
+                            progress['register'] = {
+                                'result': window.get('type') if isinstance(window, dict) else type(window).__name__,
+                                'wizard': window.get('res_model') if isinstance(window, dict) else None}
+                    else:
+                        progress['register'] = {'missing': True}
+                    for label, func, selected in [('pay_first', 'action_payslip_paid', first),
+                                                  ('pay_rest', 'action_payslip_paid', slips - first),
+                                                  ('unpay_first', 'action_payslip_unpaid', first),
+                                                  ('unpay_rest', 'action_payslip_unpaid', slips - first)]:
+                        progress['attempted'] = label
+                        result = getattr(selected, func)()
+                        progress[label] = {'result': type(result).__name__, **snapshot()}
+                        if label == 'pay_first' and batch.state == 'close':
+                            import base64
+                            import csv
+                            import io
+                            with cr.savepoint() as mixed:
+                                try:
+                                    batch.action_payment_report()
+                                    scope.env.flush_all()
+                                    batch.invalidate_recordset()
+                                    blob = batch.with_context(bin_size=False).payment_report
+                                    data = base64.b64decode(b''.join(blob.split()), validate=True)
+                                    _, *rows = csv.reader(io.StringIO(data.decode()))
+                                    progress['mixed_report'] = {'rows': len(rows),
+                                        'includes_paid': first.employee_id.name in [r[2] for r in rows]}
+                                except UserError as exc:
+                                    progress['mixed_report'] = {'error': type(exc).__name__}
+                                mixed.rollback()
+                            with cr.savepoint() as mixed:
+                                batch.action_paid()
+                                progress['pay_mixed_batch'] = snapshot()
+                                first.action_payslip_unpaid()
+                                batch.action_unpaid()
+                                progress['unpay_mixed_batch'] = snapshot()
+                                mixed.rollback()
+                    trial.rollback()
             if action == 'action_validate' and individual_payment:
                 import base64
                 import hashlib
@@ -162,11 +235,15 @@ def probe(shell, company, uid, calculate=True, followup=False, portfolio=False, 
                         slips.ids.index(employees[row[2]].id) if row[2] in employees else None for row in rows]
                     if 'payment_report' in slips._fields:
                         slips.invalidate_recordset(['payment_report'])
-                        member_files = [d.with_context(bin_size=False).payment_report for d in slips]
+                        member_files = [
+                            base64.b64decode(b''.join(d.with_context(bin_size=False).payment_report.split()), validate=True)
+                            if d.with_context(bin_size=False).payment_report else b'' for d in slips]
                         progress[action]['slip_files'] = [bool(blob) for blob in member_files]
-                        progress[action]['member_reports_match_batch'] = [
-                            bool(blob) and base64.b64decode(b''.join(blob.split()), validate=True) == contents
-                            for blob in member_files]
+                        progress[action]['member_reports_match_batch'] = [blob == contents for blob in member_files]
+                        by_employee = {r[2]: r for r in rows}
+                        progress[action]['member_reports_only_own_row'] = [
+                            list(csv.reader(io.StringIO(blob.decode()))) == [header, by_employee[d.employee_id.name]]
+                            for d, blob in zip(slips, member_files)]
                         progress[action]['member_filenames_match'] = [
                             d.payment_report_filename == batch.payment_report_filename for d in slips]
                 if action == 'action_open_payslips':
