@@ -7,12 +7,23 @@ from pathlib import Path
 from compare_sys_company_drafts import compare
 
 
-def classify(native, community):
-    companies = compare(native, community, require_review_policy=True)
+def classify(native, community, baseline_native, baseline_community):
+    companies = compare(baseline_native, baseline_community, accounting=True, require_review_policy=True)
     combined = sum(companies.values(), Counter())
     if (len(companies), combined["selected"], combined["same_calculation"], combined["both_rejected"],
         combined["matches_closed"], combined["matching_lines"]) != (12, 133, 130, 3, 97, 2098):
         raise ValueError("The original full-month payroll comparison did not reproduce")
+    for recent, baseline in ((native, baseline_native), (community, baseline_community)):
+        expected = {r["source"]: r for r in baseline["samples"] if "draft" in r and not r["equals_stored"]}
+        current = {r["source"]: r for r in recent["samples"]}
+        if len(expected) != 33 or current.keys() != expected.keys() or len(recent["samples"]) != 33:
+            raise ValueError("The new drafts must cover precisely the original 33 differences")
+        if recent["uid"] != baseline["uid"] or recent["native"] != baseline["native"]:
+            raise ValueError("The operator or engine does not match the original comparison")
+        for pk in expected:
+            for field in ("company", "period", "source", "draft", "stored", "lines", "equals_stored"):
+                if current[pk].get(field) != expected[pk][field]:
+                    raise ValueError("A fresh draft differs from its original source or computation fingerprint")
     peer = {r["source"]: r for r in community["samples"]}
     groups = Counter()
     code_totals = Counter()
@@ -38,7 +49,8 @@ def classify(native, community):
             groups["only_other_rules_changed"] += 1
     if sum(groups.values()) != 33:
         raise ValueError("Unexpected number of historical differences")
-    return {"closed_unchanged": 97, "both_engines_rejected_at_contract_review": 3, "calculated_identically": 130,
+    return {"baseline_equal_to_closed": 97, "baseline_rejected_at_contract_review": 3, "baseline_calculated_identically": 130,
+            "fresh_drafts_per_engine": 33,
             "historical_differences": 33, "by_impact": {k: groups[k] for k in ("summary_totals_changed",
                 "summary_rows_changed_with_equal_totals", "only_other_rules_changed")},
             "individual_total_differences": {code: code_totals[code] for code in ("BASIC", "GROSS", "NET")}}
@@ -48,5 +60,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("native", type=Path)
     parser.add_argument("community", type=Path)
+    parser.add_argument("baseline_native", type=Path)
+    parser.add_argument("baseline_community", type=Path)
     args = parser.parse_args()
-    print(json.dumps(classify(json.loads(args.native.read_bytes()), json.loads(args.community.read_bytes())), sort_keys=True))
+    print(json.dumps(classify(*(json.loads(f.read_bytes()) for f in (args.native, args.community,
+                          args.baseline_native, args.baseline_community))), sort_keys=True))
