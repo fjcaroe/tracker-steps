@@ -50,3 +50,22 @@ def restricted_attachment(env, actor):
         return {"restricted_pdf_sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw),
                 "payroll_reader": actor.id, "different_company_denied": True, "public_denied": True}
     raise AssertionError("no authorized original payslip with an excluded company context")
+
+
+def original_library_payslip(env, actor, expected):
+    slip_id, document_id, attachment_id, size, checksum = expected
+    env.cr.execute("SELECT company_id FROM hr_payslip WHERE id=%s", [slip_id])
+    company, = env.cr.fetchone()
+    scope = env(user=actor.id, su=False, context={"allowed_company_ids":[company], "bin_size":False})
+    slip = scope["hr.payslip"].browse(slip_id)
+    doc = scope["documents.document"].browse(document_id)
+    attachment = scope["ir.attachment"].browse(attachment_id)
+    slip.check_access("read")
+    doc.check_access("read")
+    attachment.check("read")
+    assert not scope.su and doc.folder_id and doc.attachment_id == attachment and attachment.res_id == slip.id
+    assert attachment.res_model == doc.res_model == "hr.payslip" and doc.res_id == slip.id
+    assert doc.action_open()["url"] == "/web/content/%d?download=true" % attachment.id
+    raw = attachment.raw
+    assert raw.startswith(b"%PDF-") and len(raw) == size and hashlib.sha256(raw).hexdigest() == checksum
+    return {"bytes":size, "sha256":checksum, "same_document_and_payslip":True, "ordinary_manager":actor.id}

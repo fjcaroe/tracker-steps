@@ -118,10 +118,11 @@ def freeze():
     restore_files(OUT / "data", FG, sealed, prepare_runtime=True)
     verify_same(frozen, full_snapshot(FG))
     hidden = [core, FG_RUNTIME / "data", AUX / "documents/addons", *(FG_RUNTIME / name for name in ("profile","pinned","employee-profile"))]
-    first = open_as_user(OUT, FG, service, 1, hidden)
+    expected_document = [accepted["document"][k] for k in ("payslip", "document", "attachment", "bytes", "same_pdf_sha256")]
+    first = open_as_user(OUT, FG, service, 1, hidden, expected_document)
     require(first["active"] == 192 and first["source_directories_hidden"] and first["read_only"], "cold-capsule-registry-drift")
     verify_same(frozen, full_snapshot(FG))
-    require(first == open_as_user(OUT, FG, service, 2, hidden), "cold-capsule-reboot-differs")
+    require(first == open_as_user(OUT, FG, service, 2, hidden, expected_document), "cold-capsule-reboot-differs")
     verify_same(frozen, full_snapshot(FG))
     last = checkpoint(FG, "freeze_verified_product", "after")
     reports["final-schema.json"] = FG_RUNTIME / "catalogue" / last

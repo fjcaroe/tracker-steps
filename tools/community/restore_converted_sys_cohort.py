@@ -165,7 +165,7 @@ def package(args, out, source_db, modules, effective_providers=None):
             shutil.rmtree(temporary)
 
 
-def open_as_user(out, db, service, boot, hidden_sources):
+def open_as_user(out, db, service, boot, hidden_sources, expected_document=None):
     core = out / "sealed/runtime"
     scratch = out / "data/tmp"
     scratch.mkdir(mode=0o700, exist_ok=True)
@@ -210,6 +210,8 @@ else:
     actor=env['res.users'].browse(6)
     assert actor.exists() and actor.active and not actor.share and actor.has_group('payroll.group_payroll_manager')
     extra={'payroll_pdf':restricted_attachment(env,actor)}
+    if expected_document is not None:
+        extra['original_library_payslip'] = original_library_payslip(env, actor, expected_document)
 scope=env(user=actor.id,su=False,context={'allowed_company_ids':actor.company_ids.filtered('active').ids,'bin_size':False})
 attachments=scope['ir.attachment'].search([('res_model','in',['res.company','ir.ui.menu','ir.ui.view']),
             ('res_field','not ilike','sign'),('store_fname','!=',False),('file_size','>',0),
@@ -231,7 +233,7 @@ env.cr.rollback()
     if steps:
         probes = ["probe_steps_crm_pipeline.py", "probe_converted_steps_access.py"]
     role_probe = "\n".join(Path(__file__).with_name(name).read_text() for name in probes)
-    code = role_probe + "\n" + f"is_cerro={cerro!r}\nis_steps={steps!r}\nexpected_db={db!r}\nexpected_core={str(core)!r}\nexpected_hidden={list(map(str, hidden_sources))!r}\n" + probe
+    code = role_probe + "\n" + f"expected_document={expected_document!r}\nis_cerro={cerro!r}\nis_steps={steps!r}\nexpected_db={db!r}\nexpected_core={str(core)!r}\nexpected_hidden={list(map(str, hidden_sources))!r}\n" + probe
     with (out / f"orm-{boot}.log").open("wb") as handle:
         run = subprocess.run(args, input=code.encode(), stdout=handle, stderr=handle)
     require(run.returncode == 0, "restored-official-orm-probe-failed")
